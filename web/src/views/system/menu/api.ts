@@ -5,9 +5,16 @@ export const apiPrefix = '/api/system/menu/';
 
 export function GetList(query: UserPageQuery) {
   return request({
-    url: apiPrefix,
+    url: apiPrefix+"tree/",
     method: 'get',
     params: query,
+  });
+}
+
+export function GetChildren(id: InfoReq) {
+  return request({
+    url: apiPrefix + id + '/getChildren/',
+    method: 'get',
   });
 }
 

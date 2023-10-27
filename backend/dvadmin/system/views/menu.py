@@ -11,7 +11,7 @@ from rest_framework.decorators import action
 
 from dvadmin.system.models import Menu, RoleMenuPermission
 from dvadmin.system.views.menu_button import MenuButtonSerializer
-from dvadmin.utils.json_response import SuccessResponse, ErrorResponse
+from dvadmin.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
 
@@ -21,7 +21,7 @@ class MenuSerializer(CustomModelSerializer):
     菜单表的简单序列化器
     """
     menuPermission = serializers.SerializerMethodField(read_only=True)
-    hasChild = serializers.SerializerMethodField()
+    hasChildren = serializers.SerializerMethodField()
 
     def get_menuPermission(self, instance):
         queryset = instance.menuPermission.order_by('-name').values('id', 'name', 'value')
@@ -31,7 +31,7 @@ class MenuSerializer(CustomModelSerializer):
         else:
             return None
 
-    def get_hasChild(self, instance):
+    def get_hasChildren(self, instance):
         hasChild = Menu.objects.filter(parent=instance.id)
         if hasChild:
             return True
@@ -71,7 +71,7 @@ class WebRouterSerializer(CustomModelSerializer):
     class Meta:
         model = Menu
         fields = (
-            'id', 'parent', 'icon', 'sort', 'path', 'name', 'title', 'is_link', 'is_catalog', 'web_path', 'component',
+            'id', 'parent', 'icon', 'sort', 'path', 'name', 'title', 'is_link', 'menu_type', 'web_path', 'component',
             'component_name', 'cache', 'visible', 'status')
         read_only_fields = ["id"]
 
@@ -90,37 +90,31 @@ class MenuViewSet(CustomModelViewSet):
     create_serializer_class = MenuCreateSerializer
     update_serializer_class = MenuCreateSerializer
     search_fields = ['name', 'status']
-    filter_fields = ['parent', 'name', 'status', 'is_link', 'visible', 'cache', 'is_catalog']
+    filter_fields = ['parent', 'name', 'status', 'is_link', 'visible', 'cache', 'menu_type']
 
-    def list(self, request):
+    @action(methods=['get'], detail=False)
+    def tree(self, request):
         """懒加载"""
-        request.query_params._mutable = True
         params = request.query_params
-        parent = params.get('parent', None)
-        page = params.get('page', None)
-        limit = params.get('limit', None)
-        if page:
-            del params['page']
-        if limit:
-            del params['limit']
-        if params:
-            if parent:
-                queryset = self.queryset.filter(parent=parent)
-            else:
-                queryset = self.queryset.filter()
-        else:
-            queryset = self.queryset.filter(parent__isnull=True)
-        queryset = self.filter_queryset(queryset)
+        menu_type = params.get('menu_type', 0)
+        queryset = Menu.objects.filter(menu_type=menu_type).order_by('sort')
         serializer = MenuSerializer(queryset, many=True, request=request)
         data = serializer.data
-        return SuccessResponse(data=data)
+        return DetailResponse(data=data)
+
+    @action(methods=['get'], detail=True)
+    def getChildren(self,request,pk):
+        queryset = Menu.objects.filter(parent=pk)
+        serializer = MenuSerializer(queryset, many=True, request=request)
+        data = serializer.data
+        return DetailResponse(data=data)
 
     @action(methods=['GET'], detail=False, permission_classes=[])
     def web_router(self, request):
         """用于前端获取当前角色的路由"""
         user = request.user
         is_admin = user.role.values_list('admin', flat=True)
-        if user.is_superuser or True in is_admin:
+        if user.is_superuser:
             queryset = self.queryset.filter(status=1)
         else:
             role_list = user.role.values_list('id', flat=True)

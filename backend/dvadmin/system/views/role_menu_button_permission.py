@@ -100,7 +100,7 @@ class RoleMenuPermissionSerializer(CustomModelSerializer):
 
     def get_columns(self, instance):
         params = self.request.query_params
-        col_list = Columns.objects.filter(role__id=params.get('role'),menu__id=instance['id'])
+        col_list = Columns.objects.filter(role__id=params.get('role'))
         serializer = RoleColumnsSerializer(col_list,many=True,request=self.request)
         return serializer.data
 

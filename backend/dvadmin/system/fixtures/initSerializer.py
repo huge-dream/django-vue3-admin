@@ -112,7 +112,7 @@ class MenuInitSerializer(CustomModelSerializer):
 
     class Meta:
         model = Menu
-        fields = ['name', 'icon', 'sort', 'is_link', 'is_catalog', 'web_path', 'component', 'component_name', 'status',
+        fields = ['name', 'icon', 'sort', 'is_link', 'menu_type', 'web_path', 'component', 'component_name', 'status',
                   'cache', 'visible', 'parent', 'children', 'menu_button', 'creator', 'dept_belong_id']
         extra_kwargs = {
             'creator': {'write_only': True},

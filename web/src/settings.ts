@@ -9,7 +9,7 @@ import { request } from '/@/utils/service';
 //扩展包
 import { FsExtendsEditor,FsExtendsUploader } from '@fast-crud/fast-extends';
 import '@fast-crud/fast-extends/dist/style.css';
-import { successMessage, successNotification } from '/@/utils/message';
+import { ElMessage } from "element-plus";
 export default {
 	async install(app: any, options: any) {
 		// 先安装ui
@@ -18,9 +18,9 @@ export default {
 		app.use(FastCrud, {
 			//i18n, //i18n配置，可选，默认使用中文，具体用法请看demo里的 src/i18n/index.js 文件
 			// 此处配置公共的dictRequest（字典请求）
-			async dictRequest({ dict }: any) {
+			async dictRequest({ url }: any) {
 				//根据dict的url，异步返回一个字典数组
-				return await request({ url: dict.url, params: dict.params || {} }).then((res:any)=>{
+				return await request({ url: url, }).then((res:any)=>{
 					return res.data
 				});
 			},
@@ -41,14 +41,21 @@ export default {
 						transformRes: ({ res }: any) => {
 							//将pageRequest的返回数据，转换为fast-crud所需要的格式
 							//return {records,currentPage,pageSize,total};
-							return { records: res.data, currentPage: res.page, pageSize: res.limit, total: res.total };
+							if(res.page){
+								return { records: res.data, currentPage: res.page, pageSize: res.limit, total: res.total };
+							}else{
+								return { records: res.data,currentPage: 1, pageSize: res.data.length, total: res.data.length };
+							}
+
 						},
 					},
 					form: {
-						afterSubmit(ctx: any) {
-							// 增加crud提示
-							if (ctx.res.code == 2000) {
-								successNotification(ctx.res.msg);
+						afterSubmit(ctx:any ) {
+							const {mode} = ctx
+							if (mode === "add") {
+								ElMessage.success({ message: "添加成功" });
+							} else if (mode === "edit") {
+								ElMessage.success({ message: "保存成功" });
 							}
 						},
 					},
@@ -100,10 +107,12 @@ export default {
 					});
 				},
 				successHandle(ret) {
+					console.log(111,ret)
 					// 上传完成后的结果处理， 此处应返回格式为{url:xxx,key:xxx}
 					return {
-						url: getBaseURL() + ret.data.url,
-						key: ret.data.id
+						url:  ret.data.url,
+						key: ret.data.id,
+						...ret.data
 					};
 				}
 			}

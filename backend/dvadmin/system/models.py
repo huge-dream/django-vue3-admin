@@ -156,22 +156,24 @@ class Menu(CoreModel):
         help_text="上级菜单",
     )
     icon = models.CharField(max_length=64, verbose_name="菜单图标", null=True, blank=True, help_text="菜单图标")
-    name = models.CharField(max_length=64, verbose_name="菜单名称", help_text="菜单名称")
+    name = models.CharField(max_length=64, verbose_name="目录名称/菜单名称/按钮名称", help_text="目录名称/菜单名称/按钮名称")
     sort = models.IntegerField(default=1, verbose_name="显示排序", null=True, blank=True, help_text="显示排序")
-    ISLINK_CHOICES = (
-        (0, "否"),
-        (1, "是"),
-    )
     is_link = models.BooleanField(default=False, verbose_name="是否外链", help_text="是否外链")
-    is_catalog = models.BooleanField(default=False, verbose_name="是否目录", help_text="是否目录")
+    MENU_TYPE_CHOICES =(
+        (0, "目录"),
+        (1, "菜单"),
+        (2, "按钮"),
+    )
+    menu_type = models.IntegerField(default=0, verbose_name="菜单类型", help_text="菜单类型")
     web_path = models.CharField(max_length=128, verbose_name="路由地址", null=True, blank=True, help_text="路由地址")
-    component = models.CharField(max_length=128, verbose_name="组件地址", null=True, blank=True, help_text="组件地址")
+    component = models.CharField(max_length=200, verbose_name="组件地址/按钮权限值",  null=True, blank=True, help_text="组件地址/按钮权限值")
     component_name = models.CharField(max_length=50, verbose_name="组件名称", null=True, blank=True,
                                       help_text="组件名称")
     status = models.BooleanField(default=True, blank=True, verbose_name="菜单状态", help_text="菜单状态")
     cache = models.BooleanField(default=False, blank=True, verbose_name="是否页面缓存", help_text="是否页面缓存")
     visible = models.BooleanField(default=True, blank=True, verbose_name="侧边栏中是否显示",
                                   help_text="侧边栏中是否显示")
+    frame_out = models.BooleanField(default=False, blank=True, verbose_name="是否主框架外", help_text="是否主框架外")
 
     class Meta:
         db_table = table_prefix + "system_menu"
@@ -184,7 +186,6 @@ class Columns(CoreModel):
     role = models.ForeignKey(to='Role', on_delete=models.CASCADE, verbose_name='角色', db_constraint=False)
     app = models.CharField(max_length=64, verbose_name='应用名')
     model = models.CharField(max_length=64, verbose_name='表名')
-    menu = models.ForeignKey(to='Menu', on_delete=models.CASCADE, verbose_name='菜单', db_constraint=False)
     field_name = models.CharField(max_length=64, verbose_name='模型表字段名')
     title = models.CharField(max_length=64, verbose_name='字段显示名')
     is_query = models.BooleanField(default=1, verbose_name='是否可查询')
@@ -457,7 +458,7 @@ class SystemConfig(CoreModel):
         help_text="父级",
     )
     title = models.CharField(max_length=50, verbose_name="标题", help_text="标题")
-    key = models.CharField(max_length=20, verbose_name="键", help_text="键", db_index=True)
+    key = models.CharField(max_length=50, verbose_name="键", help_text="键", db_index=True)
     value = models.JSONField(max_length=100, verbose_name="值", help_text="值", null=True, blank=True)
     sort = models.IntegerField(default=0, verbose_name="排序", help_text="排序", blank=True)
     status = models.BooleanField(default=True, verbose_name="启用状态", help_text="启用状态")

@@ -32,10 +32,9 @@ class ColumnViewSet(CustomModelViewSet):
         role_id = request.query_params.get('role')
         app_name = request.query_params.get('app')
         model_name = request.query_params.get('model')
-        menu = request.query_params.get('menu')
-        if not role_id or not model_name or not app_name or not menu:
+        if not role_id or not model_name or not app_name:
             return SuccessResponse([])
-        queryset = self.filter_queryset(self.get_queryset().filter(role_id=role_id, model=model_name, app=app_name,menu_id=menu))
+        queryset = self.filter_queryset(self.get_queryset().filter(role_id=role_id, model=model_name, app=app_name))
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True, request=request)
