@@ -11,6 +11,7 @@ export const createCrudOptions = function ({ crudExpose,propsContext }: CreateCr
 	};
 	const editRequest = async ({ form, row }: EditReq) => {
 		form.id = row.id;
+		form.role = row.role;
 		return await api.UpdateObj(form);
 	};
 	const delRequest = async ({ row }: DelReq) => {
@@ -187,6 +188,9 @@ export const createCrudOptions = function ({ crudExpose,propsContext }: CreateCr
 					title:'数据权限部门',
 					column:{
 						minWidth:120,
+						cellRender(scope){
+							return <div>{scope.row.dept_name}</div>
+						}
 					},
 					form:{
 						show: compute(({form})=>{

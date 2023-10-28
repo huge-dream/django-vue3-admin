@@ -4,7 +4,7 @@
 @author: 猿小天
 @contact: QQ:1638245306
 @Created on: 2021/6/3 003 0:30
-@Remark: 菜单按钮管理
+@Remark: 接口权限管理
 """
 from django.db.models import F, Subquery, OuterRef, Exists
 from rest_framework import serializers
@@ -20,8 +20,14 @@ from dvadmin.utils.viewset import CustomModelViewSet
 
 class RoleApiPermissionSerializer(CustomModelSerializer):
     """
-    菜单按钮-序列化器
+    接口权限-序列化器
     """
+    dept_name = serializers.SerializerMethodField(help_text="部门名称")
+
+    def get_dept_name(self, instance):
+        dept_name_list = instance.dept.values_list("name",flat=True)
+        return  ",".join(dept_name_list)
+    
     class Meta:
         model = RoleApiPermission
         fields = "__all__"
@@ -31,7 +37,7 @@ class RoleApiPermissionSerializer(CustomModelSerializer):
 
 class RoleApiPermissionCreateUpdateSerializer(CustomModelSerializer):
     """
-    初始化菜单按钮-序列化器
+    初始化接口权限-序列化器
     """
     menu_button__name = serializers.CharField(source='menu_button.name', read_only=True)
     menu_button__value = serializers.CharField(source='menu_button.value', read_only=True)
@@ -112,7 +118,7 @@ class RoleMenuPermissionSerializer(CustomModelSerializer):
 
 class RoleApiPermissionViewSet(CustomModelViewSet):
     """
-    菜单按钮接口
+    接口权限接口
     list:查询
     create:新增
     update:修改
