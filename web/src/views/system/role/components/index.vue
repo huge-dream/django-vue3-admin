@@ -8,110 +8,26 @@
             <el-tag>{{ props.roleName }}</el-tag>
           </div>
         </el-col>
-        <el-col :span="6" :offset="8">
-          <div>
-            <el-button size="small" type="primary" class="pc-save-btn" @click="handleSavePermission">保存菜单授权
-            </el-button>
-          </div>
-        </el-col>
       </el-row>
     </template>
-    <div class="permission-com">
-      <el-collapse v-model="collapseCurrent" @change="handleCollapseChange" accordion>
-        <el-collapse-item v-for="(item,mIndex) in menuData" :key="mIndex" :name="mIndex">
-          <template #title>
-            <div @click.stop="null">
-              <p class="pc-collapse-title">
-                <el-checkbox v-model="item.isCheck">
-                  <span>{{ item.name }}</span>
-                </el-checkbox>
-              </p>
-              <div v-show="!collapseCurrent.includes(mIndex)">
-                <el-checkbox v-for="btn in item.btns" :key="btn.value" :label="btn.value" v-model="btn.isCheck">
-                  {{ btn.name }}
-                </el-checkbox>
-              </div>
-            </div>
-          </template>
-          <div class="pc-collapse-main">
-            <div class="pccm-item">
-              <p>允许对这些数据有以下操作</p>
-              <el-checkbox v-for="(btn,bIndex) in item.btns" :key="bIndex" v-model="btn.isCheck" :label="btn.value">
-                <div class="btn-item">
-                  {{ btn.data_range!==null ? `${btn.name}(${formatDataRange(btn.data_range)})` : btn.name }}
-                  <span v-show="btn.isCheck" @click.stop.prevent="handleSettingClick(item, btn.id)">
-                    <el-icon><Setting/></el-icon>
-                  </span>
-                </div>
-              </el-checkbox>
-            </div>
-
-            <div class="pccm-item">
-              <p>对这些数据有以下字段权限</p>
-
-              <ul  class="columns-list">
-                <li class="columns-head">
-                  <div class="width-txt">
-                    <span>字段</span>
-                  </div>
-
-                  <div v-for="(head,hIndex) in column.header" :key="hIndex" class="width-check">
-                    <el-checkbox :label="head.value" @change="handleColumnChange($event, item, head.value)">
-                      <span>{{head.label}}</span>
-                    </el-checkbox>
-                  </div>
-                </li>
-
-                <li v-for="(c_item, c_index) in item.columns" :key="c_index" class="columns-item">
-                  <div class="width-txt">{{ c_item.title }}</div>
-                  <div v-for="(col,cIndex) in column.header" :key="cIndex" class="width-check">
-                    <el-checkbox v-model="c_item[col.value]" class="ci-checkout"></el-checkbox>
-                  </div>
-                </li>
-              </ul>
-            </div>
-          </div>
-        </el-collapse-item>
-      </el-collapse>
-
-      <el-dialog v-model="dialogVisible" title="数据权限配置" width="400px" :close-on-click-modal="false"
-                 :before-close="handleDialogClose">
-        <div class="pc-dialog">
-          <el-select v-model="dataPermission" @change="handlePermissionRangeChange" class="dialog-select"
-                     placeholder="请选择">
-            <el-option v-for="item in dataPermissionRange" :key="item.value" :label="item.label" :value="item.value"/>
-          </el-select>
-          <el-tree-select
-              v-show="dataPermission === 4"
-              node-key="id"
-              v-model="customDataPermission"
-              :props="defaultTreeProps"
-              :data="deptData"
-              multiple
-              check-strictly
-              :render-after-expand="false"
-              show-checkbox
-              class="dialog-tree"
-          />
-        </div>
-        <template #footer>
-          <div>
-            <el-button type="primary" @click="handleDialogConfirm"> 确定</el-button>
-            <el-button @click="handleDialogClose"> 取消</el-button>
-          </div>
-        </template>
-      </el-dialog>
-    </div>
+   <div>
+     <el-tabs type="border-card">
+       <el-tab-pane label="菜单/按钮授权">
+         <MenuPermission ref="menuPermissionRef" :role-id="props.roleId" @handleDrawerClose="handleDrawerClose"></MenuPermission>
+       </el-tab-pane>
+       <el-tab-pane label="请求接口授权"></el-tab-pane>
+       <el-tab-pane label="接口权限">角色管理</el-tab-pane>
+     </el-tabs>
+   </div>
   </el-drawer>
 </template>
 
 <script setup lang="ts">
-import {ref, onMounted, defineProps, watch, computed, reactive} from 'vue';
+import {ref, onMounted, defineProps, watch, computed, reactive,nextTick} from 'vue';
 import XEUtils from 'xe-utils';
 import {errorNotification} from '/@/utils/message';
-import {getDataPermissionRange, getDataPermissionDept, getRolePremission, setRolePremission,setBtnDatarange} from './api';
-import {MenuDataType, DataPermissionRangeType, CustomDataPermissionDeptType} from './types';
 import {ElMessage} from 'element-plus'
+import MenuPermission from "./MenuPermission/index.vue";
 
 const props = defineProps({
   roleId: {
@@ -128,14 +44,17 @@ const props = defineProps({
   }
 })
 const emit = defineEmits(['update:drawerVisible'])
-
+const menuPermissionRef = ref()
 const drawerVisible = ref(false)
 watch(
     () => props.drawerVisible,
     (val) => {
       drawerVisible.value = val;
-      getMenuBtnPermission()
-      fetchData()
+      nextTick(()=>{
+        console.log(menuPermissionRef)
+        menuPermissionRef.value.getMenuPremissionTreeData()
+      })
+      // fetchData()
     }
 );
 const handleDrawerClose = () => {
@@ -149,7 +68,7 @@ const defaultTreeProps = {
   value: 'id',
 };
 
-let menuData = ref<MenuDataType[]>([]);
+
 let collapseCurrent = ref(['1']);
 let menuCurrent = ref<Partial<MenuDataType>>({});
 let menuBtnCurrent = ref<number>(-1);
@@ -164,10 +83,52 @@ const formatDataRange = computed(() => {
 let deptData = ref<CustomDataPermissionDeptType[]>([]);
 let dataPermission = ref();
 let customDataPermission = ref([]);
-//获取菜单,按钮,权限
-const getMenuBtnPermission = async () => {
-  const resMenu = await getRolePremission({role: props.roleId})
-  menuData.value = resMenu.data
+//获取菜单/按钮权限
+const permissionTreeRef = ref();
+let menuPermissionTreeData = ref<MenuDataType[]>([]);
+const getMenuPremissionTreeData = async () => {
+  const resMenu = await getMenuPremissionTree({role: props.roleId})
+  menuPermissionTreeData.value = resMenu
+  nextTick(() => {
+    updateChecked(props.roleId);
+  });
+}
+
+// 如果勾选节点中存在非叶子节点，tree组件会将其所有子节点全部勾选
+// 所以要找出所有叶子节点，仅勾选叶子节点，tree组件会将父节点同步勾选
+function getAllCheckedLeafNodeId(tree, checkedIds, temp) {
+  for (let i = 0; i < tree.length; i++) {
+    const item = tree[i];
+    if (item.children && item.children.length !== 0) {
+      getAllCheckedLeafNodeId(item.children, checkedIds, temp);
+    } else {
+      if (checkedIds.indexOf(item.id) !== -1) {
+        temp.push(item.id);
+      }
+    }
+  }
+  return temp;
+}
+async function updateChecked(roleId:string|number) {
+  let checkedIds = await getMenuPremissionChecked({role: roleId});
+  // 找出所有的叶子节点
+  checkedIds = getAllCheckedLeafNodeId(menuPermissionTreeData.value, checkedIds, []);
+  permissionTreeRef.value.setCheckedKeys(checkedIds);
+}
+
+/**
+ * 更新菜单权限
+ */
+async function updatePermission() {
+  const roleId = props.roleId;
+  const { checked, halfChecked } = permissionTreeRef.value.getChecked();
+  const allChecked = [...checked, ...halfChecked];
+  const menuIds = allChecked.filter(item=>item !== -1)
+  await saveMenuPremission({role: roleId, menu: menuIds})
+  handleDrawerClose();
+  //await updateChecked(roleId);
+
+  ElMessage.success("授权成功");
 }
 
 const fetchData = async () => {

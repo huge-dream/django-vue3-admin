@@ -6,8 +6,6 @@
 			</template>
 		</fs-crud>
 
-		<permission ref="rolePermission"></permission>
-
 		<PermissionComNew v-model:drawerVisible="drawerVisible" :roleId="roleId" :roleName="roleName" @drawerClose="handleDrawerClose" />
 	</fs-page>
 </template>
@@ -19,7 +17,7 @@ import { GetPermission } from './api';
 import { useExpose, useCrud } from '@fast-crud/fast-crud';
 import { createCrudOptions } from './crud';
 import permission from './components/PermissionCom/index.vue';
-import PermissionComNew from './components/PermissionComNew/index.vue';
+import PermissionComNew from './components/index.vue';
 
 let drawerVisible = ref(false);
 let roleId = ref(null);
@@ -67,5 +65,4 @@ onMounted(async () => {
 	crudExpose.doRefresh();
 });
 
-defineExpose(rolePermission);
 </script>

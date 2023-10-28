@@ -58,8 +58,38 @@ class RoleMenuPermissionViewSet(CustomModelViewSet):
     update_serializer_class = RoleMenuPermissionCreateUpdateSerializer
     extra_filter_class = []
 
+    @action(methods=['get'],detail=False)
+    def menu_permission_tree(self,request):
+        """
+        获取菜单按钮树
+        """
+        # params = request.query_params
+        # role_id = params.get('role',None)
+        # if role_id is None:
+        #     return ErrorResponse(msg="未获取到角色")
+        if request.user.is_superuser:
+            queryset = Menu.objects.filter(status=1).values("id", "name", "parent_id")
+        else:
+            role_id = request.user.role.values_list('id', flat=True)
+            menu_list = RoleMenuPermission.objects.filter(role__in=role_id).values_list('menu_id', flat=True)
+            queryset = Menu.objects.filter(status=1, id__in=menu_list).values('id','name', "parent_id").all()
+        return DetailResponse(data=queryset)
+
+    @action(methods=['get'],detail=False)
+    def get_menu_permission_checked(self,request):
+        """
+        获取已授权的菜单
+        """
+        params = request.query_params
+        role_id = params.get('role',None)
+        if role_id is None:
+            return ErrorResponse(msg="未获取到角色")
+        menu_list = RoleMenuPermission.objects.filter(role__in=role_id).values_list('menu_id', flat=True)
+        queryset = Menu.objects.filter(status=1, id__in=menu_list).values_list('id',flat=True)
+        return DetailResponse(data=queryset)
+
     @action(methods=['post'],detail=False)
-    def save_auth(self,request):
+    def save_menu_permission(self,request):
         """
         保存页面菜单授权
         :param request:

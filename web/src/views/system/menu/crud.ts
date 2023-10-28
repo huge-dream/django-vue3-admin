@@ -3,7 +3,7 @@ import { CreateCrudOptionsProps, CreateCrudOptionsRet, dict, useCompute } from '
 const { compute } = useCompute();
 import { shallowRef } from "vue";
 import IconSelector from "/@/components/IconSelector/index.vue"
-export default function ({ crudExpose, onAddCatalog, onAddChildren, onAddButton }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+export default function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
 	const pageRequest = async (query) => {
 		return await api.GetList(query);
 	};
@@ -24,7 +24,11 @@ export default function ({ crudExpose, onAddCatalog, onAddChildren, onAddButton 
 	};
 
 	const addRequest = async (context:any) => {
-		return await api.AddObj(context.form);
+		const {form} = context;
+		if(form.web_path===undefined||form.web_path===null){
+			form.web_path='/'
+		}
+		return await api.AddObj(form);
 	};
 
 	//刷新父节点状态
@@ -148,7 +152,7 @@ export default function ({ crudExpose, onAddCatalog, onAddChildren, onAddButton 
 						value:0,
 						valueChange({ form, value, getComponentRef }) {
 							if (value) {
-								getComponentRef("parent").reloadDict(); // 执行city的select组件的reloadDict()方法，触发“city”重新加载字典
+								getComponentRef("parent")?.reloadDict(); // 执行city的select组件的reloadDict()方法，触发“city”重新加载字典
 							}
 						}
 					},
@@ -256,7 +260,9 @@ export default function ({ crudExpose, onAddCatalog, onAddChildren, onAddButton 
 					},
 				},
 				component: {
-					title: '组件地址',
+					title: compute(({ form }) => {
+						return form.menu_type === 1 ? '组件地址' : '按钮权限值';
+					}),
 					form: {
 						show: compute(({ form }) => {
 							return [1,2].includes(form.menu_type)

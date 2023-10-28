@@ -1,17 +1,48 @@
 import { request } from "/@/utils/service";
-
+import XEUtils from 'xe-utils';
 /**
- * 获取角色的授权列表
+ * 获取菜单树
  * @param roleId
  * @param query
  */
-export function getRolePremission(query:object) {
+export function getMenuPremissionTree(query:object) {
   return request({
-    url: '/api/system/role_menu_button_permission/get_role_premission/',
+    url: '/api/system/role_menu_permission/menu_permission_tree/',
     method: 'get',
     params:query
+  }).then((res:any)=>{
+    return  XEUtils.toArrayTree(res.data,{ parentKey: 'parent_id', key: 'id', children: 'children',})
   })
 }
+
+/**
+ * 获取已授权的菜单
+ * @param query
+ */
+export function getMenuPremissionChecked(query:object) {
+  return request({
+    url: '/api/system/role_menu_permission/get_menu_permission_checked/',
+    method: 'get',
+    params:query
+  }).then((res:any)=>{
+    return res.data
+  })
+}
+
+
+/**
+ * 保存菜单权限
+ */
+export function saveMenuPremission(data:object) {
+  return request({
+    url:'/api/system/role_menu_permission/save_menu_permission/',
+    method:'post',
+    data
+  })
+}
+
+
+
 
 /***
  * 设置角色的权限
