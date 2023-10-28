@@ -8,9 +8,9 @@
 """
 from rest_framework import serializers
 from rest_framework.decorators import action
+from rest_framework.permissions import IsAuthenticated
 
 from dvadmin.system.models import Menu, RoleMenuPermission
-from dvadmin.system.views.menu_button import MenuButtonSerializer
 from dvadmin.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
@@ -104,6 +104,9 @@ class MenuViewSet(CustomModelViewSet):
 
     @action(methods=['get'], detail=True)
     def getChildren(self,request,pk):
+        """
+        获取子菜单,用于菜单页面的懒加载
+        """
         queryset = Menu.objects.filter(parent=pk)
         serializer = MenuSerializer(queryset, many=True, request=request)
         data = serializer.data
@@ -113,16 +116,30 @@ class MenuViewSet(CustomModelViewSet):
     def web_router(self, request):
         """用于前端获取当前角色的路由"""
         user = request.user
-        is_admin = user.role.values_list('admin', flat=True)
         if user.is_superuser:
             queryset = self.queryset.filter(status=1)
         else:
             role_list = user.role.values_list('id', flat=True)
             menu_list = RoleMenuPermission.objects.filter(role__in=role_list).values_list('menu_id', flat=True)
-            queryset = Menu.objects.filter(id__in=menu_list)
+            queryset = Menu.objects.filter(id__in=menu_list,menu_type__in=[0,1])
         serializer = WebRouterSerializer(queryset, many=True, request=request)
         data = serializer.data
         return SuccessResponse(data=data, total=len(data), msg="获取成功")
+
+    @action(methods=['get'], detail=False, permission_classes=[IsAuthenticated])
+    def menu_button_all_permission(self, request):
+        """
+        获取所有的按钮权限
+        :param request:
+        :return:
+        """
+        is_superuser = request.user.is_superuser
+        if is_superuser:
+            queryset = Menu.objects.filter(menu_type=2).values_list('component', flat=True)
+        else:
+            role_id = request.user.role.values_list('id', flat=True)
+            queryset = Menu.objects.filter(role__in=role_id,menu_type=2).values_list('component',flat=True).distinct()
+        return DetailResponse(data=queryset)
 
     @action(methods=['GET'], detail=False, permission_classes=[])
     def get_all_menu(self, request):

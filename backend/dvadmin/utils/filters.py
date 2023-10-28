@@ -20,7 +20,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.utils import get_model_field
 from rest_framework.filters import BaseFilterBackend
 
-from dvadmin.system.models import Dept, ApiWhiteList, RoleMenuButtonPermission
+from dvadmin.system.models import Dept, ApiWhiteList, RoleApiPermission
 
 
 def get_dept(dept_id: int, dept_all_list=None, dept_list=None):
@@ -116,18 +116,17 @@ class DataLevelPermissionsFilter(BaseFilterBackend):
         if _pk: # 判断是否是单例查询
             re_api = re.sub(_pk,'{id}', api)
         role_id_list = request.user.role.values_list('id', flat=True)
-        role_permission_list=RoleMenuButtonPermission.objects.filter(
+        role_permission_list=RoleApiPermission.objects.filter(
             role__in=role_id_list,
             role__status=1,
-            menu_button__api=re_api,
-            menu_button__method=method).values(
+            api=re_api,
+            method=method).values(
             'data_range',
-            role_admin=F('role__admin')
         )
         dataScope_list = []  # 权限范围列表
         for ele in role_permission_list:
                 # 判断用户是否为超级管理员角色/如果拥有[全部数据权限]则返回所有数据
-            if ele.get("data_range") == 3 or ele.get("role_admin") == True:
+            if ele.get("data_range") == 3:
                 return queryset
             dataScope_list.append(ele.get("data_range"))
         dataScope_list = list(set(dataScope_list))

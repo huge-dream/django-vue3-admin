@@ -13,7 +13,6 @@ from rest_framework.permissions import IsAuthenticated
 from dvadmin.system.models import Role, Menu, MenuButton, Dept
 from dvadmin.system.views.dept import DeptSerializer
 from dvadmin.system.views.menu import MenuSerializer
-from dvadmin.system.views.menu_button import MenuButtonSerializer
 from dvadmin.utils.crud_mixin import FastCrudMixin
 from dvadmin.utils.field_permission import FieldPermissionMixin
 from dvadmin.utils.json_response import SuccessResponse, DetailResponse
@@ -39,7 +38,6 @@ class RoleCreateUpdateSerializer(CustomModelSerializer):
     """
     menu = MenuSerializer(many=True, read_only=True)
     dept = DeptSerializer(many=True, read_only=True)
-    permission = MenuButtonSerializer(many=True, read_only=True)
     key = serializers.CharField(max_length=50,
                                 validators=[CustomUniqueValidator(queryset=Role.objects.all(), message="权限字符必须唯一")])
     name = serializers.CharField(max_length=50, validators=[CustomUniqueValidator(queryset=Role.objects.all())])
@@ -63,21 +61,11 @@ class MenuPermissionSerializer(CustomModelSerializer):
     """
     菜单的按钮权限
     """
-    menuPermission = serializers.SerializerMethodField()
 
-    def get_menuPermission(self, instance):
-        is_superuser = self.request.user.is_superuser
-        if is_superuser:
-            queryset = MenuButton.objects.filter(menu__id=instance.id)
-        else:
-            menu_permission_id_list = self.request.user.role.values_list('permission', flat=True)
-            queryset = MenuButton.objects.filter(id__in=menu_permission_id_list, menu__id=instance.id)
-        serializer = MenuButtonSerializer(queryset, many=True, read_only=True)
-        return serializer.data
 
     class Meta:
         model = Menu
-        fields = ['id', 'parent', 'name', 'menuPermission']
+        fields = ['id', 'parent', 'name']
 
 
 class MenuButtonPermissionSerializer(CustomModelSerializer):

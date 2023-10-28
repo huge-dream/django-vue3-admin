@@ -9,7 +9,7 @@ export const BtnPermissionStore = defineStore('BtnPermission', {
     actions: {
         async getBtnPermissionStore() {
             request({
-                url: '/api/system/menu_button/menu_button_all_permission/',
+                url: '/api/system/menu/menu_button_all_permission/',
                 method: 'get',
             }).then((ret: {
                 data: []

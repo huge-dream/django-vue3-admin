@@ -78,7 +78,7 @@ class RoleMenuPermissionViewSet(CustomModelViewSet):
     @action(methods=['get'],detail=False)
     def get_menu_permission_checked(self,request):
         """
-        获取已授权的菜单
+        获取已授权的菜单ID
         """
         params = request.query_params
         role_id = params.get('role',None)

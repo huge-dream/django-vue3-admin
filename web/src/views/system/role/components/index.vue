@@ -1,5 +1,7 @@
 <template>
-  <el-drawer v-model="drawerVisible" title="权限配置" direction="rtl" size="60%" :close-on-click-modal="false"
+  <el-drawer v-model="drawerVisible" title="权限配置" direction="rtl" size="60%"
+             :close-on-click-modal="false"
+             destroy-on-close
              :before-close="handleDrawerClose">
     <template #header>
       <el-row>
@@ -11,12 +13,14 @@
       </el-row>
     </template>
    <div>
-     <el-tabs type="border-card">
-       <el-tab-pane label="菜单/按钮授权">
+     <el-tabs type="border-card" v-model="permissionTab">
+       <el-tab-pane label="菜单/按钮授权" name="menu">
          <MenuPermission ref="menuPermissionRef" :role-id="props.roleId" @handleDrawerClose="handleDrawerClose"></MenuPermission>
        </el-tab-pane>
-       <el-tab-pane label="请求接口授权"></el-tab-pane>
-       <el-tab-pane label="接口权限">角色管理</el-tab-pane>
+       <el-tab-pane label="请求接口授权" name="api">
+         <ApiPermission :role-id="props.roleId"></ApiPermission>
+       </el-tab-pane>
+       <el-tab-pane label="接口权限" name="column">角色管理</el-tab-pane>
      </el-tabs>
    </div>
   </el-drawer>
@@ -28,7 +32,7 @@ import XEUtils from 'xe-utils';
 import {errorNotification} from '/@/utils/message';
 import {ElMessage} from 'element-plus'
 import MenuPermission from "./MenuPermission/index.vue";
-
+import ApiPermission from "./ApiPermission/index.vue";
 const props = defineProps({
   roleId: {
     type: Number,
@@ -45,28 +49,24 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:drawerVisible'])
 const menuPermissionRef = ref()
+const permissionTab = ref('menu')
 const drawerVisible = ref(false)
 watch(
     () => props.drawerVisible,
     (val) => {
       drawerVisible.value = val;
       nextTick(()=>{
-        console.log(menuPermissionRef)
         menuPermissionRef.value.getMenuPremissionTreeData()
       })
       // fetchData()
     }
 );
 const handleDrawerClose = () => {
+  permissionTab.value ='menu'
   emit('update:drawerVisible', false);
 }
 
 
-const defaultTreeProps = {
-  children: 'children',
-  label: 'name',
-  value: 'id',
-};
 
 
 let collapseCurrent = ref(['1']);

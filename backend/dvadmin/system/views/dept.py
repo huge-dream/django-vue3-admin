@@ -9,7 +9,7 @@ from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from dvadmin.system.models import Dept, RoleMenuButtonPermission, Users
+from dvadmin.system.models import Dept, RoleApiPermission, Users
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse, ErrorResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
@@ -135,7 +135,7 @@ class DeptViewSet(CustomModelViewSet):
             queryset = Dept.objects.values('id', 'name', 'parent')
         else:
             role_ids = request.user.role.values_list('id', flat=True)
-            data_range = RoleMenuButtonPermission.objects.filter(role__in=role_ids).values_list('data_range', flat=True)
+            data_range = RoleApiPermission.objects.filter(role__in=role_ids).values_list('data_range', flat=True)
             user_dept_id = request.user.dept.id
             dept_list = [user_dept_id]
             data_range_list = list(set(data_range))

@@ -252,7 +252,7 @@ class RoleMenuPermission(CoreModel):
         # ordering = ("-create_datetime",)
 
 
-class RoleMenuButtonPermission(CoreModel):
+class RoleApiPermission(CoreModel):
     role = models.ForeignKey(
         to="Role",
         db_constraint=False,
@@ -261,16 +261,16 @@ class RoleMenuButtonPermission(CoreModel):
         verbose_name="关联角色",
         help_text="关联角色",
     )
-    menu_button = models.ForeignKey(
-        to="MenuButton",
-        db_constraint=False,
-        related_name="menu_button_permission",
-        on_delete=models.CASCADE,
-        verbose_name="关联菜单按钮",
-        help_text="关联菜单按钮",
-        null=True,
-        blank=True
+    name = models.CharField(max_length=64, verbose_name="名称", help_text="名称")
+    api = models.CharField(max_length=200, verbose_name="接口地址", help_text="接口地址")
+    METHOD_CHOICES = (
+        (0, "GET"),
+        (1, "POST"),
+        (2, "PUT"),
+        (3, "DELETE"),
     )
+    method = models.IntegerField(default=0, verbose_name="接口请求方法", null=True, blank=True,
+                                 help_text="接口请求方法")
     DATASCOPE_CHOICES = (
         (0, "仅本人数据权限"),
         (1, "本部门及以下数据权限"),
@@ -284,8 +284,8 @@ class RoleMenuButtonPermission(CoreModel):
                                   help_text="数据权限-关联部门")
 
     class Meta:
-        db_table = table_prefix + "role_menu_button_permission"
-        verbose_name = "角色按钮权限表"
+        db_table = table_prefix + "role_api_permission"
+        verbose_name = "角色接口权限表"
         verbose_name_plural = verbose_name
         ordering = ("-create_datetime",)
 

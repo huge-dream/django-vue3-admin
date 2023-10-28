@@ -79,12 +79,8 @@ export const createCrudOptions = function ({
 					}, */
 					customNew: {
 						type: 'primary',
-						text: '权限配置',
+						text: '授权',
 						show: hasPermissions('role:Update'),
-						tooltip: {
-							placement: 'top',
-							content: '权限配置',
-						},
 						click: (context: any): void => {
 							const { row } = context;
 							handleDrawerOpen(row);
@@ -181,40 +177,6 @@ export const createCrudOptions = function ({
 					form: {
 						rules: [{ required: true, message: '排序必填' }],
 						value: 1,
-					},
-				},
-				admin: {
-					title: '是否管理员',
-					search: { show: false },
-					type: 'dict-radio',
-					dict: dict({
-						data: [
-							{
-								label: '是',
-								value: true,
-								color: 'success',
-							},
-							{
-								label: '否',
-								value: false,
-								color: 'danger',
-							},
-						],
-					}),
-					column: {
-						minWidth: 130,
-						sortable: 'custom',
-						show: columnPermission('admin', 'is_query'),
-					},
-					addForm: {
-						show: columnPermission('admin', 'is_create'),
-					},
-					editForm: {
-						show: columnPermission('admin', 'is_update'),
-					},
-					form: {
-						rules: [{ required: true, message: '是否管理员必填' }],
-						value: false,
 					},
 				},
 				status: {
