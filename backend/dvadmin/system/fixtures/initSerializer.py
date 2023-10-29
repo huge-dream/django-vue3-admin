@@ -9,7 +9,7 @@ django.setup()
 from dvadmin.system.models import (
     Role, Dept, Users, Menu, MenuButton,
     ApiWhiteList, Dictionary, SystemConfig,
-    RoleMenuPermission, RoleApiPermission
+    RoleMenuPermission, RoleApiPermission, Columns
 )
 from dvadmin.utils.serializers import CustomModelSerializer
 
@@ -164,6 +164,33 @@ class RoleApiPermissionInitSerializer(CustomModelSerializer):
             'dept_belong_id': {'write_only': True}
         }
 
+class RoleColumnInitSerializer(CustomModelSerializer):
+    """
+    初始化角色字段权限(用于生成初始化json文件)
+    """
+    role_key = serializers.CharField(max_length=100, required=True)
+    app = serializers.CharField(max_length=255, required=True)
+    model = serializers.CharField(max_length=255, required=True)
+    field_name = serializers.CharField(max_length=255, required=True)
+    title = serializers.CharField(max_length=255, required=True)
+
+    def create(self, validated_data):
+        init_data = self.initial_data
+        validated_data.pop('role_key')
+        role_id = Role.objects.filter(key=init_data['role_key']).first()
+        validated_data['role'] = role_id
+        instance = super().create(validated_data)
+        return instance
+
+    class Meta:
+        model = Columns
+        fields = ['role_key', 'app','model','field_name', 'title']
+        read_only_fields = ["id"]
+        extra_kwargs = {
+            'role': {'required': False},
+            'creator': {'write_only': True},
+            'dept_belong_id': {'write_only': True}
+        }
 
 class ApiWhiteListInitSerializer(CustomModelSerializer):
     """

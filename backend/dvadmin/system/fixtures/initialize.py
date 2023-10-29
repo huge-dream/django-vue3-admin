@@ -11,7 +11,7 @@ from dvadmin.utils.core_initialize import CoreInitialize
 from dvadmin.system.fixtures.initSerializer import (
     UsersInitSerializer, DeptInitSerializer, RoleInitSerializer,
     MenuInitSerializer, ApiWhiteListInitSerializer, DictionaryInitSerializer,
-    SystemConfigInitSerializer, RoleMenuInitSerializer, RoleApiPermissionInitSerializer
+    SystemConfigInitSerializer, RoleMenuInitSerializer, RoleApiPermissionInitSerializer, RoleColumnInitSerializer
 )
 
 
@@ -53,6 +53,12 @@ class Initialize(CoreInitialize):
         """
         self.init_base(RoleApiPermissionInitSerializer, unique_fields=['role', 'api','name'])
 
+    def init_role_column(self):
+        """
+        初始化角色字段权限
+        """
+        self.init_base(RoleColumnInitSerializer, unique_fields=['app','model','field_name'])
+
     def init_api_white_list(self):
         """
         初始API白名单
@@ -78,6 +84,7 @@ class Initialize(CoreInitialize):
         self.init_menu()
         self.init_role_menu()
         self.init_role_api_permission()
+        self.init_role_column()
         self.init_api_white_list()
         self.init_dictionary()
         self.init_system_config()

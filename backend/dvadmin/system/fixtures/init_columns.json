@@ -1,0 +1,123 @@
+[
+  {
+    "dept_belong_id": "1",
+    "app": "dvadmin.system",
+    "model": "Role",
+    "field_name": "id",
+    "title": "Id",
+    "is_query": 1,
+    "is_create": 1,
+    "is_update": 1,
+    "role_key": "admin"
+  },
+  {
+    "dept_belong_id": "1",
+    "app": "dvadmin.system",
+    "model": "Role",
+    "field_name": "description",
+    "title": "描述",
+    "is_query": 1,
+    "is_create": 1,
+    "is_update": 1,
+    "role_key": "admin"
+  },
+  {
+    "dept_belong_id": "1",
+    "app": "dvadmin.system",
+    "model": "Role",
+    "field_name": "creator",
+    "title": "创建人",
+    "is_query": 1,
+    "is_create": 1,
+    "is_update": 1,
+    "role_key": "admin"
+  },
+  {
+    "dept_belong_id": "1",
+    "app": "dvadmin.system",
+    "model": "Role",
+    "field_name": "modifier",
+    "title": "修改人",
+    "is_query": 1,
+    "is_create": 1,
+    "is_update": 1,
+    "role_key": "admin"
+  },
+  {
+    "dept_belong_id": "1",
+    "app": "dvadmin.system",
+    "model": "Role",
+    "field_name": "dept_belong_id",
+    "title": "数据归属部门",
+    "is_query": 1,
+    "is_create": 1,
+    "is_update": 1,
+    "role_key": "admin"
+  },
+  {
+    "dept_belong_id": "1",
+    "app": "dvadmin.system",
+    "model": "Role",
+    "field_name": "update_datetime",
+    "title": "修改时间",
+    "is_query": 1,
+    "is_create": 1,
+    "is_update": 1,
+    "role_key": "admin"
+  },
+  {
+    "dept_belong_id": "1",
+    "app": "dvadmin.system",
+    "model": "Role",
+    "field_name": "create_datetime",
+    "title": "创建时间",
+    "is_query": 1,
+    "is_create": 1,
+    "is_update": 1,
+    "role_key": "admin"
+  },
+  {
+    "dept_belong_id": "1",
+    "app": "dvadmin.system",
+    "model": "Role",
+    "field_name": "name",
+    "title": "角色名称",
+    "is_query": 1,
+    "is_create": 1,
+    "is_update": 1,
+    "role_key": "admin"
+  },
+  {
+    "dept_belong_id": "1",
+    "app": "dvadmin.system",
+    "model": "Role",
+    "field_name": "key",
+    "title": "权限字符",
+    "is_query": 1,
+    "is_create": 1,
+    "is_update": 1,
+    "role_key": "admin"
+  },
+  {
+    "dept_belong_id": "1",
+    "app": "dvadmin.system",
+    "model": "Role",
+    "field_name": "sort",
+    "title": "角色顺序",
+    "is_query": 1,
+    "is_create": 1,
+    "is_update": 1,
+    "role_key": "admin"
+  },
+  {
+    "dept_belong_id": "1",
+    "app": "dvadmin.system",
+    "model": "Role",
+    "field_name": "status",
+    "title": "角色状态",
+    "is_query": 1,
+    "is_create": 1,
+    "is_update": 1,
+    "role_key": "admin"
+  }
+]
