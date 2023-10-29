@@ -95,28 +95,6 @@ export default function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOpti
 			form: {
 				labelWidth: '120px',
 				row: { gutter: 20 },
-				// group: {
-				// 	groupType: 'tabs', //collapse， tabs
-				// 	accordion: false,
-				// 	groups: {
-				// 		catalog: {
-				// 			label: '目录',
-				// 			icon: 'el-icon-goods',
-				// 			columns: ['name', 'icon', 'sort', 'status'],
-				// 		},
-				// 		menu: {
-				// 			label: '菜单',
-				// 			icon: 'el-icon-price-tag',
-				// 			columns: ['parent', 'name', 'icon', 'is_link', 'web_path', 'component', 'cache', 'visible', 'frame_out', 'sort', 'status'],
-				// 		},
-				// 		info: {
-				// 			label: '按钮',
-				// 			collapsed: true, //默认折叠
-				// 			icon: 'el-icon-warning-outline',
-				// 			columns: ['name', 'component'],
-				// 		},
-				// 	},
-				// },
 			},
 			table: {
 				lazy: true,
@@ -150,6 +128,9 @@ export default function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOpti
 					}),
 					form: {
 						value:0,
+						component:{
+							optionName: "el-radio-button"
+						},
 						valueChange({ form, value, getComponentRef }) {
 							if (value) {
 								getComponentRef("parent")?.reloadDict(); // 执行city的select组件的reloadDict()方法，触发“city”重新加载字典
@@ -259,11 +240,29 @@ export default function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOpti
 						show: false,
 					},
 				},
+				component_name: {
+					title: '组件名称',
+					form: {
+						show:compute(({form})=>{
+							return [1].includes(form.menu_type);
+						}),
+						rules: [{ required: true, message: '请输入组件名称', trigger: 'blur' }],
+						component: {
+							placeholder: '请输入组件名称',
+						},
+					},
+					column: {
+						show: false,
+					},
+				},
 				component: {
 					title: compute(({ form }) => {
 						return form.menu_type === 1 ? '组件地址' : '按钮权限值';
 					}),
 					form: {
+						col:{
+							span:24,
+						},
 						show: compute(({ form }) => {
 							return [1,2].includes(form.menu_type)
 						}),
@@ -271,7 +270,9 @@ export default function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOpti
 							return form.menu_type === 1 ? 'src/views下的文件夹地址' : '按钮权限值是唯一的标识';
 						}),
 						rules: [{ required: true, message: '请输入组件地址', trigger: 'blur' }],
+
 						component: {
+
 							style: {
 								width: '100%',
 							},

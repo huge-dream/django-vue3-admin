@@ -167,6 +167,9 @@ export const createCrudOptions = function ({
 					title: '状态',
 					search: { show: true },
 					type: 'dict-radio',
+					dict: dict({
+						data: dictionary('button_status_bool'),
+					}),
 					column: {
 						width: 100,
 						component: {
@@ -189,10 +192,7 @@ export const createCrudOptions = function ({
 					},
 					editForm: {
 						show: columnPermission('status', 'is_update'),
-					},
-					dict: dict({
-						data: dictionary('button_status_bool'),
-					}),
+					}
 				},
 				update_datetime: {
 					title: '更新时间',

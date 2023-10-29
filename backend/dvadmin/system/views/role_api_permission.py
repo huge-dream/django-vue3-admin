@@ -231,8 +231,7 @@ class RoleApiPermissionViewSet(CustomModelViewSet):
         """
         params = request.query_params
         is_superuser = request.user.is_superuser
-        is_admin = request.user.role.values_list('admin', flat=True)
-        if is_superuser or True in is_admin:
+        if is_superuser:
             queryset = Dept.objects.values('id', 'name', 'parent')
         else:
             if not params:
