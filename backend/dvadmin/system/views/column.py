@@ -33,14 +33,10 @@ class ColumnViewSet(CustomModelViewSet):
         app_name = request.query_params.get('app')
         model_name = request.query_params.get('model')
         if not role_id or not model_name or not app_name:
-            return SuccessResponse([])
-        queryset = self.filter_queryset(self.get_queryset().filter(role_id=role_id, model=model_name, app=app_name))
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True, request=request)
-            return self.get_paginated_response(serializer.data)
-        serializer = self.get_serializer(queryset, many=True, request=request)
-        return SuccessResponse(data=serializer.data, msg="获取成功")
+            return ErrorResponse(msg="参数错误")
+        queryset = Columns.objects.filter(role_id=role_id, model=model_name, app=app_name)
+        serializer = ColumnSerializer(queryset, many=True, request=request)
+        return DetailResponse(data=serializer.data, msg="获取成功")
 
     def create(self, request, *args, **kwargs):
         payload = request.data
@@ -94,4 +90,4 @@ class ColumnViewSet(CustomModelViewSet):
                 serializer = self.get_serializer(data=data, request=request)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
-        return SuccessResponse(msg='匹配成功')
+        return DetailResponse(msg='匹配成功')
