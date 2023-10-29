@@ -59,7 +59,7 @@
 		</div>
 		<el-dropdown :show-timeout="70" :hide-timeout="50" @command="onHandleCommandClick">
 			<span class="layout-navbars-breadcrumb-user-link">
-				<img :src="userInfos.avatar" class="layout-navbars-breadcrumb-user-link-photo mr5" />
+				<img :src="userInfos.avatar || headerImage" class="layout-navbars-breadcrumb-user-link-photo mr5" />
 				{{ userInfos.username === '' ? 'common' : userInfos.username }}
 				<el-icon class="el-icon--right">
 					<ele-ArrowDown />
@@ -90,7 +90,7 @@ import { useThemeConfig } from '/@/stores/themeConfig';
 import other from '/@/utils/other';
 import mittBus from '/@/utils/mitt';
 import { Session, Local } from '/@/utils/storage';
-
+import headerImage from '/@/assets/img/headerImage.png';
 // 引入组件
 const UserNews = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/userNews.vue'));
 const Search = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/search.vue'));
