@@ -1,0 +1,14 @@
+[
+  {
+    "role_key": "admin",
+    "name": "菜单列表查询",
+    "api": "/api/system/menu/",
+    "method": 0
+  },
+  {
+    "role_key": "public",
+    "name": "菜单列表查询",
+    "api": "/api/system/menu/",
+    "method": 0
+  }
+]

@@ -13,7 +13,6 @@ class Role(CoreModel):
     key = models.CharField(max_length=64, unique=True, verbose_name="权限字符", help_text="权限字符")
     sort = models.IntegerField(default=1, verbose_name="角色顺序", help_text="角色顺序")
     status = models.BooleanField(default=True, verbose_name="角色状态", help_text="角色状态")
-    admin = models.BooleanField(default=False, verbose_name="是否为admin", help_text="是否为admin")
 
     class Meta:
         db_table = table_prefix + "system_role"
@@ -165,7 +164,7 @@ class Menu(CoreModel):
         (2, "按钮"),
     )
     menu_type = models.IntegerField(default=0, verbose_name="菜单类型", help_text="菜单类型")
-    web_path = models.CharField(max_length=128, verbose_name="路由地址", null=True, blank=True, help_text="路由地址")
+    web_path = models.CharField(max_length=128,default="/", verbose_name="路由地址", null=True, blank=True, help_text="路由地址")
     component = models.CharField(max_length=200, verbose_name="组件地址/按钮权限值",  null=True, blank=True, help_text="组件地址/按钮权限值")
     component_name = models.CharField(max_length=50, verbose_name="组件名称", null=True, blank=True,
                                       help_text="组件名称")
@@ -256,7 +255,7 @@ class RoleApiPermission(CoreModel):
     role = models.ForeignKey(
         to="Role",
         db_constraint=False,
-        related_name="role_menu_button",
+        related_name="role_api",
         on_delete=models.CASCADE,
         verbose_name="关联角色",
         help_text="关联角色",

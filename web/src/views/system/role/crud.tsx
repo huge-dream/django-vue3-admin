@@ -56,31 +56,15 @@ export const createCrudOptions = function ({
 						show: true,
 					},
 					edit: {
-						show: hasPermissions('role:Update'),
+						show: hasPermissions('role:update'),
 					},
 					remove: {
-						show: hasPermissions('role:Delete'),
+						show: hasPermissions('role:delete'),
 					},
-					/* custom: {
-						type: 'primary',
-						text: '权限配置',
-						show: hasPermissions('role:Update'),
-						tooltip: {
-							placement: 'top',
-							content: '权限配置',
-						},
-						click: (context: any): void => {
-							const { row } = context;
-							// eslint-disable-next-line no-mixed-spaces-and-tabs
-							rolePermission.value.drawer = true;
-							rolePermission.value.editedRoleInfo = row;
-							rolePermission.value.initGet();
-						},
-					}, */
 					customNew: {
 						type: 'primary',
 						text: '授权',
-						show: hasPermissions('role:Update'),
+						// show: hasPermissions('role:Update'),
 						click: (context: any): void => {
 							const { row } = context;
 							handleDrawerOpen(row);

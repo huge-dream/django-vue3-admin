@@ -36,7 +36,7 @@ class ColumnViewSet(CustomModelViewSet):
             return ErrorResponse(msg="参数错误")
         queryset = Columns.objects.filter(role_id=role_id, model=model_name, app=app_name)
         serializer = ColumnSerializer(queryset, many=True, request=request)
-        return DetailResponse(data=serializer.data, msg="获取成功")
+        return SuccessResponse(data=serializer.data, msg="获取成功")
 
     def create(self, request, *args, **kwargs):
         payload = request.data

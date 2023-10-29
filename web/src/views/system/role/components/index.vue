@@ -15,12 +15,14 @@
    <div>
      <el-tabs type="border-card" v-model="permissionTab">
        <el-tab-pane label="菜单/按钮授权" name="menu">
-         <MenuPermission ref="menuPermissionRef" :role-id="props.roleId" @handleDrawerClose="handleDrawerClose"></MenuPermission>
+         <MenuPermission  ref="menuPermissionRef" :role-id="props.roleId" @handleDrawerClose="handleDrawerClose"></MenuPermission>
        </el-tab-pane>
        <el-tab-pane label="请求接口授权" name="api">
-         <ApiPermission :role-id="props.roleId"></ApiPermission>
+         <ApiPermission v-if="permissionTab==='api'" :role-id="props.roleId"></ApiPermission>
        </el-tab-pane>
-       <el-tab-pane label="接口权限" name="column">角色管理</el-tab-pane>
+       <el-tab-pane label="表单字段授权" name="field">
+         <FieldPermission  v-if="permissionTab==='field'" :role-id="props.roleId"></FieldPermission>
+       </el-tab-pane>
      </el-tabs>
    </div>
   </el-drawer>
@@ -33,6 +35,7 @@ import {errorNotification} from '/@/utils/message';
 import {ElMessage} from 'element-plus'
 import MenuPermission from "./MenuPermission/index.vue";
 import ApiPermission from "./ApiPermission/index.vue";
+import FieldPermission from "./FieldPermission/index.vue";
 const props = defineProps({
   roleId: {
     type: Number,

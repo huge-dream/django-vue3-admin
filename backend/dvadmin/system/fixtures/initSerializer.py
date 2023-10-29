@@ -9,7 +9,7 @@ django.setup()
 from dvadmin.system.models import (
     Role, Dept, Users, Menu, MenuButton,
     ApiWhiteList, Dictionary, SystemConfig,
-    RoleMenuPermission, RoleMenuButtonPermission
+    RoleMenuPermission, RoleApiPermission
 )
 from dvadmin.utils.serializers import CustomModelSerializer
 
@@ -42,24 +42,13 @@ class UsersInitSerializer(CustomModelSerializer):
         }
 
 
-class MenuButtonInitSerializer(CustomModelSerializer):
-    """
-    初始化菜单按钮-序列化器
-    """
-
-    class Meta:
-        model = MenuButton
-        fields = ['id', 'name', 'value', 'api', 'method', 'menu']
-        read_only_fields = ["id"]
-
-
 class MenuInitSerializer(CustomModelSerializer):
     """
     递归深度获取数信息(用于生成初始化json文件)
     """
-    name = serializers.CharField(required=False)
+    name = serializers.CharField(required=True)
+    menu_type = serializers.IntegerField(required=True)
     children = serializers.SerializerMethodField()
-    menu_button = serializers.SerializerMethodField()
 
     def get_children(self, obj: Menu):
         data = []
@@ -69,26 +58,18 @@ class MenuInitSerializer(CustomModelSerializer):
             data = serializer.data
         return data
 
-    def get_menu_button(self, obj: Menu):
-        data = []
-        instance = obj.menuPermission.order_by('method')
-        if instance:
-            data = list(instance.values('name', 'value', 'api', 'method'))
-        return data
 
     def save(self, **kwargs):
         instance = super().save(**kwargs)
         children = self.initial_data.get('children')
-        menu_button = self.initial_data.get('menu_button')
         # 菜单表
         if children:
             for menu_data in children:
                 menu_data['parent'] = instance.id
                 filter_data = {
                     "name": menu_data['name'],
-                    "web_path": menu_data['web_path'],
                     "component": menu_data['component'],
-                    "component_name": menu_data['component_name'],
+                    "menu_type": menu_data['menu_type'],
                 }
                 instance_obj = Menu.objects.filter(**filter_data).first()
                 if instance_obj and not self.initial_data.get('reset'):
@@ -96,24 +77,12 @@ class MenuInitSerializer(CustomModelSerializer):
                 serializer = MenuInitSerializer(instance_obj, data=menu_data, request=self.request)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
-        # 菜单按钮
-        if menu_button:
-            for menu_button_data in menu_button:
-                menu_button_data['menu'] = instance.id
-                filter_data = {
-                    "menu": menu_button_data['menu'],
-                    "value": menu_button_data['value']
-                }
-                instance_obj = MenuButton.objects.filter(**filter_data).first()
-                serializer = MenuButtonInitSerializer(instance_obj, data=menu_button_data, request=self.request)
-                serializer.is_valid(raise_exception=True)
-                serializer.save()
         return instance
 
     class Meta:
         model = Menu
         fields = ['name', 'icon', 'sort', 'is_link', 'menu_type', 'web_path', 'component', 'component_name', 'status',
-                  'cache', 'visible', 'parent', 'children', 'menu_button', 'creator', 'dept_belong_id']
+                  'cache', 'visible', 'parent', 'children',  'creator', 'dept_belong_id']
         extra_kwargs = {
             'creator': {'write_only': True},
             'dept_belong_id': {'write_only': True}
@@ -128,7 +97,7 @@ class RoleInitSerializer(CustomModelSerializer):
 
     class Meta:
         model = Role
-        fields = ['name', 'key', 'sort', 'status', 'admin',
+        fields = ['name', 'key', 'sort', 'status',
                   'creator', 'dept_belong_id']
         read_only_fields = ["id"]
         extra_kwargs = {
@@ -166,33 +135,31 @@ class RoleMenuInitSerializer(CustomModelSerializer):
         }
 
 
-class RoleMenuButtonInitSerializer(CustomModelSerializer):
+class RoleApiPermissionInitSerializer(CustomModelSerializer):
     """
-    初始化角色菜单按钮(用于生成初始化json文件)
+    初始化角色接口权限(用于生成初始化json文件)
     """
     role_key = serializers.CharField(max_length=100, required=True)
-    menu_button_value = serializers.CharField(max_length=100, required=True)
+    name = serializers.CharField(max_length=255, required=True)
+    api = serializers.CharField(max_length=255, required=True)
+    method = serializers.IntegerField(required=True)
     data_range = serializers.CharField(max_length=100, required=False)
 
     def create(self, validated_data):
         init_data = self.initial_data
-        validated_data.pop('menu_button_value')
         validated_data.pop('role_key')
         role_id = Role.objects.filter(key=init_data['role_key']).first()
-        menu_button_id = MenuButton.objects.filter(value=init_data['menu_button_value']).first()
         validated_data['role'] = role_id
-        validated_data['menu_button'] = menu_button_id
         instance = super().create(validated_data)
         instance.dept.set([])
         return instance
 
     class Meta:
-        model = RoleMenuButtonPermission
-        fields = ['role_key', 'menu_button_value', 'data_range', 'dept', 'creator', 'dept_belong_id']
+        model = RoleApiPermission
+        fields = ['role_key', 'name','api','method', 'data_range', 'dept', 'creator', 'dept_belong_id']
         read_only_fields = ["id"]
         extra_kwargs = {
             'role': {'required': False},
-            'menu': {'required': False},
             'creator': {'write_only': True},
             'dept_belong_id': {'write_only': True}
         }

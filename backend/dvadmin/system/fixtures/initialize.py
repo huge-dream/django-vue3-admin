@@ -11,7 +11,7 @@ from dvadmin.utils.core_initialize import CoreInitialize
 from dvadmin.system.fixtures.initSerializer import (
     UsersInitSerializer, DeptInitSerializer, RoleInitSerializer,
     MenuInitSerializer, ApiWhiteListInitSerializer, DictionaryInitSerializer,
-    SystemConfigInitSerializer, RoleMenuInitSerializer, RoleMenuButtonInitSerializer
+    SystemConfigInitSerializer, RoleMenuInitSerializer, RoleApiPermissionInitSerializer
 )
 
 
@@ -39,7 +39,7 @@ class Initialize(CoreInitialize):
         """
         初始化菜单信息
         """
-        self.init_base(MenuInitSerializer, unique_fields=['name', 'web_path', 'component', 'component_name'])
+        self.init_base(MenuInitSerializer, unique_fields=['name'])
 
     def init_role_menu(self):
         """
@@ -47,11 +47,11 @@ class Initialize(CoreInitialize):
         """
         self.init_base(RoleMenuInitSerializer, unique_fields=['role', 'menu'])
 
-    def init_role_menu_button(self):
+    def init_role_api_permission(self):
         """
         初始化角色菜单按钮信息
         """
-        self.init_base(RoleMenuButtonInitSerializer, unique_fields=['role', 'menu_button'])
+        self.init_base(RoleApiPermissionInitSerializer, unique_fields=['role', 'api','name'])
 
     def init_api_white_list(self):
         """
@@ -77,7 +77,7 @@ class Initialize(CoreInitialize):
         self.init_users()
         self.init_menu()
         self.init_role_menu()
-        self.init_role_menu_button()
+        self.init_role_api_permission()
         self.init_api_white_list()
         self.init_dictionary()
         self.init_system_config()
