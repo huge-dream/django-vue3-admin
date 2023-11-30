@@ -19,7 +19,7 @@
 			<el-input v-model="deptFormData.key" />
 		</el-form-item>
 		<el-form-item label="负责人">
-			<el-input v-model="deptFormData.owner" />
+			<el-input v-model="deptFormData.owner" placeholder="请输入" />
 		</el-form-item>
 		<el-form-item label="备注">
 			<el-input v-model="deptFormData.description" maxlength="200" show-word-limit type="textarea" />

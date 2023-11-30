@@ -1,5 +1,5 @@
 <template>
-	<fs-crud ref="crudRef" v-bind="crudBinding"> </fs-crud>
+	<fs-crud ref="crudRef"  v-bind="crudBinding"> </fs-crud>
 </template>
 
 <script lang="ts" setup>

@@ -352,6 +352,8 @@ class UserViewSet(CustomModelViewSet):
         """
         密码重置
         """
+        if not self.request.user.is_superuser:
+            return ErrorResponse(msg="只允许超级管理员对其进行密码重置")
         instance = Users.objects.filter(id=pk).first()
         data = request.data
         new_pwd = data.get("newPassword")

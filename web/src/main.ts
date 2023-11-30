@@ -14,7 +14,7 @@ import piniaPersist from 'pinia-plugin-persist';
 // @ts-ignore
 import fastCrud from './settings.ts';
 import pinia from './stores';
-import permission from '/@/plugin/permission/index';
+import {RegisterPermission} from '/@/plugin/permission/index';
 // @ts-ignore
 import eIconPicker, { iconList, analyzingIconForIconfont } from 'e-icon-picker';
 import 'e-icon-picker/icon/default-icon/symbol.js'; //基本彩色图标库
@@ -54,7 +54,6 @@ other.elSvg(app);
 
 
 app.use(VXETable)
-app.use(permission);
 app.use(pinia).use(router).use(ElementPlus, { i18n: i18n.global.t }).use(i18n).use(VueGridLayout).use(fastCrud).mount('#app');
 
 app.config.globalProperties.mittBus = mitt();

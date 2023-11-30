@@ -1,14 +1,13 @@
-import { useUserInfo } from '/@/stores/userInfo';
 import { judementSameArr } from '/@/utils/arrayOperation';
-
+import {BtnPermissionStore} from "/@/stores/btnPermission";
 /**
  * 单个权限验证
  * @param value 权限值
  * @returns 有权限，返回 `true`，反之则反
  */
 export function auth(value: string): boolean {
-	const stores = useUserInfo();
-	return stores.userInfos.authBtnList.some((v: string) => v === value);
+	const stores = BtnPermissionStore();
+	return stores.data.some((v: string) => v === value);
 }
 
 /**
@@ -18,8 +17,8 @@ export function auth(value: string): boolean {
  */
 export function auths(value: Array<string>): boolean {
 	let flag = false;
-	const stores = useUserInfo();
-	stores.userInfos.authBtnList.map((val: string) => {
+	const stores = BtnPermissionStore();
+	stores.data.map((val: string) => {
 		value.map((v: string) => {
 			if (val === v) flag = true;
 		});
@@ -33,6 +32,6 @@ export function auths(value: Array<string>): boolean {
  * @returns 有权限，返回 `true`，反之则反
  */
 export function authAll(value: Array<string>): boolean {
-	const stores = useUserInfo();
-	return judementSameArr(value, stores.userInfos.authBtnList);
+	const stores = BtnPermissionStore();
+	return judementSameArr(value, stores.data);
 }

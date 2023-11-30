@@ -73,7 +73,7 @@ class DvadminWebSocket(AsyncJsonWebsocketConsumer):
                 unread_count = await _get_message_unread(self.user_id)
                 if unread_count == 0:
                     # 发送连接成功
-                    await self.send_json(set_message('system', 'SYSTEM', '连接成功'))
+                    await self.send_json(set_message('system', 'SYSTEM', '您已上线'))
                 else:
                     await self.send_json(
                         set_message('system', 'SYSTEM', "请查看您的未读消息~",

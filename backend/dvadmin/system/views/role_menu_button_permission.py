@@ -11,7 +11,8 @@ from rest_framework import serializers
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from dvadmin.system.models import RoleMenuButtonPermission, Menu, MenuButton, Dept, RoleMenuPermission, Columns
+from dvadmin.system.models import RoleMenuButtonPermission, Menu, MenuButton, Dept, RoleMenuPermission, FieldPermission, \
+    MenuField
 from dvadmin.system.views.menu import MenuSerializer
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from dvadmin.utils.serializers import CustomModelSerializer
@@ -71,11 +72,40 @@ class RoleButtonPermissionSerializer(CustomModelSerializer):
         model = MenuButton
         fields = ['id','name','value','isCheck','data_range']
 
-class RoleColumnsSerializer(CustomModelSerializer):
+class RoleFieldPermissionSerializer(CustomModelSerializer):
 
     class Meta:
-        model = Columns
+        model = FieldPermission
         fields = "__all__"
+
+class RoleMenuFieldSerializer(CustomModelSerializer):
+    is_query = serializers.SerializerMethodField()
+    is_create = serializers.SerializerMethodField()
+    is_update = serializers.SerializerMethodField()
+
+    def get_is_query(self, instance):
+        params = self.request.query_params
+        queryset = instance.menu_field.filter(role=params.get('role')).first()
+        if queryset:
+            return queryset.is_query
+        return False
+
+    def get_is_create(self, instance):
+        params = self.request.query_params
+        queryset = instance.menu_field.filter(role=params.get('role')).first()
+        if queryset:
+            return queryset.is_create
+        return False
+
+    def get_is_update(self, instance):
+        params = self.request.query_params
+        queryset = instance.menu_field.filter(role=params.get('role')).first()
+        if queryset:
+            return queryset.is_update
+        return False
+    class Meta:
+        model = MenuField
+        fields = ['id','field_name','title','is_query','is_create','is_update']
 
 
 class RoleMenuPermissionSerializer(CustomModelSerializer):
@@ -99,9 +129,8 @@ class RoleMenuPermissionSerializer(CustomModelSerializer):
         return  serializer.data
 
     def get_columns(self, instance):
-        params = self.request.query_params
-        col_list = Columns.objects.filter(role__id=params.get('role'),menu__id=instance['id'])
-        serializer = RoleColumnsSerializer(col_list,many=True,request=self.request)
+        col_list = MenuField.objects.filter(menu=instance['id'])
+        serializer = RoleMenuFieldSerializer(col_list,many=True,request=self.request)
         return serializer.data
 
 
@@ -165,10 +194,11 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
                 RoleMenuPermission.objects.create(role_id=pk, menu_id=menu.get('id'))
             for btn in menu.get('btns'):
                 if btn.get('isCheck'):
-                    instance = RoleMenuButtonPermission.objects.create(role_id=pk, menu_button_id=btn.get('id'),data_range=btn.get('data_range'))
+                    data_range = btn.get('data_range',0) or 0
+                    instance = RoleMenuButtonPermission.objects.create(role_id=pk, menu_button_id=btn.get('id'),data_range=data_range)
                     instance.dept.set(btn.get('dept',[]))
             for col in menu.get('columns'):
-                Columns.objects.filter(id=col.get('id')).update(is_query=col.get('is_query'),is_create=col.get('is_create'),is_update=col.get('is_update'))
+                FieldPermission.objects.update_or_create(role_id=pk,field_id=col.get('id'),is_query=col.get('is_query'),is_create=col.get('is_create'),is_update=col.get('is_update'))
         return DetailResponse(msg="授权成功")
 
 

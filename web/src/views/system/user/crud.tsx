@@ -3,7 +3,7 @@ import { dict, UserPageQuery, AddReq, DelReq, EditReq, compute, CreateCrudOption
 import { request } from '/@/utils/service';
 import { dictionary } from '/@/utils/dictionary';
 import { successMessage } from '/@/utils/message';
-import { inject } from 'vue';
+import { auth } from '/@/utils/authFunction';
 
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
 	const pageRequest = async (query: UserPageQuery) => {
@@ -24,8 +24,6 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 		return await api.exportData(query)
 	}
 
-	//权限判定
-	const hasPermissions:any = inject('$hasPermissions');
 
 	return {
 		crudOptions: {
@@ -43,8 +41,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 			actionbar: {
 				buttons: {
 					add: {
-						show: hasPermissions('user:Create')
-						// show:true
+						show: auth('user:Create')
 					},
 					export:{
 						text:"导出",//按钮文字
@@ -66,17 +63,17 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					edit: {
 						iconRight: 'Edit',
 						type: 'text',
-						show: hasPermissions('user:Update'),
+						show: auth('user:Update'),
 					},
 					remove: {
 						iconRight: 'Delete',
 						type: 'text',
-						show: hasPermissions('user:Delete'),
+						show: auth('user:Delete'),
 					},
                     custom: {
 						text: '重设密码',
 						type: 'text',
-						show: hasPermissions('user:ResetPassword'),
+						show: auth('user:ResetPassword'),
 						tooltip: {
 							placement: 'top',
 							content: '重设密码',

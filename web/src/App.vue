@@ -59,12 +59,6 @@ onBeforeMount(() => {
 	setIntroduction.cssCdn();
 	// 设置批量第三方 js
 	setIntroduction.jsCdn();
-	//websockt 模块
-	try {
-		//websocket.init(wsReceive)
-	} catch (e) {
-		console.log('websocket错误');
-	}
 });
 // 页面加载时
 onMounted(() => {
@@ -93,6 +87,14 @@ watch(
 	() => route.path,
 	() => {
 		other.useTitle();
+    if (!websocket.websocket) {
+      //websockt 模块
+      try {
+        websocket.init(wsReceive)
+      } catch (e) {
+        console.log('websocket错误');
+      }
+    }
 	},
 	{
 		deep: true,

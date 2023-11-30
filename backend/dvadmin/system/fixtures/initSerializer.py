@@ -9,7 +9,7 @@ django.setup()
 from dvadmin.system.models import (
     Role, Dept, Users, Menu, MenuButton,
     ApiWhiteList, Dictionary, SystemConfig,
-    RoleMenuPermission, RoleMenuButtonPermission
+    RoleMenuPermission, RoleMenuButtonPermission, MenuField
 )
 from dvadmin.utils.serializers import CustomModelSerializer
 
@@ -53,6 +53,16 @@ class MenuButtonInitSerializer(CustomModelSerializer):
         read_only_fields = ["id"]
 
 
+class MenuFieldInitSerializer(CustomModelSerializer):
+    """
+    初始化列权限-序列化器
+    """
+
+    class Meta:
+        model = MenuField
+        fields = ['id', 'menu','field_name','title','model']
+        read_only_fields = ["id"]
+
 class MenuInitSerializer(CustomModelSerializer):
     """
     递归深度获取数信息(用于生成初始化json文件)
@@ -60,7 +70,7 @@ class MenuInitSerializer(CustomModelSerializer):
     name = serializers.CharField(required=False)
     children = serializers.SerializerMethodField()
     menu_button = serializers.SerializerMethodField()
-
+    menu_field = serializers.SerializerMethodField()
     def get_children(self, obj: Menu):
         data = []
         instance = Menu.objects.filter(parent_id=obj.id)
@@ -76,10 +86,18 @@ class MenuInitSerializer(CustomModelSerializer):
             data = list(instance.values('name', 'value', 'api', 'method'))
         return data
 
+    def get_menu_field(self, obj: Menu):
+        data = []
+        instance = obj.menufield_set.order_by('field_name')
+        if instance:
+            data = list(instance.values('field_name', 'title','model'))
+        return data
+
     def save(self, **kwargs):
         instance = super().save(**kwargs)
         children = self.initial_data.get('children')
         menu_button = self.initial_data.get('menu_button')
+        menu_field = self.initial_data.get('menu_field')
         # 菜单表
         if children:
             for menu_data in children:
@@ -108,12 +126,24 @@ class MenuInitSerializer(CustomModelSerializer):
                 serializer = MenuButtonInitSerializer(instance_obj, data=menu_button_data, request=self.request)
                 serializer.is_valid(raise_exception=True)
                 serializer.save()
+        # 列权限
+        if menu_field:
+            for field_data in menu_field:
+                field_data['menu'] = instance.id
+                filter_data = {
+                    'menu':field_data['menu'],
+                    'field_name':field_data['field_name']
+                }
+                instance_obj = MenuField.objects.filter(**filter_data).first()
+                serializer = MenuFieldInitSerializer(instance_obj, data=field_data, request=self.request)
+                serializer.is_valid(raise_exception=True)
+                serializer.save()
         return instance
 
     class Meta:
         model = Menu
         fields = ['name', 'icon', 'sort', 'is_link', 'is_catalog', 'web_path', 'component', 'component_name', 'status',
-                  'cache', 'visible', 'parent', 'children', 'menu_button', 'creator', 'dept_belong_id']
+                  'cache', 'visible', 'parent', 'children', 'menu_button','menu_field', 'creator', 'dept_belong_id']
         extra_kwargs = {
             'creator': {'write_only': True},
             'dept_belong_id': {'write_only': True}
@@ -128,7 +158,7 @@ class RoleInitSerializer(CustomModelSerializer):
 
     class Meta:
         model = Role
-        fields = ['name', 'key', 'sort', 'status', 'admin',
+        fields = ['name', 'key', 'sort', 'status',
                   'creator', 'dept_belong_id']
         read_only_fields = ["id"]
         extra_kwargs = {

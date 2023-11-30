@@ -11,6 +11,7 @@
         "status": true,
         "cache": false,
         "visible": true,
+        "parent": null,
         "children": [
             {
                 "name": "菜单管理",
@@ -24,6 +25,7 @@
                 "status": true,
                 "cache": false,
                 "visible": true,
+                "parent": 1,
                 "children": [],
                 "menu_button": [
                     {
@@ -39,24 +41,6 @@
                         "method": 0
                     },
                     {
-                        "name": "新增",
-                        "value": "menu:Create",
-                        "api": "/api/system/menu/",
-                        "method": 1
-                    },
-                    {
-                        "name": "编辑",
-                        "value": "menu:Update",
-                        "api": "/api/system/menu/{id}/",
-                        "method": 2
-                    },
-                    {
-                        "name": "删除",
-                        "value": "menu:Delete",
-                        "api": "/api/system/menu/{id}/",
-                        "method": 3
-                    },
-                    {
                         "name": "查询所有",
                         "value": "menu:SearchAll",
                         "api": "/api/system/menu/get_all_menu/",
@@ -69,6 +53,24 @@
                         "method": 0
                     },
                     {
+                        "name": "查询按钮权限",
+                        "value": "btn:Search",
+                        "api": "/api/system/menu_button/",
+                        "method": 0
+                    },
+                    {
+                        "name": "查询列权限",
+                        "value": "column:Search",
+                        "api": "/api/system/column/",
+                        "method": 0
+                    },
+                    {
+                        "name": "新增",
+                        "value": "menu:Create",
+                        "api": "/api/system/menu/",
+                        "method": 1
+                    },
+                    {
                         "name": "上移",
                         "value": "menu:MoveUp",
                         "api": "/api/system/menu/mode_up/",
@@ -79,48 +81,63 @@
                         "value": "menu:MoveDown",
                         "api": "/api/system/menu/mode_down/",
                         "method": 1
-                    }
-                ]
-            },
-            {
-                "name": "菜单按钮",
-                "icon": "dot-circle-o",
-                "sort": 2,
-                "is_link": false,
-                "is_catalog": false,
-                "web_path": "/menuButton",
-                "component": "system/menuButton/index",
-                "component_name": "menuButton",
-                "status": true,
-                "cache": false,
-                "visible": false,
-                "children": [],
-                "menu_button": [
-                    {
-                        "name": "查询",
-                        "value": "menu_button:Search",
-                        "api": "/api/system/menu_button/",
-                        "method": 0
                     },
                     {
-                        "name": "新增",
-                        "value": "menu_button:Create",
+                        "name": "新增按钮权限",
+                        "value": "btn:Create",
                         "api": "/api/system/menu_button/",
                         "method": 1
                     },
                     {
+                        "name": "新增列权限",
+                        "value": "column:Create",
+                        "api": "/api/system/column/",
+                        "method": 1
+                    },
+                    {
+                        "name": "自动匹配列权限",
+                        "value": "column:Match",
+                        "api": "/api/system/column/auto_match_fields/",
+                        "method": 1
+                    },
+                    {
                         "name": "编辑",
-                        "value": "menu_button:Update",
+                        "value": "menu:Update",
+                        "api": "/api/system/menu/{id}/",
+                        "method": 2
+                    },
+                    {
+                        "name": "修改按钮权限",
+                        "value": "btn:Update",
                         "api": "/api/system/menu_button/{id}/",
                         "method": 2
                     },
                     {
+                        "name": "编辑列权限",
+                        "value": "column:Update",
+                        "api": "/api/system/column/{id}/",
+                        "method": 2
+                    },
+                    {
                         "name": "删除",
-                        "value": "menu_button:Delete",
+                        "value": "menu:Delete",
+                        "api": "/api/system/menu/{id}/",
+                        "method": 3
+                    },
+                    {
+                        "name": "删除按钮权限",
+                        "value": "btn:Delete",
                         "api": "/api/system/menu_button/{id}/",
                         "method": 3
+                    },
+                    {
+                        "name": "删除列权限",
+                        "value": "column:Delete",
+                        "api": "/api/system/column/{id}/",
+                        "method": 3
                     }
-                ]
+                ],
+                "menu_field": []
             },
             {
                 "name": "部门管理",
@@ -134,6 +151,7 @@
                 "status": true,
                 "cache": false,
                 "visible": true,
+                "parent": 1,
                 "children": [],
                 "menu_button": [
                     {
@@ -149,24 +167,6 @@
                         "method": 0
                     },
                     {
-                        "name": "新增",
-                        "value": "dept:Create",
-                        "api": "/api/system/dept/",
-                        "method": 1
-                    },
-                    {
-                        "name": "编辑",
-                        "value": "dept:Update",
-                        "api": "/api/system/dept/{id}/",
-                        "method": 2
-                    },
-                    {
-                        "name": "删除",
-                        "value": "dept:Delete",
-                        "api": "/api/system/dept/{id}/",
-                        "method": 3
-                    },
-                    {
                         "name": "查询所有",
                         "value": "dept:SearchAll",
                         "api": "/api/system/dept/all_dept/",
@@ -177,6 +177,18 @@
                         "value": "dept:LazySearchAll",
                         "api": "/api/system/dept/dept_lazy_tree/",
                         "method": 0
+                    },
+                    {
+                        "name": "头信息",
+                        "value": "dept:HeaderInfo",
+                        "api": "/api/system/dept/dept_info/",
+                        "method": 0
+                    },
+                    {
+                        "name": "新增",
+                        "value": "dept:Create",
+                        "api": "/api/system/dept/",
+                        "method": 1
                     },
                     {
                         "name": "上移",
@@ -191,12 +203,19 @@
                         "method": 1
                     },
                     {
-                        "name": "头信息",
-                        "value": "dept:HeaderInfo",
-                        "api": "/api/system/dept/dept_info/",
-                        "method": 0
+                        "name": "编辑",
+                        "value": "dept:Update",
+                        "api": "/api/system/dept/{id}/",
+                        "method": 2
+                    },
+                    {
+                        "name": "删除",
+                        "value": "dept:Delete",
+                        "api": "/api/system/dept/{id}/",
+                        "method": 3
                     }
-                ]
+                ],
+                "menu_field": []
             },
             {
                 "name": "角色管理",
@@ -210,6 +229,7 @@
                 "status": true,
                 "cache": false,
                 "visible": true,
+                "parent": 1,
                 "children": [],
                 "menu_button": [
                     {
@@ -221,6 +241,12 @@
                     {
                         "name": "详情",
                         "value": "role:Retrieve",
+                        "api": "/api/system/role/{id}/",
+                        "method": 0
+                    },
+                    {
+                        "name": "权限配置",
+                        "value": "role:Permission",
                         "api": "/api/system/role/{id}/",
                         "method": 0
                     },
@@ -248,63 +274,62 @@
                         "api": "/api/system/role/{id}/",
                         "method": 3
                     }
-                ]
-            },
-            {
-                "name": "列管理",
-                "icon": "iconfont icon-bolangneng",
-                "sort": 5,
-                "is_link": false,
-                "is_catalog": false,
-                "web_path": "/columns",
-                "component": "system/columns/index",
-                "component_name": "columns",
-                "status": true,
-                "cache": false,
-                "visible": true,
-                "children": [],
-                "menu_button": [
+                ],
+                "menu_field": [
                     {
-                        "name": "查询",
-                        "value": "column:Search",
-                        "api": "/api/system/column/",
-                        "method": 0
+                        "field_name": "create_datetime",
+                        "title": "创建时间",
+                        "model": "Role"
                     },
                     {
-                        "name": "详情",
-                        "value": "column:Retrieve",
-                        "api": "/api/system/column/{id}/",
-                        "method": 0
+                        "field_name": "creator",
+                        "title": "创建人",
+                        "model": "Role"
                     },
                     {
-                        "name": "新增",
-                        "value": "column:Create",
-                        "api": "/api/system/column/",
-                        "method": 1
+                        "field_name": "dept_belong_id",
+                        "title": "数据归属部门",
+                        "model": "Role"
                     },
                     {
-                        "name": "编辑",
-                        "value": "column:Update",
-                        "api": "/api/system/column/{id}/",
-                        "method": 2
+                        "field_name": "description",
+                        "title": "描述",
+                        "model": "Role"
                     },
                     {
-                        "name": "删除",
-                        "value": "column:Delete",
-                        "api": "/api/system/column/{id}/",
-                        "method": 3
+                        "field_name": "id",
+                        "title": "Id",
+                        "model": "Role"
                     },
                     {
-                        "name": "所有模型表",
-                        "value": "column:AllModel",
-                        "api": "/api/system/column/get_models/",
-                        "method": 0
+                        "field_name": "key",
+                        "title": "权限字符",
+                        "model": "Role"
                     },
                     {
-                        "name": "自动匹配所有字段",
-                        "value": "column:AutoMatch",
-                        "api": "/api/system/column/auto_match_fields/",
-                        "method": 1
+                        "field_name": "modifier",
+                        "title": "修改人",
+                        "model": "Role"
+                    },
+                    {
+                        "field_name": "name",
+                        "title": "角色名称",
+                        "model": "Role"
+                    },
+                    {
+                        "field_name": "sort",
+                        "title": "角色顺序",
+                        "model": "Role"
+                    },
+                    {
+                        "field_name": "status",
+                        "title": "角色状态",
+                        "model": "Role"
+                    },
+                    {
+                        "field_name": "update_datetime",
+                        "title": "修改时间",
+                        "model": "Role"
                     }
                 ]
             },
@@ -320,6 +345,7 @@
                 "status": true,
                 "cache": false,
                 "visible": true,
+                "parent": 1,
                 "children": [],
                 "menu_button": [
                     {
@@ -376,6 +402,83 @@
                         "api": "/api/system/user/{id}/",
                         "method": 3
                     }
+                ],
+                "menu_field": [
+                    {
+                        "field_name": "avatar",
+                        "title": "头像",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "create_datetime",
+                        "title": "创建时间",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "creator",
+                        "title": "创建人",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "dept",
+                        "title": "所属部门",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "dept_belong_id",
+                        "title": "数据归属部门",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "description",
+                        "title": "描述",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "email",
+                        "title": "邮箱",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "gender",
+                        "title": "性别",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "id",
+                        "title": "Id",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "mobile",
+                        "title": "电话",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "modifier",
+                        "title": "修改人",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "name",
+                        "title": "姓名",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "update_datetime",
+                        "title": "修改时间",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "username",
+                        "title": "用户账号",
+                        "model": "Users"
+                    },
+                    {
+                        "field_name": "user_type",
+                        "title": "用户类型",
+                        "model": "Users"
+                    }
                 ]
             },
             {
@@ -390,6 +493,7 @@
                 "status": true,
                 "cache": false,
                 "visible": true,
+                "parent": 1,
                 "children": [],
                 "menu_button": [
                     {
@@ -422,6 +526,58 @@
                         "api": "/api/system/menu/{id}/",
                         "method": 3
                     }
+                ],
+                "menu_field": [
+                    {
+                        "field_name": "content",
+                        "title": "内容",
+                        "model": "MessageCenter"
+                    },
+                    {
+                        "field_name": "create_datetime",
+                        "title": "创建时间",
+                        "model": "MessageCenter"
+                    },
+                    {
+                        "field_name": "creator",
+                        "title": "创建人",
+                        "model": "MessageCenter"
+                    },
+                    {
+                        "field_name": "dept_belong_id",
+                        "title": "数据归属部门",
+                        "model": "MessageCenter"
+                    },
+                    {
+                        "field_name": "description",
+                        "title": "描述",
+                        "model": "MessageCenter"
+                    },
+                    {
+                        "field_name": "id",
+                        "title": "Id",
+                        "model": "MessageCenter"
+                    },
+                    {
+                        "field_name": "modifier",
+                        "title": "修改人",
+                        "model": "MessageCenter"
+                    },
+                    {
+                        "field_name": "target_type",
+                        "title": "目标类型",
+                        "model": "MessageCenter"
+                    },
+                    {
+                        "field_name": "title",
+                        "title": "标题",
+                        "model": "MessageCenter"
+                    },
+                    {
+                        "field_name": "update_datetime",
+                        "title": "修改时间",
+                        "model": "MessageCenter"
+                    }
                 ]
             },
             {
@@ -436,6 +592,7 @@
                 "status": true,
                 "cache": false,
                 "visible": true,
+                "parent": 1,
                 "children": [],
                 "menu_button": [
                     {
@@ -468,10 +625,63 @@
                         "api": "/api/system/api_white_list/{id}/",
                         "method": 3
                     }
+                ],
+                "menu_field": [
+                    {
+                        "field_name": "create_datetime",
+                        "title": "创建时间",
+                        "model": "ApiWhiteList"
+                    },
+                    {
+                        "field_name": "creator",
+                        "title": "创建人",
+                        "model": "ApiWhiteList"
+                    },
+                    {
+                        "field_name": "dept_belong_id",
+                        "title": "数据归属部门",
+                        "model": "ApiWhiteList"
+                    },
+                    {
+                        "field_name": "description",
+                        "title": "描述",
+                        "model": "ApiWhiteList"
+                    },
+                    {
+                        "field_name": "enable_datasource",
+                        "title": "激活数据权限",
+                        "model": "ApiWhiteList"
+                    },
+                    {
+                        "field_name": "id",
+                        "title": "Id",
+                        "model": "ApiWhiteList"
+                    },
+                    {
+                        "field_name": "method",
+                        "title": "接口请求方法",
+                        "model": "ApiWhiteList"
+                    },
+                    {
+                        "field_name": "modifier",
+                        "title": "修改人",
+                        "model": "ApiWhiteList"
+                    },
+                    {
+                        "field_name": "update_datetime",
+                        "title": "修改时间",
+                        "model": "ApiWhiteList"
+                    },
+                    {
+                        "field_name": "url",
+                        "title": "url",
+                        "model": "ApiWhiteList"
+                    }
                 ]
             }
         ],
-        "menu_button": []
+        "menu_button": [],
+        "menu_field": []
     },
     {
         "name": "常规配置",
@@ -485,6 +695,7 @@
         "status": true,
         "cache": false,
         "visible": true,
+        "parent": null,
         "children": [
             {
                 "name": "系统配置",
@@ -498,6 +709,7 @@
                 "status": true,
                 "cache": false,
                 "visible": true,
+                "parent": 10,
                 "children": [],
                 "menu_button": [
                     {
@@ -530,7 +742,8 @@
                         "api": "/api/system/system_config/{id}/",
                         "method": 3
                     }
-                ]
+                ],
+                "menu_field": []
             },
             {
                 "name": "字典管理",
@@ -544,6 +757,7 @@
                 "status": true,
                 "cache": false,
                 "visible": true,
+                "parent": 10,
                 "children": [],
                 "menu_button": [
                     {
@@ -576,6 +790,88 @@
                         "api": "/api/system/dictionary/{id}/",
                         "method": 3
                     }
+                ],
+                "menu_field": [
+                    {
+                        "field_name": "color",
+                        "title": "颜色",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "create_datetime",
+                        "title": "创建时间",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "creator",
+                        "title": "创建人",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "dept_belong_id",
+                        "title": "数据归属部门",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "description",
+                        "title": "描述",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "id",
+                        "title": "Id",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "is_value",
+                        "title": "是否为value值",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "label",
+                        "title": "字典名称",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "modifier",
+                        "title": "修改人",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "parent",
+                        "title": "父级",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "remark",
+                        "title": "备注",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "sort",
+                        "title": "显示排序",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "status",
+                        "title": "状态",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "type",
+                        "title": "数据值类型",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "update_datetime",
+                        "title": "修改时间",
+                        "model": "Dictionary"
+                    },
+                    {
+                        "field_name": "value",
+                        "title": "字典编号",
+                        "model": "Dictionary"
+                    }
                 ]
             },
             {
@@ -590,6 +886,7 @@
                 "status": true,
                 "cache": false,
                 "visible": true,
+                "parent": 10,
                 "children": [],
                 "menu_button": [
                     {
@@ -622,6 +919,78 @@
                         "api": "/api/system/area/{id}/",
                         "method": 3
                     }
+                ],
+                "menu_field": [
+                    {
+                        "field_name": "code",
+                        "title": "地区编码",
+                        "model": "Area"
+                    },
+                    {
+                        "field_name": "create_datetime",
+                        "title": "创建时间",
+                        "model": "Area"
+                    },
+                    {
+                        "field_name": "creator",
+                        "title": "创建人",
+                        "model": "Area"
+                    },
+                    {
+                        "field_name": "dept_belong_id",
+                        "title": "数据归属部门",
+                        "model": "Area"
+                    },
+                    {
+                        "field_name": "description",
+                        "title": "描述",
+                        "model": "Area"
+                    },
+                    {
+                        "field_name": "enable",
+                        "title": "是否启用",
+                        "model": "Area"
+                    },
+                    {
+                        "field_name": "id",
+                        "title": "Id",
+                        "model": "Area"
+                    },
+                    {
+                        "field_name": "initials",
+                        "title": "首字母",
+                        "model": "Area"
+                    },
+                    {
+                        "field_name": "level",
+                        "title": "地区层级(1省份 2城市 3区县 4乡级)",
+                        "model": "Area"
+                    },
+                    {
+                        "field_name": "modifier",
+                        "title": "修改人",
+                        "model": "Area"
+                    },
+                    {
+                        "field_name": "name",
+                        "title": "名称",
+                        "model": "Area"
+                    },
+                    {
+                        "field_name": "pcode",
+                        "title": "父地区编码",
+                        "model": "Area"
+                    },
+                    {
+                        "field_name": "pinyin",
+                        "title": "拼音",
+                        "model": "Area"
+                    },
+                    {
+                        "field_name": "update_datetime",
+                        "title": "修改时间",
+                        "model": "Area"
+                    }
                 ]
             },
             {
@@ -636,6 +1005,7 @@
                 "status": true,
                 "cache": false,
                 "visible": true,
+                "parent": 10,
                 "children": [],
                 "menu_button": [
                     {
@@ -662,10 +1032,83 @@
                         "api": "/api/system/file/{id}/",
                         "method": 3
                     }
+                ],
+                "menu_field": [
+                    {
+                        "field_name": "create_datetime",
+                        "title": "创建时间",
+                        "model": "FileList"
+                    },
+                    {
+                        "field_name": "creator",
+                        "title": "创建人",
+                        "model": "FileList"
+                    },
+                    {
+                        "field_name": "dept_belong_id",
+                        "title": "数据归属部门",
+                        "model": "FileList"
+                    },
+                    {
+                        "field_name": "description",
+                        "title": "描述",
+                        "model": "FileList"
+                    },
+                    {
+                        "field_name": "engine",
+                        "title": "引擎",
+                        "model": "FileList"
+                    },
+                    {
+                        "field_name": "file_url",
+                        "title": "文件地址",
+                        "model": "FileList"
+                    },
+                    {
+                        "field_name": "id",
+                        "title": "Id",
+                        "model": "FileList"
+                    },
+                    {
+                        "field_name": "md5sum",
+                        "title": "文件md5",
+                        "model": "FileList"
+                    },
+                    {
+                        "field_name": "mime_type",
+                        "title": "Mime类型",
+                        "model": "FileList"
+                    },
+                    {
+                        "field_name": "modifier",
+                        "title": "修改人",
+                        "model": "FileList"
+                    },
+                    {
+                        "field_name": "name",
+                        "title": "名称",
+                        "model": "FileList"
+                    },
+                    {
+                        "field_name": "size",
+                        "title": "文件大小",
+                        "model": "FileList"
+                    },
+                    {
+                        "field_name": "update_datetime",
+                        "title": "修改时间",
+                        "model": "FileList"
+                    },
+                    {
+                        "field_name": "url",
+                        "title": "url",
+                        "model": "FileList"
+                    }
                 ]
             }
         ],
-        "menu_button": []
+        "menu_button": [],
+        "menu_field": []
     },
     {
         "name": "日志管理",
@@ -679,6 +1122,7 @@
         "status": true,
         "cache": false,
         "visible": true,
+        "parent": null,
         "children": [
             {
                 "name": "登录日志",
@@ -692,6 +1136,7 @@
                 "status": true,
                 "cache": false,
                 "visible": true,
+                "parent": 15,
                 "children": [],
                 "menu_button": [
                     {
@@ -705,6 +1150,128 @@
                         "value": "login_log:Retrieve",
                         "api": "/api/system/login_log/{id}/",
                         "method": 0
+                    }
+                ],
+                "menu_field": [
+                    {
+                        "field_name": "agent",
+                        "title": "agent信息",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "area_code",
+                        "title": "区域代码",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "browser",
+                        "title": "浏览器名",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "city",
+                        "title": "城市",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "continent",
+                        "title": "州",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "country",
+                        "title": "国家",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "country_code",
+                        "title": "简称",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "country_english",
+                        "title": "英文全称",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "create_datetime",
+                        "title": "创建时间",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "creator",
+                        "title": "创建人",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "dept_belong_id",
+                        "title": "数据归属部门",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "description",
+                        "title": "描述",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "district",
+                        "title": "县区",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "id",
+                        "title": "Id",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "ip",
+                        "title": "登录ip",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "isp",
+                        "title": "运营商",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "latitude",
+                        "title": "纬度",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "login_type",
+                        "title": "登录类型",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "longitude",
+                        "title": "经度",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "modifier",
+                        "title": "修改人",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "os",
+                        "title": "操作系统",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "province",
+                        "title": "省份",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "update_datetime",
+                        "title": "修改时间",
+                        "model": "LoginLog"
+                    },
+                    {
+                        "field_name": "username",
+                        "title": "登录用户名",
+                        "model": "LoginLog"
                     }
                 ]
             },
@@ -720,6 +1287,7 @@
                 "status": true,
                 "cache": false,
                 "visible": true,
+                "parent": 15,
                 "children": [],
                 "menu_button": [
                     {
@@ -734,9 +1302,102 @@
                         "api": "/api/system/operation_log/",
                         "method": 0
                     }
+                ],
+                "menu_field": [
+                    {
+                        "field_name": "create_datetime",
+                        "title": "创建时间",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "creator",
+                        "title": "创建人",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "dept_belong_id",
+                        "title": "数据归属部门",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "description",
+                        "title": "描述",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "id",
+                        "title": "Id",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "json_result",
+                        "title": "返回信息",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "modifier",
+                        "title": "修改人",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "request_body",
+                        "title": "请求参数",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "request_browser",
+                        "title": "请求浏览器",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "request_ip",
+                        "title": "请求ip地址",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "request_method",
+                        "title": "请求方式",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "request_modular",
+                        "title": "请求模块",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "request_msg",
+                        "title": "操作说明",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "request_os",
+                        "title": "操作系统",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "request_path",
+                        "title": "请求地址",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "response_code",
+                        "title": "响应状态码",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "status",
+                        "title": "响应状态",
+                        "model": "OperationLog"
+                    },
+                    {
+                        "field_name": "update_datetime",
+                        "title": "修改时间",
+                        "model": "OperationLog"
+                    }
                 ]
             }
         ],
-        "menu_button": []
+        "menu_button": [],
+        "menu_field": []
     }
 ]

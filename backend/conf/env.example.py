@@ -44,8 +44,5 @@ LOGIN_NO_CAPTCHA_AUTH = True
 # ================================================= #
 
 ALLOWED_HOSTS = ["*"]
-CUSTOM_APPS = [
-    "dvadmin.system",
-]
-# daphne启动命令
-#daphne application.asgi:application -b 0.0.0.0 -p 8000
+# 列权限中排除App应用
+COLUMN_EXCLUDE_APPS = []

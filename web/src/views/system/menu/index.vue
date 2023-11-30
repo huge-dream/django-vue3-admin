@@ -14,9 +14,19 @@
 			</el-col>
 
 			<el-col :span="18">
-				<div class="menu-box menu-right-box">
-					<MenuButtonCom ref="menuButtonRef" />
-				</div>
+        <el-tabs type="border-card">
+          <el-tab-pane label="按钮权限配置" >
+            <div style="height: 80vh">
+              <MenuButtonCom ref="menuButtonRef" />
+            </div>
+          </el-tab-pane>
+          <el-tab-pane label="列权限配置">
+            <div style="height: 80vh">
+              <MenuFieldCom ref="menuFieldRef"></MenuFieldCom>
+            </div>
+          </el-tab-pane>
+        </el-tabs>
+
 			</el-col>
 		</el-row>
 
@@ -39,6 +49,7 @@ import { ElMessageBox } from 'element-plus';
 import MenuTreeCom from './components/MenuTreeCom/index.vue';
 import MenuButtonCom from './components/MenuButtonCom/index.vue';
 import MenuFormCom from './components/MenuFormCom/index.vue';
+import MenuFieldCom from './components/MenuFieldCom/index.vue';
 import { GetList, DelObj } from './api';
 import { successNotification } from '/@/utils/message';
 import { APIResponseData, MenuTreeItemType } from './types';
@@ -49,7 +60,7 @@ let drawerVisible = ref(false);
 let drawerFormData = ref<Partial<MenuTreeItemType>>({});
 let menuTreeRef = ref<InstanceType<typeof MenuTreeCom> | null>(null);
 let menuButtonRef = ref<InstanceType<typeof MenuButtonCom> | null>(null);
-
+let menuFieldRef = ref<InstanceType<typeof MenuFieldCom> | null>(null);
 const getData = () => {
 	GetList({}).then((ret: APIResponseData) => {
 		const responseData = ret.data;
@@ -67,6 +78,7 @@ const getData = () => {
  */
 const handleTreeClick = (record: MenuTreeItemType) => {
 	menuButtonRef.value?.handleRefreshTable(record);
+  menuFieldRef.value?.handleRefreshTable(record)
 };
 
 /**

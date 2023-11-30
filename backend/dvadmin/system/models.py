@@ -13,7 +13,6 @@ class Role(CoreModel):
     key = models.CharField(max_length=64, unique=True, verbose_name="权限字符", help_text="权限字符")
     sort = models.IntegerField(default=1, verbose_name="角色顺序", help_text="角色顺序")
     status = models.BooleanField(default=True, verbose_name="角色状态", help_text="角色状态")
-    admin = models.BooleanField(default=False, verbose_name="是否为admin", help_text="是否为admin")
 
     class Meta:
         db_table = table_prefix + "system_role"
@@ -179,21 +178,27 @@ class Menu(CoreModel):
         verbose_name_plural = verbose_name
         ordering = ("sort",)
 
-
-class Columns(CoreModel):
-    role = models.ForeignKey(to='Role', on_delete=models.CASCADE, verbose_name='角色', db_constraint=False)
-    app = models.CharField(max_length=64, verbose_name='应用名')
+class MenuField(CoreModel):
     model = models.CharField(max_length=64, verbose_name='表名')
     menu = models.ForeignKey(to='Menu', on_delete=models.CASCADE, verbose_name='菜单', db_constraint=False)
     field_name = models.CharField(max_length=64, verbose_name='模型表字段名')
     title = models.CharField(max_length=64, verbose_name='字段显示名')
+    class Meta:
+        db_table = table_prefix + "system_menu_field"
+        verbose_name = "菜单字段表"
+        verbose_name_plural = verbose_name
+        ordering = ("id",)
+
+class FieldPermission(CoreModel):
+    role = models.ForeignKey(to='Role', on_delete=models.CASCADE, verbose_name='角色', db_constraint=False)
+    field = models.ForeignKey(to='MenuField', on_delete=models.CASCADE,related_name='menu_field', verbose_name='字段', db_constraint=False)
     is_query = models.BooleanField(default=1, verbose_name='是否可查询')
     is_create = models.BooleanField(default=1, verbose_name='是否可创建')
     is_update = models.BooleanField(default=1, verbose_name='是否可更新')
 
     class Meta:
-        db_table = table_prefix + "system_columns"
-        verbose_name = "列权限表"
+        db_table = table_prefix + "system_field_permission"
+        verbose_name = "字段权限表"
         verbose_name_plural = verbose_name
         ordering = ("id",)
 

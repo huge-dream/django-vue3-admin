@@ -121,13 +121,12 @@ class DataLevelPermissionsFilter(BaseFilterBackend):
             role__status=1,
             menu_button__api=re_api,
             menu_button__method=method).values(
-            'data_range',
-            role_admin=F('role__admin')
+            'data_range'
         )
         dataScope_list = []  # 权限范围列表
         for ele in role_permission_list:
                 # 判断用户是否为超级管理员角色/如果拥有[全部数据权限]则返回所有数据
-            if ele.get("data_range") == 3 or ele.get("role_admin") == True:
+            if ele.get("data_range") == 3:
                 return queryset
             dataScope_list.append(ele.get("data_range"))
         dataScope_list = list(set(dataScope_list))

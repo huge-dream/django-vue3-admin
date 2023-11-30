@@ -67,6 +67,20 @@
         "children": [
             {
                 "parent": 1,
+                "title": "网站标题",
+                "key": "site_title",
+                "value": "Dvadmin",
+                "sort": 1,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 0,
+                "rule": [],
+                "placeholder": "请输入网站标题",
+                "setting": null,
+                "children": []
+            },
+            {
+                "parent": 1,
                 "title": "网站名称",
                 "key": "site_name",
                 "value": "企业级后台管理系统",
@@ -116,7 +130,7 @@
                 "parent": 1,
                 "title": "版权信息",
                 "key": "copyright",
-                "value": "2021-2022 django-vue-admin.com 版权所有",
+                "value": "2021-2024 django-vue-admin.com 版权所有",
                 "sort": 4,
                 "status": true,
                 "data_options": null,
