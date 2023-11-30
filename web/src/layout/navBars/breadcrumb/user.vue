@@ -57,9 +57,33 @@
 				:class="!state.isScreenfull ? 'icon-fullscreen' : 'icon-tuichuquanping'"
 			></i>
 		</div>
+    <div>
+      <span v-if="!isSocketOpen">
+        <el-popconfirm
+          width="250"
+          ref="onlinePopoverRef"
+          :confirm-button-text="$t('message.user.retry')"
+          :icon="InfoFilled"
+          trigger="hover"
+          icon-color="#626AEF"
+          :title="$t('message.user.onlinePrompt')"
+          @confirm="onlineConfirmEvent"
+        >
+          <template #reference>
+            <el-badge is-dot class="item" :class="{'online-status': isSocketOpen,'online-down':!isSocketOpen}">
+              <img :src="userInfos.avatar || headerImage" class="layout-navbars-breadcrumb-user-link-photo mr5" />
+            </el-badge>
+          </template>
+        </el-popconfirm>
+      </span>
+    </div>
 		<el-dropdown :show-timeout="70" :hide-timeout="50" @command="onHandleCommandClick">
 			<span class="layout-navbars-breadcrumb-user-link">
-				<img :src="userInfos.avatar || headerImage" class="layout-navbars-breadcrumb-user-link-photo mr5" />
+        <span v-if="isSocketOpen">
+          <el-badge is-dot class="item" :class="{'online-status': isSocketOpen,'online-down':!isSocketOpen}">
+            <img :src="userInfos.avatar || headerImage" class="layout-navbars-breadcrumb-user-link-photo mr5" />
+          </el-badge>
+        </span>
 				{{ userInfos.username === '' ? 'common' : userInfos.username }}
 				<el-icon class="el-icon--right">
 					<ele-ArrowDown />
@@ -79,7 +103,7 @@
 </template>
 
 <script setup lang="ts" name="layoutBreadcrumbUser">
-import { defineAsyncComponent, ref, computed, reactive, onMounted } from 'vue';
+import { defineAsyncComponent, ref, computed, reactive, onMounted, unref, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessageBox, ElMessage } from 'element-plus';
 import screenfull from 'screenfull';
@@ -91,6 +115,8 @@ import other from '/@/utils/other';
 import mittBus from '/@/utils/mitt';
 import { Session, Local } from '/@/utils/storage';
 import headerImage from '/@/assets/img/headerImage.png';
+import websocket from '/@/utils/websocket';
+import { InfoFilled } from '@element-plus/icons-vue'
 // 引入组件
 const UserNews = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/userNews.vue'));
 const Search = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/search.vue'));
@@ -118,6 +144,21 @@ const layoutUserFlexNum = computed(() => {
 	else num = '';
 	return num;
 });
+
+// 定义变量内容
+const { isSocketOpen } = storeToRefs(useUserInfo());
+
+// websocket状态
+const onlinePopoverRef = ref()
+const onlineConfirmEvent = () => {
+  if (!isSocketOpen.value) {
+      websocket.is_reonnect = true
+      websocket.reconnect_current = 1
+      websocket.reconnect()
+  }
+  // 手动隐藏弹出
+  unref(onlinePopoverRef).popperRef?.delayHide?.()
+}
 // 全屏点击时
 const onScreenfullClick = () => {
 	if (!screenfull.isEnabled) {
@@ -256,5 +297,29 @@ const messageCenter = messageCenterStore();
 	:deep(.el-badge__content.is-fixed) {
 		top: 12px;
 	}
+  .online-status{
+    cursor: pointer;
+    :deep(.el-badge__content.is-fixed) {
+      top: 30px;
+      font-size: 14px;
+      left: 5px;
+      height: 12px;
+      width: 12px;
+      padding: 0;
+      background-color: #18bc9c;
+    }
+  }
+  .online-down{
+    cursor: pointer;
+    :deep(.el-badge__content.is-fixed) {
+      top: 30px;
+      font-size: 14px;
+      left: 5px;
+      height: 12px;
+      width: 12px;
+      padding: 0;
+      background-color: #979b9c;
+    }
+  }
 }
 </style>

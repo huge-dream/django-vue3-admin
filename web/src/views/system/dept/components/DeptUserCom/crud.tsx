@@ -4,6 +4,7 @@ import { request } from '/@/utils/service';
 import * as api from './api';
 import { dictionary } from '/@/utils/dictionary';
 import { successMessage } from '/@/utils/message';
+import {auth} from "/@/utils/authFunction";
 
 export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsProps): CreateCrudOptionsRet {
 	const pageRequest = async (query: UserPageQuery) => {
@@ -39,9 +40,6 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 		return await api.exportData(query);
 	};
 
-	//权限判定
-	const hasPermissions: any = inject('$hasPermissions');
-
 	return {
 		crudOptions: {
 			table: {
@@ -58,12 +56,12 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 			actionbar: {
 				buttons: {
 					add: {
-						show: hasPermissions('user:Create'),
-						// show:true
+						show: auth('user:Create')
 					},
 					export: {
 						text: '导出', //按钮文字
 						title: '导出', //鼠标停留显示的信息
+						show: auth('user:Export'),
 						click() {
 							return exportRequest(crudExpose!.getSearchFormData());
 						},
@@ -89,15 +87,15 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 						show: false,
 					},
 					edit: {
-						show: hasPermissions('user:Update'),
+						show: auth('user:Update'),
 					},
 					remove: {
-						show: hasPermissions('user:Delete'),
+						show: auth('user:Delete'),
 					},
 					custom: {
 						text: '重设密码',
 						type: 'primary',
-						show: hasPermissions('user:ResetPassword'),
+						show: auth('user:ResetPassword'),
 						tooltip: {
 							placement: 'top',
 							content: '重设密码',
@@ -266,7 +264,6 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 						url: '/api/system/role/',
 						value: 'id',
 						label: 'name',
-						isTree: true,
 						getData: async ({ url }: { url: string }) => {
 							return request({
 								url: url,

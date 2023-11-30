@@ -1,6 +1,8 @@
 <template>
   <el-drawer v-model="drawerVisible" title="权限配置" direction="rtl" size="60%" :close-on-click-modal="false"
-             :before-close="handleDrawerClose">
+             :before-close="handleDrawerClose"
+             :destroy-on-close="true"
+  >
     <template #header>
       <el-row>
         <el-col :span="4">
@@ -8,7 +10,7 @@
             <el-tag>{{ props.roleName }}</el-tag>
           </div>
         </el-col>
-        <el-col :span="6" :offset="8">
+        <el-col :span="6">
           <div>
             <el-button size="small" type="primary" class="pc-save-btn" @click="handleSavePermission">保存菜单授权
             </el-button>
@@ -18,15 +20,16 @@
     </template>
     <div class="permission-com">
       <el-collapse v-model="collapseCurrent" @change="handleCollapseChange" accordion>
-        <el-collapse-item v-for="(item,mIndex) in menuData" :key="mIndex" :name="mIndex">
+        <el-collapse-item v-for="(item,mIndex) in menuData" :key="mIndex" :name="mIndex"
+                          style="    background-color: #fafafa;">
           <template #title>
-            <div @click.stop="null">
-              <p class="pc-collapse-title">
-                <el-checkbox v-model="item.isCheck">
+            <div>
+              <div class="pc-collapse-title">
+                <el-checkbox v-model="item.isCheck" @click.stop="null">
                   <span>{{ item.name }}</span>
                 </el-checkbox>
-              </p>
-              <div v-show="!collapseCurrent.includes(mIndex)">
+              </div>
+              <div v-show="!collapseCurrent.includes(mIndex)" @click.stop="null" style="text-align: left;">
                 <el-checkbox v-for="btn in item.btns" :key="btn.value" :label="btn.value" v-model="btn.isCheck">
                   {{ btn.name }}
                 </el-checkbox>
@@ -38,7 +41,7 @@
               <p>允许对这些数据有以下操作</p>
               <el-checkbox v-for="(btn,bIndex) in item.btns" :key="bIndex" v-model="btn.isCheck" :label="btn.value">
                 <div class="btn-item">
-                  {{ btn.data_range!==null ? `${btn.name}(${formatDataRange(btn.data_range)})` : btn.name }}
+                  {{ btn.data_range !== null ? `${btn.name}(${formatDataRange(btn.data_range)})` : btn.name }}
                   <span v-show="btn.isCheck" @click.stop.prevent="handleSettingClick(item, btn.id)">
                     <el-icon><Setting/></el-icon>
                   </span>
@@ -49,7 +52,7 @@
             <div class="pccm-item">
               <p>对这些数据有以下字段权限</p>
 
-              <ul  class="columns-list">
+              <ul class="columns-list">
                 <li class="columns-head">
                   <div class="width-txt">
                     <span>字段</span>
@@ -57,7 +60,7 @@
 
                   <div v-for="(head,hIndex) in column.header" :key="hIndex" class="width-check">
                     <el-checkbox :label="head.value" @change="handleColumnChange($event, item, head.value)">
-                      <span>{{head.label}}</span>
+                      <span>{{ head.label }}</span>
                     </el-checkbox>
                   </div>
                 </li>
@@ -109,7 +112,13 @@
 import {ref, onMounted, defineProps, watch, computed, reactive} from 'vue';
 import XEUtils from 'xe-utils';
 import {errorNotification} from '/@/utils/message';
-import {getDataPermissionRange, getDataPermissionDept, getRolePremission, setRolePremission,setBtnDatarange} from './api';
+import {
+  getDataPermissionRange,
+  getDataPermissionDept,
+  getRolePremission,
+  setRolePremission,
+  setBtnDatarange
+} from './api';
 import {MenuDataType, DataPermissionRangeType, CustomDataPermissionDeptType} from './types';
 import {ElMessage} from 'element-plus'
 
@@ -156,9 +165,9 @@ let menuBtnCurrent = ref<number>(-1);
 let dialogVisible = ref(false);
 let dataPermissionRange = ref<DataPermissionRangeType[]>([]);
 const formatDataRange = computed(() => {
-  return function(datarange:number){
+  return function (datarange: number) {
     const findItem = dataPermissionRange.value.find((i) => i.value === datarange);
-    return  findItem?.label || ''
+    return findItem?.label || ''
   }
 })
 let deptData = ref<CustomDataPermissionDeptType[]>([]);
@@ -226,7 +235,7 @@ const handleDialogConfirm = () => {
         if (btn.id === menuBtnCurrent.value) {
           const findItem = dataPermissionRange.value.find((i) => i.value === dataPermission.value);
           btn.data_range = findItem?.value || 0;
-          if(btn.data_range===4){
+          if (btn.data_range === 4) {
             btn.dept = customDataPermission.value
           }
         }
@@ -252,7 +261,10 @@ const handleSavePermission = () => {
 }
 
 const column = reactive({
-  header:[{value:'is_create',label:'新增可见'},{value:'is_update',label:'编辑可见'},{value:'is_query',label:'列表可见'}]
+  header: [{value: 'is_create', label: '新增可见'}, {value: 'is_update', label: '编辑可见'}, {
+    value: 'is_query',
+    label: '列表可见'
+  }]
 })
 
 onMounted(() => {
@@ -270,6 +282,7 @@ onMounted(() => {
 
   .pc-collapse-title {
     line-height: 32px;
+    text-align: left;
 
     span {
       font-size: 16px;
@@ -363,6 +376,7 @@ onMounted(() => {
     border-left: 1px solid #ebeef5;
     border-right: 1px solid #ebeef5;
     box-sizing: border-box;
+    background-color: #fafafa;
   }
 
   .el-collapse-item__header.is-active {

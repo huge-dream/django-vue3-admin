@@ -98,3 +98,4 @@ media/
 __pypackages__/
 package-lock.json
 gunicorn.pid
+!plugins/__init__.py

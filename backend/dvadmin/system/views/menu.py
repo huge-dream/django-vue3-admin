@@ -119,8 +119,7 @@ class MenuViewSet(CustomModelViewSet):
     def web_router(self, request):
         """用于前端获取当前角色的路由"""
         user = request.user
-        is_admin = user.role.values_list('admin', flat=True)
-        if user.is_superuser or True in is_admin:
+        if user.is_superuser:
             queryset = self.queryset.filter(status=1)
         else:
             role_list = user.role.values_list('id', flat=True)

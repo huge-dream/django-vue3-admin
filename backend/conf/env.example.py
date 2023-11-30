@@ -44,6 +44,5 @@ LOGIN_NO_CAPTCHA_AUTH = True
 # ================================================= #
 
 ALLOWED_HOSTS = ["*"]
-CUSTOM_APPS = [
-    "dvadmin.system",
-]
+# 列权限中排除App应用
+COLUMN_EXCLUDE_APPS = []

@@ -26,6 +26,7 @@ export const useUserInfo = defineStore('userInfo', {
 				},
 			],
 		},
+		isSocketOpen: false
 	}),
 	actions: {
 		async updateUserInfos() {
@@ -56,6 +57,9 @@ export const useUserInfo = defineStore('userInfo', {
 				this.userInfos.role_info = userInfos.data.role_info;
 				Session.set('userInfo', this.userInfos);
 			}
+		},
+		async setWebSocketState(socketState: boolean) {
+			this.isSocketOpen = socketState;
 		},
 		async getApiUserInfo() {
 			return request({

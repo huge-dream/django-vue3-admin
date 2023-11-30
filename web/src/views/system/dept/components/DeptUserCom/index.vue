@@ -40,7 +40,7 @@
 			<el-button :icon="!showCount ? 'Hide' : 'View'" circle @click="showCount = !showCount"></el-button>
 		</template>
 		<template #actionbar-right>
-			<importExcel api="api/system/user/">导入 </importExcel>
+			<importExcel api="api/system/user/" v-auth="'user:Import'">导入 </importExcel>
 		</template>
 	</fs-crud>
 
@@ -251,10 +251,10 @@ const handleResetPwdSubmit = async () => {
 };
 
 onMounted(() => {
-	crudExpose.doRefresh();
 	deptCountChart = init(deptCountBar.value as HTMLElement);
 	deptSexChart = init(deptSexPie.value as HTMLElement);
 	getDeptInfo();
+  crudExpose.doRefresh();
 });
 
 defineExpose({

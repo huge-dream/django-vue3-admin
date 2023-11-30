@@ -4,8 +4,8 @@
 			<div class="login-left-logo">
 				<img :src="logoMini" />
 				<div class="login-left-logo-text">
-					<span>{{ getThemeConfig.globalViceTitle }}</span>
-					<span class="login-left-logo-text-msg">{{ getThemeConfig.globalViceTitleMsg }}</span>
+					<span>{{ getSystemConfig['login.site_title']||getThemeConfig.globalViceTitle }}</span>
+					<span class="login-left-logo-text-msg">{{ getSystemConfig['login.site_name']||getThemeConfig.globalViceTitleMsg }}</span>
 				</div>
 			</div>
 			<div class="login-left-img">
@@ -42,15 +42,15 @@
 		</div>
 
 		<div class="login-authorization">
-			<p>Copyright © 2021-2022 django-vue-admin.com 版权所有</p>
+			<p>Copyright © {{getSystemConfig['login.copyright'] || '2021-2024 django-vue-admin.com'}} 版权所有</p>
 			<p class="la-other">
-				<a href="https://beian.miit.gov.cn" target="_blank">晋ICP备18005113号-3</a>
+				<a href="https://beian.miit.gov.cn" target="_blank">{{getSystemConfig['login.keep_record'] || '晋ICP备18005113号-3'}}</a>
 				|
-				<a href="https://django-vue-admin.com" target="_blank">帮助</a>
+				<a :href="getSystemConfig['login.help_url']?getSystemConfig['login.help_url']:'https://django-vue-admin.com'" target="_blank">帮助</a>
 				|
-				<a href="#">隐私</a>
+				<a :href="getSystemConfig['login.privacy_url']?getSystemConfig['login.privacy_url']:'#'">隐私</a>
 				|
-				<a href="#">条款</a>
+				<a :href="getSystemConfig['login.clause_url']?getSystemConfig['login.clause_url']:'#'">条款</a>
 			</p>
 		</div>
 	</div>
@@ -64,7 +64,7 @@ import { NextLoading } from '/@/utils/loading';
 import logoMini from '/@/assets/logo-mini.svg';
 import loginMain from '/@/assets/login-main.svg';
 import loginBg from '/@/assets/login-bg.svg';
-
+import {SystemConfigStore} from '/@/stores/systemConfig'
 // 引入组件
 const Account = defineAsyncComponent(() => import('/@/views/system/login/component/account.vue'));
 const Mobile = defineAsyncComponent(() => import('/@/views/system/login/component/mobile.vue'));
@@ -82,6 +82,14 @@ const state = reactive({
 const getThemeConfig = computed(() => {
 	return themeConfig.value;
 });
+
+const systemConfigStore = SystemConfigStore()
+const {systemConfig} = storeToRefs(systemConfigStore)
+const getSystemConfig = computed(()=>{
+  return systemConfig.value
+})
+
+
 // 页面加载时
 onMounted(() => {
 	NextLoading.done();

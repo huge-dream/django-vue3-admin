@@ -118,7 +118,7 @@
                 list-type="picture-card"
             >
               <i class="el-icon-plus"></i>
-              <div slot="tip" class="el-upload__tip">选取图片后,需手动上传到服务器,并且只能上传jpg/png文件</div>
+              <div slot="tip" class="el-upload__tip">请选取图片,并且只能上传jpg/png文件</div>
             </el-upload>
             <el-dialog :visible.sync="dialogImgVisible">
               <img width="100%" :src="dialogImageUrl" alt="" />
@@ -150,7 +150,7 @@
                 list-type="picture-card"
             >
               <i class="el-icon-plus"></i>
-              <div slot="tip" class="el-upload__tip">选取图片后,需手动上传到服务器,并且只能上传jpg/png文件</div>
+              <div slot="tip" class="el-upload__tip">请选取图片,并且只能上传jpg/png文件</div>
             </el-upload>
             <el-dialog :visible.sync="dialogImgVisible">
               <img width="100%" :src="dialogImageUrl" alt="" />
@@ -506,4 +506,8 @@ watch(
 );
 </script>
 
-<style></style>
+<style scoped>
+:deep(.el-upload-list--picture-card){
+  text-align: center;
+}
+</style>

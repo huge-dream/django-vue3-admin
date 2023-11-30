@@ -3,7 +3,7 @@ import {Session} from "/@/utils/storage";
 import {getWsBaseURL} from "/@/utils/baseUrl";
 // @ts-ignore
 import socket from '@/types/api/socket'
-
+import {useUserInfo} from "/@/stores/userInfo";
 const websocket: socket = {
     websocket: null,
     connectURL: getWsBaseURL(),
@@ -42,6 +42,7 @@ const websocket: socket = {
         }
         websocket.websocket.onclose = (e: any) => {
             websocket.socket_open = false
+            useUserInfo().setWebSocketState(websocket.socket_open);
             // 需要重新连接
             if (websocket.is_reonnect) {
                 websocket.reconnect_timer = setTimeout(() => {
@@ -49,6 +50,8 @@ const websocket: socket = {
                     if (websocket.reconnect_current > websocket.reconnect_count) {
                         clearTimeout(websocket.reconnect_timer)
                         websocket.is_reonnect = false
+                        websocket.socket_open = false
+                        useUserInfo().setWebSocketState(websocket.socket_open);
                         return
                     }
                     // 记录重连次数
@@ -60,6 +63,7 @@ const websocket: socket = {
         // 连接成功
         websocket.websocket.onopen = function () {
             websocket.socket_open = true
+            useUserInfo().setWebSocketState(websocket.socket_open);
             websocket.is_reonnect = true
             // 开启心跳
             websocket.heartbeat()
@@ -85,17 +89,21 @@ const websocket: socket = {
             callback && callback()
         } else {
             clearInterval(websocket.hearbeat_timer)
-            message({
-                type: 'warning',
-                message: 'socket链接已断开',
-                duration: 1000,
-            })
+            // message({
+            //     type: 'warning',
+            //     message: 'socket链接已断开',
+            //     duration: 1000,
+            // })
+            websocket.socket_open = false
+            useUserInfo().setWebSocketState(websocket.socket_open);
         }
     },
     close: () => {
         websocket.is_reonnect = false
         websocket.websocket.close()
         websocket.websocket = null;
+        websocket.socket_open = false
+        useUserInfo().setWebSocketState(websocket.socket_open);
     },
     /**
      * 重新连接

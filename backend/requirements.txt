@@ -1,4 +1,4 @@
-Django==4.2.6
+Django==4.2.7
 django-comment-migrate==0.1.7
 django-cors-headers==4.3.0
 django-filter==23.3

@@ -17,7 +17,7 @@ from dvadmin.utils.import_export_mixin import ExportSerializerMixin, ImportSeria
 from dvadmin.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
 from dvadmin.utils.permission import CustomPermission
 from dvadmin.utils.models import get_custom_app_models
-from dvadmin.system.models import Columns
+from dvadmin.system.models import FieldPermission, MenuField
 from django_restql.mixins import QueryArgumentsMixin
 
 
@@ -64,7 +64,7 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
         serializer_class = self.get_serializer_class()
         kwargs.setdefault('context', self.get_serializer_context())
         # 全部以可见字段为准
-        can_see = self.get_column_permission(serializer_class)
+        can_see = self.get_menu_field(serializer_class)
         # 排除掉序列化器级的字段
         # sub_set = set(serializer_class._declared_fields.keys()) - set(can_see)
         # for field in sub_set:
@@ -79,21 +79,17 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
         else:
             return serializer_class(*args, **kwargs)
 
-    def get_column_permission(self, serializer_class):
-        """获取列权限"""
+    def get_menu_field(self, serializer_class):
+        """获取字段权限"""
         finded = False
-        for app in get_custom_app_models():
-            for model in app:
-                if model['object'] is serializer_class.Meta.model:
-                    finded = True
-                    break
-            if finded:
+        for model in get_custom_app_models():
+            if model['object'] is serializer_class.Meta.model:
+                finded = True
                 break
         if finded is False:
             return []
-        return Columns.objects.filter(
-            app=model['app'], model=model['model']
-        ).values('field_name', 'is_create', 'is_query', 'is_update')
+        return MenuField.objects.filter(model=model['model']
+        ).values('field_name', 'title')
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, request=request)

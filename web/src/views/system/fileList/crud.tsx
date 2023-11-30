@@ -34,6 +34,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 				//固定右侧
 				fixed: 'right',
 				width: 200,
+				show:false,
 				buttons: {
 					view: {
 						show: false,

@@ -3,7 +3,7 @@ import { dict, UserPageQuery, AddReq, DelReq, EditReq, compute, CreateCrudOption
 import { dictionary } from '/@/utils/dictionary';
 import { inject, nextTick, ref } from 'vue';
 import { successMessage } from '/@/utils/message';
-
+import {auth} from '/@/utils/authFunction';
 export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsProps): CreateCrudOptionsRet {
 	const pageRequest = async (query: UserPageQuery) => {
 		return await api.GetList(query);
@@ -19,8 +19,6 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 		return await api.AddObj(form);
 	};
 
-	//权限判定
-	const hasPermissions = inject('$hasPermissions');
 
 	return {
 		crudOptions: {
@@ -40,17 +38,17 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					edit: {
 						iconRight: 'Edit',
 						type: 'text',
-						show: hasPermissions('dictionary:Update'),
+						show: auth('dictionary:Update'),
 					},
 					remove: {
 						iconRight: 'Delete',
 						type: 'text',
-						show: hasPermissions('dictionary:Delete'),
+						show: auth('dictionary:Delete'),
 					},
 					custom: {
 						text: '字典配置',
 						type: 'text',
-						show: hasPermissions('dictionary:Update'),
+						show: auth('dictionary:Update'),
 						tooltip: {
 							placement: 'top',
 							content: '字典配置',

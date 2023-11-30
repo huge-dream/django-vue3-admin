@@ -13,6 +13,7 @@ from django.db import models
 from django.conf import settings
 
 from application import settings
+
 table_prefix = settings.TABLE_PREFIX  # 数据库表名前缀
 
 
@@ -71,10 +72,13 @@ class CoreModel(models.Model):
     id = models.BigAutoField(primary_key=True, help_text="Id", verbose_name="Id")
     description = models.CharField(max_length=255, verbose_name="描述", null=True, blank=True, help_text="描述")
     creator = models.ForeignKey(to=settings.AUTH_USER_MODEL, related_query_name='creator_query', null=True,
-                                verbose_name='创建人', help_text="创建人", on_delete=models.SET_NULL, db_constraint=False)
+                                verbose_name='创建人', help_text="创建人", on_delete=models.SET_NULL,
+                                db_constraint=False)
     modifier = models.CharField(max_length=255, null=True, blank=True, help_text="修改人", verbose_name="修改人")
-    dept_belong_id = models.CharField(max_length=255, help_text="数据归属部门", null=True, blank=True, verbose_name="数据归属部门")
-    update_datetime = models.DateTimeField(auto_now=True, null=True, blank=True, help_text="修改时间", verbose_name="修改时间")
+    dept_belong_id = models.CharField(max_length=255, help_text="数据归属部门", null=True, blank=True,
+                                      verbose_name="数据归属部门")
+    update_datetime = models.DateTimeField(auto_now=True, null=True, blank=True, help_text="修改时间",
+                                           verbose_name="修改时间")
     create_datetime = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间",
                                            verbose_name="创建时间")
 
@@ -136,10 +140,23 @@ def get_model_from_app(app_name):
 
 
 def get_custom_app_models(app_name=None):
-    """获取所有项目写的app里的models"""
+    """
+    获取所有项目下的app里的models
+    """
     if app_name:
         return get_model_from_app(app_name)
+    all_apps = apps.get_app_configs()
     res = []
-    for app in settings.CUSTOM_APPS:
-        res.append(get_model_from_app(app))
+    for app in all_apps:
+        if app.name.startswith('django'):
+            continue
+        if app.name in settings.COLUMN_EXCLUDE_APPS:
+            continue
+        try:
+            all_models = get_model_from_app(app.name)
+            if all_models:
+                for model in all_models:
+                    res.append(model)
+        except Exception as e:
+            pass
     return res

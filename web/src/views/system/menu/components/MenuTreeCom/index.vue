@@ -41,31 +41,31 @@
 
 		<div class="mtc-tags">
 			<el-tooltip effect="dark" content="新增">
-				<el-icon size="16" @click="handleUpdateMenu('create')" class="mtc-tags-icon">
+				<el-icon size="16" v-auth="'menu:Create'" @click="handleUpdateMenu('create')" class="mtc-tags-icon">
 					<Plus />
 				</el-icon>
 			</el-tooltip>
 
 			<el-tooltip effect="dark" content="编辑">
-				<el-icon size="16" @click="handleUpdateMenu('update')" class="mtc-tags-icon">
+				<el-icon size="16" v-auth="'menu:Update'" @click="handleUpdateMenu('update')" class="mtc-tags-icon">
 					<Edit />
 				</el-icon>
 			</el-tooltip>
 
 			<el-tooltip effect="dark" content="上移">
-				<el-icon size="16" @click="handleSort('up')" class="mtc-tags-icon">
+				<el-icon size="16" v-auth="'menu:MoveUp'" @click="handleSort('up')" class="mtc-tags-icon">
 					<Top />
 				</el-icon>
 			</el-tooltip>
 
 			<el-tooltip effect="dark" content="下移">
-				<el-icon size="16" @click="handleSort('down')" class="mtc-tags-icon">
+				<el-icon size="16" v-auth="'menu:MoveDown'" @click="handleSort('down')" class="mtc-tags-icon">
 					<Bottom />
 				</el-icon>
 			</el-tooltip>
 
 			<el-tooltip effect="dark" content="删除">
-				<el-icon size="16" @click="handleDeleteMenu()" class="mtc-tags-icon">
+				<el-icon size="16" v-auth="'menu:Delete'" @click="handleDeleteMenu()" class="mtc-tags-icon">
 					<Delete />
 				</el-icon>
 			</el-tooltip>

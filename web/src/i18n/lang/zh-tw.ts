@@ -123,7 +123,7 @@ export default {
 	},
 	noAccess: {
 		accessTitle: '您未被授權，沒有操作許可權~',
-		accessMsg: '聯繫方式：加QQ群探討665452019',
+		accessMsg: '請聯系管理員',
 		accessBtn: '重新授權',
 	},
 	layout: {
