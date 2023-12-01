@@ -43,10 +43,8 @@ sys.path.insert(0, os.path.join(PLUGINS_PATH))
 DEBUG = locals().get("DEBUG", True)
 ALLOWED_HOSTS = locals().get("ALLOWED_HOSTS", ["*"])
 
-# Application definition
-CUSTOM_APPS = [
-    "dvadmin.system",
-]
+# 列权限需要排除的App应用
+COLUMN_EXCLUDE_APPS = ['channels', 'captcha'] + locals().get("COLUMN_EXCLUDE_APPS", [])
 
 INSTALLED_APPS = [
     "django.contrib.auth",
@@ -60,8 +58,8 @@ INSTALLED_APPS = [
     "corsheaders",  # 注册跨域app
     "drf_yasg",
     "captcha",
-    'channels',
-    *CUSTOM_APPS,
+    "channels",
+    "dvadmin.system",
 ]
 
 MIDDLEWARE = [

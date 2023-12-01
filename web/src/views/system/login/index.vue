@@ -42,7 +42,7 @@
 		</div>
 
 		<div class="login-authorization">
-			<p>Copyright © {{getSystemConfig['login.copyright'] || '2021-2022 django-vue-admin.com'}} 版权所有</p>
+			<p>Copyright © {{getSystemConfig['login.copyright'] || '2021-2024 django-vue-admin.com'}} 版权所有</p>
 			<p class="la-other">
 				<a href="https://beian.miit.gov.cn" target="_blank">{{getSystemConfig['login.keep_record'] || '晋ICP备18005113号-3'}}</a>
 				|

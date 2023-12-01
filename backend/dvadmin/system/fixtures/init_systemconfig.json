@@ -130,7 +130,7 @@
                 "parent": 1,
                 "title": "版权信息",
                 "key": "copyright",
-                "value": "2021-2022 django-vue-admin.com 版权所有",
+                "value": "2021-2024 django-vue-admin.com 版权所有",
                 "sort": 4,
                 "status": true,
                 "data_options": null,
