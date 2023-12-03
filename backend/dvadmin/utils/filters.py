@@ -150,10 +150,14 @@ class DataLevelPermissionsFilter(BaseFilterBackend):
             elif ele == 2:
                 dept_list.append(user_dept_id)
             elif ele == 4:
+                dept_ids = RoleMenuButtonPermission.objects.filter(
+                    role__in=role_id_list,
+                    role__status=1,
+                    data_range=4).values_list(
+                    'dept__id',flat=True
+                )
                 dept_list.extend(
-                    request.user.role.filter(status=1).values_list(
-                        "dept__id", flat=True
-                    )
+                    dept_ids
                 )
         if queryset.model._meta.model_name == 'dept':
             return queryset.filter(id__in=list(set(dept_list)))
