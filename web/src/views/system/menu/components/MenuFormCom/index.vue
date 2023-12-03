@@ -179,13 +179,13 @@ const setMenuFormData = () => {
 		menuFormData.component = props.initFormData?.component || '';
 		menuFormData.web_path = props.initFormData?.web_path || '';
 		menuFormData.icon = props.initFormData?.icon || '';
-		menuFormData.status = props.initFormData?.status || true;
-		menuFormData.visible = props.initFormData?.visible || true;
-		menuFormData.cache = props.initFormData?.cache || true;
+		menuFormData.status = !!props.initFormData.status;
+		menuFormData.visible = !!props.initFormData.visible;
+		menuFormData.cache = !!props.initFormData.cache;
 		menuFormData.component_name = props.initFormData?.component_name || '';
 		menuFormData.description = props.initFormData?.description || '';
-		menuFormData.is_catalog = props.initFormData?.is_catalog || false;
-		menuFormData.is_link = props.initFormData?.is_link || false;
+		menuFormData.is_catalog = !!props.initFormData.is_catalog;
+		menuFormData.is_link = !!props.initFormData.is_link;
 	}
 };
 
