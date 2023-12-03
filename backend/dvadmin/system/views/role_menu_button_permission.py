@@ -213,8 +213,7 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         if params := request.query_params:
             if menu_id := params.get('menu', None):
                 is_superuser = request.user.is_superuser
-                is_admin = request.user.role.values_list('admin', flat=True)
-                if is_superuser or True in is_admin:
+                if is_superuser:
                     queryset = MenuButton.objects.filter(menu=menu_id).values('id', 'name')
                 else:
                     role_list = request.user.role.values_list('id', flat=True)
@@ -324,8 +323,7 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         """
         params = request.query_params
         is_superuser = request.user.is_superuser
-        is_admin = request.user.role.values_list('admin', flat=True)
-        if is_superuser or True in is_admin:
+        if is_superuser:
             queryset = Dept.objects.values('id', 'name', 'parent')
         else:
             if not params:
@@ -353,8 +351,7 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         if menu_id is None:
             return ErrorResponse(msg="未获取到参数")
         is_superuser = request.user.is_superuser
-        is_admin = request.user.role.values_list('admin', flat=True)
-        if is_superuser or True in is_admin:
+        if is_superuser:
             queryset = RoleMenuButtonPermission.objects.filter(menu_button__menu=menu_id).values(
                 'id',
                 'data_range',
