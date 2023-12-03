@@ -1,4 +1,4 @@
-import { useColumnPermission } from '/@/stores/columnPermission';
+import {useColumnPermission} from '/@/stores/columnPermission';
 import {GetPermission} from "/@/views/kfmApps/serviceManage/api";
 
 type permissionType = 'is_create' | 'is_query' | 'is_update';
@@ -13,36 +13,39 @@ export const columnPermission = (key: string, type: permissionType): boolean => 
  * 处理字段信息权限
  * @param func 获取字段信息的接口函数
  * @param crudOptions 原始的crudOptions信息
+ * @param excludeColumn 需要排除的列
  */
-export const handleColumnPermission = async (func:Function,crudOptions:any)=>{
+export const handleColumnPermission = async (func: Function, crudOptions: any,excludeColumn:string[]=[]) => {
 	const res = await func();
 	const columns = crudOptions.columns;
-	for(let col in columns){
-		if(columns[col].column){
+	const excludeColumns = ['id', 'create_datetime', 'update_datetime'].concat(excludeColumn)
+	for (let col in columns) {
+		if (columns[col].column) {
 			columns[col].column.show = false
-		}else{
+		} else {
 			columns[col]['column'] = {
-				show:false
+				show: false
 			}
 		}
 		columns[col].addForm = {
-			show:false
+			show: false
 		}
 		columns[col].editForm = {
-			show:false
+			show: false
 		}
-		for(let item of res.data){
-			if(item.field_name === col){
+		for (let item of res.data) {
+			if (excludeColumns.includes(item.field_name)) {
+				continue
+			} else if(item.field_name === col) {
 				columns[col].column.show = item['is_query']
 				columns[col].addForm = {
-					show:item['is_create']
+					show: item['is_create']
 				}
 				columns[col].editForm = {
-					show:item['is_update']
+					show: item['is_update']
 				}
-				break;
 			}
 		}
 	}
-	return columns
+	return crudOptions
 }
