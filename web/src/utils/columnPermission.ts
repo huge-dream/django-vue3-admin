@@ -1,4 +1,5 @@
 import { useColumnPermission } from '/@/stores/columnPermission';
+import {GetPermission} from "/@/views/kfmApps/serviceManage/api";
 
 type permissionType = 'is_create' | 'is_query' | 'is_update';
 
@@ -9,11 +10,12 @@ export const columnPermission = (key: string, type: permissionType): boolean => 
 };
 
 /**
- * 处理字段权限
- * @param crudOptions
+ * 处理字段信息权限
+ * @param func 获取字段信息的接口函数
+ * @param crudOptions 原始的crudOptions信息
  */
-export const handleColumnPermission = async (crudOptions:any)=>{
-	const res = await GetPermission();
+export const handleColumnPermission = async (func:Function,crudOptions:any)=>{
+	const res = await func();
 	const columns = crudOptions.columns;
 	for(let col in columns){
 		if(columns[col].column){
