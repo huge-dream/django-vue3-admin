@@ -315,7 +315,7 @@ class UserViewSet(CustomModelViewSet):
         serializer.save()
         return DetailResponse(data=None, msg="修改成功")
 
-    @action(methods=["PUT"], detail=True, permission_classes=[IsAuthenticated])
+    @action(methods=["PUT"], detail=False, permission_classes=[IsAuthenticated])
     def change_password(self, request, *args, **kwargs):
         """密码修改"""
         data = request.data
