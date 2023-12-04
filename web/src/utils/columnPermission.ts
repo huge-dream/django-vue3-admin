@@ -18,21 +18,26 @@ export const columnPermission = (key: string, type: permissionType): boolean => 
 export const handleColumnPermission = async (func: Function, crudOptions: any,excludeColumn:string[]=[]) => {
 	const res = await func();
 	const columns = crudOptions.columns;
-	const excludeColumns = ['id', 'create_datetime', 'update_datetime'].concat(excludeColumn)
+	const excludeColumns = ['_index','id', 'create_datetime', 'update_datetime'].concat(excludeColumn)
 	for (let col in columns) {
-		if (columns[col].column) {
-			columns[col].column.show = false
-		} else {
-			columns[col]['column'] = {
+		if (excludeColumns.includes(col)) {
+			continue
+		}else{
+			if (columns[col].column) {
+				columns[col].column.show = false
+			} else {
+				columns[col]['column'] = {
+					show: false
+				}
+			}
+			columns[col].addForm = {
+				show: false
+			}
+			columns[col].editForm = {
 				show: false
 			}
 		}
-		columns[col].addForm = {
-			show: false
-		}
-		columns[col].editForm = {
-			show: false
-		}
+
 		for (let item of res.data) {
 			if (excludeColumns.includes(item.field_name)) {
 				continue
