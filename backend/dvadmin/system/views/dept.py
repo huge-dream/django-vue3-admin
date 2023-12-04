@@ -143,7 +143,7 @@ class DeptViewSet(CustomModelViewSet):
                 if item in [0, 2]:
                     dept_list = [user_dept_id]
                 elif item == 1:
-                    dept_list = Dept.recursion_dept_info(dept_id=user_dept_id)
+                    dept_list = Dept.recursion_all_dept(dept_id=user_dept_id)
                 elif item == 3:
                     dept_list = Dept.objects.values_list('id', flat=True)
                 elif item == 4:
