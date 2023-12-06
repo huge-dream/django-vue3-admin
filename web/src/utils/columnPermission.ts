@@ -17,10 +17,15 @@ export const columnPermission = (key: string, type: permissionType): boolean => 
  */
 export const handleColumnPermission = async (func: Function, crudOptions: any,excludeColumn:string[]=[]) => {
 	const res = await func();
+	if(crudOptions.pagination==undefined){
+		crudOptions['pagination'] = {
+			show:true
+		}
+	}
 	const columns = crudOptions.columns;
 	const excludeColumns = ['_index','id', 'create_datetime', 'update_datetime'].concat(excludeColumn)
 	for (let col in columns) {
-		if (excludeColumns.includes(col)) {
+		if (['_index'].includes(col)) {
 			continue
 		}else{
 			if (columns[col].column) {
