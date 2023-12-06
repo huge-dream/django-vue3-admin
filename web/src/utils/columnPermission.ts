@@ -1,5 +1,4 @@
 import {useColumnPermission} from '/@/stores/columnPermission';
-import {GetPermission} from "/@/views/kfmApps/serviceManage/api";
 
 type permissionType = 'is_create' | 'is_query' | 'is_update';
 
