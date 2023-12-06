@@ -25,7 +25,7 @@ export const handleColumnPermission = async (func: Function, crudOptions: any,ex
 	const columns = crudOptions.columns;
 	const excludeColumns = ['_index','id', 'create_datetime', 'update_datetime'].concat(excludeColumn)
 	for (let col in columns) {
-		if (['_index'].includes(col)) {
+		if (excludeColumns.includes(col)) {
 			continue
 		}else{
 			if (columns[col].column) {
