@@ -154,6 +154,11 @@ STATICFILES_DIRS = [
 MEDIA_ROOT = "media"  # 项目下的目录
 MEDIA_URL = "/media/"  # 跟STATIC_URL类似，指定用户可以通过这个url找到文件
 
+#添加以下代码以后就不用写{% load staticfiles %}，可以直接引用
+STATICFILES_FINDERS = (
+    "django.contrib.staticfiles.finders.FileSystemFinder",
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder"
+)
 # 收集静态文件，必须将 MEDIA_ROOT,STATICFILES_DIRS先注释
 # python manage.py collectstatic
 # STATIC_ROOT=os.path.join(BASE_DIR,'static')
@@ -402,5 +407,6 @@ PLUGINS_URL_PATTERNS = []
 # from dvadmin_third.settings import *            # 第三方用户管理
 # from dvadmin_ak_sk.settings import *            # 秘钥管理管理
 # from dvadmin_tenants.settings import *            # 租户管理
+from dvadmin_social_auth.settings import *
 # ...
 # ********** 一键导入插件配置结束 **********
