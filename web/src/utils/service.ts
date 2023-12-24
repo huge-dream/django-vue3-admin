@@ -102,7 +102,7 @@ function createService() {
 						errorCreate(`${dataAxios.msg}: ${response.config.url}`);
 						break;
 				}
-				return Promise.reject();
+				return Promise.reject(dataAxios);
 			}
 		},
 		(error) => {
