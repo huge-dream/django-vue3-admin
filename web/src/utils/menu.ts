@@ -11,7 +11,7 @@ export const handleMenu = (menuData: Array<any>) => {
     const handleMeta = (item: any) => {
         item.meta = {
             title: item.title,
-            isLink: item.is_link,
+            isLink: item.link_url,
             isHide: !item.visible,
             isKeepAlive: item.cache,
             isAffix: item.is_affix,
@@ -29,7 +29,7 @@ export const handleMenu = (menuData: Array<any>) => {
         if (item.is_iframe) {
             item.meta = {
                 title: item.title,
-                isLink: item.is_link,
+                isLink: item.link_url,
                 isHide: !item.visible,
                 isKeepAlive: item.cache,
                 isAffix: item.is_affix,
@@ -44,25 +44,23 @@ export const handleMenu = (menuData: Array<any>) => {
     }
 
     // 框架内路由
-    const dynamicRoutes:Array<any> = []
+    const defaultRoutes:Array<any> = []
     // 框架外路由
-    const staticRoutes:Array<any> = []
+    const iframeRoutes:Array<any> = []
 
     menuData.forEach((val) => {
-        console.log(111,val.is_iframe)
-        if(val.is_iframe){
-            staticRoutes.push(handleFrame(val))
-            console.log(staticRoutes)
-        }else{
-            dynamicRoutes.push(handleMeta(val))
-        }
+        // if (val.is_iframe) {
+        //     // iframeRoutes.push(handleFrame(val))
+        // } else {
+        //     defaultRoutes.push(handleMeta(val))
+        // }
+        defaultRoutes.push(handleMeta(val))
     })
-
-    const data = XEUtils.toArrayTree(dynamicRoutes, {
+    const data = XEUtils.toArrayTree(defaultRoutes, {
         parentKey: 'parent',
         strict: true,
     })
-    const menu = [
+    const dynamicRoutes = [
         {
             path: '/home', name: 'home', component: '/system/home/index', meta: {
                 title: 'message.router.home',
@@ -77,5 +75,5 @@ export const handleMenu = (menuData: Array<any>) => {
         },
         ...data
     ]
-    return menu
+    return {frameIn:dynamicRoutes,frameOut:iframeRoutes}
 }

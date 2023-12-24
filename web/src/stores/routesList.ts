@@ -22,5 +22,8 @@ export const useRoutesList = defineStore('routesList', {
 		async setColumnsNavHover(bool: Boolean) {
 			this.isColumnsNavHover = bool;
 		},
+		async addRoutesList(data: Array<string>) {
+			this.routesList.push(data);
+		}
 	},
 });

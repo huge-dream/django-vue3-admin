@@ -24,7 +24,7 @@
 				/>
 			</el-form-item>
 
-			<el-form-item v-if="!menuFormData.is_link" label="路由地址" prop="web_path">
+			<el-form-item  label="路由地址" prop="web_path">
 				<el-input v-model="menuFormData.web_path" placeholder="请输入路由地址，请以/开头" />
 			</el-form-item>
 
@@ -91,8 +91,8 @@
 					<el-input v-model="menuFormData.component_name" placeholder="请输入组件名称" />
 				</el-form-item>
 
-				<el-form-item v-if="!menuFormData.is_catalog && menuFormData.is_link" label="Url" prop="web_path">
-					<el-input v-model="menuFormData.web_path" placeholder="请输入Url" />
+				<el-form-item v-if="!menuFormData.is_catalog && menuFormData.is_link" label="外链接" prop="link_url">
+					<el-input v-model="menuFormData.link_url" placeholder="请输入外链接地址" />
 				</el-form-item>
 
 				<el-form-item v-if="!menuFormData.is_catalog" label="缓存">
@@ -139,13 +139,23 @@ const defaultTreeProps: any = {
 };
 const validateWebPath = (rule: any, value: string, callback: Function) => {
 	let pattern = /^\/.*?/;
-	let patternUrl = /http(s)?:\/\/([\w-]+\.)+[\w-]+(\/[\w- .\/?%&=]*)?/;
-	const reg = menuFormData.is_link ? patternUrl.test(value) : pattern.test(value);
+	const reg = pattern.test(value);
 	if (reg) {
 		callback();
 	} else {
 		callback(new Error('请输入正确的地址'));
 	}
+};
+
+const validateLinkUrl = (rule: any, value: string, callback: Function) => {
+  let pattern = /^\/.*?/;
+  let patternUrl = /http(s)?:\/\/([\w-]+\.)+[\w-]+(\/[\w- .\/?%&=]*)?/;
+  const reg = pattern.test(value) || patternUrl.test(value)
+  if (reg) {
+    callback();
+  } else {
+    callback(new Error('请输入正确的地址'));
+  }
 };
 
 const props = withDefaults(defineProps<IProps>(), {
@@ -162,6 +172,7 @@ const rules = reactive<FormRules>({
 	name: [{ required: true, message: '菜单名称必填', trigger: 'blur' }],
 	component: [{ required: true, message: '请输入组件地址', trigger: 'blur' }],
 	component_name: [{ required: true, message: '请输入组件名称', trigger: 'blur' }],
+  link_url: [{ required: true, message: '请输入外链接地址',validator:validateLinkUrl, trigger: 'blur' }],
 });
 
 let deptDefaultList = ref<MenuTreeItemType[]>([]);
@@ -180,6 +191,7 @@ let menuFormData = reactive<MenuFormDataType>({
 	is_link: false,
   is_iframe: false,
   is_affix: false,
+  link_url:''
 });
 let menuBtnLoading = ref(false);
 
@@ -200,6 +212,7 @@ const setMenuFormData = () => {
 		menuFormData.is_link = !!props.initFormData.is_link;
     menuFormData.is_iframe =!!props.initFormData.is_iframe;
     menuFormData.is_affix =!!props.initFormData.is_affix;
+    menuFormData.link_url =props.initFormData.link_url;
 	}
 };
 
