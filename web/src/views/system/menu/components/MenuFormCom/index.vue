@@ -24,7 +24,7 @@
 				/>
 			</el-form-item>
 
-			<el-form-item label="路由地址" prop="web_path">
+			<el-form-item v-if="!menuFormData.is_link" label="路由地址" prop="web_path">
 				<el-input v-model="menuFormData.web_path" placeholder="请输入路由地址，请以/开头" />
 			</el-form-item>
 
@@ -56,6 +56,16 @@
 						<el-switch v-model="menuFormData.is_link" width="60" inline-prompt active-text="是" inactive-text="否" />
 					</el-form-item>
 				</el-col>
+        <el-col :span="12">
+          <el-form-item required v-if="!menuFormData.is_catalog" label="是否固定">
+            <el-switch v-model="menuFormData.is_affix" width="60" inline-prompt active-text="是" inactive-text="否" />
+          </el-form-item>
+        </el-col>
+        <el-col :span="12">
+          <el-form-item v-if="!menuFormData.is_catalog" required label="框外显示">
+            <el-switch v-model="menuFormData.is_iframe" width="60" inline-prompt active-text="是" inactive-text="否" />
+          </el-form-item>
+        </el-col>
 			</el-row>
 
 			<el-form-item label="备注">
@@ -168,6 +178,8 @@ let menuFormData = reactive<MenuFormDataType>({
 	description: '',
 	is_catalog: false,
 	is_link: false,
+  is_iframe: false,
+  is_affix: false,
 });
 let menuBtnLoading = ref(false);
 
@@ -186,6 +198,8 @@ const setMenuFormData = () => {
 		menuFormData.description = props.initFormData?.description || '';
 		menuFormData.is_catalog = !!props.initFormData.is_catalog;
 		menuFormData.is_link = !!props.initFormData.is_link;
+    menuFormData.is_iframe =!!props.initFormData.is_iframe;
+    menuFormData.is_affix =!!props.initFormData.is_affix;
 	}
 };
 

@@ -1,4 +1,5 @@
 import XEUtils from "xe-utils"
+import {dynamicRoutes, staticRoutes} from "/@/router/route";
 
 /**
  * @description: 处理后端菜单数据格式
@@ -13,20 +14,51 @@ export const handleMenu = (menuData: Array<any>) => {
             isLink: item.is_link,
             isHide: !item.visible,
             isKeepAlive: item.cache,
-            isAffix: false,
-            isIframe: false,
+            isAffix: item.is_affix,
+            isIframe: item.is_iframe,
             roles: ['admin'],
             icon: item.icon
         }
         item.name = item.component_name
+        item.path = item.web_path
         return item
     }
+
+    // 处理框架外的路由
+    const handleFrame = (item: any) => {
+        if (item.is_iframe) {
+            item.meta = {
+                title: item.title,
+                isLink: item.is_link,
+                isHide: !item.visible,
+                isKeepAlive: item.cache,
+                isAffix: item.is_affix,
+                isIframe: item.is_iframe,
+                roles: ['admin'],
+                icon: item.icon
+            }
+            item.name = item.component_name
+            item.path = item.web_path
+        }
+        return item
+    }
+
+    // 框架内路由
+    const dynamicRoutes:Array<any> = []
+    // 框架外路由
+    const staticRoutes:Array<any> = []
+
     menuData.forEach((val) => {
-        handleMeta(val)
-        val.path = val.web_path
+        console.log(111,val.is_iframe)
+        if(val.is_iframe){
+            staticRoutes.push(handleFrame(val))
+            console.log(staticRoutes)
+        }else{
+            dynamicRoutes.push(handleMeta(val))
+        }
     })
 
-    const data = XEUtils.toArrayTree(menuData, {
+    const data = XEUtils.toArrayTree(dynamicRoutes, {
         parentKey: 'parent',
         strict: true,
     })

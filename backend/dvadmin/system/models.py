@@ -171,6 +171,8 @@ class Menu(CoreModel):
     cache = models.BooleanField(default=False, blank=True, verbose_name="是否页面缓存", help_text="是否页面缓存")
     visible = models.BooleanField(default=True, blank=True, verbose_name="侧边栏中是否显示",
                                   help_text="侧边栏中是否显示")
+    is_iframe = models.BooleanField(default=False, blank=True, verbose_name="框架外显示", help_text="框架外显示")
+    is_affix = models.BooleanField(default=False, blank=True, verbose_name="是否固定", help_text="是否固定")
 
     class Meta:
         db_table = table_prefix + "system_menu"
