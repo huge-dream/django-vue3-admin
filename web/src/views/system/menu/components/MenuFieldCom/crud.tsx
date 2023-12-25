@@ -103,6 +103,9 @@ export const createCrudOptions = function ({ crudExpose, props,modelDialog,selec
 						label:'title',
 						value:'key'
 					}),
+					column:{
+						sortable: true,
+					},
 					form: {
 						rules: [
 							// 表单校验规则
@@ -113,6 +116,13 @@ export const createCrudOptions = function ({ crudExpose, props,modelDialog,selec
 						],
 						component: {
 							span: 12,
+							showSearch: true,
+							filterable: true,
+							//默认的filterOption仅支持value的过滤，label并不会加入查询
+							//所以需要自定义filterOption
+							filterOption(inputValue, option) {
+								return option.label.indexOf(inputValue) >= 0 || option.value.indexOf(inputValue) >= 0;
+							}
 						},
 					},
 				},
@@ -143,6 +153,9 @@ export const createCrudOptions = function ({ crudExpose, props,modelDialog,selec
 					search: {
 						show: true,
 					},
+					column:{
+						sortable: true,
+					},
 					form: {
 						rules: [
 							// 表单校验规则
@@ -157,83 +170,6 @@ export const createCrudOptions = function ({ crudExpose, props,modelDialog,selec
 						},
 					},
 				},
-
-				// is_create: {
-				// 	title: '创建时显示',
-				// 	sortable: 'custom',
-				// 	search: {
-				// 		disabled: true,
-				// 	},
-				// 	type: 'dict-switch',
-				// 	dict: dict({
-				// 		data: [
-				// 			{ value: true, label: '启用' },
-				// 			{ value: false, label: '禁用' },
-				// 		],
-				// 	}),
-				// 	form: {
-				// 		value: true,
-				// 	},
-				// 	column: {
-				// 		valueChange(context){
-				// 			return api.UpdateObj(context.row)
-				// 		},
-				// 		component: {
-				// 			name: 'fs-dict-switch',
-				// 		},
-				// 	},
-				// },
-				// is_update: {
-				// 	title: '编辑时显示',
-				// 	search: {
-				// 		show: true,
-				// 	},
-				// 	type: 'dict-switch',
-				// 	dict: dict({
-				// 		data: [
-				// 			{ value: true, label: '启用' },
-				// 			{ value: false, label: '禁用' },
-				// 		],
-				// 	}),
-				// 	form: {
-				// 		value: true,
-				// 	},
-				// 	column: {
-				// 		component: {
-				// 			name: 'fs-dict-switch',
-				// 			onChange: compute((context) => {
-				// 				//动态onChange方法测试
-				// 				return () => {
-				// 					console.log('onChange', context.row.switch);
-				// 				};
-				// 			}),
-				// 		},
-				// 	},
-				// },
-				// is_query: {
-				// 	title: '列表中显示',
-				// 	type: 'dict-switch',
-				// 	dict: dict({
-				// 		data: [
-				// 			{ value: true, label: '启用' },
-				// 			{ value: false, label: '禁用' },
-				// 		],
-				// 	}),
-				// 	form: {
-				// 		value: true,
-				// 	},
-				// 	column: {
-				// 		component: {
-				// 			name: 'fs-dict-switch',
-				// 			onChange: compute((context) => {
-				// 				//动态onChange方法测试
-				// 				return () => {
-				// 					console.log('onChange', context.row.switch);
-				// 				};
-				// 			}),
-				// 		},
-				// 	},
-				// },
 			},
 		},
 	};

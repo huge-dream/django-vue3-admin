@@ -12,6 +12,7 @@ import { useTagsViewRoutes } from '/@/stores/tagsViewRoutes';
 import { useMenuApi } from '/@/api/menu/index';
 import { handleMenu } from '../utils/menu';
 import { BtnPermissionStore } from '/@/plugin/permission/store.permission';
+import {SystemConfigStore} from "/@/stores/systemConfig";
 
 const menuApi = useMenuApi();
 
@@ -96,11 +97,9 @@ export function setFilterRouteEnd() {
  * @link 参考：https://next.router.vuejs.org/zh/api/#addroute
  */
 export async function setAddRoute() {
-	console.log("默认路由",router.getRoutes())
 	await setFilterRouteEnd().forEach((route: RouteRecordRaw) => {
 		router.addRoute(route);
 	});
-	console.log("全部路由",router.getRoutes())
 }
 
 /**
@@ -111,6 +110,8 @@ export async function setAddRoute() {
 export function getBackEndControlRoutes() {
 	//获取所有的按钮权限
 	BtnPermissionStore().getBtnPermissionStore();
+	// 获取系统配置
+	SystemConfigStore().getSystemConfigs()
 	return menuApi.getSystemMenu();
 }
 
@@ -146,17 +147,20 @@ export function backEndComponent(routes: any) {
 			}
 		}else{
 			console.log(item.is_iframe,item.web_path)
+			console.log(router.getRoutes())
 			if(item.is_iframe){
 				const iframeRoute:RouteRecordRaw = {
 					...item
 				}
+				console.log(iframeRoute)
+				router.addRoute(iframeRoute)
 				item.meta.isLink = item.path
 				item.path = `${item.path}Link`
 				item.name = `${item.name}Link`
-				item.component = dynamicImport(dynamicViewsModules, 'layout/routerView/link.vue')
 				item.meta.isIframe = !item.is_iframe
 				item.meta.isKeepAlive = false
 				item.meta.isIframeOpen = true
+				item.component = dynamicImport(dynamicViewsModules, 'layout/routerView/link.vue')
 
 			}
 		}
