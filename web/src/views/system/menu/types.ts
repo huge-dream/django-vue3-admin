@@ -44,6 +44,9 @@ export interface MenuTreeItemType {
   visible: boolean;
   creator: string;
   parent: number | string;
+  is_iframe:boolean;
+  is_affix:boolean;
+  link_url:string;
 }
 
 export interface MenuFormDataType {
@@ -60,4 +63,7 @@ export interface MenuFormDataType {
   description: string;
   is_catalog: boolean;
   is_link: boolean;
+  is_iframe:boolean;
+  is_affix:boolean;
+  link_url: string;
 }

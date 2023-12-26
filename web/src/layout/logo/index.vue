@@ -1,7 +1,7 @@
 <template>
 	<div class="layout-logo" v-if="setShowLogo" @click="onThemeConfigChange">
 		<img :src="logoMini" class="layout-logo-medium-img" />
-		<span style="font-size: x-large">{{ themeConfig.globalTitle }}</span>
+		<span style="font-size: x-large">{{ getSystemConfig['login.site_title'] || themeConfig.globalTitle }}</span>
 	</div>
 	<div class="layout-logo-size" v-else @click="onThemeConfigChange">
 		<img :src="logoMini" class="layout-logo-size-img" />
@@ -13,6 +13,7 @@ import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useThemeConfig } from '/@/stores/themeConfig';
 import logoMini from '/@/assets/logo-mini.svg';
+import {SystemConfigStore} from "/@/stores/systemConfig";
 
 // 定义变量内容
 const storesThemeConfig = useThemeConfig();
@@ -28,6 +29,13 @@ const onThemeConfigChange = () => {
 	if (themeConfig.value.layout === 'transverse') return false;
 	themeConfig.value.isCollapse = !themeConfig.value.isCollapse;
 };
+
+const systemConfigStore = SystemConfigStore()
+const {systemConfig} = storeToRefs(systemConfigStore)
+const getSystemConfig = computed(()=>{
+  return systemConfig.value
+})
+
 </script>
 
 <style scoped lang="scss">

@@ -36,7 +36,7 @@ import { reactive, computed, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { storeToRefs } from 'pinia';
 import { useThemeConfig } from '/@/stores/themeConfig';
-import { Local } from '/@/utils/storage';
+import { Local,Session } from '/@/utils/storage';
 
 // 定义变量内容
 const { t } = useI18n();
@@ -57,6 +57,7 @@ const getThemeConfig = computed(() => {
 // 残忍拒绝
 const onCancel = () => {
 	state.isUpgrade = false;
+  Session.set('isUpgrade', false)
 };
 // 马上更新
 const onUpgrade = () => {
@@ -66,13 +67,17 @@ const onUpgrade = () => {
 		Local.clear();
 		window.location.reload();
 		Local.set('version', state.version);
+    Session.set('isUpgrade', false)
 	}, 2000);
 };
 // 延迟显示，防止刷新时界面显示太快
 const delayShow = () => {
-	setTimeout(() => {
-		state.isUpgrade = true;
-	}, 2000);
+  const isUpgrade = Session.get('isUpgrade')===false?Session.get('isUpgrade'):true
+  if(isUpgrade){
+    setTimeout(() => {
+      state.isUpgrade = true;
+    }, 2000);
+  }
 };
 // 页面加载时
 onMounted(() => {

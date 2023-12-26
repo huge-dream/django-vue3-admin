@@ -96,12 +96,13 @@ function createService() {
 						return dataAxios;
 					case 4000:
 						errorCreate(`${dataAxios.msg}: ${response.config.url}`);
-						return dataAxios;
+						break;
 					default:
 						// 不是正确的 code
 						errorCreate(`${dataAxios.msg}: ${response.config.url}`);
-						return dataAxios;
+						break;
 				}
+				return Promise.reject(dataAxios);
 			}
 		},
 		(error) => {

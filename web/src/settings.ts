@@ -11,6 +11,7 @@ import { request } from '/@/utils/service';
 import { FsExtendsEditor,FsExtendsUploader } from '@fast-crud/fast-extends';
 import '@fast-crud/fast-extends/dist/style.css';
 import { successMessage, successNotification } from '/@/utils/message';
+import XEUtils from "xe-utils";
 export default {
 	async install(app: any, options: any) {
 		// 先安装ui
@@ -20,8 +21,14 @@ export default {
 			//i18n, //i18n配置，可选，默认使用中文，具体用法请看demo里的 src/i18n/index.js 文件
 			// 此处配置公共的dictRequest（字典请求）
 			async dictRequest({ dict }: any) {
+				const {isTree} = dict
+				console.log(222222,isTree)
 				//根据dict的url，异步返回一个字典数组
 				return await request({ url: dict.url, params: dict.params || {} }).then((res:any)=>{
+					console.log(XEUtils.toArrayTree(res.data,{parentKey:'parent'}))
+					if(isTree){
+						return XEUtils.toArrayTree(res.data,{parentKey:'parent'})
+					}
 					return res.data
 				});
 			},
@@ -104,7 +111,8 @@ export default {
 					// 上传完成后的结果处理， 此处应返回格式为{url:xxx,key:xxx}
 					return {
 						url: getBaseURL() + ret.data.url,
-						key: ret.data.id
+						key: ret.data.id,
+						...ret.data
 					};
 				}
 			}

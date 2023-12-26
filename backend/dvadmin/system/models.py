@@ -162,6 +162,7 @@ class Menu(CoreModel):
         (1, "是"),
     )
     is_link = models.BooleanField(default=False, verbose_name="是否外链", help_text="是否外链")
+    link_url = models.CharField(max_length=255, verbose_name="链接地址", null=True, blank=True, help_text="链接地址")
     is_catalog = models.BooleanField(default=False, verbose_name="是否目录", help_text="是否目录")
     web_path = models.CharField(max_length=128, verbose_name="路由地址", null=True, blank=True, help_text="路由地址")
     component = models.CharField(max_length=128, verbose_name="组件地址", null=True, blank=True, help_text="组件地址")
@@ -171,6 +172,8 @@ class Menu(CoreModel):
     cache = models.BooleanField(default=False, blank=True, verbose_name="是否页面缓存", help_text="是否页面缓存")
     visible = models.BooleanField(default=True, blank=True, verbose_name="侧边栏中是否显示",
                                   help_text="侧边栏中是否显示")
+    is_iframe = models.BooleanField(default=False, blank=True, verbose_name="框架外显示", help_text="框架外显示")
+    is_affix = models.BooleanField(default=False, blank=True, verbose_name="是否固定", help_text="是否固定")
 
     class Meta:
         db_table = table_prefix + "system_menu"
