@@ -109,7 +109,7 @@ export default {
 				successHandle(ret) {
 					// 上传完成后的结果处理， 此处应返回格式为{url:xxx,key:xxx}
 					return {
-						url: getBaseURL() + ret.data.url,
+						url: getBaseURL(ret.data.url),
 						key: ret.data.id,
 						...ret.data
 					};
