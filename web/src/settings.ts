@@ -12,6 +12,7 @@ import { FsExtendsEditor,FsExtendsUploader } from '@fast-crud/fast-extends';
 import '@fast-crud/fast-extends/dist/style.css';
 import { successMessage, successNotification } from '/@/utils/message';
 import XEUtils from "xe-utils";
+import {commonCrudConfig} from "/@/utils/commonCrud";
 export default {
 	async install(app: any, options: any) {
 		// 先安装ui
@@ -22,10 +23,8 @@ export default {
 			// 此处配置公共的dictRequest（字典请求）
 			async dictRequest({ dict }: any) {
 				const {isTree} = dict
-				console.log(222222,isTree)
 				//根据dict的url，异步返回一个字典数组
 				return await request({ url: dict.url, params: dict.params || {} }).then((res:any)=>{
-					console.log(XEUtils.toArrayTree(res.data,{parentKey:'parent'}))
 					if(isTree){
 						return XEUtils.toArrayTree(res.data,{parentKey:'parent'})
 					}
