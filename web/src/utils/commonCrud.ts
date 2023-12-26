@@ -32,71 +32,11 @@ export const commonCrudConfig = (options = {
     },
 }) => {
     return {
-        description: {
-            title: '备注',
-            search: {
-                show: options.description?.search || false
-            },
-            type: 'textarea',
-            column: {
-                show: options.description?.table || false,
-            },
-            form: {
-                component: {
-                    show: options.description?.form || false,
-                    placeholder: '请输入内容',
-                    showWordLimit: true,
-                    maxlength: '200',
-                }
-            }
-        },
-        modifier_name: {
-            title: '修改人',
-            search: {
-                show: options.modifier_name?.search || false
-            },
-            column: {
-                width: 100,
-                show: options.modifier_name?.table || false,
-            }
-        },
-        update_datetime: {
-            title: '更新时间',
-            type: 'datetime',
-            search: {
-                show: options.update_datetime?.search || false
-            },
-            column: {
-                width: 160,
-                show: options.update_datetime?.table || false,
-            }
-        },
-        creator_name: {
-            title: '创建人',
-            search: {
-                show: options.creator_name?.search || false
-            },
-            column: {
-                width: 100,
-                show: options.creator_name?.table || false,
-            }
-        },
-        create_datetime: {
-            title: '创建时间',
-            type: 'datetime',
-            search: {
-                show: options.create_datetime?.search || false
-            },
-            column: {
-                width: 160,
-                show: options.create_datetime?.table || false,
-            }
-        },
         dept_belong_id: {
             title: '所属部门',
             type: 'dict-tree',
             search: {
-                show:  false
+                show: false
             },
             dict: dict({
                 url: '/api/system/dept/all_dept/',
@@ -106,12 +46,13 @@ export const commonCrudConfig = (options = {
                 children: 'children' // 数据字典中children字段的属性名
             }),
             column: {
+                align: 'center',
                 width: 150,
                 show: options.dept_belong_id?.table || false,
             },
             form: {
+                show: options.dept_belong_id?.form || false,
                 component: {
-                    show: options.dept_belong_id?.form || false,
                     multiple: false,
                     clearable: true,
                     props: {
@@ -124,6 +65,94 @@ export const commonCrudConfig = (options = {
                     }
                 },
                 helper: "默认不填则为当前创建用户的部门ID"
+            }
+        },
+        description: {
+            title: '备注',
+            search: {
+                show: options.description?.search || false
+            },
+            type: 'textarea',
+            column: {
+                width: 100,
+                show: options.description?.table || false,
+            },
+            form: {
+                show: options.description?.form || false,
+                component: {
+                    placeholder: '请输入内容',
+                    showWordLimit: true,
+                    maxlength: '200',
+                }
+            },
+            viewForm: {
+                show: true
+            }
+        },
+        modifier_name: {
+            title: '修改人',
+            search: {
+                show: options.modifier_name?.search || false
+            },
+            column: {
+                width: 100,
+                show: options.modifier_name?.table || false,
+            },
+            form: {
+                show: false,
+            },
+            viewForm: {
+                show: true
+            }
+        },
+        creator_name: {
+            title: '创建人',
+            search: {
+                show: options.creator_name?.search || false
+            },
+            column: {
+                width: 100,
+                show: options.creator_name?.table || false,
+            },
+            form: {
+                show: false,
+            },
+            viewForm: {
+                show: true
+            }
+        },
+        update_datetime: {
+            title: '更新时间',
+            type: 'datetime',
+            search: {
+                show: options.update_datetime?.search || false
+            },
+            column: {
+                width: 160,
+                show: options.update_datetime?.table || false,
+            },
+            form: {
+                show: false,
+            },
+            viewForm: {
+                show: true
+            }
+        },
+        create_datetime: {
+            title: '创建时间',
+            type: 'datetime',
+            search: {
+                show: options.create_datetime?.search || false
+            },
+            column: {
+                width: 160,
+                show: options.create_datetime?.table || false,
+            },
+            form: {
+                show: false,
+            },
+            viewForm: {
+                show: true
             }
         }
     }
