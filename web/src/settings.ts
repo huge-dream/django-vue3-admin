@@ -13,7 +13,7 @@ import {FsExtendsEditor, FsExtendsUploader} from '@fast-crud/fast-extends';
 import '@fast-crud/fast-extends/dist/style.css';
 import {successMessage, successNotification} from '/@/utils/message';
 import XEUtils from "xe-utils";
-
+import {commonCrudConfig} from "/@/utils/commonCrud";
 export default {
     async install(app: any, options: any) {
         // 先安装ui
@@ -110,7 +110,7 @@ export default {
                 successHandle(ret) {
                     // 上传完成后的结果处理， 此处应返回格式为{url:xxx,key:xxx}
                     return {
-                        url: getBaseURL() + ret.data.url,
+                        url: getBaseURL(ret.data.url),
                         key: ret.data.id,
                         ...ret.data
                     };

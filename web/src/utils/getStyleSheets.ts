@@ -50,6 +50,17 @@ const getAwesomeIconfont = () => {
 			const styles: any = document.styleSheets;
 			let sheetsList = [];
 			let sheetsIconList = [];
+		    // 判断fontFamily是否是本地加载
+			for (let i = 0; i < styles.length; i++) {
+				const rules = styles[i].cssRules || styles[i].rules;
+				if (rules) {
+					for (let j = 0; j < rules.length; j++) {
+						if (rules[j].style && rules[j].style.fontFamily === 'FontAwesome') {
+							sheetsList.push(styles[i])
+						}
+					}
+				}
+			}
 			for (let i = 0; i < styles.length; i++) {
 				if (styles[i].href && styles[i].href.indexOf('netdna.bootstrapcdn.com') > -1) {
 					sheetsList.push(styles[i]);

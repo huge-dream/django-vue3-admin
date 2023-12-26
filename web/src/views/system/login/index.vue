@@ -48,9 +48,9 @@
 				|
 				<a :href="getSystemConfig['login.help_url']?getSystemConfig['login.help_url']:'https://django-vue-admin.com'" target="_blank">帮助</a>
 				|
-				<a :href="getSystemConfig['login.privacy_url']?getSystemConfig['login.privacy_url']:'#'">隐私</a>
+				<a :href="getSystemConfig['login.privacy_url']?getBaseURL(getSystemConfig['login.privacy_url']):'#'">隐私</a>
 				|
-				<a :href="getSystemConfig['login.clause_url']?getSystemConfig['login.clause_url']:'#'">条款</a>
+				<a :href="getSystemConfig['login.clause_url']?getBaseURL(getSystemConfig['login.clause_url']):'#'">条款</a>
 			</p>
 		</div>
 	</div>
@@ -65,6 +65,7 @@ import logoMini from '/@/assets/logo-mini.svg';
 import loginMain from '/@/assets/login-main.svg';
 import loginBg from '/@/assets/login-bg.svg';
 import {SystemConfigStore} from '/@/stores/systemConfig'
+import {getBaseURL} from "/@/utils/baseUrl";
 // 引入组件
 const Account = defineAsyncComponent(() => import('/@/views/system/login/component/account.vue'));
 const Mobile = defineAsyncComponent(() => import('/@/views/system/login/component/mobile.vue'));
