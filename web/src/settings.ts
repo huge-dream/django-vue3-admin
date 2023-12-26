@@ -122,5 +122,24 @@ export default {
 		dictComponentList.forEach((val) => {
 			getType(val).column.component.color = 'auto';
 		});
+		// 设置placeholder 的默认值
+        const placeholderComponentList = [
+            {key: 'text', placeholder: "请输入"},
+            {key: 'textarea', placeholder: "请输入"},
+            {key: 'input', placeholder: "请输入"},
+            {key: 'password', placeholder: "请输入"}
+        ]
+        placeholderComponentList.forEach((val) => {
+            if (getType(val.key)?.search?.component) {
+                getType(val.key).search.component.placeholder = val.placeholder;
+            } else if(getType(val.key)?.search) {
+                getType(val.key).search.component = {placeholder: val.placeholder};
+            }
+            if (getType(val.key)?.form?.component) {
+                getType(val.key).form.component.placeholder = val.placeholder;
+            } else if(getType(val.key)?.form) {
+                getType(val.key).form.component = {placeholder: val.placeholder};
+            }
+        });
 	},
 };

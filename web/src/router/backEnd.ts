@@ -146,13 +146,10 @@ export function backEndComponent(routes: any) {
 				item.component = dynamicImport(dynamicViewsModules, 'layout/routerView/iframes')
 			}
 		}else{
-			console.log(item.is_iframe,item.web_path)
-			console.log(router.getRoutes())
 			if(item.is_iframe){
 				const iframeRoute:RouteRecordRaw = {
 					...item
 				}
-				console.log(iframeRoute)
 				router.addRoute(iframeRoute)
 				item.meta.isLink = item.path
 				item.path = `${item.path}Link`
