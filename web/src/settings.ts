@@ -11,9 +11,8 @@ import {request} from '/@/utils/service';
 //扩展包
 import {FsExtendsEditor, FsExtendsUploader} from '@fast-crud/fast-extends';
 import '@fast-crud/fast-extends/dist/style.css';
-import {successMessage, successNotification} from '/@/utils/message';
+import {successNotification} from '/@/utils/message';
 import XEUtils from "xe-utils";
-import {commonCrudConfig} from "/@/utils/commonCrud";
 export default {
     async install(app: any, options: any) {
         // 先安装ui
@@ -122,6 +121,7 @@ export default {
         const dictComponentList = ['dict-cascader', 'dict-checkbox', 'dict-radio', 'dict-select', 'dict-switch', 'dict-tree'];
         dictComponentList.forEach((val) => {
             getType(val).column.component.color = 'auto';
+            getType(val).column.align = 'center';
         });
         // 设置placeholder 的默认值
         const placeholderComponentList = [
