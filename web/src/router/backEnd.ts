@@ -13,7 +13,8 @@ import { useMenuApi } from '/@/api/menu/index';
 import { handleMenu } from '../utils/menu';
 import { BtnPermissionStore } from '/@/plugin/permission/store.permission';
 import {SystemConfigStore} from "/@/stores/systemConfig";
-
+import {useDeptInfoStore} from "/@/stores/modules/dept";
+import {DictionaryStore} from "/@/stores/dictionary";
 const menuApi = useMenuApi();
 
 const layouModules: any = import.meta.glob('../layout/routerView/*.{vue,tsx}');
@@ -112,6 +113,10 @@ export function getBackEndControlRoutes() {
 	BtnPermissionStore().getBtnPermissionStore();
 	// 获取系统配置
 	SystemConfigStore().getSystemConfigs()
+	// 获取所有部门信息
+	useDeptInfoStore().requestDeptInfo()
+	// 获取字典信息
+	DictionaryStore().getSystemDictionarys()
 	return menuApi.getSystemMenu();
 }
 

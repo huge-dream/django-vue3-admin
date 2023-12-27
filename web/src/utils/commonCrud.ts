@@ -1,4 +1,6 @@
 import { dict } from "@fast-crud/fast-crud";
+import {shallowRef} from 'vue'
+import deptFormat from "/@/components/dept-format/index.vue";
 export const commonCrudConfig = (options = {
     create_datetime: {
         form: false,
@@ -32,6 +34,48 @@ export const commonCrudConfig = (options = {
     },
 }) => {
     return {
+        dept_belong_id: {
+            title: '所属部门',
+            type: 'dict-cascader',
+            search: {
+                show: false
+            },
+            dict: dict({
+                url: '/api/system/dept/all_dept/',
+                isTree: true,
+                value: 'id',
+                label: 'name',
+                children: 'children',
+            }),
+            column: {
+                align: 'center',
+                width: 200,
+                show: options.dept_belong_id?.table || false,
+                component:{
+                    name: shallowRef(deptFormat),
+                    vModel: "modelValue",
+                }
+            },
+            form: {
+                show: options.dept_belong_id?.form || false,
+                component: {
+                    multiple: false,
+                    clearable: true,
+                    props: {
+                        showAllLevels:false,
+                        props: {
+                            // 为什么这里要写两层props
+                            // 因为props属性名与fs的动态渲染的props命名冲突，所以要多写一层
+                            label: "name",
+                            value: "id",
+                            checkStrictly: true,
+                            emitPath:false
+                        }
+                    }
+                },
+                helper: "默认不填则为当前创建用户的部门ID"
+            }
+        },
         description: {
             title: '备注',
             search: {
@@ -39,15 +83,19 @@ export const commonCrudConfig = (options = {
             },
             type: 'textarea',
             column: {
+                width: 100,
                 show: options.description?.table || false,
             },
             form: {
+                show: options.description?.form || false,
                 component: {
-                    show: options.description?.form || false,
                     placeholder: '请输入内容',
                     showWordLimit: true,
                     maxlength: '200',
                 }
+            },
+            viewForm: {
+                show: true
             }
         },
         modifier_name: {
@@ -58,6 +106,28 @@ export const commonCrudConfig = (options = {
             column: {
                 width: 100,
                 show: options.modifier_name?.table || false,
+            },
+            form: {
+                show: false,
+            },
+            viewForm: {
+                show: true
+            }
+        },
+        creator_name: {
+            title: '创建人',
+            search: {
+                show: options.creator_name?.search || false
+            },
+            column: {
+                width: 100,
+                show: options.creator_name?.table || false,
+            },
+            form: {
+                show: false,
+            },
+            viewForm: {
+                show: true
             }
         },
         update_datetime: {
@@ -69,16 +139,12 @@ export const commonCrudConfig = (options = {
             column: {
                 width: 160,
                 show: options.update_datetime?.table || false,
-            }
-        },
-        creator_name: {
-            title: '创建人',
-            search: {
-                show: options.creator_name?.search || false
             },
-            column: {
-                width: 100,
-                show: options.creator_name?.table || false,
+            form: {
+                show: false,
+            },
+            viewForm: {
+                show: true
             }
         },
         create_datetime: {
@@ -90,40 +156,12 @@ export const commonCrudConfig = (options = {
             column: {
                 width: 160,
                 show: options.create_datetime?.table || false,
-            }
-        },
-        dept_belong_id: {
-            title: '所属部门',
-            type: 'dict-tree',
-            search: {
-                show:  false
-            },
-            dict: dict({
-                url: '/api/system/dept/all_dept/',
-                isTree: true,
-                value: 'id',
-                label: 'name',
-                children: 'children' // 数据字典中children字段的属性名
-            }),
-            column: {
-                width: 150,
-                show: options.dept_belong_id?.table || false,
             },
             form: {
-                component: {
-                    show: options.dept_belong_id?.form || false,
-                    multiple: false,
-                    clearable: true,
-                    props: {
-                        props: {
-                            // 为什么这里要写两层props
-                            // 因为props属性名与fs的动态渲染的props命名冲突，所以要多写一层
-                            label: "name",
-                            value: "id",
-                        }
-                    }
-                },
-                helper: "默认不填则为当前创建用户的部门ID"
+                show: false,
+            },
+            viewForm: {
+                show: true
             }
         }
     }

@@ -10,6 +10,7 @@ import {Session} from '/@/utils/storage';
 import {notFoundAndNoPower,staticRoutes} from '/@/router/route';
 import {initFrontEndControlRoutes} from '/@/router/frontEnd';
 import {initBackEndControlRoutes} from '/@/router/backEnd';
+import {useFrontendMenuStore} from "/@/stores/frontendMenu";
 
 /**
  * 1、前端控制路由时：isRequestRoutes 为 false，需要写 roles，需要走 setFilterRoute 方法。
@@ -107,6 +108,7 @@ router.beforeEach(async (to, from, next) => {
             next('/home');
             NProgress.done();
         } else {
+
             const storesRoutesList = useRoutesList(pinia);
             const {routesList} = storeToRefs(storesRoutesList);
             if (routesList.value.length === 0) {
@@ -115,6 +117,8 @@ router.beforeEach(async (to, from, next) => {
                     await initBackEndControlRoutes();
                     // 解决刷新时，一直跳 404 页面问题，关联问题 No match found for location with path 'xxx'
                     // to.query 防止页面刷新时，普通路由带参数时，参数丢失。动态路由（xxx/:id/:name"）isDynamic 无需处理
+                    console.log("缓存的路由",routesList.value)
+                    console.log("所有路由",router.getRoutes())
                     next({ path: to.path, query: to.query });
                 } else {
                     // https://gitee.com/lyt-top/vue-next-admin/issues/I5F1HP
