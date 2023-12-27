@@ -207,14 +207,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                         isTree: true,
                         url: '/api/system/dept/all_dept/',
                         value: 'id',
-                        label: 'name',
-                        getData: async ({url}: { url: string }) => {
-                            return request({
-                                url: url,
-                            }).then((ret: any) => {
-                                return ret.data;
-                            });
-                        },
+                        label: 'name'
                     }),
                     column: {
                         minWidth: 150, //最小列宽
@@ -231,6 +224,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                             filterable: true,
                             placeholder: '请选择',
                             props: {
+                                checkStrictly:true,
                                 props: {
                                     value: 'id',
                                     label: 'name',
@@ -249,18 +243,6 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                         url: '/api/system/role/',
                         value: 'id',
                         label: 'name',
-                        isTree: true,
-                        getData: async ({url}: { url: string }) => {
-                            return request({
-                                url: url,
-                                params: {
-                                    page: 1,
-                                    limit: 10,
-                                },
-                            }).then((ret: any) => {
-                                return ret.data;
-                            });
-                        },
                     }),
                     column: {
                         minWidth: 100, //最小列宽

@@ -36,7 +36,7 @@ export const commonCrudConfig = (options = {
     return {
         dept_belong_id: {
             title: '所属部门',
-            type: 'dict-cascader',
+            type: 'dict-tree',
             search: {
                 show: options.dept_belong_id?.search || false
             },
@@ -62,14 +62,12 @@ export const commonCrudConfig = (options = {
                     multiple: false,
                     clearable: true,
                     props: {
-                        showAllLevels:false,
+                        checkStrictly:true,
                         props: {
                             // 为什么这里要写两层props
                             // 因为props属性名与fs的动态渲染的props命名冲突，所以要多写一层
                             label: "name",
                             value: "id",
-                            checkStrictly: true,
-                            emitPath:false
                         }
                     }
                 },

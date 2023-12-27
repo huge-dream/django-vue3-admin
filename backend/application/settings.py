@@ -408,6 +408,6 @@ PLUGINS_URL_PATTERNS = []
 # from dvadmin_third.settings import *            # 第三方用户管理
 # from dvadmin_ak_sk.settings import *            # 秘钥管理管理
 # from dvadmin_tenants.settings import *            # 租户管理
-from dvadmin_social_auth.settings import *
+#from dvadmin_social_auth.settings import *
 # ...
 # ********** 一键导入插件配置结束 **********
