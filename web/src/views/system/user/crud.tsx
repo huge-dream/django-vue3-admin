@@ -17,6 +17,7 @@ import {SystemConfigStore} from "/@/stores/systemConfig";
 import {storeToRefs} from "pinia";
 import {computed} from "vue";
 import { Md5 } from 'ts-md5';
+import {commonCrudConfig} from "/@/utils/commonCrud";
 export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps): CreateCrudOptionsRet {
     const pageRequest = async (query: UserPageQuery) => {
         return await api.GetList(query);
@@ -372,6 +373,12 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                         show: false,
                     },
                 },
+                ...commonCrudConfig({
+                    dept_belong_id: {
+                        form: true,
+                        table: true
+                    }
+                })
             },
         },
     };
