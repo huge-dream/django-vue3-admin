@@ -15,6 +15,8 @@ import { BtnPermissionStore } from '/@/plugin/permission/store.permission';
 import {SystemConfigStore} from "/@/stores/systemConfig";
 import {useDeptInfoStore} from "/@/stores/modules/dept";
 import {DictionaryStore} from "/@/stores/dictionary";
+import {useFrontendMenuStore} from "/@/stores/frontendMenu";
+import {toRaw} from "vue";
 const menuApi = useMenuApi();
 
 const layouModules: any = import.meta.glob('../layout/routerView/*.{vue,tsx}');
@@ -49,12 +51,32 @@ export async function initBackEndControlRoutes() {
 	// https://gitee.com/lyt-top/vue-next-admin/issues/I64HVO
 	if (res.data.length <= 0) return Promise.resolve(true);
 	// 处理路由（component），替换 dynamicRoutes（/@/router/route）第一个顶级 children 的路由
-	const {frameIn,frameOut} = handleMenu(res.data)
-	dynamicRoutes[0].children = await backEndComponent(frameIn);
+	// const {frameIn,frameOut} = handleMenu(res.data)
+	// dynamicRoutes[0].children = await backEndComponent(frameIn);
+	const {frameInRoutes,frameOutRoutes} = await useFrontendMenuStore().getRouter()
+	dynamicRoutes[0].children = toRaw(frameInRoutes)
 	// 添加动态路由
 	await setAddRoute();
 	// 设置路由到 vuex routesList 中（已处理成多级嵌套路由）及缓存多级嵌套数组处理后的一维数组
 	await setFilterMenuAndCacheTagsViewRoutes();
+}
+
+export async function setRouters(){
+	const {frameInRoutes,frameOutRoutes} = await useFrontendMenuStore().getRouter()
+	const frameInRouter = toRaw(frameInRoutes)
+	const frameOutRouter = toRaw(frameOutRoutes)
+	dynamicRoutes[0].children = frameInRouter
+	dynamicRoutes.forEach((item:any)=>{
+		router.addRoute(item)
+	})
+	frameOutRouter.forEach((item:any)=>{
+		router.addRoute(item)
+	})
+	const storesRoutesList = useRoutesList(pinia);
+	storesRoutesList.setRoutesList([...dynamicRoutes[0].children,...frameOutRouter]);
+	const storesTagsView = useTagsViewRoutes(pinia);
+	storesTagsView.setTagsViewRoutes([...dynamicRoutes[0].children,...frameOutRouter])
+
 }
 
 /**
@@ -74,6 +96,8 @@ export function setFilterMenuAndCacheTagsViewRoutes() {
  */
 export function setCacheTagsViewRoutes() {
 	const storesTagsView = useTagsViewRoutes(pinia);
+	console.log("formatFlatteningRoutes(dynamicRoutes)",formatFlatteningRoutes(dynamicRoutes))
+	console.log("2222",formatTwoStageRoutes(formatFlatteningRoutes(dynamicRoutes))[0].children)
 	storesTagsView.setTagsViewRoutes(formatTwoStageRoutes(formatFlatteningRoutes(dynamicRoutes))[0].children);
 }
 
@@ -83,7 +107,6 @@ export function setCacheTagsViewRoutes() {
  * @returns 返回替换后的路由数组
  */
 export function setFilterRouteEnd() {
-	console.log(dynamicRoutes)
 	let filterRouteEnd: any = formatTwoStageRoutes(formatFlatteningRoutes(dynamicRoutes));
 	// notFoundAndNoPower 防止 404、401 不在 layout 布局中，不设置的话，404、401 界面将全屏显示
 	// 关联问题 No match found for location with path 'xxx'
@@ -98,6 +121,7 @@ export function setFilterRouteEnd() {
  * @link 参考：https://next.router.vuejs.org/zh/api/#addroute
  */
 export async function setAddRoute() {
+	console.log("啦啦啦啦啦",setFilterRouteEnd())
 	await setFilterRouteEnd().forEach((route: RouteRecordRaw) => {
 		router.addRoute(route);
 	});

@@ -4,6 +4,8 @@ import {Session} from '/@/utils/storage';
 import {request} from '../utils/service';
 import XEUtils from "xe-utils";
 import {RouteRecordRaw} from "vue-router";
+import {useKeepALiveNames} from "/@/stores/keepAliveNames";
+import pinia from "/@/stores/index";
 
 
 const layouModules: any = import.meta.glob('../layout/routerView/*.{vue,tsx}');
@@ -48,6 +50,8 @@ export const handleMenu = (menuData: Array<any>) => {
     const frameInRoutes:Array<any> = []
     // 框架外路由
     const frameOutRoutes:Array<any> = []
+    // 需要缓存的路由
+    const cacheList:Array<any> = []
     // 先处理menu meta数据转换
     const handleMeta = (item: any) => {
         item.path = item.web_path
@@ -86,18 +90,24 @@ export const handleMenu = (menuData: Array<any>) => {
                 route.component = item.component
                 frameOutRoutes.push(route)
                 item.path = `${item.web_path}FrameOut`
-                item.name =  `frameOut_${item.name}`
+                item.name =  `${item.name}FrameOut`
                 item.meta.isLink = item.web_path
                 item.meta.isIframe = !item.is_iframe
+                //item.meta.isIframeOpen = true
                 item.component = dynamicImport(dynamicViewsModules, 'layout/routerView/link.vue')
             }
         }
         item.children && handleMeta(item.children);
+        if (item.meta.isKeepAlive && item.meta.isKeepAlive && item.component_name != "") {
+            cacheList.push(item.name);
+        }
         return item
     }
     menuData.forEach((val) => {
         frameInRoutes.push(handleMeta(val))
     })
+    const stores = useKeepALiveNames(pinia);
+    stores.setCacheKeepAlive(cacheList);
     const data = XEUtils.toArrayTree(frameInRoutes, {
         parentKey: 'parent',
         strict: true,
@@ -105,7 +115,7 @@ export const handleMenu = (menuData: Array<any>) => {
     const dynamicRoutes = [
         {
             path: '/home', name: 'home',
-            component: '/system/home/index',
+            component: dynamicImport(dynamicViewsModules, '/system/home/index'),
             meta: {
                 title: 'message.router.home',
                 isLink: '',
