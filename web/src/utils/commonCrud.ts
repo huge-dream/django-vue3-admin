@@ -38,7 +38,7 @@ export const commonCrudConfig = (options = {
             title: '所属部门',
             type: 'dict-cascader',
             search: {
-                show: false
+                show: options.dept_belong_id?.search || false
             },
             dict: dict({
                 url: '/api/system/dept/all_dept/',
@@ -49,7 +49,7 @@ export const commonCrudConfig = (options = {
             }),
             column: {
                 align: 'center',
-                width: 200,
+                width: 300,
                 show: options.dept_belong_id?.table || false,
                 component:{
                     name: shallowRef(deptFormat),
@@ -156,6 +156,12 @@ export const commonCrudConfig = (options = {
             column: {
                 width: 160,
                 show: options.create_datetime?.table || false,
+            },
+            form: {
+                show: false,
+            },
+            viewForm: {
+                show: true
             }
         }
     }
