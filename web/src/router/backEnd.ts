@@ -96,8 +96,8 @@ export function setFilterMenuAndCacheTagsViewRoutes() {
  */
 export function setCacheTagsViewRoutes() {
 	const storesTagsView = useTagsViewRoutes(pinia);
-	console.log("formatFlatteningRoutes(dynamicRoutes)",formatFlatteningRoutes(dynamicRoutes))
-	console.log("2222",formatTwoStageRoutes(formatFlatteningRoutes(dynamicRoutes))[0].children)
+	// console.log("formatFlatteningRoutes(dynamicRoutes)",formatFlatteningRoutes(dynamicRoutes))
+	// console.log("2222",formatTwoStageRoutes(formatFlatteningRoutes(dynamicRoutes))[0].children)
 	storesTagsView.setTagsViewRoutes(formatTwoStageRoutes(formatFlatteningRoutes(dynamicRoutes))[0].children);
 }
 
@@ -121,7 +121,7 @@ export function setFilterRouteEnd() {
  * @link 参考：https://next.router.vuejs.org/zh/api/#addroute
  */
 export async function setAddRoute() {
-	console.log("啦啦啦啦啦",setFilterRouteEnd())
+	// console.log("啦啦啦啦啦",setFilterRouteEnd())
 	await setFilterRouteEnd().forEach((route: RouteRecordRaw) => {
 		router.addRoute(route);
 	});
