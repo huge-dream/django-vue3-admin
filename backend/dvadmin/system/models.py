@@ -175,6 +175,26 @@ class Menu(CoreModel):
     is_iframe = models.BooleanField(default=False, blank=True, verbose_name="框架外显示", help_text="框架外显示")
     is_affix = models.BooleanField(default=False, blank=True, verbose_name="是否固定", help_text="是否固定")
 
+    @classmethod
+    def get_all_parent(cls, id: int, all_list=None, nodes=None):
+        """
+        递归获取给定ID的所有层级
+        :param id: 参数ID
+        :param all_list: 所有列表
+        :param nodes: 递归列表
+        :return: nodes
+        """
+        if not all_list:
+            all_list = Menu.objects.values("id", "name", "parent")
+        if nodes is None:
+            nodes = []
+        for ele in all_list:
+            if ele.get("id") == id:
+                parent_id = ele.get("parent")
+                if parent_id is not None:
+                    cls.get_all_parent(parent_id, all_list, nodes)
+                nodes.append(ele)
+        return nodes
     class Meta:
         db_table = table_prefix + "system_menu"
         verbose_name = "菜单表"

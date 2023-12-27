@@ -112,10 +112,15 @@ class RoleMenuPermissionSerializer(CustomModelSerializer):
     """
     菜单和按钮权限
     """
+    name = serializers.SerializerMethodField()
     isCheck = serializers.SerializerMethodField()
     btns = serializers.SerializerMethodField()
     columns = serializers.SerializerMethodField()
 
+    def get_name(self, instance):
+        parent_list = Menu.get_all_parent(instance['id'])
+        names = [d["name"] for d in parent_list]
+        return "/".join(names)
     def get_isCheck(self, instance):
         params = self.request.query_params
         return RoleMenuPermission.objects.filter(
@@ -189,9 +194,12 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         RoleMenuButtonPermission.objects.filter(role=pk).delete()
         for menu in body:
             if menu.get('isCheck'):
-                menu_parent = Menu.objects.filter(id=menu.get('id')).values('parent').first()
-                RoleMenuPermission.objects.create(role_id=pk, menu_id=menu_parent.get('parent'))
-                RoleMenuPermission.objects.create(role_id=pk, menu_id=menu.get('id'))
+                menu_parent = Menu.get_all_parent(menu.get('id'))
+                role_menu_permission_list = []
+                for d in menu_parent:
+                    role_menu_permission_list.append(RoleMenuPermission(role_id=pk, menu_id=d["id"]))
+                RoleMenuPermission.objects.bulk_create(role_menu_permission_list)
+                # RoleMenuPermission.objects.create(role_id=pk, menu_id=menu.get('id'))
             for btn in menu.get('btns'):
                 if btn.get('isCheck'):
                     data_range = btn.get('data_range',0) or 0
