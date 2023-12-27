@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'application.settings')
 import django
+
 django.setup()
 from dvadmin.system.models import (
     Role, Dept, Users, Menu, MenuButton,
@@ -60,8 +61,9 @@ class MenuFieldInitSerializer(CustomModelSerializer):
 
     class Meta:
         model = MenuField
-        fields = ['id', 'menu','field_name','title','model']
+        fields = ['id', 'menu', 'field_name', 'title', 'model']
         read_only_fields = ["id"]
+
 
 class MenuInitSerializer(CustomModelSerializer):
     """
@@ -71,6 +73,7 @@ class MenuInitSerializer(CustomModelSerializer):
     children = serializers.SerializerMethodField()
     menu_button = serializers.SerializerMethodField()
     menu_field = serializers.SerializerMethodField()
+
     def get_children(self, obj: Menu):
         data = []
         instance = Menu.objects.filter(parent_id=obj.id)
@@ -90,7 +93,7 @@ class MenuInitSerializer(CustomModelSerializer):
         data = []
         instance = obj.menufield_set.order_by('field_name')
         if instance:
-            data = list(instance.values('field_name', 'title','model'))
+            data = list(instance.values('field_name', 'title', 'model'))
         return data
 
     def save(self, **kwargs):
@@ -131,8 +134,9 @@ class MenuInitSerializer(CustomModelSerializer):
             for field_data in menu_field:
                 field_data['menu'] = instance.id
                 filter_data = {
-                    'menu':field_data['menu'],
-                    'field_name':field_data['field_name']
+                    'menu': field_data['menu'],
+                    'field_name': field_data['field_name'],
+                    'model': field_data['model']
                 }
                 instance_obj = MenuField.objects.filter(**filter_data).first()
                 serializer = MenuFieldInitSerializer(instance_obj, data=field_data, request=self.request)
@@ -143,7 +147,7 @@ class MenuInitSerializer(CustomModelSerializer):
     class Meta:
         model = Menu
         fields = ['name', 'icon', 'sort', 'is_link', 'is_catalog', 'web_path', 'component', 'component_name', 'status',
-                  'cache', 'visible', 'parent', 'children', 'menu_button','menu_field', 'creator', 'dept_belong_id']
+                  'cache', 'visible', 'parent', 'children', 'menu_button', 'menu_field', 'creator', 'dept_belong_id']
         extra_kwargs = {
             'creator': {'write_only': True},
             'dept_belong_id': {'write_only': True}
