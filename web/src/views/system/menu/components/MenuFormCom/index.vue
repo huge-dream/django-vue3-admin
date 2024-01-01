@@ -62,7 +62,7 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item v-if="!menuFormData.is_catalog" required label="框外显示">
+          <el-form-item v-if="!menuFormData.is_catalog && menuFormData.is_link" required label="是否内嵌">
             <el-switch v-model="menuFormData.is_iframe" width="60" inline-prompt active-text="是" inactive-text="否" />
           </el-form-item>
         </el-col>

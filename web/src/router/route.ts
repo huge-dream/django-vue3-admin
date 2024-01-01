@@ -88,12 +88,12 @@ export const staticRoutes: Array<RouteRecordRaw> = [
 			title: '登录',
 		},
 	},
-	// {
-	// 	path: '/demo',
-	// 	name: 'demo',
-	// 	component: () => import('/@/views/system/demo/index.vue'),
-	// 	meta: {
-	// 		title: 'message.router.personal'
-	// 	},
-	// }
+	{
+		path: '/demo',
+		name: 'demo',
+		component: () => import('/@/views/system/demo/index.vue'),
+		meta: {
+			title: 'message.router.personal'
+		},
+	}
 ];

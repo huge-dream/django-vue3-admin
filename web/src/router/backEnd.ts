@@ -51,10 +51,8 @@ export async function initBackEndControlRoutes() {
 	// https://gitee.com/lyt-top/vue-next-admin/issues/I64HVO
 	if (res.data.length <= 0) return Promise.resolve(true);
 	// 处理路由（component），替换 dynamicRoutes（/@/router/route）第一个顶级 children 的路由
-	// const {frameIn,frameOut} = handleMenu(res.data)
-	// dynamicRoutes[0].children = await backEndComponent(frameIn);
-	const {frameInRoutes,frameOutRoutes} = await useFrontendMenuStore().getRouter()
-	dynamicRoutes[0].children = toRaw(frameInRoutes)
+	const {frameIn,frameOut} = handleMenu(res.data)
+	dynamicRoutes[0].children = await backEndComponent(frameIn);
 	// 添加动态路由
 	await setAddRoute();
 	// 设置路由到 vuex routesList 中（已处理成多级嵌套路由）及缓存多级嵌套数组处理后的一维数组
@@ -96,8 +94,6 @@ export function setFilterMenuAndCacheTagsViewRoutes() {
  */
 export function setCacheTagsViewRoutes() {
 	const storesTagsView = useTagsViewRoutes(pinia);
-	// console.log("formatFlatteningRoutes(dynamicRoutes)",formatFlatteningRoutes(dynamicRoutes))
-	// console.log("2222",formatTwoStageRoutes(formatFlatteningRoutes(dynamicRoutes))[0].children)
 	storesTagsView.setTagsViewRoutes(formatTwoStageRoutes(formatFlatteningRoutes(dynamicRoutes))[0].children);
 }
 
@@ -121,7 +117,6 @@ export function setFilterRouteEnd() {
  * @link 参考：https://next.router.vuejs.org/zh/api/#addroute
  */
 export async function setAddRoute() {
-	// console.log("啦啦啦啦啦",setFilterRouteEnd())
 	await setFilterRouteEnd().forEach((route: RouteRecordRaw) => {
 		router.addRoute(route);
 	});
@@ -168,26 +163,24 @@ export function backEndComponent(routes: any) {
 		}
 		if(item.is_link){
 			// 对外链接的处理
-			item.meta.isIframe = !item.is_iframe
 			if(item.is_iframe){
-				item.component = dynamicImport(dynamicViewsModules, 'layout/routerView/link')
-			}else {
 				item.component = dynamicImport(dynamicViewsModules, 'layout/routerView/iframes')
+			}else {
+				item.component = dynamicImport(dynamicViewsModules, 'layout/routerView/link')
 			}
 		}else{
 			if(item.is_iframe){
-				const iframeRoute:RouteRecordRaw = {
-					...item
-				}
-				router.addRoute(iframeRoute)
-				item.meta.isLink = item.path
-				item.path = `${item.path}Link`
-				item.name = `${item.name}Link`
-				item.meta.isIframe = !item.is_iframe
-				item.meta.isKeepAlive = false
-				item.meta.isIframeOpen = true
+				// const iframeRoute:RouteRecordRaw = {
+				// 	...item
+				// }
+				// router.addRoute(iframeRoute)
+				item.meta.isLink = item.link_url
+				// item.path = `${item.path}Link`
+				// item.name = `${item.name}Link`
+				// item.meta.isIframe = item.is_iframe
+				// item.meta.isKeepAlive = false
+				// item.meta.isIframeOpen = true
 				item.component = dynamicImport(dynamicViewsModules, 'layout/routerView/link.vue')
-
 			}
 		}
 		item.children && backEndComponent(item.children);

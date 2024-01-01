@@ -13,12 +13,12 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 		/**
 		 * 处理crud警告：Invalid prop: type check failed for prop "name". Expected String with value "2", got Number with value 2.
 		 */
-		res.data.forEach((item: any) => {
-			item.dept = String(item.dept);
-			if (item.role && Array.isArray(item.role) && item.role.length > 0) {
-				item.role = item.role.map((r: number) => String(r));
-			}
-		});
+		// res.data.forEach((item: any) => {
+		// 	item.dept = String(item.dept);
+		// 	if (item.role && Array.isArray(item.role) && item.role.length > 0) {
+		// 		item.role = item.role.map((r: number) => String(r));
+		// 	}
+		// });
 		return res;
 	};
 	const editRequest = async ({ form, row }: EditReq) => {
@@ -218,13 +218,6 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 						url: '/api/system/dept/all_dept/',
 						value: 'id',
 						label: 'name',
-						getData: async ({ url }: { url: string }) => {
-							return request({
-								url: url,
-							}).then((ret: any) => {
-								return ret.data;
-							});
-						},
 					}),
 					column: {
 						minWidth: 150, //最小列宽
@@ -264,17 +257,6 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 						url: '/api/system/role/',
 						value: 'id',
 						label: 'name',
-						getData: async ({ url }: { url: string }) => {
-							return request({
-								url: url,
-								params: {
-									page: 1,
-									limit: 10,
-								},
-							}).then((ret: any) => {
-								return ret.data;
-							});
-						},
 					}),
 					column: {
 						minWidth: 100, //最小列宽

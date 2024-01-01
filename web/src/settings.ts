@@ -9,7 +9,7 @@ import {getBaseURL} from '/@/utils/baseUrl';
 import ui from '@fast-crud/ui-element';
 import {request} from '/@/utils/service';
 //扩展包
-import {FsExtendsEditor, FsExtendsUploader} from '@fast-crud/fast-extends';
+import {FsExtendsEditor, FsExtendsUploader,FsCropperUploader} from '@fast-crud/fast-extends';
 import '@fast-crud/fast-extends/dist/style.css';
 import {successNotification} from '/@/utils/message';
 import XEUtils from "xe-utils";
@@ -114,8 +114,13 @@ export default {
                         ...ret.data
                     };
                 }
-            }
+            },
+                valueBuilder(context){
+                    const {row,key} = context
+                    return getBaseURL(row[key])
+                }
         })
+
         setLogger({level: 'error'});
         // 设置自动染色
         const dictComponentList = ['dict-cascader', 'dict-checkbox', 'dict-radio', 'dict-select', 'dict-switch', 'dict-tree'];
