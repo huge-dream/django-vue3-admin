@@ -26,7 +26,7 @@ class CustomModelSerializer(DynamicFieldsMixin, ModelSerializer):
     # 修改人的审计字段名称, 默认modifier, 继承使用时可自定义覆盖
     modifier_field_id = "modifier"
     modifier_name = serializers.SerializerMethodField(read_only=True)
-    dept_belong_id = serializers.IntegerField(required=False)
+    dept_belong_id = serializers.IntegerField(required=False, default=None)
 
     def get_modifier_name(self, instance):
         if not hasattr(instance, "modifier"):
