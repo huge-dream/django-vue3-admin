@@ -1,8 +1,6 @@
 <template>
 	<el-drawer size="70%" v-model="drawer" direction="rtl" destroy-on-close :before-close="handleClose">
-		<div>
-      <fs-crud ref="crudRef" v-bind="crudBinding"> </fs-crud>
-    </div>
+    <fs-crud ref="crudRef" v-bind="crudBinding"> </fs-crud>
 	</el-drawer>
 </template>
 

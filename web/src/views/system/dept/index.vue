@@ -57,7 +57,7 @@ const getData = async () => {
 		const result = XEUtils.toArrayTree(res.data, {
 			parentKey: 'parent',
 			children: 'children',
-			strict: true,
+			//strict: true,
 		});
 
 		deptTreeData.value = result;

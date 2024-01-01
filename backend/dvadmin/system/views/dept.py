@@ -115,13 +115,10 @@ class DeptViewSet(CustomModelViewSet):
             del params['page']
         if limit:
             del params['limit']
-        if params:
-            if parent:
-                queryset = self.queryset.filter(status=True, parent=parent)
-            else:
-                queryset = self.queryset.filter(status=True)
+        if params and parent:
+            queryset = self.queryset.filter(status=True, parent=parent)
         else:
-            queryset = self.queryset.filter(status=True, parent__isnull=True)
+            queryset = self.queryset.filter(status=True)
         queryset = self.filter_queryset(queryset)
         serializer = DeptSerializer(queryset, many=True, request=request)
         data = serializer.data
@@ -143,7 +140,7 @@ class DeptViewSet(CustomModelViewSet):
                 if item in [0, 2]:
                     dept_list = [user_dept_id]
                 elif item == 1:
-                    dept_list = Dept.recursion_dept_info(dept_id=user_dept_id)
+                    dept_list = Dept.recursion_all_dept(dept_id=user_dept_id)
                 elif item == 3:
                     dept_list = Dept.objects.values_list('id', flat=True)
                 elif item == 4:

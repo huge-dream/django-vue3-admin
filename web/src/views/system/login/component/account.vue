@@ -126,6 +126,7 @@ export default defineComponent({
 			});
 		};
 		const refreshCaptcha = async () => {
+      state.ruleForm.captcha=''
 			loginApi.getCaptcha().then((ret: any) => {
 				state.ruleForm.captchaImgBase = ret.data.image_base;
 				state.ruleForm.captchaKey = ret.data.key;
@@ -150,11 +151,11 @@ export default defineComponent({
 								// 执行完 initBackEndControlRoutes，再执行 signInSuccess
 								loginSuccess();
 							}
-						} else if (res.code === 4000) {
-							// 登录错误之后，刷新验证码
-							refreshCaptcha();
 						}
-					});
+					}).catch((err: any) => {
+            // 登录错误之后，刷新验证码
+            refreshCaptcha();
+          });
 				} else {
 					errorMessage("请填写登录信息")
 				}

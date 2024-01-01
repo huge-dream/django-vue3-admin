@@ -1,4 +1,5 @@
 import XEUtils from "xe-utils"
+import {dynamicRoutes, staticRoutes} from "/@/router/route";
 
 /**
  * @description: 处理后端菜单数据格式
@@ -10,27 +11,56 @@ export const handleMenu = (menuData: Array<any>) => {
     const handleMeta = (item: any) => {
         item.meta = {
             title: item.title,
-            isLink: item.is_link,
+            isLink: item.link_url,
             isHide: !item.visible,
             isKeepAlive: item.cache,
-            isAffix: false,
-            isIframe: false,
+            isAffix: item.is_affix,
+            isIframe: item.is_iframe,
             roles: ['admin'],
             icon: item.icon
         }
         item.name = item.component_name
+        item.path = item.web_path
         return item
     }
-    menuData.forEach((val) => {
-        handleMeta(val)
-        val.path = val.web_path
-    })
 
-    const data = XEUtils.toArrayTree(menuData, {
+    // 处理框架外的路由
+    const handleFrame = (item: any) => {
+        if (item.is_iframe) {
+            item.meta = {
+                title: item.title,
+                isLink: item.link_url,
+                isHide: !item.visible,
+                isKeepAlive: item.cache,
+                isAffix: item.is_affix,
+                isIframe: item.is_iframe,
+                roles: ['admin'],
+                icon: item.icon
+            }
+            item.name = item.component_name
+            item.path = item.web_path
+        }
+        return item
+    }
+
+    // 框架内路由
+    const defaultRoutes:Array<any> = []
+    // 框架外路由
+    const iframeRoutes:Array<any> = []
+
+    menuData.forEach((val) => {
+        // if (val.is_iframe) {
+        //     // iframeRoutes.push(handleFrame(val))
+        // } else {
+        //     defaultRoutes.push(handleMeta(val))
+        // }
+        defaultRoutes.push(handleMeta(val))
+    })
+    const data = XEUtils.toArrayTree(defaultRoutes, {
         parentKey: 'parent',
         strict: true,
     })
-    const menu = [
+    const dynamicRoutes = [
         {
             path: '/home', name: 'home', component: '/system/home/index', meta: {
                 title: 'message.router.home',
@@ -45,5 +75,5 @@ export const handleMenu = (menuData: Array<any>) => {
         },
         ...data
     ]
-    return menu
+    return {frameIn:dynamicRoutes,frameOut:iframeRoutes}
 }

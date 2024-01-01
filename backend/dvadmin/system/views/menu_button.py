@@ -63,7 +63,7 @@ class MenuButtonViewSet(CustomModelViewSet):
         :param kwargs:
         :return:
         """
-        queryset = self.filter_queryset(self.get_queryset())
+        queryset = self.filter_queryset(self.get_queryset()).order_by('name')
         serializer = self.get_serializer(queryset, many=True, request=request)
         return SuccessResponse(serializer.data,msg="获取成功")
 
