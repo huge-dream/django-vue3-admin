@@ -2,6 +2,7 @@
  * 定义接口来定义对象的类型
  * `stores` 全部类型定义在这里
  */
+import {useFrontendMenuStore} from "/@/stores/frontendMenu";
 
 // 用户信息
 export interface UserInfosState {
@@ -101,4 +102,13 @@ export interface DictionaryStates {
 }
 export interface ConfigStates {
 	systemConfig: any;
+}
+
+export interface FrontendMenu {
+	arrayRouter: Array<any>;
+	treeRouter:Array<any>;
+
+	frameOutRoutes:Array<any>;
+
+	frameInRoutes:Array<any>;
 }

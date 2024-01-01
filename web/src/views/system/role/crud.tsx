@@ -151,6 +151,10 @@ export const createCrudOptions = function ({
 							placeholder: '输入权限标识',
 						},
 					},
+					valueBuilder(context){
+						const {row,key} = context
+						return row[key]
+					}
 				},
 				sort: {
 					title: '排序',

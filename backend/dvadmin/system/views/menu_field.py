@@ -26,7 +26,7 @@ class MenuFieldViewSet(CustomModelViewSet):
     """
     列权限视图集
     """
-    queryset = MenuField.objects.all()
+    queryset = MenuField.objects.order_by('-model')
     serializer_class = MenuFieldSerializer
 
     def list(self, request, *args, **kwargs):
