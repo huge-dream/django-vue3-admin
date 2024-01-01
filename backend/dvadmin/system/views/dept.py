@@ -115,13 +115,10 @@ class DeptViewSet(CustomModelViewSet):
             del params['page']
         if limit:
             del params['limit']
-        if params:
-            if parent:
-                queryset = self.queryset.filter(status=True, parent=parent)
-            else:
-                queryset = self.queryset.filter(status=True)
+        if params and parent:
+            queryset = self.queryset.filter(status=True, parent=parent)
         else:
-            queryset = self.queryset.filter(status=True, parent__isnull=True)
+            queryset = self.queryset.filter(status=True)
         queryset = self.filter_queryset(queryset)
         serializer = DeptSerializer(queryset, many=True, request=request)
         data = serializer.data
