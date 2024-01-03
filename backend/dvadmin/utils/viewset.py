@@ -52,7 +52,6 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
     filter_fields = '__all__'
     search_fields = ()
     extra_filter_class = [DataLevelPermissionsFilter]
-    filterset_class  = CoreModelFliterSet
     permission_classes = [CustomPermission]
     import_field_dict = {}
     export_field_label = {}
