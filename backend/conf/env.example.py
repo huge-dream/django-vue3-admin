@@ -7,30 +7,30 @@ from application.settings import BASE_DIR
 # ================================================= #
 # 数据库 ENGINE ，默认演示使用 sqlite3 数据库，正式环境建议使用 mysql 数据库
 # sqlite3 设置
-DATABASE_ENGINE = "django.db.backends.sqlite3"
-DATABASE_NAME = os.path.join(BASE_DIR, "db.sqlite3")
+# DATABASE_ENGINE = "django.db.backends.sqlite3"
+# DATABASE_NAME = os.path.join(BASE_DIR, "db.sqlite3")
 
 # 使用mysql时，改为此配置
-# DATABASE_ENGINE = "django.db.backends.mysql"
-# DATABASE_NAME = 'django-vue-admin' # mysql 时使用
+DATABASE_ENGINE = "django.db.backends.mysql"
+DATABASE_NAME = 'django-vue3-admin' # mysql 时使用
 
 # 数据库地址 改为自己数据库地址
-DATABASE_HOST = "127.0.0.1"
+DATABASE_HOST = '127.0.0.1'
 # # 数据库端口
 DATABASE_PORT = 3306
 # # 数据库用户名
 DATABASE_USER = "root"
 # # 数据库密码
-DATABASE_PASSWORD = "123456"
+DATABASE_PASSWORD = "DVADMIN3"
 
 # 表前缀
 TABLE_PREFIX = "dvadmin_"
 # ================================================= #
 # ******** redis配置，无redis 可不进行配置  ******** #
 # ================================================= #
-# REDIS_PASSWORD = ''
-# REDIS_HOST = '127.0.0.1'
-# REDIS_URL = f'redis://:{REDIS_PASSWORD or ""}@{REDIS_HOST}:6380'
+REDIS_PASSWORD = 'DVADMIN3'
+REDIS_HOST = '127.0.0.1'
+REDIS_URL = f'redis://:{REDIS_PASSWORD or ""}@{REDIS_HOST}:6379'
 # ================================================= #
 # ****************** 功能 启停  ******************* #
 # ================================================= #
