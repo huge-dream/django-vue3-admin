@@ -23,6 +23,36 @@ from rest_framework.filters import BaseFilterBackend
 from dvadmin.system.models import Dept, ApiWhiteList, RoleMenuButtonPermission
 from dvadmin.utils.models import CoreModel
 
+class CoreModelFilterBankend(BaseFilterBackend):
+    """
+    自定义时间范围过滤器
+    """
+    def filter_queryset(self, request, queryset, view):
+        create_datetime_after = request.query_params.get('create_datetime_after', None)
+        create_datetime_before = request.query_params.get('create_datetime_before', None)
+        update_datetime_after = request.query_params.get('update_datetime_after', None)
+        update_datetime_before = request.query_params.get('update_datetime_after', None)
+        if any([create_datetime_after, create_datetime_before, update_datetime_after, update_datetime_before]):
+            create_filter = Q()
+            if create_datetime_after and create_datetime_before:
+                create_filter &= Q(create_datetime__gte=create_datetime_after) & Q(create_datetime__lte=create_datetime_before)
+            elif create_datetime_after:
+                create_filter &= Q(create_datetime__gte=create_datetime_after)
+            elif create_datetime_before:
+                create_filter &= Q(create_datetime__lte=create_datetime_before)
+
+            # 更新时间范围过滤条件
+            update_filter = Q()
+            if update_datetime_after and update_datetime_before:
+                update_filter &= Q(update_datetime__gte=update_datetime_after) & Q(update_datetime__lte=update_datetime_before)
+            elif update_datetime_after:
+                update_filter &= Q(update_datetime__gte=update_datetime_after)
+            elif update_datetime_before:
+                update_filter &= Q(update_datetime__lte=update_datetime_before)
+            # 结合两个时间范围过滤条件
+            queryset = queryset.filter(create_filter & update_filter)
+            return queryset
+        return queryset
 
 def get_dept(dept_id: int, dept_all_list=None, dept_list=None):
     """
