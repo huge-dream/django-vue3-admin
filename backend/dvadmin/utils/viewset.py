@@ -14,7 +14,7 @@ from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.viewsets import ModelViewSet
 
-from dvadmin.utils.filters import DataLevelPermissionsFilter
+from dvadmin.utils.filters import DataLevelPermissionsFilter, CoreModelFilterBankend
 from dvadmin.utils.import_export_mixin import ExportSerializerMixin, ImportSerializerMixin
 from dvadmin.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
 from dvadmin.utils.permission import CustomPermission
@@ -22,18 +22,6 @@ from dvadmin.utils.models import get_custom_app_models, CoreModel
 from dvadmin.system.models import FieldPermission, MenuField
 from django_restql.mixins import QueryArgumentsMixin
 
-
-class CoreModelFliterSet(FilterSet):
-    """
-    封装一个时间范围过滤器:
-    使用方式:
-    {'create_datetime_after': '2024-01-01 8:00', 'create_datetime_before': '2024-01-05 10:00'}
-    """
-    create_datetime = DateTimeFromToRangeFilter()
-    update_datetime = DateTimeFromToRangeFilter()
-    class Meta:
-        model = None
-        fields = "__all__"
 
 class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMixin, QueryArgumentsMixin):
     """
@@ -51,8 +39,7 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
     update_serializer_class = None
     filter_fields = '__all__'
     search_fields = ()
-    extra_filter_class = [DataLevelPermissionsFilter]
-    filterset_class  = CoreModelFliterSet
+    extra_filter_class = [CoreModelFilterBankend,DataLevelPermissionsFilter]
     permission_classes = [CustomPermission]
     import_field_dict = {}
     export_field_label = {}
