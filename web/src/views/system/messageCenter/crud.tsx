@@ -1,40 +1,45 @@
 import * as api from './api';
-import { dict, useCompute, PageQuery, AddReq, DelReq, EditReq, CrudExpose, CrudOptions } from '@fast-crud/fast-crud';
+import {dict, useCompute, PageQuery, AddReq, DelReq, EditReq, CrudExpose, CrudOptions} from '@fast-crud/fast-crud';
 import tableSelector from '/@/components/tableSelector/index.vue';
 import {shallowRef, computed, ref, inject} from 'vue';
 import manyToMany from '/@/components/manyToMany/index.vue';
 import {auth} from '/@/utils/authFunction'
-const { compute } = useCompute();
+import  {createCrudOptions as userCrudOptions } from "/@/views/system/user/crud";
+import {request} from '/@/utils/service'
+const {compute} = useCompute();
 
 interface CreateCrudOptionsTypes {
-	crudOptions: CrudOptions;
+    crudOptions: CrudOptions;
 }
 
-export const createCrudOptions = function ({ crudExpose, tabActivted }: { crudExpose: CrudExpose; tabActivted: any }): CreateCrudOptionsTypes {
-	const pageRequest = async (query: PageQuery) => {
-		if (tabActivted.value === 'receive') {
-			return await api.GetSelfReceive(query);
-		}
-		return await api.GetList(query);
-	};
-	const editRequest = async ({ form, row }: EditReq) => {
-		form.id = row.id;
-		return await api.UpdateObj(form);
-	};
-	const delRequest = async ({ row }: DelReq) => {
-		return await api.DelObj(row.id);
-	};
-	const addRequest = async ({ form }: AddReq) => {
-		return await api.AddObj(form);
-	};
+export const createCrudOptions = function ({
+                                               crudExpose,
+                                               tabActivted
+                                           }: { crudExpose: CrudExpose; tabActivted: any }): CreateCrudOptionsTypes {
+    const pageRequest = async (query: PageQuery) => {
+        if (tabActivted.value === 'receive') {
+            return await api.GetSelfReceive(query);
+        }
+        return await api.GetList(query);
+    };
+    const editRequest = async ({form, row}: EditReq) => {
+        form.id = row.id;
+        return await api.UpdateObj(form);
+    };
+    const delRequest = async ({row}: DelReq) => {
+        return await api.DelObj(row.id);
+    };
+    const addRequest = async ({form}: AddReq) => {
+        return await api.AddObj(form);
+    };
 
-	const viewRequest = async ({ row }: { row: any }) => {
-		return await api.GetObj(row.id);
-	};
+    const viewRequest = async ({row}: { row: any }) => {
+        return await api.GetObj(row.id);
+    };
 
-	const IsReadFunc = computed(() => {
-		return tabActivted.value === 'receive';
-	});
+    const IsReadFunc = computed(() => {
+        return tabActivted.value === 'receive';
+    });
 
 
 	return {
@@ -292,6 +297,7 @@ export const createCrudOptions = function ({ crudExpose, tabActivted }: { crudEx
 									{
 										prop: 'name',
 										label: '部门名称',
+                                        width: 150,
 									},
 									{
 										prop: 'status_label',

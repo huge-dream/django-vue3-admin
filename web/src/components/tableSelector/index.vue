@@ -43,7 +43,7 @@
 import {defineProps, onMounted, reactive, ref, toRaw, watch} from 'vue'
 import {dict} from '@fast-crud/fast-crud'
 import XEUtils from 'xe-utils'
-
+import {request} from '/@/utils/service'
 const props = defineProps({
   modelValue: {},
   tableConfig: {
@@ -71,6 +71,7 @@ watch(multipleSelection, // 监听multipleSelection的变化，
       if (!tableConfig.isMultiple) {
         data.value = value ? value[tableConfig.label] : null
       } else {
+
         const result = value ? value.map((item: any) => {
           return item[tableConfig.label]
         }) : null
@@ -125,10 +126,10 @@ const getDict = async () => {
     limit: pageConfig.limit,
     search: search.value
   }
-  const dicts = dict({url: url, params: params})
-  await dicts.reloadDict()
-  const dictData: any = dicts.data
-  const {data, page, limit, total} = dictData
+  const {data, page, limit, total} = await request({
+    url:url,
+    params:params
+  })
   pageConfig.page = page
   pageConfig.limit = limit
   pageConfig.total = total

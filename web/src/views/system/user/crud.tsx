@@ -372,6 +372,9 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                     form: {
                         show: false,
                     },
+                    column: {
+                        minWidth: 400, //最小列宽
+                    },
                 },
                 ...commonCrudConfig({
                     dept_belong_id: {
