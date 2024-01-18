@@ -123,7 +123,7 @@ const getDict = async () => {
   const params = {
     page: pageConfig.page,
     limit: pageConfig.limit,
-    search: search
+    search: search.value
   }
   const dicts = dict({url: url, params: params})
   await dicts.reloadDict()

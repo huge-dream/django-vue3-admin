@@ -6,7 +6,7 @@
     <template #header>
       <el-row>
         <el-col :span="4">
-          <div>当前角色:
+          <div>当前授权角色:
             <el-tag>{{ props.roleName }}</el-tag>
           </div>
         </el-col>

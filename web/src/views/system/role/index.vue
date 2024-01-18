@@ -47,21 +47,21 @@ const { crudExpose } = useExpose({ crudRef, crudBinding });
 // 你的crud配置
 const { crudOptions } = createCrudOptions({ crudExpose, rolePermission, handleDrawerOpen });
 
-
+// 初始化crud配置
+const { resetCrudOptions } = useCrud({
+  crudExpose,
+  crudOptions,
+  context: {},
+});
 
 // 页面打开后获取列表数据
 onMounted( async () => {
 
   const newOptions = await handleColumnPermission(GetPermission,crudOptions)
 
-// 初始化crud配置
-  const { resetCrudOptions } = useCrud({
-    crudExpose,
-    crudOptions,
-    context: {},
-  });
+
   //重置crudBinding
-  resetCrudOptions(newOptions);
+  //resetCrudOptions(newOptions);
 	crudExpose.doRefresh();
 });
 
