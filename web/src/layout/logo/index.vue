@@ -1,10 +1,10 @@
 <template>
 	<div class="layout-logo" v-if="setShowLogo" @click="onThemeConfigChange">
-		<img :src="logoMini" class="layout-logo-medium-img" />
+		<img :src="siteLogo" class="layout-logo-medium-img" />
 		<span style="font-size: x-large">{{ getSystemConfig['login.site_title'] || themeConfig.globalTitle }}</span>
 	</div>
 	<div class="layout-logo-size" v-else @click="onThemeConfigChange">
-		<img :src="logoMini" class="layout-logo-size-img" />
+		<img :src="siteLogo" class="layout-logo-size-img" />
 	</div>
 </template>
 
@@ -13,8 +13,8 @@ import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useThemeConfig } from '/@/stores/themeConfig';
 import logoMini from '/@/assets/logo-mini.svg';
-import {SystemConfigStore} from "/@/stores/systemConfig";
-
+import { SystemConfigStore } from "/@/stores/systemConfig";
+import _ from "lodash";
 // 定义变量内容
 const storesThemeConfig = useThemeConfig();
 const { themeConfig } = storeToRefs(storesThemeConfig);
@@ -31,10 +31,17 @@ const onThemeConfigChange = () => {
 };
 
 const systemConfigStore = SystemConfigStore()
-const {systemConfig} = storeToRefs(systemConfigStore)
-const getSystemConfig = computed(()=>{
-  return systemConfig.value
+const { systemConfig } = storeToRefs(systemConfigStore)
+const getSystemConfig = computed(() => {
+	return systemConfig.value
 })
+
+const siteLogo = computed(() => {
+	if (!_.isEmpty(getSystemConfig.value['login.site_logo'])) {
+		return getSystemConfig.value['login.site_logo']
+	}
+	return logoMini
+});
 
 </script>
 
@@ -50,30 +57,36 @@ const getSystemConfig = computed(()=>{
 	font-size: 16px;
 	cursor: pointer;
 	animation: logoAnimation 0.3s ease-in-out;
+
 	span {
 		white-space: nowrap;
 		display: inline-block;
 	}
+
 	&:hover {
 		span {
 			color: var(--color-primary-light-2);
 		}
 	}
+
 	&-medium-img {
 		width: 40px;
 		margin-right: 5px;
 	}
 }
+
 .layout-logo-size {
 	width: 100%;
 	height: 50px;
 	display: flex;
 	cursor: pointer;
 	animation: logoAnimation 0.3s ease-in-out;
+
 	&-img {
 		width: 40px;
 		margin: auto;
 	}
+
 	&:hover {
 		img {
 			animation: logoAnimation 0.3s ease-in-out;
