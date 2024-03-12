@@ -6,7 +6,7 @@
     <template #header>
       <el-row>
         <el-col :span="4">
-          <div>当前角色:
+          <div>当前授权角色:
             <el-tag>{{ props.roleName }}</el-tag>
           </div>
         </el-col>
@@ -49,7 +49,7 @@
               </el-checkbox>
             </div>
 
-            <div class="pccm-item">
+            <div class="pccm-item" v-if="item.columns&&item.columns.length>0">
               <p>对这些数据有以下字段权限</p>
 
               <ul class="columns-list">

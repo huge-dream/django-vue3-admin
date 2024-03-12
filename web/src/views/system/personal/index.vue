@@ -182,6 +182,7 @@ import { useRouter } from 'vue-router';
 import { useUserInfo } from '/@/stores/userInfo';
 import { successMessage } from '/@/utils/message';
 import {dictionary} from "/@/utils/dictionary";
+const router = useRouter();
 
 // 头像裁剪组件
 const avatarSelector = defineAsyncComponent(() => import('/@/components/avatarSelector/index.vue'));
@@ -333,6 +334,10 @@ const settingPassword = () => {
 		if (valid) {
 			api.UpdatePassword(userPasswordInfo).then((res: any) => {
 				ElMessage.success('密码修改成功');
+        setTimeout(() => {
+          Session.remove('token');
+          router.push('/login');
+			}, 1000);
 			});
 		} else {
 			// 校验失败

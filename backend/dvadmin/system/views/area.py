@@ -60,12 +60,9 @@ class AreaViewSet(CustomModelViewSet):
             del params['page']
         if limit:
             del params['limit']
-        if params:
-            if pcode:
-                queryset = self.queryset.filter(enable=True, pcode=pcode)
-            else:
-                queryset = self.queryset.filter(enable=True)
+        if params and pcode:
+            queryset = self.queryset.filter(enable=True, pcode=pcode)
         else:
-            queryset = self.queryset.filter(enable=True, pcode__isnull=True)
+            queryset = self.queryset.filter(enable=True)
         return queryset
 

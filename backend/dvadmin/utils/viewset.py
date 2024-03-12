@@ -7,16 +7,18 @@
 @Remark: 自定义视图集
 """
 from django.db import transaction
+from django_filters import DateTimeFromToRangeFilter
+from django_filters.rest_framework import FilterSet
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.decorators import action
 from rest_framework.viewsets import ModelViewSet
 
-from dvadmin.utils.filters import DataLevelPermissionsFilter
+from dvadmin.utils.filters import DataLevelPermissionsFilter, CoreModelFilterBankend
 from dvadmin.utils.import_export_mixin import ExportSerializerMixin, ImportSerializerMixin
 from dvadmin.utils.json_response import SuccessResponse, ErrorResponse, DetailResponse
 from dvadmin.utils.permission import CustomPermission
-from dvadmin.utils.models import get_custom_app_models
+from dvadmin.utils.models import get_custom_app_models, CoreModel
 from dvadmin.system.models import FieldPermission, MenuField
 from django_restql.mixins import QueryArgumentsMixin
 
@@ -37,7 +39,7 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
     update_serializer_class = None
     filter_fields = '__all__'
     search_fields = ()
-    extra_filter_class = [DataLevelPermissionsFilter]
+    extra_filter_class = [CoreModelFilterBankend,DataLevelPermissionsFilter]
     permission_classes = [CustomPermission]
     import_field_dict = {}
     export_field_label = {}

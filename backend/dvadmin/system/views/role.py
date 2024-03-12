@@ -47,12 +47,12 @@ class RoleCreateUpdateSerializer(CustomModelSerializer):
     def validate(self, attrs: dict):
         return super().validate(attrs)
 
-    def save(self, **kwargs):
-        is_superuser = self.request.user.is_superuser
-        if not is_superuser:
-            self.validated_data.pop('admin')
-        data = super().save(**kwargs)
-        return data
+    # def save(self, **kwargs):
+    #     is_superuser = self.request.user.is_superuser
+    #     if not is_superuser:
+    #         self.validated_data.pop('admin')
+    #     data = super().save(**kwargs)
+    #     return data
 
     class Meta:
         model = Role

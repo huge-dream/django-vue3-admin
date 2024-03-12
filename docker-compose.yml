@@ -13,6 +13,7 @@ services:
       - ./docker_env/nginx/my.conf:/etc/nginx/conf.d/my.conf
     expose:
       - "8080"
+    restart: always
     networks:
       network:
         ipv4_address: 177.10.0.11
@@ -23,9 +24,8 @@ services:
       dockerfile: ./docker_env/django/Dockerfile
     container_name: dvadmin3-django
     working_dir: /backend
-# 打开mysql 时，打开此选项
-#    depends_on:
-#      - dvadmin3-mysql
+    depends_on:
+      - dvadmin3-mysql
     environment:
       PYTHONUNBUFFERED: 1
       DATABASE_HOST: dvadmin3-mysql
@@ -42,74 +42,70 @@ services:
       network:
         ipv4_address: 177.10.0.12
 
-#  dvadmin3-mysql:
-#    image: mysql:5.7
-#    container_name: dvadmin3-mysql
-#    #使用该参数，container内的root拥有真正的root权限，否则，container内的root只是外部的一个普通用户权限
-#    #设置为true，不然数据卷可能挂载不了，启动不起
-##    privileged: true
-#    restart: always
-#    ports:
-#      - "3306:3306"
-#    environment:
-#      MYSQL_ROOT_PASSWORD: "123456"
-#      MYSQL_DATABASE: "dvadmin3_pro"
-#      TZ: Asia/Shanghai
-#    command:
-#      --wait_timeout=31536000
-#      --interactive_timeout=31536000
-#      --max_connections=1000
-#      --default-authentication-plugin=mysql_native_password
-#    volumes:
-#      - "./docker_env/mysql/data:/var/lib/mysql"
-#      - "./docker_env/mysql/conf.d:/etc/mysql/conf.d"
-#      - "./docker_env/mysql/logs:/logs"
-#    networks:
-#      network:
-#        ipv4_address: 177.10.0.13
+  dvadmin3-mysql:
+    image: mysql:8.0
+    container_name: dvadmin3-mysql
+    privileged: true
+    restart: always
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: "DVADMIN3"
+      MYSQL_DATABASE: "django-vue3-admin"
+      TZ: Asia/Shanghai
+    command:
+      --wait_timeout=31536000
+      --interactive_timeout=31536000
+      --max_connections=1000
+      --default-authentication-plugin=mysql_native_password
+    volumes:
+      - "./docker_env/mysql/data:/var/lib/mysql"
+      - "./docker_env/mysql/conf.d:/etc/mysql/conf.d"
+      - "./docker_env/mysql/logs:/logs"
+    networks:
+      network:
+        ipv4_address: 177.10.0.13
 
 
-# 如果使用celery 插件，请自行打开此注释
-#  dvadmin3-celery:
-#    build:
-#      context: .
-#      dockerfile: ./docker_env/celery/Dockerfile
-#    # image: django:2.2
-#    container_name: dvadmin3-celery
-#    working_dir: /backend
-#    depends_on:
-#      - dvadmin3-mysql
-#    environment:
-#      PYTHONUNBUFFERED: 1
-#      DATABASE_HOST: dvadmin3-mysql
-#      TZ: Asia/Shanghai
-#    volumes:
-#      - ./backend:/backend
-#      - ./logs/log:/var/log
-#    restart: always
-#    networks:
-#      network:
-#        ipv4_address: 177.10.0.14
+  dvadmin3-celery:
+    build:
+      context: .
+      dockerfile: ./docker_env/celery/Dockerfile
+    container_name: dvadmin3-celery
+    working_dir: /backend
+    depends_on:
+      - dvadmin3-mysql
+    environment:
+      PYTHONUNBUFFERED: 1
+      DATABASE_HOST: dvadmin3-mysql
+      TZ: Asia/Shanghai
+    volumes:
+      - ./backend:/backend
+      - ./logs/log:/var/log
+    restart: always
+    networks:
+      network:
+        ipv4_address: 177.10.0.14
 
 
-# dvadmin3-redis:
-#   image: redis:6.2.6-alpine # 指定服务镜像，最好是与之前下载的redis配置文件保持一致
-#   container_name: dvadmin3-redis # 容器名称
-#   restart: on-failure # 重启方式
-#   environment:
-#     - TZ=Asia/Shanghai # 设置时区
-#   volumes: # 配置数据卷
-#     - ./docker_env/redis/data:/data
-#     - ./docker_env/redis/redis.conf:/etc/redis/redis.conf
-#   ports: # 映射端口
-#     - "6379:6379"
-#   sysctls: # 设置容器中的内核参数
-#     - net.core.somaxconn=1024
-#   command: /bin/sh -c "echo 'vm.overcommit_memory = 1' >> /etc/sysctl.conf && redis-server /etc/redis/redis.conf --appendonly yes" # 指定配置文件并开启持久化
-#   privileged: true # 使用该参数，container内的root拥有真正的root权限。否则，container内的root只是外部的一个普通用户权限
-#   networks:
-#     network:
-#       ipv4_address: 177.10.0.15
+  dvadmin3-redis:
+    image: redis:6.2.6-alpine # 指定服务镜像，最好是与之前下载的redis配置文件保持一致
+    container_name: dvadmin3-redis # 容器名称
+    restart: always
+    environment:
+      - TZ=Asia/Shanghai # 设置时区
+    volumes: # 配置数据卷
+      - ./docker_env/redis/data:/data
+      - ./docker_env/redis/redis.conf:/etc/redis/redis.conf
+    ports: # 映射端口
+      - "6379:6379"
+    sysctls: # 设置容器中的内核参数
+      - net.core.somaxconn=1024
+    command: /bin/sh -c "echo 'vm.overcommit_memory = 1' >> /etc/sysctl.conf && redis-server /etc/redis/redis.conf --appendonly yes --requirepass DVADMIN3" # 指定配置文件并开启持久化
+    privileged: true # 使用该参数，container内的root拥有真正的root权限。否则，container内的root只是外部的一个普通用户权限
+    networks:
+      network:
+        ipv4_address: 177.10.0.15
 
 
 networks:

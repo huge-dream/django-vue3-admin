@@ -1,6 +1,7 @@
-import { dict } from "@fast-crud/fast-crud";
+import {dict} from "@fast-crud/fast-crud";
 import {shallowRef} from 'vue'
 import deptFormat from "/@/components/dept-format/index.vue";
+
 export const commonCrudConfig = (options = {
     create_datetime: {
         form: false,
@@ -51,7 +52,7 @@ export const commonCrudConfig = (options = {
                 align: 'center',
                 width: 300,
                 show: options.dept_belong_id?.table || false,
-                component:{
+                component: {
                     name: shallowRef(deptFormat),
                     vModel: "modelValue",
                 }
@@ -62,7 +63,7 @@ export const commonCrudConfig = (options = {
                     multiple: false,
                     clearable: true,
                     props: {
-                        checkStrictly:true,
+                        checkStrictly: true,
                         props: {
                             // 为什么这里要写两层props
                             // 因为props属性名与fs的动态渲染的props命名冲突，所以要多写一层
@@ -132,7 +133,53 @@ export const commonCrudConfig = (options = {
             title: '更新时间',
             type: 'datetime',
             search: {
-                show: options.update_datetime?.search || false
+                show: options.update_datetime?.search || false,
+                col: {span: 8},
+                component: {
+                    type: 'datetimerange',
+                    props: {
+                        'start-placeholder': '开始时间',
+                        'end-placeholder': '结束时间',
+                        'value-format': 'YYYY-MM-DD HH:mm:ss',
+                        'picker-options': {
+                            shortcuts: [{
+                                text: '最近一周',
+                                onClick(picker) {
+                                    const end = new Date();
+                                    const start = new Date();
+                                    start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
+                                    picker.$emit('pick', [start, end]);
+                                }
+                            }, {
+                                text: '最近一个月',
+                                onClick(picker) {
+                                    const end = new Date();
+                                    const start = new Date();
+                                    start.setTime(start.getTime() - 3600 * 1000 * 24 * 30);
+                                    picker.$emit('pick', [start, end]);
+                                }
+                            }, {
+                                text: '最近三个月',
+                                onClick(picker) {
+                                    const end = new Date();
+                                    const start = new Date();
+                                    start.setTime(start.getTime() - 3600 * 1000 * 24 * 90);
+                                    picker.$emit('pick', [start, end]);
+                                }
+                            }]
+                        }
+                    }
+                },
+                valueResolve(context: any) {
+                    const {key, value} = context
+                    //value解析，就是把组件的值转化为后台所需要的值
+                    //在form表单点击保存按钮后，提交到后台之前执行转化
+                    if (value) {
+                        context.form.update_datetime_after = value[0]
+                        context.form.update_datetime_before = value[1]
+                    }
+                    //  ↑↑↑↑↑ 注意这里是form，不是row
+                }
             },
             column: {
                 width: 160,
@@ -149,14 +196,60 @@ export const commonCrudConfig = (options = {
             title: '创建时间',
             type: 'datetime',
             search: {
-                show: options.create_datetime?.search || false
+                show: options.create_datetime?.search || false,
+                col: {span: 8},
+                component: {
+                    type: 'datetimerange',
+                    props: {
+                        'start-placeholder': '开始时间',
+                        'end-placeholder': '结束时间',
+                        'value-format': 'YYYY-MM-DD HH:mm:ss',
+                        'picker-options': {
+                            shortcuts: [{
+                                text: '最近一周',
+                                onClick(picker) {
+                                    const end = new Date();
+                                    const start = new Date();
+                                    start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
+                                    picker.$emit('pick', [start, end]);
+                                }
+                            }, {
+                                text: '最近一个月',
+                                onClick(picker) {
+                                    const end = new Date();
+                                    const start = new Date();
+                                    start.setTime(start.getTime() - 3600 * 1000 * 24 * 30);
+                                    picker.$emit('pick', [start, end]);
+                                }
+                            }, {
+                                text: '最近三个月',
+                                onClick(picker) {
+                                    const end = new Date();
+                                    const start = new Date();
+                                    start.setTime(start.getTime() - 3600 * 1000 * 24 * 90);
+                                    picker.$emit('pick', [start, end]);
+                                }
+                            }]
+                        }
+                    }
+                },
+                valueResolve(context: any) {
+                    const {key, value} = context
+                    //value解析，就是把组件的值转化为后台所需要的值
+                    //在form表单点击保存按钮后，提交到后台之前执行转化
+                    if (value) {
+                        context.form.create_datetime_after = value[0]
+                        context.form.create_datetime_before = value[1]
+                    }
+                    //  ↑↑↑↑↑ 注意这里是form，不是row
+                }
             },
             column: {
                 width: 160,
                 show: options.create_datetime?.table || false,
             },
             form: {
-                show: false,
+                show: false
             },
             viewForm: {
                 show: true
