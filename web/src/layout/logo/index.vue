@@ -14,7 +14,7 @@ import { storeToRefs } from 'pinia';
 import { useThemeConfig } from '/@/stores/themeConfig';
 import logoMini from '/@/assets/logo-mini.svg';
 import { SystemConfigStore } from "/@/stores/systemConfig";
-import _ from "lodash";
+import _ from "lodash-es";
 // 定义变量内容
 const storesThemeConfig = useThemeConfig();
 const { themeConfig } = storeToRefs(storesThemeConfig);
