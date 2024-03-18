@@ -12,6 +12,7 @@ const alias: Record<string, string> = {
 	'/@': pathResolve('./src/'),
 	'@views': pathResolve('./src/views'),
 	'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js',
+	'@dvaformflow':pathResolve('./src/viwes/plugins/dvaadmin_form_flow/src/')
 };
 
 const viteConfig = defineConfig((mode: ConfigEnv) => {
