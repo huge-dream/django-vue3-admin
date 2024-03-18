@@ -21,13 +21,15 @@ DATABASE_PORT = 3306
 # # 数据库用户名
 DATABASE_USER = "root"
 # # 数据库密码
-DATABASE_PASSWORD = "DVADMIN3"
+DATABASE_PASSWORD = 'DVADMIN3'
 
 # 表前缀
 TABLE_PREFIX = "dvadmin_"
 # ================================================= #
 # ******** redis配置，无redis 可不进行配置  ******** #
 # ================================================= #
+REDIS_DB = 1
+CELERY_BROKER_DB = 3
 REDIS_PASSWORD = 'DVADMIN3'
 REDIS_HOST = '127.0.0.1'
 REDIS_URL = f'redis://:{REDIS_PASSWORD or ""}@{REDIS_HOST}:6379'
