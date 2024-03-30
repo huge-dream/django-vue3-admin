@@ -11,6 +11,7 @@ services:
       TZ: Asia/Shanghai
     volumes:
       - ./docker_env/nginx/my.conf:/etc/nginx/conf.d/my.conf
+	  - ./backend/media:/backend/media
     expose:
       - "8080"
     restart: always
