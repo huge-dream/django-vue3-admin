@@ -23,7 +23,7 @@
 		"axios": "^1.2.1",
 		"countup.js": "^2.3.2",
 		"cropperjs": "^1.5.13",
-		"e-icon-picker": "^2.2.0",
+		"e-icon-picker": "2.1.1",
 		"echarts": "^5.4.1",
 		"echarts-gl": "^2.0.9",
 		"echarts-wordcloud": "^2.1.0",
