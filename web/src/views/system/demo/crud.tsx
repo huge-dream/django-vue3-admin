@@ -111,7 +111,9 @@ export const createCrudOptions = function ({
                 username: {
                     title: '测试自定义组件',
                     dict:dict({
-                        url:'/api/system/role/',
+                        url({form}){
+                            return  '/api/system/role/'
+                        },
                         label:'name',
                         value:'id'
                         }),
