@@ -49,7 +49,7 @@ export async function initBackEndControlRoutes() {
 	const res = await getBackEndControlRoutes();
 	// 无登录权限时，添加判断
 	// https://gitee.com/lyt-top/vue-next-admin/issues/I64HVO
-	if (res.data.length <= 0) return Promise.resolve(true);
+	// if (res.data.length <= 0) return Promise.resolve(true);
 	// 处理路由（component），替换 dynamicRoutes（/@/router/route）第一个顶级 children 的路由
 	const {frameIn,frameOut} = handleMenu(res.data)
 	dynamicRoutes[0].children = await backEndComponent(frameIn);
