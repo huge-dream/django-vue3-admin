@@ -331,7 +331,6 @@ const passwordRules = reactive({
  * 重新设置密码
  */
 const settingPassword = () => {
-  console.log(Md5.hashStr('admin123456'))
 	userPasswordFormRef.value.validate((valid) => {
 		if (valid) {
 			api.UpdatePassword(userPasswordInfo).then((res: any) => {
