@@ -37,10 +37,15 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
         return await api.exportData(query)
     }
 
+    const resetToDefaultPasswordRequest = async (row:EditReq)=>{
+        await api.resetToDefaultPassword(row.id)
+        successMessage("重置密码成功")
+    }
+
     const systemConfigStore = SystemConfigStore()
     const {systemConfig} = storeToRefs(systemConfigStore)
     const getSystemConfig = computed(() => {
-        console.log(systemConfig.value)
+        // console.log(systemConfig.value)
         return systemConfig.value
     })
 
@@ -108,6 +113,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                         //@ts-ignore
                         click: (ctx: any) => {
                             const {row} = ctx;
+                            resetToDefaultPasswordRequest(row)
                         },
                     },
                 },

@@ -182,6 +182,7 @@ import { useRouter } from 'vue-router';
 import { useUserInfo } from '/@/stores/userInfo';
 import { successMessage } from '/@/utils/message';
 import {dictionary} from "/@/utils/dictionary";
+import {Md5} from "ts-md5";
 const router = useRouter();
 
 // 头像裁剪组件
@@ -330,6 +331,7 @@ const passwordRules = reactive({
  * 重新设置密码
  */
 const settingPassword = () => {
+  console.log(Md5.hashStr('admin123456'))
 	userPasswordFormRef.value.validate((valid) => {
 		if (valid) {
 			api.UpdatePassword(userPasswordInfo).then((res: any) => {
