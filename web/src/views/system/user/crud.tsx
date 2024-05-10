@@ -78,6 +78,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                     export: {
                         text: "导出",//按钮文字
                         title: "导出",//鼠标停留显示的信息
+                        show: auth('user:Export'),
                         click() {
                             return exportRequest(crudExpose!.getSearchFormData())
                         }

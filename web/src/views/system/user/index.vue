@@ -31,7 +31,7 @@
         <el-card :body-style="{ height: '100%' }">
           <fs-crud ref="crudRef" v-bind="crudBinding">
             <template #actionbar-right>
-              <importExcel api="api/system/user/">导入</importExcel>
+              <importExcel api="api/system/user/" v-auth="'user:Import'">导入</importExcel>
             </template>
           </fs-crud>
         </el-card>
