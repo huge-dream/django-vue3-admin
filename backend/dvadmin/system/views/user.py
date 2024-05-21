@@ -115,14 +115,14 @@ class UserUpdateSerializer(CustomModelSerializer):
         ],
     )
 
-    # password = serializers.CharField(required=False, allow_blank=True)
-    # mobile = serializers.CharField(
-    #     max_length=50,
-    #     validators=[
-    #         CustomUniqueValidator(queryset=Users.objects.all(), message="手机号必须唯一")
-    #     ],
-    #     allow_blank=True
-    # )
+    def validate_is_active(self, value):
+        """
+        更改激活状态
+        """
+        print(111, value)
+        if value:
+            self.initial_data["login_error_count"] = 0
+        return value
 
     def save(self, **kwargs):
         data = super().save(**kwargs)
