@@ -349,7 +349,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                     },
                 },
                 is_active: {
-                    title: '锁定',
+                    title: '状态',
                     search: {
                         show: true,
                     },
