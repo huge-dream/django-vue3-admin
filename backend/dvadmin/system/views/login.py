@@ -107,6 +107,8 @@ class LoginSerializer(TokenObtainPairSerializer):
             request.user = self.user
             # 记录登录日志
             save_login_log(request=request)
+            user.login_error_count = 0
+            user.save()
             return {"code": 2000, "msg": "请求成功", "data": data}
         except Exception as e:
             user.login_error_count += 1
