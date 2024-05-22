@@ -87,6 +87,7 @@ watch(
 	() => route.path,
 	() => {
 		other.useTitle();
+    other.useFavicon();
     if (!websocket.websocket) {
       //websockt 模块
       try {

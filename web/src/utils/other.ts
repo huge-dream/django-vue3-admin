@@ -8,6 +8,7 @@ import { useThemeConfig } from '/@/stores/themeConfig';
 import { i18n } from '/@/i18n/index';
 import { Local } from '/@/utils/storage';
 import { verifyUrl } from '/@/utils/toolsValidate';
+import {SystemConfigStore} from "/@/stores/systemConfig";
 
 // 引入组件
 const SvgIcon = defineAsyncComponent(() => import('/@/components/svgIcon/index.vue'));
@@ -30,18 +31,43 @@ export function elSvg(app: App) {
  * @method const title = useTitle(); ==> title()
  */
 export function useTitle() {
-	const stores = useThemeConfig(pinia);
-	const { themeConfig } = storeToRefs(stores);
+	const stores = SystemConfigStore(pinia);
+	const { systemConfig } = storeToRefs(stores);
 	nextTick(() => {
 		let webTitle = '';
-		let globalTitle: string = themeConfig.value.globalTitle;
+		let globalTitle: string = systemConfig['base.web_title'];
 		const { path, meta } = router.currentRoute.value;
 		if (path === '/login') {
 			webTitle = <string>meta.title;
 		} else {
 			webTitle = setTagsViewNameI18n(router.currentRoute.value);
 		}
-		document.title = `${webTitle} - ${globalTitle}` || globalTitle;
+		document.title = `${webTitle} - ${globalTitle}` || "DVAdmin";
+	});
+}
+
+/***
+ * 设置网站favicon图标
+ */
+export function useFavicon() {
+	const stores = SystemConfigStore(pinia);
+	const { systemConfig } = storeToRefs(stores);
+	nextTick(() => {
+		const iconUrl = systemConfig.value['base.web_favicon']
+		if(iconUrl){
+			// 动态设置 favicon，这里假设 favicon 的 URL 是动态获取的或从变量中来
+			const faviconUrl = `${iconUrl}?t=${new Date().getTime()}`;
+			const link = document.querySelector("link[rel~='icon']") as HTMLLinkElement;
+			if (!link) {
+				const newLink = document.createElement('link') as HTMLLinkElement;
+				newLink.rel = 'shortcut icon';
+				newLink.href = faviconUrl;
+				document.head.appendChild(newLink);
+			} else {
+				link.href = faviconUrl;
+			}
+		}
+
 	});
 }
 
@@ -190,6 +216,9 @@ const other = {
 	},
 	useTitle: () => {
 		useTitle();
+	},
+	useFavicon:()=>{
+		useFavicon()
 	},
 	setTagsViewNameI18n(route: RouteToFrom) {
 		return setTagsViewNameI18n(route);
