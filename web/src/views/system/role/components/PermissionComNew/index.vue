@@ -20,7 +20,8 @@
       <el-tabs>
         <el-tab-pane v-for="(item, mIndex) in menuData" :key="mIndex" :label="item.name">
           <el-tabs tab-position="left">
-            <el-tab-pane v-for="(menu, mIndex) in item.menus" :key="mIndex" :label="menu.name">
+            <el-tab-pane v-for="(menu, mIndex) in item.menus" :key="mIndex" :label="menu.name" >
+              <el-checkbox v-model="menu.isCheck">页面显示权限</el-checkbox>
               <div class="pc-collapse-main">
                 <div class="pccm-item">
                   <div class="menu-form-alert"> 配置操作功能点权限 </div>
