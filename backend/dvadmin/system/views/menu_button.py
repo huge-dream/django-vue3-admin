@@ -93,7 +93,7 @@ class MenuButtonViewSet(CustomModelViewSet):
         menu_obj = Menu.objects.filter(id=request.data['menu']).first()
         result_list = [
             {'menu': menu_obj.id, 'name': '新增', 'value': f'{menu_obj.component_name}:Create', 'api': f'/api/{menu_obj.web_path}/',
-             'method': 0},
+             'method': 1},
             {'menu': menu_obj.id, 'name': '删除', 'value': f'{menu_obj.component_name}:Delete', 'api': f'/api/{menu_obj.web_path}/{{id}}/',
              'method': 3},
             {'menu': menu_obj.id, 'name': '修改', 'value': f'{menu_obj.component_name}:Update', 'api': f'/api/{menu_obj.web_path}/{{id}}/',
