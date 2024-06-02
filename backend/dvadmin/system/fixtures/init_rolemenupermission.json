@@ -1,10 +1,12 @@
 [
     {
-        "role_key": "admin",
-        "menu_component_name": "menu"
+        "role__key": "admin",
+        "menu__web_path": "/system",
+        "menu__component_name": ""
     },
     {
-        "role_key": "public",
-        "menu_component_name": "menu"
+        "role__key": "admin",
+        "menu__web_path": "/menu",
+        "menu__component_name": "menu"
     }
 ]
