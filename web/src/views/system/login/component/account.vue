@@ -1,5 +1,5 @@
 <template>
-	<el-form ref="formRef" size="large" class="login-content-form" :model="state.ruleForm" :rules="rules">
+	<el-form ref="formRef" size="large" class="login-content-form" :model="state.ruleForm" :rules="rules" @keyup.enter="loginClick">
 		<el-form-item class="login-animation1" prop="username">
 			<el-input type="text" :placeholder="$t('message.account.accountPlaceholder1')" v-model="ruleForm.username"
 				clearable autocomplete="off">
@@ -39,7 +39,7 @@
 			</el-col>
 		</el-form-item>
 		<el-form-item class="login-animation4">
-			<el-button type="primary" class="login-content-submit" round @keyup.enter="loginClick" @click="loginClick"
+			<el-button type="primary" class="login-content-submit" round @click="loginClick"
 				:loading="loading.signIn">
 				<span>{{ $t('message.account.accountBtnText') }}</span>
 			</el-button>
@@ -126,7 +126,7 @@ export default defineComponent({
 			});
 		};
 		const refreshCaptcha = async () => {
-      state.ruleForm.captcha=''
+			state.ruleForm.captcha=''
 			loginApi.getCaptcha().then((ret: any) => {
 				state.ruleForm.captchaImgBase = ret.data.image_base;
 				state.ruleForm.captchaKey = ret.data.key;
@@ -153,9 +153,9 @@ export default defineComponent({
 							}
 						}
 					}).catch((err: any) => {
-            // 登录错误之后，刷新验证码
-            refreshCaptcha();
-          });
+						// 登录错误之后，刷新验证码
+						refreshCaptcha();
+					});
 				} else {
 					errorMessage("请填写登录信息")
 				}

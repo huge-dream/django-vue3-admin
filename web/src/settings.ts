@@ -9,7 +9,7 @@ import {getBaseURL} from '/@/utils/baseUrl';
 import ui from '@fast-crud/ui-element';
 import {request} from '/@/utils/service';
 //扩展包
-import {FsExtendsEditor, FsExtendsUploader,FsCropperUploader} from '@fast-crud/fast-extends';
+import {FsExtendsEditor, FsExtendsUploader } from '@fast-crud/fast-extends';
 import '@fast-crud/fast-extends/dist/style.css';
 import {successNotification} from '/@/utils/message';
 import XEUtils from "xe-utils";
@@ -75,6 +75,7 @@ export default {
                     }, */
                 };
             },
+            logger: { off: { tableColumns: false } }
         });
         //富文本
         app.use(FsExtendsEditor, {
@@ -89,7 +90,7 @@ export default {
                 action: `/api/system/file/`,
                 name: "file",
                 withCredentials: false,
-                uploadRequest: async ({action, file, onProgress}) => {
+                uploadRequest: async ({ action, file, onProgress }: { action: string; file: any; onProgress: Function }) => {
                     // @ts-ignore
                     const data = new FormData();
                     data.append("file", file);
@@ -101,12 +102,12 @@ export default {
                             "Content-Type": "multipart/form-data"
                         },
                         data,
-                        onUploadProgress: (p) => {
+                        onUploadProgress: (p: any) => {
                             onProgress({percent: Math.round((p.loaded / p.total) * 100)});
                         }
                     });
                 },
-                successHandle(ret) {
+                successHandle(ret: any) {
                     // 上传完成后的结果处理， 此处应返回格式为{url:xxx,key:xxx}
                     return {
                         url: getBaseURL(ret.data.url),
@@ -115,8 +116,8 @@ export default {
                     };
                 }
             },
-                valueBuilder(context){
-                    const {row,key} = context
+                valueBuilder(context: any){
+                    const { row, key } = context
                     return getBaseURL(row[key])
                 }
         })
