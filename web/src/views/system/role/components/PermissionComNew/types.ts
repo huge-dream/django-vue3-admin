@@ -24,6 +24,6 @@ export interface MenuDataType {
   name: string;
   isCheck: boolean;
   radio: string;
-  btns: { id:number,label: string; value: string; isCheck: boolean; data_range: number;dept:object }[];
+  btns: { id:number,label: string; value: string; isCheck: boolean; data_range: number; dept:object; name:string }[];
   columns: { [key: string]: boolean | string; }[]
 }

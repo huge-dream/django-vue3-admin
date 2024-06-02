@@ -6,7 +6,7 @@
     <template #header>
       <el-row>
         <el-col :span="4">
-          <div>当前授权角色:
+          <div>当前授权角色：
             <el-tag>{{ props.roleName }}</el-tag>
           </div>
         </el-col>
@@ -20,8 +20,7 @@
     </template>
     <div class="permission-com">
       <el-collapse v-model="collapseCurrent" @change="handleCollapseChange" accordion>
-        <el-collapse-item v-for="(item,mIndex) in menuData" :key="mIndex" :name="mIndex"
-                          style="    background-color: #fafafa;">
+        <el-collapse-item v-for="(item,mIndex) in menuData" :key="mIndex" :name="mIndex" style="background-color: #fafafa;">
           <template #title>
             <div>
               <div class="pc-collapse-title">
@@ -159,7 +158,7 @@ const defaultTreeProps = {
 };
 
 let menuData = ref<MenuDataType[]>([]);
-let collapseCurrent = ref(['1']);
+let collapseCurrent = ref<number[]>([]);
 let menuCurrent = ref<Partial<MenuDataType>>({});
 let menuBtnCurrent = ref<number>(-1);
 let dialogVisible = ref(false);
@@ -190,7 +189,7 @@ const fetchData = async () => {
   }
 };
 
-const handleCollapseChange = (val: string) => {
+const handleCollapseChange = (val: number) => {
   collapseCurrent.value = [val];
 };
 
@@ -252,7 +251,7 @@ const handleDialogClose = () => {
 
 //保存权限
 const handleSavePermission = () => {
-  setRolePremission(props.roleId, menuData.value).then(res => {
+  setRolePremission(props.roleId, menuData.value).then((res: any) => {
     ElMessage({
       message: res.msg,
       type: 'success',
