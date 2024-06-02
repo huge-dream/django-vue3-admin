@@ -32,7 +32,7 @@ export function elSvg(app: App) {
  */
 export function useTitle() {
 	const stores = SystemConfigStore(pinia);
-	const { systemConfig } = storeToRefs(stores);
+	const { systemConfig }: { systemConfig: any} = storeToRefs(stores);
 	nextTick(() => {
 		let webTitle = '';
 		let globalTitle: string = systemConfig['base.web_title'];
@@ -42,7 +42,8 @@ export function useTitle() {
 		} else {
 			webTitle = setTagsViewNameI18n(router.currentRoute.value);
 		}
-		document.title = `${webTitle} - ${globalTitle}` || "DVAdmin";
+		// document.title = `${webTitle} - ${globalTitle}` || "DVAdmin";
+		document.title = `${webTitle}`;
 	});
 }
 
