@@ -10,7 +10,7 @@ export const handleMenu = (menuData: Array<any>) => {
     // 先处理menu meta数据转换
     const handleMeta = (item: any) => {
         item.meta = {
-            title: item.title,
+            title: item.title || 'message.router.system',
             isLink: item.link_url,
             isHide: !item.visible,
             isKeepAlive: item.cache,

@@ -2,6 +2,8 @@ import {AddReq, DelReq, EditReq, dict, CreateCrudOptionsRet, CreateCrudOptionsPr
 import * as api from './api';
 import {auth} from '/@/utils/authFunction'
 import {request} from '/@/utils/service';
+import { useI18n } from "vue-i18n";
+
 //此处为crudOptions配置
 export const createCrudOptions = function ({crudExpose, context}: CreateCrudOptionsProps): CreateCrudOptionsRet {
     const pageRequest = async () => {
@@ -20,8 +22,17 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
     const addRequest = async ({form}: AddReq) => {
         return await api.AddObj({...form, ...{menu: context!.selectOptions.value.id}});
     };
+    
+    const { t } = useI18n();
+
     return {
         crudOptions: {
+            request: {
+                pageRequest,
+                addRequest,
+                editRequest,
+                delRequest,
+            },
             pagination:{
                 show:false
             },
@@ -60,12 +71,6 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                     },
                 },
             },
-            request: {
-                pageRequest,
-                addRequest,
-                editRequest,
-                delRequest,
-            },
             form: {
                 col: {span: 24},
                 labelWidth: '100px',
@@ -76,7 +81,8 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
             },
             columns: {
                 _index: {
-                    title: '序号',
+                    // title: '序号',
+                    title: t("message.permission.serial"),
                     form: {show: false},
                     column: {
                         type: 'index',
@@ -86,7 +92,8 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                     },
                 },
                 search: {
-                    title: '关键词',
+                    // title: '关键词',
+                    title: t("message.permission.keyword"),
                     column: {show: false},
                     type: 'text',
                     search: {show: true},
@@ -105,7 +112,8 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                     form: {show: false},
                 },
                 name: {
-                    title: '权限名称',
+                    // title: '权限名称',
+                    title: t("message.permission.name"),
                     type: 'text',
                     search: {show: true},
                     column: {
@@ -115,6 +123,7 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                     form: {
                         rules: [{required: true, message: '权限名称必填'}],
                         component: {
+                            span: 12,
                             placeholder: '输入权限名称搜索',
                             props: {
                                 clearable: true,
@@ -124,14 +133,14 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                         },
                         helper: {
                             render() {
-                                return <el-alert title="手动输入" type="warning"
-                                                 description="页面中按钮的名称或者自定义一个名称"/>;
+                                return <el-alert title="手动输入" type="warning" description="页面中按钮的名称或者自定义一个名称"/>;
                             },
                         },
                     },
                 },
                 value: {
-                    title: '权限值',
+                    // title: '权限值',
+                    title: t("message.permission.value"),
                     type: 'text',
                     search: {show: false},
                     column: {
@@ -143,14 +152,14 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                         placeholder: '输入权限标识',
                         helper: {
                             render() {
-                                return <el-alert title="唯一值" type="warning"
-                                                 description="用于判断前端按钮权限或接口权限"/>;
+                                return <el-alert title="唯一值" type="warning" description="用于判断前端按钮权限或接口权限"/>;
                             },
                         },
                     },
                 },
                 method: {
-                    title: '请求方式',
+                    // title: '请求方式',
+                    title: t("message.permission.method"),
                     search: {show: false},
                     type: 'dict-select',
                     column: {
@@ -170,7 +179,8 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                     },
                 },
                 api: {
-                    title: '接口地址',
+                    // title: '接口地址',
+                    title: t("message.permission.address"),
                     search: {show: false},
                     type: 'dict-select',
                     dict: dict({
@@ -203,8 +213,7 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                         },
                         helper: {
                             render() {
-                                return <el-alert title="请正确填写，以免请求时被拦截。匹配单例使用正则,例如:/api/xx/.*?/"
-                                                 type="warning"/>;
+                                return <el-alert title="请正确填写，以免请求时被拦截。匹配单例使用正则,例如:/api/xx/.*?/" type="warning"/>;
                             },
                         },
                     },

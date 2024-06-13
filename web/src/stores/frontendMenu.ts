@@ -146,13 +146,17 @@ export const useFrontendMenuStore = defineStore('frontendMenu',{
                 method: 'get',
                 params:{},
             }).then((res:any)=>{
+                console.log(res, 'res')
                 return res.data
            });
         },
         async handleRouter(){
             const menuData = await this.requestMenu();
+            console.log(menuData, 'menudata')
             this.arrayRouter = menuData
             const {frameIn,frameOut} = handleMenu(menuData);
+            console.log(frameIn, 'frameIn')
+            console.log(frameOut, 'frameOut')
             this.treeRouter = [...frameIn,...frameOut]
             this.frameInRoutes=frameIn
             this.frameOutRoutes=frameOut

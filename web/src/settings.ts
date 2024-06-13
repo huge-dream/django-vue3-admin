@@ -13,13 +13,14 @@ import {FsExtendsEditor, FsExtendsUploader,FsCropperUploader} from '@fast-crud/f
 import '@fast-crud/fast-extends/dist/style.css';
 import {successNotification} from '/@/utils/message';
 import XEUtils from "xe-utils";
+import { i18n } from './i18n';
 export default {
     async install(app: any, options: any) {
         // 先安装ui
         app.use(ui);
         // 然后安装FastCrud
         app.use(FastCrud, {
-            //i18n, //i18n配置，可选，默认使用中文，具体用法请看demo里的 src/i18n/index.js 文件
+            i18n, //i18n配置，可选，默认使用中文，具体用法请看demo里的 src/i18n/index.js 文件
             // 此处配置公共的dictRequest（字典请求）
             async dictRequest({dict,url}: any) {
                 const {isTree} = dict
@@ -130,10 +131,10 @@ export default {
         });
         // 设置placeholder 的默认值
         const placeholderComponentList = [
-            {key: 'text', placeholder: "请输入"},
-            {key: 'textarea', placeholder: "请输入"},
-            {key: 'input', placeholder: "请输入"},
-            {key: 'password', placeholder: "请输入"}
+            {key: 'text', placeholder: ""},
+            {key: 'textarea', placeholder: ""},
+            {key: 'input', placeholder: ""},
+            {key: 'password', placeholder: ""}
         ]
         placeholderComponentList.forEach((val) => {
             if (getType(val.key)?.search?.component) {
