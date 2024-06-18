@@ -29,3 +29,4 @@ gunicorn==21.2.0
 gevent==23.9.1
 Pillow==10.1.0
 dvadmin-celery==1.0.5
+pyinstaller==6.8.0

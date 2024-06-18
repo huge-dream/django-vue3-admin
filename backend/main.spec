@@ -1,0 +1,71 @@
+# -*- mode: python ; coding: utf-8 -*-
+
+block_cipher = None
+
+
+a = Analysis(['main.py'],
+             pathex=['./'],
+             binaries=[
+             ],
+             datas=[
+                ('./static', 'static'),
+                ('./static/captcha/fonts', 'captcha/fonts'),
+                ('./templates', 'templates'),
+                ('./dvadmin/system/util', 'dvadmin/system/util'),
+                ('./plugins/__init__.py', 'plugins/__init__.py'),
+                ('./db.sqlite3', './'),
+             ],
+             hiddenimports=[
+                 "django",
+                 "testfixtures",
+                 "django.contrib.auth",
+                "django.contrib.contenttypes",
+                "django.contrib.sessions",
+                "django.contrib.messages",
+                "django.contrib.staticfiles",
+                "django_comment_migrate",
+                "rest_framework",
+                "django_filters",
+                "corsheaders",  # 注册跨域app
+                "drf_yasg",
+                "captcha",
+                "channels",
+                "dvadmin.system",
+                "plugins.gla",
+                "testfixtures",
+                "application.asgi",
+                "dvadmin.utils.middleware",
+                "whitenoise",
+                "whitenoise.middleware",
+                "whitenoise.storage",
+                "dvadmin.utils.pagination",
+                "dvadmin.utils.exception",
+                "rest_framework_simplejwt.state",
+             ],
+             hookspath=['./extra-hooks'],
+             runtime_hooks=[],
+             excludes=[],
+             win_no_prefer_redirects=False,
+             win_private_assemblies=False,
+             cipher=block_cipher,
+             noarchive=False)
+pyz = PYZ(a.pure, a.zipped_data,
+             cipher=block_cipher)
+exe = EXE(pyz,
+          a.scripts,
+          [],
+          exclude_binaries=True,
+          name='main',
+          debug=False,
+          bootloader_ignore_signals=False,
+          strip=False,
+          upx=True,
+          console=True )
+coll = COLLECT(exe,
+               a.binaries,
+               a.zipfiles,
+               a.datas,
+               strip=False,
+               upx=True,
+               upx_exclude=[],
+               name='main')
