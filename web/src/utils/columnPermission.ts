@@ -47,6 +47,8 @@ export const handleColumnPermission = async (func: Function, crudOptions: any,ex
 				continue
 			} else if(item.field_name === col) {
 				columns[col].column.show = item['is_query']
+				// 如果列表不可见，则禁止在列设置中选择
+				if(!item['is_query'])columns[col].column.columnSetDisabled = true
 				columns[col].addForm = {
 					show: item['is_create']
 				}
