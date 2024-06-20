@@ -70,6 +70,7 @@ class Users(CoreModel, AbstractUser):
         blank=True,
         help_text="关联部门",
     )
+    login_error_count = models.IntegerField(default=0, verbose_name="登录错误次数", help_text="登录错误次数")
     objects = CustomUserManager()
 
     def set_password(self, raw_password):
@@ -485,7 +486,7 @@ class SystemConfig(CoreModel):
         help_text="父级",
     )
     title = models.CharField(max_length=50, verbose_name="标题", help_text="标题")
-    key = models.CharField(max_length=20, verbose_name="键", help_text="键", db_index=True)
+    key = models.CharField(max_length=100, verbose_name="键", help_text="键", db_index=True)
     value = models.JSONField(max_length=100, verbose_name="值", help_text="值", null=True, blank=True)
     sort = models.IntegerField(default=0, verbose_name="排序", help_text="排序", blank=True)
     status = models.BooleanField(default=True, verbose_name="启用状态", help_text="启用状态")

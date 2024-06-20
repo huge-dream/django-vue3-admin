@@ -79,7 +79,7 @@ import { getBaseURL } from "/@/utils/baseUrl";
 const Account = defineAsyncComponent(() => import('/@/views/system/login/component/account.vue'));
 const Mobile = defineAsyncComponent(() => import('/@/views/system/login/component/mobile.vue'));
 const Scan = defineAsyncComponent(() => import('/@/views/system/login/component/scan.vue'));
-import _ from "lodash";
+import _ from "lodash-es";
 
 // 定义变量内容
 const storesThemeConfig = useThemeConfig();
@@ -279,8 +279,8 @@ onMounted(() => {
 
 					.login-content-main-sacn {
 						position: absolute;
-						top: 0;
-						right: 0;
+						top: 2px;
+						right: 12px;
 						width: 50px;
 						height: 50px;
 						overflow: hidden;

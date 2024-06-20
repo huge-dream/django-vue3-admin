@@ -232,13 +232,17 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
                     role_menu_permission_list.append(RoleMenuPermission(role_id=pk, menu_id=d["id"]))
                 RoleMenuPermission.objects.bulk_create(role_menu_permission_list)
                 # RoleMenuPermission.objects.create(role_id=pk, menu_id=menu.get('id'))
-            for btn in menu.get('btns'):
+            for btn in menu.get('btns', []):
                 if btn.get('isCheck'):
                     data_range = btn.get('data_range',0) or 0
                     instance = RoleMenuButtonPermission.objects.create(role_id=pk, menu_button_id=btn.get('id'),data_range=data_range)
                     instance.dept.set(btn.get('dept',[]))
-            for col in menu.get('columns'):
-                FieldPermission.objects.update_or_create(role_id=pk,field_id=col.get('id'),is_query=col.get('is_query'),is_create=col.get('is_create'),is_update=col.get('is_update'))
+            for col in menu.get('columns', []):
+                FieldPermission.objects.update_or_create(role_id=pk,field_id=col.get('id'),defaults={
+                    "is_query":col.get('is_query'),
+                    "is_create":col.get('is_create'),
+                    "is_update":col.get('is_update')
+                })
         return DetailResponse(msg="授权成功")
 
 

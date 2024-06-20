@@ -12,6 +12,7 @@ const alias: Record<string, string> = {
 	'/@': pathResolve('./src/'),
 	'@views': pathResolve('./src/views'),
 	'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js',
+	'@dvaformflow':pathResolve('./src/viwes/plugins/dvaadmin_form_flow/src/')
 };
 
 const viteConfig = defineConfig((mode: ConfigEnv) => {
@@ -39,7 +40,7 @@ const viteConfig = defineConfig((mode: ConfigEnv) => {
 			},
 		},
 		build: {
-			outDir: 'dist',
+			outDir: env.VITE_DIST_PATH || 'dist',
 			chunkSizeWarningLimit: 1500,
 			rollupOptions: {
 				output: {

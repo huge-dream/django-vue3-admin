@@ -22,6 +22,8 @@ class Command(BaseCommand):
         parser.add_argument("-Y", nargs="*")
         parser.add_argument("-n", nargs="*")
         parser.add_argument("-N", nargs="*")
+        parser.add_argument("-app", nargs="*")
+        parser.add_argument("-A", nargs="*")
 
     def handle(self, *args, **options):
         reset = False
@@ -29,9 +31,10 @@ class Command(BaseCommand):
             reset = True
         if isinstance(options.get("n"), list) or isinstance(options.get("N"), list):
             reset = False
-
+        assign_apps = options.get("app") or options.get("A") or []
         for app in settings.INSTALLED_APPS:
-
+            if assign_apps and app not in assign_apps:
+                continue
             try:
                 exec(
                     f"""

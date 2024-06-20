@@ -37,10 +37,15 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
         return await api.exportData(query)
     }
 
+    const resetToDefaultPasswordRequest = async (row:EditReq)=>{
+        await api.resetToDefaultPassword(row.id)
+        successMessage("重置密码成功")
+    }
+
     const systemConfigStore = SystemConfigStore()
     const {systemConfig} = storeToRefs(systemConfigStore)
     const getSystemConfig = computed(() => {
-        console.log(systemConfig.value)
+        // console.log(systemConfig.value)
         return systemConfig.value
     })
 
@@ -73,6 +78,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                     export: {
                         text: "导出",//按钮文字
                         title: "导出",//鼠标停留显示的信息
+                        show: auth('user:Export'),
                         click() {
                             return exportRequest(crudExpose!.getSearchFormData())
                         }
@@ -108,6 +114,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                         //@ts-ignore
                         click: (ctx: any) => {
                             const {row} = ctx;
+                            resetToDefaultPasswordRequest(row)
                         },
                     },
                 },
@@ -342,7 +349,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                     },
                 },
                 is_active: {
-                    title: '锁定',
+                    title: '状态',
                     search: {
                         show: true,
                     },

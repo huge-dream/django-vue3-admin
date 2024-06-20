@@ -182,6 +182,7 @@ import { useRouter } from 'vue-router';
 import { useUserInfo } from '/@/stores/userInfo';
 import { successMessage } from '/@/utils/message';
 import {dictionary} from "/@/utils/dictionary";
+import {Md5} from "ts-md5";
 const router = useRouter();
 
 // 头像裁剪组件

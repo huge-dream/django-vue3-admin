@@ -45,13 +45,13 @@ class Initialize(CoreInitialize):
         """
         初始化角色菜单信息
         """
-        self.init_base(RoleMenuInitSerializer, unique_fields=['role', 'menu'])
+        self.init_base(RoleMenuInitSerializer, unique_fields=['role__key', 'menu__web_path', 'menu__component_name'])
 
     def init_role_menu_button(self):
         """
         初始化角色菜单按钮信息
         """
-        self.init_base(RoleMenuButtonInitSerializer, unique_fields=['role', 'menu_button'])
+        self.init_base(RoleMenuButtonInitSerializer, unique_fields=['role__key', 'menu_button__value'])
 
     def init_api_white_list(self):
         """

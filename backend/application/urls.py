@@ -53,6 +53,33 @@ schema_view = get_schema_view(
     permission_classes=(permissions.AllowAny,),
     generator_class=CustomOpenAPISchemaGenerator,
 )
+# 前端页面映射
+from django.http import Http404, HttpResponse
+from django.shortcuts import render
+import mimetypes
+import os
+
+
+def web_view(request):
+    return render(request, 'web/index.html')
+
+
+def serve_web_files(request, filename):
+    # 设定文件路径
+    filepath = os.path.join(settings.BASE_DIR, 'templates', 'web', filename)
+
+    # 检查文件是否存在
+    if not os.path.exists(filepath):
+        raise Http404("File does not exist")
+
+    # 根据文件扩展名，确定 MIME 类型
+    mime_type, _ = mimetypes.guess_type(filepath)
+
+    # 打开文件并读取内容
+    with open(filepath, 'rb') as f:
+        response = HttpResponse(f.read(), content_type=mime_type)
+        return response
+
 
 urlpatterns = (
         [
@@ -85,6 +112,9 @@ urlpatterns = (
 
             # 仅用于开发，上线需关闭
             path("api/token/", LoginTokenView.as_view()),
+            # 前端页面映射
+            path('web/', web_view, name='web_view'),
+            path('web/<path:filename>', serve_web_files, name='serve_web_files'),
         ]
         + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
         + static(settings.STATIC_URL, document_root=settings.STATIC_URL)
