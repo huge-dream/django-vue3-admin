@@ -47,7 +47,7 @@
 
 - 密码：admin123456
 
-👩‍👦‍👦文档地址：[coding](https://dvadmin-private.coding.net/share/km/cec69f3d-30fe-47d5-bd97-e9e851f0b776/K-2)
+👩‍👦‍👦文档地址：[DVAdmin官网](https://www.django-vue-admin.com)
 
 
 

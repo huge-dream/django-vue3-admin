@@ -19,11 +19,18 @@ export interface CustomDataPermissionMenuType {
   children: CustomDataPermissionMenuType[]
 }
 
-export interface MenuDataType {
+export interface MenusType{
   id: string;
   name: string;
   isCheck: boolean;
   radio: string;
-  btns: { id:number,label: string; value: string; isCheck: boolean; data_range: number; dept:object; name:string }[];
+  btns: { id:number,name: string; value: string; isCheck: boolean; data_range: number; dept:object; name:string }[];
   columns: { [key: string]: boolean | string; }[]
 }
+
+export interface MenuDataType {
+  id: string;
+  name: string;
+  menus:MenusType[];
+}
+

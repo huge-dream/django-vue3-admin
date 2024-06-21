@@ -2,6 +2,8 @@ import {AddReq, DelReq, EditReq, dict, CreateCrudOptionsRet, CreateCrudOptionsPr
 import * as api from './api';
 import {auth} from '/@/utils/authFunction'
 import {request} from '/@/utils/service';
+import { successNotification } from '/@/utils/message';
+import { ElMessage } from 'element-plus';
 //此处为crudOptions配置
 export const createCrudOptions = function ({crudExpose, context}: CreateCrudOptionsProps): CreateCrudOptionsRet {
     const pageRequest = async () => {
@@ -40,6 +42,22 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                     add: {
                         show: auth('btn:Create')
                     },
+                    batchAdd: {
+						show: true,
+						type: 'primary',
+						text: '批量生成',
+						click: async () => {
+							if (context!.selectOptions.value.id == undefined) {
+								ElMessage.error('请选择菜单');
+								return;
+							}
+							const result = await api.BatchAdd({ menu: context!.selectOptions.value.id });
+							if (result.code == 2000) {
+								successNotification(result.msg);
+								crudExpose.doRefresh();
+							}
+						},
+					},
                 },
             },
             rowHandle: {
