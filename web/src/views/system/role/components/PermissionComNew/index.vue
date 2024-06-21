@@ -24,7 +24,7 @@
               <el-checkbox v-model="menu.isCheck">页面显示权限</el-checkbox>
               <div class="pc-collapse-main">
                 <div class="pccm-item">
-                  <div class="menu-form-alert"> 配置操作功能点权限 </div>
+                  <div class="menu-form-alert"> 配置操作功能接口权限,配置数据权限点击小齿轮 </div>
                   <el-checkbox v-for="(btn, bIndex) in menu.btns" :key="bIndex" v-model="btn.isCheck"
                     :label="btn.value">
                     <div class="btn-item">
