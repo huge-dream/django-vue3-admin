@@ -279,8 +279,8 @@ onMounted(() => {
 
 					.login-content-main-sacn {
 						position: absolute;
-						top: 0;
-						right: 0;
+						top: 2px;
+						right: 12px;
 						width: 50px;
 						height: 50px;
 						overflow: hidden;

@@ -1,12 +1,7 @@
 [
     {
-        "role_key": "admin",
-        "menu_button_value": "menu:Search",
-        "data_range": 0
-    },
-    {
-        "role_key": "public",
-        "menu_button_value":"menu:Search",
+        "role__key": "admin",
+        "menu_button__value": "menu:Search",
         "data_range": 0
     }
 ]

@@ -54,6 +54,12 @@ other.elSvg(app);
 
 
 app.use(VXETable)
-app.use(pinia).use(router).use(ElementPlus, { i18n: i18n.global.t }).use(i18n).use(VueGridLayout).use(fastCrud).mount('#app');
+app.use(pinia)
+	.use(router)
+	.use(ElementPlus, { i18n: i18n.global.t })
+	.use(i18n)
+	.use(VueGridLayout)
+	.use(fastCrud)
+	.mount('#app');
 
 app.config.globalProperties.mittBus = mitt();

@@ -5,7 +5,7 @@
 		<LockScreen v-if="themeConfig.isLockScreen" />
 		<Setings ref="setingsRef" v-show="themeConfig.lockScreenTime > 1" />
 		<CloseFull v-if="!themeConfig.isLockScreen" />
-		<Upgrade v-if="getVersion" />
+<!--		<Upgrade v-if="getVersion" />-->
 	</el-config-provider>
 </template>
 
@@ -87,6 +87,7 @@ watch(
 	() => route.path,
 	() => {
 		other.useTitle();
+    other.useFavicon();
     if (!websocket.websocket) {
       //websockt 模块
       try {

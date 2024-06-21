@@ -86,28 +86,38 @@ class LoginSerializer(TokenObtainPairSerializer):
 
         user = Users.objects.get(username=attrs['username'])
         if not user.is_active:
-            raise CustomValidationError("账号被锁定")
+            raise CustomValidationError("账号已被锁定,联系管理员解锁")
+        try:
+            data = super().validate(attrs)
+            data["name"] = self.user.name
+            data["userId"] = self.user.id
+            data["avatar"] = self.user.avatar
+            data['user_type'] = self.user.user_type
+            dept = getattr(self.user, 'dept', None)
+            if dept:
+                data['dept_info'] = {
+                    'dept_id': dept.id,
+                    'dept_name': dept.name,
 
-        data = super().validate(attrs)
-        data["name"] = self.user.name
-        data["userId"] = self.user.id
-        data["avatar"] = self.user.avatar
-        data['user_type'] = self.user.user_type
-        dept = getattr(self.user, 'dept', None)
-        if dept:
-            data['dept_info'] = {
-                'dept_id': dept.id,
-                'dept_name': dept.name,
-
-            }
-        role = getattr(self.user, 'role', None)
-        if role:
-            data['role_info'] = role.values('id', 'name', 'key')
-        request = self.context.get("request")
-        request.user = self.user
-        # 记录登录日志
-        save_login_log(request=request)
-        return {"code": 2000, "msg": "请求成功", "data": data}
+                }
+            role = getattr(self.user, 'role', None)
+            if role:
+                data['role_info'] = role.values('id', 'name', 'key')
+            request = self.context.get("request")
+            request.user = self.user
+            # 记录登录日志
+            save_login_log(request=request)
+            user.login_error_count = 0
+            user.save()
+            return {"code": 2000, "msg": "请求成功", "data": data}
+        except Exception as e:
+            user.login_error_count += 1
+            if user.login_error_count >= 5:
+                user.is_active = False
+                raise CustomValidationError("账号已被锁定,联系管理员解锁")
+            user.save()
+            count = 5 - user.login_error_count
+            raise CustomValidationError(f"账号/密码错误;重试{count}次后将被锁定~")
 
 
 class LoginView(TokenObtainPairView):

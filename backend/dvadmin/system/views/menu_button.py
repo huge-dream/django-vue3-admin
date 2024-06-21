@@ -81,3 +81,28 @@ class MenuButtonViewSet(CustomModelViewSet):
             role_id = request.user.role.values_list('id', flat=True)
             queryset = RoleMenuButtonPermission.objects.filter(role__in=role_id).values_list('menu_button__value',flat=True).distinct()
         return DetailResponse(data=queryset)
+
+    @action(methods=['post'], detail=False, permission_classes=[IsAuthenticated])
+    def batch_create(self, request, *args, **kwargs):
+        """
+        批量创建菜单“增删改查查”权限
+        创建的数据来源于菜单，需要规范创建菜单参数
+        value：菜单的component_name:method
+        api:菜单的web_path增加'/api'前缀，并根据method增加{id}
+        """
+        menu_obj = Menu.objects.filter(id=request.data['menu']).first()
+        result_list = [
+            {'menu': menu_obj.id, 'name': '新增', 'value': f'{menu_obj.component_name}:Create', 'api': f'/api{menu_obj.web_path}/',
+             'method': 1},
+            {'menu': menu_obj.id, 'name': '删除', 'value': f'{menu_obj.component_name}:Delete', 'api': f'/api{menu_obj.web_path}/{{id}}/',
+             'method': 3},
+            {'menu': menu_obj.id, 'name': '修改', 'value': f'{menu_obj.component_name}:Update', 'api': f'/api{menu_obj.web_path}/{{id}}/',
+             'method': 2},
+            {'menu': menu_obj.id, 'name': '查询', 'value': f'{menu_obj.component_name}:Search', 'api': f'/api{menu_obj.web_path}/',
+             'method': 0},
+            {'menu': menu_obj.id, 'name': '详情', 'value': f'{menu_obj.component_name}:Retrieve', 'api': f'/api{menu_obj.web_path}/{{id}}/',
+             'method': 0}]
+        serializer = self.get_serializer(data=result_list, many=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return SuccessResponse(serializer.data, msg="批量创建成功")

@@ -70,6 +70,7 @@ class Users(CoreModel, AbstractUser):
         blank=True,
         help_text="关联部门",
     )
+    login_error_count = models.IntegerField(default=0, verbose_name="登录错误次数", help_text="登录错误次数")
     objects = CustomUserManager()
 
     def set_password(self, raw_password):

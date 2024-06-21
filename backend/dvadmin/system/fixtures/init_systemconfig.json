@@ -14,6 +14,34 @@
         "children": [
             {
                 "parent": 10,
+                "title": "网页标题",
+                "key": "web_title",
+                "value": "DVAdmin",
+                "sort": 1,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 0,
+                "rule": [],
+                "placeholder": "请输入网站标题",
+                "setting": null,
+                "children": []
+            },
+        {
+                "parent": 10,
+                "title": "网站小图标",
+                "key": "web_favicon",
+                "value": "",
+                "sort": 1,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 0,
+                "rule": [],
+                "placeholder": "请输入网站小图标",
+                "setting": null,
+                "children": []
+            },
+            {
+                "parent": 10,
                 "title": "开启验证码",
                 "key": "captcha_state",
                 "value": true,
