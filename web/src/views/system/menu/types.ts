@@ -53,6 +53,7 @@ export interface MenuFormDataType {
   id?: number | string;
   parent: number | string;
   name: string;
+  value: string;
   component: string;
   web_path: string;
   icon: string;

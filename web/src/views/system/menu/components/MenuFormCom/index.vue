@@ -9,6 +9,9 @@
 			<el-form-item label="菜单名称" prop="name">
 				<el-input v-model="menuFormData.name" placeholder="请输入菜单名称" />
 			</el-form-item>
+            <el-form-item label="菜单标识" prop="name">
+				<el-input v-model="menuFormData.value" placeholder="请输入菜单标识" />
+			</el-form-item>
 			<el-form-item label="父级菜单" prop="parent">
 				<el-tree-select
 					v-model="menuFormData.parent"
@@ -168,51 +171,53 @@ const emit = defineEmits(['drawerClose']);
 const formRef = ref<InstanceType<typeof ElForm>>();
 
 const rules = reactive<FormRules>({
-	web_path: [{ required: true, message: '请输入正确的地址', validator: validateWebPath, trigger: 'blur' }],
-	name: [{ required: true, message: '菜单名称必填', trigger: 'blur' }],
-	component: [{ required: true, message: '请输入组件地址', trigger: 'blur' }],
-	component_name: [{ required: true, message: '请输入组件名称', trigger: 'blur' }],
-  link_url: [{ required: true, message: '请输入外链接地址',validator:validateLinkUrl, trigger: 'blur' }],
+    web_path: [{ required: true, message: '请输入正确的地址', validator: validateWebPath, trigger: 'blur' }],
+    name: [{ required: true, message: '菜单名称必填', trigger: 'blur' }],
+    component: [{ required: true, message: '请输入组件地址', trigger: 'blur' }],
+    component_name: [{ required: true, message: '请输入组件名称', trigger: 'blur' }],
+    link_url: [{ required: true, message: '请输入外链接地址',validator:validateLinkUrl, trigger: 'blur' }],
 });
 
 let deptDefaultList = ref<MenuTreeItemType[]>([]);
 let menuFormData = reactive<MenuFormDataType>({
-	parent: '',
-	name: '',
-	component: '',
-	web_path: '',
-	icon: '',
-	cache: true,
-	status: true,
-	visible: true,
-	component_name: '',
-	description: '',
-	is_catalog: false,
-	is_link: false,
-  is_iframe: false,
-  is_affix: false,
-  link_url:''
+    parent: '',
+    name: '',
+    value: '',
+    component: '',
+    web_path: '',
+    icon: '',
+    cache: true,
+    status: true,
+    visible: true,
+    component_name: '',
+    description: '',
+    is_catalog: false,
+    is_link: false,
+    is_iframe: false,
+    is_affix: false,
+    link_url:''
 });
 let menuBtnLoading = ref(false);
 
 const setMenuFormData = () => {
 	if (props.initFormData?.id) {
-		menuFormData.id = props.initFormData?.id || '';
-		menuFormData.name = props.initFormData?.name || '';
-		menuFormData.parent = props.initFormData?.parent || '';
-		menuFormData.component = props.initFormData?.component || '';
-		menuFormData.web_path = props.initFormData?.web_path || '';
-		menuFormData.icon = props.initFormData?.icon || '';
-		menuFormData.status = !!props.initFormData.status;
-		menuFormData.visible = !!props.initFormData.visible;
-		menuFormData.cache = !!props.initFormData.cache;
-		menuFormData.component_name = props.initFormData?.component_name || '';
-		menuFormData.description = props.initFormData?.description || '';
-		menuFormData.is_catalog = !!props.initFormData.is_catalog;
-		menuFormData.is_link = !!props.initFormData.is_link;
-    menuFormData.is_iframe =!!props.initFormData.is_iframe;
-    menuFormData.is_affix =!!props.initFormData.is_affix;
-    menuFormData.link_url =props.initFormData.link_url;
+        menuFormData.id = props.initFormData?.id || '';
+        menuFormData.name = props.initFormData?.name || '';
+        menuFormData.value = props.initFormData?.value || '';
+        menuFormData.parent = props.initFormData?.parent || '';
+        menuFormData.component = props.initFormData?.component || '';
+        menuFormData.web_path = props.initFormData?.web_path || '';
+        menuFormData.icon = props.initFormData?.icon || '';
+        menuFormData.status = !!props.initFormData.status;
+        menuFormData.visible = !!props.initFormData.visible;
+        menuFormData.cache = !!props.initFormData.cache;
+        menuFormData.component_name = props.initFormData?.component_name || '';
+        menuFormData.description = props.initFormData?.description || '';
+        menuFormData.is_catalog = !!props.initFormData.is_catalog;
+        menuFormData.is_link = !!props.initFormData.is_link;
+        menuFormData.is_iframe =!!props.initFormData.is_iframe;
+        menuFormData.is_affix =!!props.initFormData.is_affix;
+        menuFormData.link_url =props.initFormData.link_url;
 	}
 };
 

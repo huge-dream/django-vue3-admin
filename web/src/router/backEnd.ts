@@ -52,6 +52,7 @@ export async function initBackEndControlRoutes() {
 	// if (res.data.length <= 0) return Promise.resolve(true);
 	// 处理路由（component），替换 dynamicRoutes（/@/router/route）第一个顶级 children 的路由
 	const {frameIn,frameOut} = handleMenu(res.data)
+    console.log(frameIn, 'frameIn');
 	dynamicRoutes[0].children = await backEndComponent(frameIn);
 	// 添加动态路由
 	await setAddRoute();

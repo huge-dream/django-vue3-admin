@@ -66,7 +66,7 @@ class WebRouterSerializer(CustomModelSerializer):
     前端菜单路由的简单序列化器
     """
     path = serializers.CharField(source="web_path")
-    title = serializers.CharField(source="name")
+    title = serializers.CharField(source="value")
 
     class Meta:
         model = Menu
