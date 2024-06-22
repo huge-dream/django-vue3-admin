@@ -119,7 +119,6 @@ class UserUpdateSerializer(CustomModelSerializer):
         """
         更改激活状态
         """
-        print(111, value)
         if value:
             self.initial_data["login_error_count"] = 0
         return value
@@ -407,11 +406,11 @@ class UserViewSet(CustomModelViewSet):
                 queryset = self.filter_queryset(self.get_queryset())
         else:
             queryset = self.filter_queryset(self.get_queryset())
-        print(queryset.values('id','name','dept__id'))
+        # print(queryset.values('id','name','dept__id'))
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True, request=request)
-            print(serializer.data)
+            # print(serializer.data)
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True, request=request)
 

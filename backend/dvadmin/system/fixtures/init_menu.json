@@ -167,19 +167,13 @@
                         "method": 0
                     },
                     {
-                        "name": "查询所有",
+                        "name": "获取所有部门",
                         "value": "dept:SearchAll",
                         "api": "/api/system/dept/all_dept/",
                         "method": 0
                     },
                     {
-                        "name": "懒加载查询所有",
-                        "value": "dept:LazySearchAll",
-                        "api": "/api/system/dept/dept_lazy_tree/",
-                        "method": 0
-                    },
-                    {
-                        "name": "头信息",
+                        "name": "部门顶部信息",
                         "value": "dept:HeaderInfo",
                         "api": "/api/system/dept/dept_info/",
                         "method": 0
