@@ -124,30 +124,15 @@ class DeptViewSet(CustomModelViewSet):
         data = serializer.data
         return SuccessResponse(data=data)
 
-    @action(methods=["GET"], detail=False, permission_classes=[IsAuthenticated], extra_filter_class=[])
+    @action(methods=["GET"], detail=False, permission_classes=[IsAuthenticated])
     def dept_lazy_tree(self, request, *args, **kwargs):
         parent = self.request.query_params.get('parent')
         is_superuser = request.user.is_superuser
         if is_superuser:
             queryset = Dept.objects.values('id', 'name', 'parent')
         else:
-            role_ids = request.user.role.values_list('id', flat=True)
-            data_range = RoleMenuButtonPermission.objects.filter(role__in=role_ids).values_list('data_range', flat=True)
-            user_dept_id = request.user.dept.id
-            dept_list = [user_dept_id]
-            data_range_list = list(set(data_range))
-            for item in data_range_list:
-                if item in [0, 2]:
-                    dept_list = [user_dept_id]
-                elif item == 1:
-                    dept_list = Dept.recursion_all_dept(dept_id=user_dept_id)
-                elif item == 3:
-                    dept_list = Dept.objects.values_list('id', flat=True)
-                elif item == 4:
-                    dept_list = request.user.role.values_list('dept', flat=True)
-                else:
-                    dept_list = []
-            queryset = Dept.objects.filter(id__in=dept_list).values('id', 'name', 'parent')
+            queryset = Dept.objects.values('id', 'name', 'parent')
+            queryset = self.filter_queryset(queryset)
         return DetailResponse(data=queryset, msg="获取成功")
 
     @action(methods=["GET"], detail=False, permission_classes=[IsAuthenticated], extra_filter_class=[])
