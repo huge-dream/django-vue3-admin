@@ -180,51 +180,16 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         :return: menu,btns,columns
         """
         params = request.query_params
-        role = params.get('role', None)
-        if role is None:
-            return ErrorResponse(msg="未获取到角色信息")
         is_superuser = request.user.is_superuser
         if is_superuser:
             queryset = Menu.objects.filter(status=1, is_catalog=True).values('name', 'id').all()
         else:
             role_id = request.user.role.values_list('id', flat=True)
-            menu_list = RoleMenuPermission.objects.filter(role__in=role_id).values_list('id', flat=True)
+            menu_list = RoleMenuPermission.objects.filter(role__in=role_id).values_list('menu__id', flat=True)
             queryset = Menu.objects.filter(status=1, is_catalog=True, id__in=menu_list).values('name', 'id').all()
         serializer = RoleMenuSerializer(queryset, many=True, request=request)
         data = serializer.data
         return DetailResponse(data=data)
-        # data = []
-        # if is_superuser:
-        #     queryset = Menu.objects.filter(status=1, is_catalog=False).values('name', 'id').all()
-        # else:
-        #     role_id = request.user.role.values_list('id', flat=True)
-        #     menu_list = RoleMenuPermission.objects.filter(role__in=role_id).values_list('id', flat=True)
-        #     queryset = Menu.objects.filter(status=1, is_catalog=False, id__in=menu_list).values('name', 'id')
-        # for item in queryset:
-        #     parent_list = Menu.get_all_parent(item['id'])
-        #     names = [d["name"] for d in parent_list]
-        #     completeName = "/".join(names)
-        #     isCheck = RoleMenuPermission.objects.filter(
-        #         menu__id=item['id'],
-        #         role__id=role,
-        #     ).exists()
-        #     mbCheck = RoleMenuButtonPermission.objects.filter(
-        #         menu_button=OuterRef("pk"),
-        #         role__id=role,
-        #     )
-        #     btns = MenuButton.objects.filter(
-        #         menu__id=item['id'],
-        #     ).annotate(isCheck=Exists(mbCheck)).values('id', 'name', 'value', 'isCheck',
-        #                                                data_range=F('menu_button_permission__data_range'))
-        #     dicts = {
-        #         'name': completeName,
-        #         'id': item['id'],
-        #         'isCheck': isCheck,
-        #         'btns': btns,
-        #
-        #     }
-        #     data.append(dicts)
-        # return DetailResponse(data=data)
 
     @action(methods=['PUT'], detail=True, permission_classes=[IsAuthenticated])
     def set_role_premission(self, request, pk):

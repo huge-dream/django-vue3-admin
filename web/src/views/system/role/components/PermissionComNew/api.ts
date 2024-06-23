@@ -26,7 +26,15 @@ export function setRolePremission(roleId:any,data:object) {
   })
 }
 
-export function getDataPermissionRange() {
+export function getDataPermissionRange(query:object) {
+  return request({
+    url: '/api/system/role_menu_button_permission/data_scope/',
+    method: 'get',
+    params:query
+  })
+}
+
+export function getDataPermissionRangeAll() {
   return request({
     url: '/api/system/role_menu_button_permission/data_scope/',
     method: 'get',

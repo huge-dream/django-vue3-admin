@@ -124,7 +124,7 @@ watch(
   (val) => {
     drawerVisible.value = val;
     getMenuBtnPermission()
-    fetchData()
+
   }
 );
 const handleDrawerClose = () => {
@@ -159,9 +159,9 @@ const getMenuBtnPermission = async () => {
   menuData.value = resMenu.data
 }
 
-const fetchData = async () => {
+const fetchData = async (btnId) => {
   try {
-    const resRange = await getDataPermissionRange();
+    const resRange = await getDataPermissionRange({menu_button:btnId});
     if (resRange?.code === 2000) {
       dataPermissionRange.value = resRange.data;
     }
@@ -183,6 +183,7 @@ const handleSettingClick = (record: MenusType, btnId: number) => {
   menuCurrent.value = record;
   menuBtnCurrent.value = btnId;
   dialogVisible.value = true;
+  fetchData(btnId)
 };
 
 const handleColumnChange = (val: boolean, record: MenusType, btnType: string) => {
