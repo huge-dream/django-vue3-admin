@@ -3,6 +3,7 @@ import { resolve } from 'path';
 import { defineConfig, loadEnv, ConfigEnv } from 'vite';
 import vueSetupExtend from 'vite-plugin-vue-setup-extend';
 import vueJsx from '@vitejs/plugin-vue-jsx'
+import { generateVersionFile } from "./src/utils/upgrade";
 
 const pathResolve = (dir: string) => {
 	return resolve(__dirname, '.', dir);
@@ -17,6 +18,8 @@ const alias: Record<string, string> = {
 
 const viteConfig = defineConfig((mode: ConfigEnv) => {
 	const env = loadEnv(mode.mode, process.cwd());
+	// 当Vite构建时，生成版本文件
+	generateVersionFile()
 	return {
 		plugins: [vue(), vueJsx(), vueSetupExtend()],
 		root: process.cwd(),
