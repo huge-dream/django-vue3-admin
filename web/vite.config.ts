@@ -3,7 +3,7 @@ import { resolve } from 'path';
 import { defineConfig, loadEnv, ConfigEnv } from 'vite';
 import vueSetupExtend from 'vite-plugin-vue-setup-extend';
 import vueJsx from '@vitejs/plugin-vue-jsx'
-import { generateVersionFile } from "./src/utils/upgrade";
+import { generateVersionFile } from "/@/utils/upgrade";
 
 const pathResolve = (dir: string) => {
 	return resolve(__dirname, '.', dir);

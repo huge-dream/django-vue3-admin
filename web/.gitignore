@@ -21,4 +21,5 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
-public/version
+# 构建版本文件，无需上传git
+public/version-build
