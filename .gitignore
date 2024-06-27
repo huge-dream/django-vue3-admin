@@ -5,3 +5,6 @@
 .history/
 .vscode/
 web/package-lock.json
+
+docker_env/mysql/data
+docker_env/redis/data
