@@ -9,7 +9,7 @@ export default {
 		two4: '友情链接',
 	},
 	account: {
-		accountPlaceholder1: '请输入登录账号',
+		accountPlaceholder1: '请输入登录账号/邮箱/手机号',
 		accountPlaceholder2: '请输入登录密码',
 		accountPlaceholder3: '请输入验证码',
 		accountBtnText: '登 录',
