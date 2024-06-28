@@ -29,7 +29,7 @@
                     :label="btn.value">
                     <div class="btn-item">
                       {{ btn.data_range !== null ? `${btn.name}(${formatDataRange(btn.data_range)})` : btn.name }}
-                      <span v-show="btn.isCheck" @click.stop.prevent="handleSettingClick(menu, btn.id)">
+                      <span v-show="btn.isCheck" @click.stop.prevent="handleSettingClick(menu, btn)">
                         <el-icon>
                           <Setting />
                         </el-icon>
@@ -166,7 +166,7 @@ const getDataPermissionRangeLable = async () => {
   dataPermissionRangeLabel.value = resRange.data;
 }
 
-const fetchData = async (btnId) => {
+const fetchData = async (btnId:number) => {
   try {
     const resRange = await getDataPermissionRange({menu_button:btnId});
     if (resRange?.code === 2000) {
@@ -186,11 +186,13 @@ const fetchData = async (btnId) => {
  * @param record 当前菜单
  * @param btnType  按钮类型
  */
-const handleSettingClick = (record: MenusType, btnId: number) => {
+const handleSettingClick = (record: MenusType, btn: MenusType['btns'][number]) => {
   menuCurrent.value = record;
-  menuBtnCurrent.value = btnId;
+  menuBtnCurrent.value = btn.id;
   dialogVisible.value = true;
-  fetchData(btnId)
+  dataPermission.value =btn.data_range;  
+  handlePermissionRangeChange(btn.data_range)
+  fetchData( btn.id)
 };
 
 const handleColumnChange = (val: boolean, record: MenusType, btnType: string) => {
