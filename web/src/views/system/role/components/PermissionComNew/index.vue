@@ -20,7 +20,7 @@
       <el-tabs>
         <el-tab-pane v-for="(item, mIndex) in menuData" :key="mIndex" :label="item.name">
           <el-tabs tab-position="left">
-            <el-tab-pane v-for="(menu, mIndex) in item.children" :key="mIndex" :label="menu.name" >
+            <el-tab-pane v-for="(menu, mIndex) in item.children" :key="mIndex" :label="menu.name">
               <el-checkbox v-model="menu.isCheck">页面显示权限</el-checkbox>
               <div class="pc-collapse-main">
                 <div class="pccm-item">
@@ -55,7 +55,8 @@
                     <li v-for="(c_item, c_index) in menu.columns" :key="c_index" class="columns-item">
                       <div class="width-txt">{{ c_item.title }}</div>
                       <div v-for="(col, cIndex) in column.header" :key="cIndex" class="width-check">
-                        <el-checkbox v-model="c_item[col.value]" class="ci-checkout"></el-checkbox>
+                        <el-checkbox v-model="c_item[col.value]" class="ci-checkout"
+                          :disabled="c_item[col.disabled]"></el-checkbox>
                       </div>
                     </li>
                   </ul>
@@ -99,7 +100,7 @@ import {
   setRolePremission,
   setBtnDatarange,
 } from './api';
-import { MenuDataType, MenusType, DataPermissionRangeType, CustomDataPermissionDeptType } from './types';
+import { MenuDataType, DataPermissionRangeType, CustomDataPermissionDeptType } from './types';
 import { ElMessage } from 'element-plus'
 
 const props = defineProps({
@@ -159,6 +160,7 @@ let customDataPermission = ref([]);
 const getMenuBtnPermission = async () => {
   const resMenu = await getRolePermission({ role: props.roleId })
   menuData.value = resMenu
+
 }
 // 获取按钮的数据权限下拉选项
 const getDataPermissionRangeLable = async () => {
@@ -166,9 +168,9 @@ const getDataPermissionRangeLable = async () => {
   dataPermissionRangeLabel.value = resRange.data;
 }
 
-const fetchData = async (btnId:number) => {
+const fetchData = async (btnId: number) => {
   try {
-    const resRange = await getDataPermissionRange({menu_button:btnId});
+    const resRange = await getDataPermissionRange({ menu_button: btnId });
     if (resRange?.code === 2000) {
       dataPermissionRange.value = resRange.data;
     }
@@ -186,16 +188,16 @@ const fetchData = async (btnId:number) => {
  * @param record 当前菜单
  * @param btnType  按钮类型
  */
-const handleSettingClick = (record: MenusType, btn: MenusType['btns'][number]) => {
+const handleSettingClick = (record: MenuDataType, btn: MenuDataType['btns'][number]) => {
   menuCurrent.value = record;
   menuBtnCurrent.value = btn.id;
   dialogVisible.value = true;
-  dataPermission.value =btn.data_range;  
+  dataPermission.value = btn.data_range;
   handlePermissionRangeChange(btn.data_range)
-  fetchData( btn.id)
+  fetchData(btn.id)
 };
 
-const handleColumnChange = (val: boolean, record: MenusType, btnType: string) => {
+const handleColumnChange = (val: boolean, record: MenuDataType, btnType: string) => {
   for (const iterator of record.columns) {
     iterator[btnType] = val;
   }
@@ -203,8 +205,8 @@ const handleColumnChange = (val: boolean, record: MenusType, btnType: string) =>
 
 const handlePermissionRangeChange = async (val: number) => {
   if (val === 4) {
-    const res = await getDataPermissionDept({ role: props.roleId,menu_button:menuBtnCurrent.value });
-    const depts = XEUtils.toArrayTree(res.data.depts, { parentKey: 'parent', strict: false });    
+    const res = await getDataPermissionDept({ role: props.roleId, menu_button: menuBtnCurrent.value });
+    const depts = XEUtils.toArrayTree(res.data.depts, { parentKey: 'parent', strict: false });
     deptData.value = depts;
     customDataPermission.value = res.data.dept_checked;
   }
@@ -218,10 +220,8 @@ const handleDialogConfirm = () => {
     errorNotification('请选择');
     return;
   }
-
-  //if (dataPermission.value !== 4) {}
   for (const item of menuData.value) {
-    for (const iterator of item.menus) {
+    for (const iterator of item.children) {
       if (iterator.id === menuCurrent.value.id) {
         for (const btn of iterator.btns) {
           if (btn.id === menuBtnCurrent.value) {
@@ -243,7 +243,7 @@ const handleDialogClose = () => {
   dataPermission.value = null;
 };
 
-//保存权限
+//保存菜单授权
 const handleSavePermission = () => {
   setRolePremission(props.roleId, menuData.value).then((res: any) => {
     ElMessage({
@@ -254,10 +254,11 @@ const handleSavePermission = () => {
 }
 
 const column = reactive({
-  header: [{ value: 'is_create', label: '新增可见' }, { value: 'is_update', label: '编辑可见' }, {
-    value: 'is_query',
-    label: '列表可见'
-  }]
+  header: [
+    { value: 'is_create', label: '新增可见',disabled:'disabled_create'},
+    { value: 'is_update', label: '编辑可见' ,disabled:'disabled_update'},
+    { value: 'is_query', label: '列表可见',disabled:'disabled_query' }
+  ]
 })
 
 onMounted(() => {

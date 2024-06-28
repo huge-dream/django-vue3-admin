@@ -209,23 +209,24 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
             menu_list = RoleMenuPermission.objects.filter(role__in=role_id_list).values_list('menu__id', flat=True)
 
             # 当前角色已授权的菜单
-            menu_queryset = Menu.objects.filter(id__in=menu_list).prefetch_related('menuPermission').prefetch_related('menufield_set')
+            menu_queryset = Menu.objects.filter(id__in=menu_list).prefetch_related('menuPermission').prefetch_related(
+                'menufield_set')
         result = []
         for menu_item in menu_queryset:
             isCheck = RoleMenuPermission.objects.filter(
-                    menu_id=menu_item.id,
-                    role_id=current_role
-                ).exists()
+                menu_id=menu_item.id,
+                role_id=current_role
+            ).exists()
             dicts = {
                 'name': menu_item.name,
                 'id': menu_item.id,
                 'parent': menu_item.parent.id if menu_item.parent else None,
-                'isCheck':isCheck,
+                'isCheck': isCheck,
                 'btns': [],
                 'columns': []
             }
             for mb_item in menu_item.menuPermission.all():
-                rolemenubuttonpermission_queryset =RoleMenuButtonPermission.objects.filter(
+                rolemenubuttonpermission_queryset = RoleMenuButtonPermission.objects.filter(
                     menu_button_id=mb_item.id,
                     role_id=current_role
                 ).first()
@@ -240,21 +241,25 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
                         'isCheck': bool(rolemenubuttonpermission_queryset),
                     }
                 )
+
             for column_item in menu_item.menufield_set.all():
                 fieldpermission_queryset = column_item.menu_field.filter(role_id=current_role).first()
+                query = fieldpermission_queryset.is_query if fieldpermission_queryset else None
+                create = fieldpermission_queryset.is_create if fieldpermission_queryset else None
+                update = fieldpermission_queryset.is_update if fieldpermission_queryset else None
                 dicts['columns'].append({
-                        'id':column_item.id,
-                        'field_name':column_item.field_name,
-                        'title':column_item.title,
-                        'is_query':fieldpermission_queryset.is_query,
-                        'is_create':fieldpermission_queryset.is_create,
-                        'is_update':fieldpermission_queryset.is_update
-                    })
+                    'id': column_item.id,
+                    'field_name': column_item.field_name,
+                    'title': column_item.title,
+                    'is_query': query,
+                    'is_create': create,
+                    'is_update': update,
+                    'disabled_query': False if is_superuser else not query,
+                    'disabled_create': False if is_superuser else not create,
+                    'disabled_update': False if is_superuser else not update,
+                })
             result.append(dicts)
         return DetailResponse(data=result)
-
-
-
 
     @action(methods=['PUT'], detail=True, permission_classes=[IsAuthenticated])
     def set_role_premission(self, request, pk):
@@ -268,7 +273,7 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         RoleMenuPermission.objects.filter(role=pk).delete()
         RoleMenuButtonPermission.objects.filter(role=pk).delete()
         for item in body:
-            for menu in item["menus"]:
+            for menu in item["children"]:
                 if menu.get('isCheck'):
                     menu_parent = Menu.get_all_parent(menu.get('id'))
                     role_menu_permission_list = []
