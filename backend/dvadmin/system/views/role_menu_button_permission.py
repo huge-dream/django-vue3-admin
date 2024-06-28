@@ -307,13 +307,13 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         params = request.query_params
         role_id = params.get('role')
         menu_button_id = params.get('menu_button')
-        dept_checked = RoleMenuButtonPermission.objects.get(
+        dept_checked = RoleMenuButtonPermission.objects.filter(
             role_id=role_id, menu_button_id=menu_button_id
-        ).dept.all().values_list('id', flat=True)
+        ).values_list('dept', flat=True)
         dept_list = Dept.objects.values('id', 'name', 'parent')
         data = {
             'depts': [],
-            'dept_checked': dept_checked if dept_checked.exists() else []
+            'dept_checked': [i for i in dept_checked if i is not None]
         }
 
         for dept in dept_list:
