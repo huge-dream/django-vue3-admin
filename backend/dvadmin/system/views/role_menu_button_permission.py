@@ -307,16 +307,17 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         params = request.query_params
         role_id = params.get('role')
         menu_button_id = params.get('menu_button')
-        dept_checked = RoleMenuButtonPermission.objects.filter(
+        dept_checked = RoleMenuButtonPermission.objects.get(
             role_id=role_id, menu_button_id=menu_button_id
-        ).values_list('dept', flat=True)
+        ).dept.all().values_list('id', flat=True)
         dept_list = Dept.objects.values('id', 'name', 'parent')
         data = {
             'depts': [],
-            'dept_checked': dept_checked
+            'dept_checked': dept_checked if dept_checked.exists() else []
         }
+
         for dept in dept_list:
-            dept["disabled"] = not (is_superuser | dept["id"] in dept_checked)
+            dept["disabled"] = False if is_superuser else dept["id"] not in dept_checked
             data['depts'].append(dept)
         return DetailResponse(data=data)
 
