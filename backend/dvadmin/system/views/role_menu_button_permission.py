@@ -313,10 +313,11 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         dept_list = Dept.objects.values('id', 'name', 'parent')
         data = {
             'depts': [],
-            'dept_checked': dept_checked
+            'dept_checked': [] if dept_checked.exists() else dept_checked
         }
+
         for dept in dept_list:
-            dept["disabled"] = not (is_superuser | dept["id"] in dept_checked)
+            dept["disabled"] = False if is_superuser else dept["id"] not in dept_checked
             data['depts'].append(dept)
         return DetailResponse(data=data)
 
