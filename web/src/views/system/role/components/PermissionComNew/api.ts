@@ -40,10 +40,11 @@ export function getDataPermissionRangeAll() {
     method: 'get',
   })
 }
-export function getDataPermissionDept() {
+export function getDataPermissionDept(query:object) {
   return request({
     url: '/api/system/role_menu_button_permission/role_to_dept_all/',
-    method: 'get'
+    method: 'get',
+    params:query
   })
 }
 
