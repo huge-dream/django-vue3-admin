@@ -254,11 +254,10 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
                     'is_query': query,
                     'is_create': create,
                     'is_update': update,
-                    'query_disabled': False if is_superuser else not query,
-                    'create_disabled': False if is_superuser else not create,
-                    'update_disabled': False if is_superuser else not update,
+                    'disabled_query': False if is_superuser else not query,
+                    'disabled_create': False if is_superuser else not create,
+                    'disabled_update': False if is_superuser else not update,
                 })
-                print(dicts['columns'])
             result.append(dicts)
         return DetailResponse(data=result)
 
@@ -289,7 +288,6 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
                                                                            data_range=data_range)
                         instance.dept.set(btn.get('dept', []))
                 for col in menu.get('columns'):
-                    print(col)
                     FieldPermission.objects.update_or_create(role_id=pk, field_id=col.get('id'),
                                                              defaults={
                                                                  'is_query': col.get('is_query'),

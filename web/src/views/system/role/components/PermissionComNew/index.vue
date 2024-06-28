@@ -255,9 +255,9 @@ const handleSavePermission = () => {
 
 const column = reactive({
   header: [
-    { value: 'is_create', label: '新增可见',disabled:'create_disabled'},
-    { value: 'is_update', label: '编辑可见' ,disabled:'update_disabled'},
-    { value: 'is_query', label: '列表可见',disabled:'query_disabled' }
+    { value: 'is_create', label: '新增可见',disabled:'disabled_create'},
+    { value: 'is_update', label: '编辑可见' ,disabled:'disabled_update'},
+    { value: 'is_query', label: '列表可见',disabled:'disabled_query' }
   ]
 })
 
