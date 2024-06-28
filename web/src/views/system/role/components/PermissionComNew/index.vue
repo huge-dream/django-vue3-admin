@@ -20,7 +20,7 @@
       <el-tabs>
         <el-tab-pane v-for="(item, mIndex) in menuData" :key="mIndex" :label="item.name">
           <el-tabs tab-position="left">
-            <el-tab-pane v-for="(menu, mIndex) in item.menus" :key="mIndex" :label="menu.name" >
+            <el-tab-pane v-for="(menu, mIndex) in item.children" :key="mIndex" :label="menu.name" >
               <el-checkbox v-model="menu.isCheck">页面显示权限</el-checkbox>
               <div class="pc-collapse-main">
                 <div class="pccm-item">
@@ -95,9 +95,9 @@ import { errorNotification } from '/@/utils/message';
 import {
   getDataPermissionRange,
   getDataPermissionDept,
-  getRolePremission,
+  getRolePermission,
   setRolePremission,
-  setBtnDatarange
+  setBtnDatarange,
 } from './api';
 import { MenuDataType, MenusType, DataPermissionRangeType, CustomDataPermissionDeptType } from './types';
 import { ElMessage } from 'element-plus'
@@ -155,8 +155,8 @@ let dataPermission = ref();
 let customDataPermission = ref([]);
 //获取菜单,按钮,权限
 const getMenuBtnPermission = async () => {
-  const resMenu = await getRolePremission({ role: props.roleId })
-  menuData.value = resMenu.data
+  const resMenu = await getRolePermission({ role: props.roleId })
+  menuData.value = resMenu
 }
 
 const fetchData = async (btnId) => {
