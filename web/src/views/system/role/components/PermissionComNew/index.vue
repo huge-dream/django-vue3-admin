@@ -124,6 +124,7 @@ watch(
   (val) => {
     drawerVisible.value = val;
     getMenuBtnPermission()
+    getDataPermissionRangeLable()
 
   }
 );
@@ -144,9 +145,10 @@ let menuCurrent = ref<Partial<MenuDataType>>({});
 let menuBtnCurrent = ref<number>(-1);
 let dialogVisible = ref(false);
 let dataPermissionRange = ref<DataPermissionRangeType[]>([]);
+let dataPermissionRangeLabel = ref<DataPermissionRangeType[]>([]);
 const formatDataRange = computed(() => {
   return function (datarange: number) {
-    const findItem = dataPermissionRange.value.find((i) => i.value === datarange);
+    const findItem = dataPermissionRangeLabel.value.find((i) => i.value === datarange);
     return findItem?.label || ''
   }
 })
@@ -157,6 +159,11 @@ let customDataPermission = ref([]);
 const getMenuBtnPermission = async () => {
   const resMenu = await getRolePremission({ role: props.roleId })
   menuData.value = resMenu.data
+}
+// 获取按钮的数据权限下拉选项
+const getDataPermissionRangeLable = async () => {
+  const resRange = await getDataPermissionRange({ role: props.roleId })
+  dataPermissionRangeLabel.value = resRange.data;
 }
 
 const fetchData = async (btnId) => {
@@ -170,9 +177,9 @@ const fetchData = async (btnId) => {
   }
 };
 
-const handleCollapseChange = (val: number) => {
-  collapseCurrent.value = [val];
-};
+// const handleCollapseChange = (val: number) => {
+//   collapseCurrent.value = [val];
+// };
 
 /**
  * 设置按钮数据权限
@@ -194,9 +201,10 @@ const handleColumnChange = (val: boolean, record: MenusType, btnType: string) =>
 
 const handlePermissionRangeChange = async (val: number) => {
   if (val === 4) {
-    const res = await getDataPermissionDept();
-    const data = XEUtils.toArrayTree(res.data, { parentKey: 'parent', strict: false });
-    deptData.value = data;
+    const res = await getDataPermissionDept({ role: props.roleId,menu_button:menuBtnCurrent.value });
+    const depts = XEUtils.toArrayTree(res.data.depts, { parentKey: 'parent', strict: false });    
+    deptData.value = depts;
+    customDataPermission.value = res.data.dept_checked;
   }
 };
 

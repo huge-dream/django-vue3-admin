@@ -80,8 +80,8 @@ export default defineComponent({
 		const state = reactive({
 			isShowPassword: false,
 			ruleForm: {
-				username: '',
-				password: '',
+				username: 'superadmin',
+				password: 'admin123456',
 				captcha: '',
 				captchaKey: '',
 				captchaImgBase: '',
