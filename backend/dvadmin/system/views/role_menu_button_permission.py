@@ -284,27 +284,21 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         RoleMenuPermission.objects.filter(role=pk).delete()
         RoleMenuButtonPermission.objects.filter(role=pk).delete()
         for item in body:
-            for menu in item["children"]:
-                if menu.get('isCheck'):
-                    menu_parent = Menu.get_all_parent(menu.get('id'))
-                    role_menu_permission_list = []
-                    for d in menu_parent:
-                        role_menu_permission_list.append(RoleMenuPermission(role_id=pk, menu_id=d["id"]))
-                    RoleMenuPermission.objects.bulk_create(role_menu_permission_list)
-                    # RoleMenuPermission.objects.create(role_id=pk, menu_id=menu.get('id'))
-                for btn in menu.get('btns'):
-                    if btn.get('isCheck'):
-                        data_range = btn.get('data_range', 0) or 0
-                        instance = RoleMenuButtonPermission.objects.create(role_id=pk, menu_button_id=btn.get('id'),
-                                                                           data_range=data_range)
-                        instance.dept.set(btn.get('dept', []))
-                for col in menu.get('columns'):
-                    FieldPermission.objects.update_or_create(role_id=pk, field_id=col.get('id'),
-                                                             defaults={
-                                                                 'is_query': col.get('is_query'),
-                                                                 'is_create': col.get('is_create'),
-                                                                 'is_update': col.get('is_update')
-                                                             })
+            if item.get('isCheck'):
+                RoleMenuPermission.objects.create(role_id=pk, menu_id=item["id"])
+            for btn in item.get('btns'):
+                if btn.get('isCheck'):
+                    data_range = btn.get('data_range', 0) or 0
+                    instance = RoleMenuButtonPermission.objects.create(role_id=pk, menu_button_id=btn.get('id'),
+                                                                       data_range=data_range)
+                    instance.dept.set(btn.get('dept', []))
+            for col in item.get('columns'):
+                FieldPermission.objects.update_or_create(role_id=pk, field_id=col.get('id'),
+                                                         defaults={
+                                                             'is_query': col.get('is_query'),
+                                                             'is_create': col.get('is_create'),
+                                                             'is_update': col.get('is_update')
+                                                         })
         return DetailResponse(msg="授权成功")
 
     @action(methods=['GET'], detail=False, permission_classes=[IsAuthenticated])
