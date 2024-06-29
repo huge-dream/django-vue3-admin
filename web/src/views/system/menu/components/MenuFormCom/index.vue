@@ -111,6 +111,7 @@
 </template>
 
 <script lang="ts" setup>
+import XEUtils from 'xe-utils';
 import { ref, onMounted, reactive } from 'vue';
 import { ElForm, FormRules } from 'element-plus';
 import IconSelector from '/@/components/iconSelector/index.vue';
@@ -246,7 +247,7 @@ const createFilter = (queryString: string) => {
 const handleTreeLoad = (node: Node, resolve: Function) => {
 	if (node.level !== 0) {
 		lazyLoadMenu({ parent: node.data.id }).then((res: APIResponseData) => {
-			resolve(res.data);
+			resolve(XEUtils.filter(res.data, (i: MenuTreeItemType) => i.is_catalog));
 		});
 	}
 };
@@ -280,7 +281,9 @@ const handleCancel = (type: string = '') => {
 
 onMounted(async () => {
 	props.treeData.map((item) => {
-		deptDefaultList.value.push(item);
+		if (item.is_catalog) {
+			deptDefaultList.value.push(item);
+		}
 	});
 	setMenuFormData();
 });
