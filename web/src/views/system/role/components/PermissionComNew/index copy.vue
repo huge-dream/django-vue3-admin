@@ -160,7 +160,7 @@ let customDataPermission = ref([]);
 //获取菜单,按钮,权限
 const getMenuBtnPermission = async () => {
   const resMenu = await getRolePermission({ role: props.roleId })
-  menuData.value = resMenu  
+  menuData.value = resMenu
 
 }
 // 获取按钮的数据权限下拉选项
