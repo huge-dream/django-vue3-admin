@@ -46,7 +46,8 @@
                         <span>字段</span>
                       </div>
                       <div v-for="(head, hIndex) in column.header" :key="hIndex" class="width-check">
-                        <el-checkbox :label="head.value" @change="handleColumnChange($event, menu, head.value)">
+                        <el-checkbox :label="head.value"
+                          @change="handleColumnChange($event, menu, head.value, head.disabled)">
                           <span>{{ head.label }}</span>
                         </el-checkbox>
                       </div>
@@ -168,6 +169,10 @@ const getDataPermissionRangeLable = async () => {
   dataPermissionRangeLabel.value = resRange.data;
 }
 
+/**
+ * 获取按钮数据权限下拉选项
+ * @param btnId  按钮id
+ */
 const fetchData = async (btnId: number) => {
   try {
     const resRange = await getDataPermissionRange({ menu_button: btnId });
@@ -197,18 +202,29 @@ const handleSettingClick = (record: MenuDataType, btn: MenuDataType['btns'][numb
   fetchData(btn.id)
 };
 
-const handleColumnChange = (val: boolean, record: MenuDataType, btnType: string) => {
+/**
+ * 设置列权限
+ * @param val  是否选中
+ * @param record  当前菜单
+ * @param btnType  按钮类型
+ * @param disabledType  禁用类型
+ */
+const handleColumnChange = (val: boolean, record: MenuDataType, btnType: string, disabledType: string) => {
   for (const iterator of record.columns) {
-    iterator[btnType] = val;
+    iterator[btnType] = iterator[disabledType] ? iterator[btnType] : val;
   }
 };
 
+/**
+ * 数据权限设置
+ */
 const handlePermissionRangeChange = async (val: number) => {
   if (val === 4) {
     const res = await getDataPermissionDept({ role: props.roleId, menu_button: menuBtnCurrent.value });
-    const depts = XEUtils.toArrayTree(res.data.depts, { parentKey: 'parent', strict: false });
+    const depts = XEUtils.toArrayTree(res.data, { parentKey: 'parent', strict: false });
     deptData.value = depts;
-    customDataPermission.value = res.data.dept_checked;
+    const btnObj = XEUtils.find(menuCurrent.value.btns, item => item.id === menuBtnCurrent.value)
+    customDataPermission.value = btnObj.dept;
   }
 };
 
@@ -255,9 +271,9 @@ const handleSavePermission = () => {
 
 const column = reactive({
   header: [
-    { value: 'is_create', label: '新增可见',disabled:'disabled_create'},
-    { value: 'is_update', label: '编辑可见' ,disabled:'disabled_update'},
-    { value: 'is_query', label: '列表可见',disabled:'disabled_query' }
+    { value: 'is_create', label: '新增可见', disabled: 'disabled_create' },
+    { value: 'is_update', label: '编辑可见', disabled: 'disabled_update' },
+    { value: 'is_query', label: '列表可见', disabled: 'disabled_query' }
   ]
 })
 

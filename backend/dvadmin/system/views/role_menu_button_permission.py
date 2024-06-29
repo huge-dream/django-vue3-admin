@@ -241,9 +241,11 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
                         if rolemenubuttonpermission_queryset
                         else None,
                         'isCheck': bool(rolemenubuttonpermission_queryset),
+                        'dept': rolemenubuttonpermission_queryset.dept.all().values_list('id', flat=True)
+                        if rolemenubuttonpermission_queryset
+                        else [],
                     }
                 )
-
             for column_item in menu_item.menufield_set.all():
                 # 需要授权角色已拥有的列权限
                 fieldpermission_queryset = column_item.menu_field.filter(role_id=current_role).first()
@@ -384,30 +386,20 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         """
         is_superuser = request.user.is_superuser
         params = request.query_params
-        # 需要授权的角色信息
-        role_id = params.get('role', None)
         # 当前登录用户的角色
         role_list = request.user.role.values_list('id', flat=True)
 
         menu_button_id = params.get('menu_button')
-        # 当前授权的角色已有的自定义部门权限
-        dept_checked = RoleMenuButtonPermission.objects.filter(
-            role_id=role_id, menu_button_id=menu_button_id
-        ).values_list('dept', flat=True)
         # 当前登录用户角色可以分配的自定义部门权限
         dept_checked_disabled = RoleMenuButtonPermission.objects.filter(
             role_id__in=role_list, menu_button_id=menu_button_id
         ).values_list('dept', flat=True)
-
         dept_list = Dept.objects.values('id', 'name', 'parent')
-        data = {
-            'depts': [],
-            'dept_checked': [i for i in dept_checked if i is not None]
-        }
 
+        data = []
         for dept in dept_list:
             dept["disabled"] = False if is_superuser else dept["id"] not in dept_checked_disabled
-            data['depts'].append(dept)
+            data.append(dept)
         return DetailResponse(data=data)
 
     @action(methods=['get'], detail=False, permission_classes=[IsAuthenticated])
