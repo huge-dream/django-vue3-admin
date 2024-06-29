@@ -198,6 +198,8 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         params = request.query_params
         # 需要授权的角色信息
         current_role = params.get('role', None)
+        # 当前登录用户的角色
+        role_list = request.user.role.values_list('id', flat=True)
         if current_role is None:
             return ErrorResponse(msg='参数错误')
         is_superuser = request.user.is_superuser
@@ -239,24 +241,33 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
                         if rolemenubuttonpermission_queryset
                         else None,
                         'isCheck': bool(rolemenubuttonpermission_queryset),
+                        'dept': rolemenubuttonpermission_queryset.dept.all().values_list('id', flat=True)
+                        if rolemenubuttonpermission_queryset
+                        else [],
                     }
                 )
-
             for column_item in menu_item.menufield_set.all():
+                # 需要授权角色已拥有的列权限
                 fieldpermission_queryset = column_item.menu_field.filter(role_id=current_role).first()
-                query = fieldpermission_queryset.is_query if fieldpermission_queryset else None
-                create = fieldpermission_queryset.is_create if fieldpermission_queryset else None
-                update = fieldpermission_queryset.is_update if fieldpermission_queryset else None
+                is_query = fieldpermission_queryset.is_query if fieldpermission_queryset else None
+                is_create = fieldpermission_queryset.is_create if fieldpermission_queryset else None
+                is_update = fieldpermission_queryset.is_update if fieldpermission_queryset else None
+                # 当前登录用户角色可分配的列权限
+                fieldpermission_queryset_disabled = column_item.menu_field.filter(role_id__in=role_list).first()
+                disabled_query = fieldpermission_queryset_disabled.is_query if fieldpermission_queryset else None
+                disabled_create = fieldpermission_queryset_disabled.is_create if fieldpermission_queryset else None
+                disabled_update = fieldpermission_queryset_disabled.is_update if fieldpermission_queryset else None
+
                 dicts['columns'].append({
                     'id': column_item.id,
                     'field_name': column_item.field_name,
                     'title': column_item.title,
-                    'is_query': query,
-                    'is_create': create,
-                    'is_update': update,
-                    'disabled_query': False if is_superuser else not query,
-                    'disabled_create': False if is_superuser else not create,
-                    'disabled_update': False if is_superuser else not update,
+                    'is_query': is_query,
+                    'is_create': is_create,
+                    'is_update': is_update,
+                    'disabled_query': False if is_superuser else not disabled_query,
+                    'disabled_create': False if is_superuser else not disabled_create,
+                    'disabled_update': False if is_superuser else not disabled_update,
                 })
             result.append(dicts)
         return DetailResponse(data=result)
@@ -375,20 +386,20 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         """
         is_superuser = request.user.is_superuser
         params = request.query_params
-        role_id = params.get('role')
+        # 当前登录用户的角色
+        role_list = request.user.role.values_list('id', flat=True)
+
         menu_button_id = params.get('menu_button')
-        dept_checked = RoleMenuButtonPermission.objects.filter(
-            role_id=role_id, menu_button_id=menu_button_id
+        # 当前登录用户角色可以分配的自定义部门权限
+        dept_checked_disabled = RoleMenuButtonPermission.objects.filter(
+            role_id__in=role_list, menu_button_id=menu_button_id
         ).values_list('dept', flat=True)
         dept_list = Dept.objects.values('id', 'name', 'parent')
-        data = {
-            'depts': [],
-            'dept_checked': [i for i in dept_checked if i is not None]
-        }
 
+        data = []
         for dept in dept_list:
-            dept["disabled"] = False if is_superuser else dept["id"] not in dept_checked
-            data['depts'].append(dept)
+            dept["disabled"] = False if is_superuser else dept["id"] not in dept_checked_disabled
+            data.append(dept)
         return DetailResponse(data=data)
 
     @action(methods=['get'], detail=False, permission_classes=[IsAuthenticated])
