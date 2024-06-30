@@ -275,18 +275,12 @@ const handleDialogConfirm = () => {
 		errorNotification('请选择');
 		return;
 	}
-	for (const item of menuData.value) {
-		for (const iterator of item.children) {
-			if (iterator.id === menuCurrent.value.id) {
-				for (const btn of iterator.btns) {
-					if (btn.id === menuBtnCurrent.value) {
-						const findItem = dataPermissionRange.value.find((i) => i.value === dataPermission.value);
-						btn.data_range = findItem?.value || 0;
-						if (btn.data_range === 4) {
-							btn.dept = customDataPermission.value;
-						}
-					}
-				}
+	for (const btn of menuCurrent.value?.btns || []) {
+		if (btn.id === menuBtnCurrent.value) {
+			const findItem = dataPermissionRange.value.find((i) => i.value === dataPermission.value);
+			btn.data_range = findItem?.value || 0;
+			if (btn.data_range === 4) {
+				btn.dept = customDataPermission.value;
 			}
 		}
 	}
