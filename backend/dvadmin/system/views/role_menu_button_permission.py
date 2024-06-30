@@ -249,14 +249,14 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
             for column_item in menu_item.menufield_set.all():
                 # 需要授权角色已拥有的列权限
                 fieldpermission_queryset = column_item.menu_field.filter(role_id=current_role).first()
-                is_query = fieldpermission_queryset.is_query if fieldpermission_queryset else None
-                is_create = fieldpermission_queryset.is_create if fieldpermission_queryset else None
-                is_update = fieldpermission_queryset.is_update if fieldpermission_queryset else None
+                is_query = fieldpermission_queryset.is_query if fieldpermission_queryset else False
+                is_create = fieldpermission_queryset.is_create if fieldpermission_queryset else False
+                is_update = fieldpermission_queryset.is_update if fieldpermission_queryset else False
                 # 当前登录用户角色可分配的列权限
                 fieldpermission_queryset_disabled = column_item.menu_field.filter(role_id__in=role_list).first()
-                disabled_query = fieldpermission_queryset_disabled.is_query if fieldpermission_queryset else None
-                disabled_create = fieldpermission_queryset_disabled.is_create if fieldpermission_queryset else None
-                disabled_update = fieldpermission_queryset_disabled.is_update if fieldpermission_queryset else None
+                disabled_query = fieldpermission_queryset_disabled.is_query if fieldpermission_queryset_disabled else True
+                disabled_create = fieldpermission_queryset_disabled.is_create if fieldpermission_queryset_disabled else True
+                disabled_update = fieldpermission_queryset_disabled.is_update if fieldpermission_queryset_disabled else True
 
                 dicts['columns'].append({
                     'id': column_item.id,
