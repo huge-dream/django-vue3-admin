@@ -112,8 +112,6 @@ import { lazyLoadMenu, AddObj, UpdateObj } from '../../api';
 import { successNotification } from '/@/utils/message';
 import { MenuFormDataType, MenuTreeItemType, ComponentFileItem, APIResponseData } from '../../types';
 import type Node from 'element-plus/es/components/tree/src/model/node';
-import { log } from 'console';
-import XEUtils from 'xe-utils';
 
 interface IProps {
 	initFormData: Partial<MenuTreeItemType> | null;
