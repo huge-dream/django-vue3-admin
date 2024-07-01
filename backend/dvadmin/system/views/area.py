@@ -3,6 +3,7 @@ from django.db.models import Q
 from rest_framework import serializers
 
 from dvadmin.system.models import Area
+from dvadmin.utils.field_permission import FieldPermissionMixin
 from dvadmin.utils.json_response import SuccessResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
@@ -14,13 +15,16 @@ class AreaSerializer(CustomModelSerializer):
     """
     pcode_count = serializers.SerializerMethodField(read_only=True)
     hasChild = serializers.SerializerMethodField()
+
     def get_pcode_count(self, instance: Area):
         return Area.objects.filter(pcode=instance).count()
+
     def get_hasChild(self, instance):
         hasChild = Area.objects.filter(pcode=instance.code)
         if hasChild:
             return True
         return False
+
     class Meta:
         model = Area
         fields = "__all__"
@@ -37,7 +41,7 @@ class AreaCreateUpdateSerializer(CustomModelSerializer):
         fields = '__all__'
 
 
-class AreaViewSet(CustomModelViewSet):
+class AreaViewSet(CustomModelViewSet, FieldPermissionMixin):
     """
     地区管理接口
     list:查询
@@ -65,4 +69,3 @@ class AreaViewSet(CustomModelViewSet):
         else:
             queryset = self.queryset.filter(enable=True)
         return queryset
-
