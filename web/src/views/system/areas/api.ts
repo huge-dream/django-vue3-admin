@@ -39,3 +39,9 @@ export function DelObj(id: DelReq) {
 		data: { id },
 	});
 }
+export function GetPermission() {
+    return request({
+        url: apiPrefix + 'field_permission/',
+        method: 'get',
+    });
+}

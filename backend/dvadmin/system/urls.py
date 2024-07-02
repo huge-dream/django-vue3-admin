@@ -35,6 +35,7 @@ system_url.register(r'message_center', MessageCenterViewSet)
 system_url.register(r'role_menu_button_permission', RoleMenuButtonPermissionViewSet)
 system_url.register(r'role_menu_permission', RoleMenuPermissionViewSet)
 system_url.register(r'column', MenuFieldViewSet)
+system_url.register(r'login_log', LoginLogViewSet)
 
 
 urlpatterns = [
@@ -44,8 +45,8 @@ urlpatterns = [
     path('system_config/get_association_table/', SystemConfigViewSet.as_view({'get': 'get_association_table'})),
     path('system_config/get_table_data/<int:pk>/', SystemConfigViewSet.as_view({'get': 'get_table_data'})),
     path('system_config/get_relation_info/', SystemConfigViewSet.as_view({'get': 'get_relation_info'})),
-    path('login_log/', LoginLogViewSet.as_view({'get': 'list'})),
-    path('login_log/<int:pk>/', LoginLogViewSet.as_view({'get': 'retrieve'})),
+    # path('login_log/', LoginLogViewSet.as_view({'get': 'list'})),
+    # path('login_log/<int:pk>/', LoginLogViewSet.as_view({'get': 'retrieve'})),
     path('dept_lazy_tree/', DeptViewSet.as_view({'get': 'dept_lazy_tree'})),
     path('clause/privacy.html', PrivacyView.as_view()),
     path('clause/terms_service.html', TermsServiceView.as_view()),

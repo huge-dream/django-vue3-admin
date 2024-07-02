@@ -7,6 +7,7 @@
 @Remark: 按钮权限管理
 """
 from dvadmin.system.models import LoginLog
+from dvadmin.utils.field_permission import FieldPermissionMixin
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
 
@@ -22,7 +23,7 @@ class LoginLogSerializer(CustomModelSerializer):
         read_only_fields = ["id"]
 
 
-class LoginLogViewSet(CustomModelViewSet):
+class LoginLogViewSet(CustomModelViewSet, FieldPermissionMixin):
     """
     登录日志接口
     list:查询
@@ -33,4 +34,4 @@ class LoginLogViewSet(CustomModelViewSet):
     """
     queryset = LoginLog.objects.all()
     serializer_class = LoginLogSerializer
-    extra_filter_class = []
+    # extra_filter_class = []
