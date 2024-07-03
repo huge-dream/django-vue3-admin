@@ -80,6 +80,9 @@ class MessageCenterTargetUserListSerializer(CustomModelSerializer):
     """
     目标用户序列化器-序列化器
     """
+    role_info = DynamicSerializerMethodField()
+    user_info = DynamicSerializerMethodField()
+    dept_info = DynamicSerializerMethodField()
     is_read = serializers.SerializerMethodField()
 
     def get_is_read(self, instance):
@@ -89,6 +92,42 @@ class MessageCenterTargetUserListSerializer(CustomModelSerializer):
         if queryset:
             return queryset.is_read
         return False
+
+    def get_role_info(self, instance, parsed_query):
+        roles = instance.target_role.all()
+        # You can do what ever you want in here
+        # `parsed_query` param is passed to BookSerializer to allow further querying
+        from dvadmin.system.views.role import RoleSerializer
+        serializer = RoleSerializer(
+            roles,
+            many=True,
+            parsed_query=parsed_query
+        )
+        return serializer.data
+
+    def get_user_info(self, instance, parsed_query):
+        users = instance.target_user.all()
+        # You can do what ever you want in here
+        # `parsed_query` param is passed to BookSerializer to allow further querying
+        from dvadmin.system.views.user import UserSerializer
+        serializer = UserSerializer(
+            users,
+            many=True,
+            parsed_query=parsed_query
+        )
+        return serializer.data
+
+    def get_dept_info(self, instance, parsed_query):
+        dept = instance.target_dept.all()
+        # You can do what ever you want in here
+        # `parsed_query` param is passed to BookSerializer to allow further querying
+        from dvadmin.system.views.dept import DeptSerializer
+        serializer = DeptSerializer(
+            dept,
+            many=True,
+            parsed_query=parsed_query
+        )
+        return serializer.data
 
     class Meta:
         model = MessageCenter
