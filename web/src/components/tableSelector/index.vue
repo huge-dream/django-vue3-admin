@@ -2,7 +2,7 @@
 	<el-select
 		popper-class="popperClass"
 		class="tableSelector"
-		:multiple="props.tableConfig.isMultiple"
+		multiple
 		@remove-tag="removeTag"
 		v-model="data"
 		placeholder="请选择"
@@ -117,7 +117,7 @@ const handleSelectionChange = (val: any) => {
 const handleCurrentChange = (val: any) => {
 	const { tableConfig } = props;
 	if (!tableConfig.isMultiple && val) {
-		data.value = val[tableConfig.label];
+		data.value = [val[tableConfig.label]];
 		emit('update:modelValue', val[tableConfig.value]);
 	}
 };

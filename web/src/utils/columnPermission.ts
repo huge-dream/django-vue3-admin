@@ -28,7 +28,6 @@ export const handleColumnPermission = async (func: Function, crudOptions: any,ex
 			if (excludeColumns.includes(item.field_name)) {
 				continue
 			} else if(item.field_name === col) {
-				columns[col].column.show = item['is_query']
 				// 如果列表不可见，则禁止在列设置中选择
                 // 只有列表不可见，才修改列配置，这样才不影响默认的配置
 				if(!item['is_query']){
