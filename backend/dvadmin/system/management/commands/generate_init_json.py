@@ -12,8 +12,7 @@ from django.core.management.base import BaseCommand
 from application.settings import BASE_DIR
 from dvadmin.system.models import Menu, Users, Dept, Role, ApiWhiteList, Dictionary, SystemConfig
 from dvadmin.system.fixtures.initSerializer import UsersInitSerializer, DeptInitSerializer, RoleInitSerializer, \
-    MenuInitSerializer, ApiWhiteListInitSerializer, DictionaryInitSerializer, SystemConfigInitSerializer, \
-    RoleMenuInitSerializer, RoleMenuButtonInitSerializer
+    MenuInitSerializer, ApiWhiteListInitSerializer, DictionaryInitSerializer, SystemConfigInitSerializer
 
 logger = logging.getLogger(__name__)
 
@@ -26,10 +25,11 @@ class Command(BaseCommand):
     只生成某个model的： python3 manage.py generate_init_json users
     """
 
-    def serializer_data(self, serializer, query_set: QuerySet):
+    @staticmethod
+    def serializer_data(serializer, query_set: QuerySet):
         serializer = serializer(query_set, many=True)
         data = json.loads(json.dumps(serializer.data, ensure_ascii=False))
-        with open(os.path.join(BASE_DIR, f'init_{query_set.model._meta.model_name}.json'), 'w') as f:
+        with open(os.path.join(BASE_DIR, f'init_{query_set.model._meta.model_name}.json'), 'w', encoding='utf-8') as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
         return
 

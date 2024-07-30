@@ -246,6 +246,7 @@ export const commonCrudConfig = (options = {
             },
             column: {
                 width: 160,
+                align: 'center',
                 show: options.create_datetime?.table || false,
             },
             form: {

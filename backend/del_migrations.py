@@ -2,7 +2,7 @@
 
 import os
 
-exclude = ["venv"] # 需要排除的文件目录
+exclude = ["venv"]  # 需要排除的文件目录
 for root, dirs, files in os.walk('.'):
     dirs[:] = list(set(dirs) - set(exclude))
     if 'migrations' in dirs:

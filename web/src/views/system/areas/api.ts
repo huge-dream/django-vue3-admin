@@ -2,6 +2,7 @@ import { request } from '/@/utils/service';
 import { UserPageQuery, AddReq, DelReq, EditReq, InfoReq } from '@fast-crud/fast-crud';
 
 export const apiPrefix = '/api/system/area/';
+
 export function GetList(query: UserPageQuery) {
 	return request({
 		url: apiPrefix,
@@ -38,4 +39,10 @@ export function DelObj(id: DelReq) {
 		method: 'delete',
 		data: { id },
 	});
+}
+export function GetPermission() {
+    return request({
+        url: apiPrefix + 'field_permission/',
+        method: 'get',
+    });
 }

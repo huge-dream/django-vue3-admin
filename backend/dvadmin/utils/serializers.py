@@ -6,15 +6,13 @@
 @Created on: 2021/6/1 001 22:47
 @Remark: 自定义序列化器
 """
+from django_restql.mixins import DynamicFieldsMixin
 from rest_framework import serializers
 from rest_framework.fields import empty
 from rest_framework.request import Request
 from rest_framework.serializers import ModelSerializer
-from django.utils.functional import cached_property
-from rest_framework.utils.serializer_helpers import BindingDict
 
 from dvadmin.system.models import Users
-from django_restql.mixins import DynamicFieldsMixin
 
 
 class CustomModelSerializer(DynamicFieldsMixin, ModelSerializer):
@@ -28,7 +26,8 @@ class CustomModelSerializer(DynamicFieldsMixin, ModelSerializer):
     modifier_name = serializers.SerializerMethodField(read_only=True)
     dept_belong_id = serializers.IntegerField(required=False, allow_null=True)
 
-    def get_modifier_name(self, instance):
+    @staticmethod
+    def get_modifier_name(instance):
         if not hasattr(instance, "modifier"):
             return None
         queryset = (
@@ -45,6 +44,9 @@ class CustomModelSerializer(DynamicFieldsMixin, ModelSerializer):
     creator_name = serializers.SlugRelatedField(
         slug_field="name", source="creator", read_only=True
     )
+    creator_jobid = serializers.SlugRelatedField(
+        slug_field="jobid", source="creator", read_only=True
+    )
     # 数据所属部门字段
     dept_belong_id_field_name = "dept_belong_id"
     # 添加默认时间返回格式
@@ -53,6 +55,19 @@ class CustomModelSerializer(DynamicFieldsMixin, ModelSerializer):
     )
     update_datetime = serializers.DateTimeField(
         format="%Y-%m-%d %H:%M:%S", required=False
+    )
+
+    game_name = serializers.SlugRelatedField(
+        slug_field='name', source='game', read_only=True, label='游戏名称'
+    )
+    game_release_date = serializers.SlugRelatedField(
+        slug_field='release_date', source='game', read_only=True, label='游戏发行时间'
+    )
+    channel_name = serializers.SlugRelatedField(
+        slug_field='name', source='channel', read_only=True, label='渠道名称'
+    )
+    research_name = serializers.SlugRelatedField(
+        slug_field='name', source='research', read_only=True, label='研发名称'
     )
 
     def __init__(self, instance=None, data=empty, request=None, **kwargs):
@@ -71,8 +86,8 @@ class CustomModelSerializer(DynamicFieldsMixin, ModelSerializer):
                     validated_data[self.creator_field_id] = self.request.user
 
                 if (
-                    self.dept_belong_id_field_name in self.fields.fields
-                    and validated_data.get(self.dept_belong_id_field_name, None) is None
+                        self.dept_belong_id_field_name in self.fields.fields
+                        and validated_data.get(self.dept_belong_id_field_name, None) is None
                 ):
                     validated_data[self.dept_belong_id_field_name] = getattr(
                         self.request.user, "dept_id", None

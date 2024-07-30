@@ -16,7 +16,12 @@ else:
 
     app = Celery(f"application")
 app.config_from_object('django.conf:settings')
+app.conf.update(
+    enable_utc=False,
+    timezone='Asia/Shanghai',
+)
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
+# app.autodiscover_tasks(['dvadmin3_celery.tasks', 'jtgame.authorization.tasks', 'jtgame.daily_report.tasks'])
 platforms.C_FORCE_ROOT = True
 
 

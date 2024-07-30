@@ -2,6 +2,7 @@
 export default {
     router: {
         home: 'home',
+        home_income: 'home_income',
         system: 'system',
         systemMenu: 'systemMenu',
         systemRole: 'systemRole',

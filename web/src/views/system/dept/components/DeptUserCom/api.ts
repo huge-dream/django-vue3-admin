@@ -5,13 +5,13 @@ type GetListType = PageQuery & { show_all: string };
 
 export const apiPrefix = '/api/system/user/';
 
-export function GetDept(query: PageQuery) {
-	return request({
-		url: '/api/system/dept/dept_lazy_tree/',
-		method: 'get',
-		params: query,
-	});
-}
+// export function GetDept(query: PageQuery) {
+// 	return request({
+// 		url: '/api/system/dept/dept_all/',
+// 		method: 'get',
+// 		params: query,
+// 	});
+// }
 
 export function GetList(query: GetListType) {
 	return request({

@@ -35,7 +35,7 @@ class CoreInitialize:
         if not os.path.isfile(path_file):
             print("文件不存在，跳过初始化")
             return
-        with open(path_file,encoding="utf-8") as f:
+        with open(path_file, encoding="utf-8") as f:
             for data in json.load(f):
                 filter_data = {}
                 # 配置过滤条件,如果有唯一标识字段则使用唯一标识字段，否则使用全部字段

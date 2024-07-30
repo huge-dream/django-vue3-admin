@@ -281,8 +281,7 @@ let uploadHeaders = ref({
 });
 let dialogImageUrl = ref('');
 let dialogImgVisible = ref(false);
-let uploadImgKey = ref(null);
-
+ref(null);
 // 获取数据
 const getInit = () => {
   api.GetList({ parent: props.options.id, limit: 999 }).then((res: any) => {

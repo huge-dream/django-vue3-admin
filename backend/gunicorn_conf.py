@@ -2,6 +2,7 @@
 # coding:utf-8
 # 启动命令：gunicorn -c gunicorn.py application.asgi:application
 import multiprocessing
+
 # 并行工作进程数, int，cpu数量*2+1 推荐进程数
 workers = multiprocessing.cpu_count() * 2 + 1
 # 指定每个进程开启的线程数
@@ -23,10 +24,10 @@ pidfile = './gunicorn.pid'
 # 日志级别，这个日志级别指的是错误日志的级别，而访问日志的级别无法设置
 loglevel = 'info'
 # 设置gunicorn访问日志格式，错误日志无法设置
-access_log_format = '' # worker_class 为 uvicorn.workers.UvicornWorker 时，日志格式为Django的loggers
+access_log_format = ''  # worker_class 为 uvicorn.workers.UvicornWorker 时，日志格式为Django的loggers
 # 监听队列
 backlog = 512
-#进程名
+# 进程名
 proc_name = 'gunicorn_process'
 # 设置超时时间120s，默认为30s。按自己的需求进行设置timeout = 120
 timeout = 120

@@ -13,6 +13,7 @@ import {initBackEndControlRoutes, setRouters} from '/@/router/backEnd';
 import {useFrontendMenuStore} from "/@/stores/frontendMenu";
 import {useTagsViewRoutes} from "/@/stores/tagsViewRoutes";
 import {toRaw} from "vue";
+import {checkVersion} from "/@/utils/upgrade";
 
 /**
  * 1、前端控制路由时：isRequestRoutes 为 false，需要写 roles，需要走 setFilterRoute 方法。
@@ -95,6 +96,8 @@ export function formatTwoStageRoutes(arr: any) {
 
 // 路由加载前
 router.beforeEach(async (to, from, next) => {
+    // 检查浏览器本地版本与线上版本是否一致，判断是否需要刷新页面进行更新
+    await checkVersion()
     NProgress.configure({showSpinner: false});
     if (to.meta.title) NProgress.start();
     const token = Session.get('token');

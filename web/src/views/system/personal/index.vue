@@ -354,7 +354,8 @@ const uploadImg = (data: any) => {
 	api.uploadAvatar(formdata).then((res: any) => {
 		if (res.code === 2000) {
 			selectImgVisible.value = false;
-			state.personalForm.avatar = getBaseURL() + res.data.url;
+			// state.personalForm.avatar = getBaseURL() + res.data.url;
+			state.personalForm.avatar = res.data.url;
 			api.updateUserInfo(state.personalForm).then((res: any) => {
 				successMessage('更新成功');
 				getUserInfo();

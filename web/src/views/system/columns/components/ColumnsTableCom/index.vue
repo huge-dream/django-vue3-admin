@@ -22,7 +22,7 @@
 			<el-pagination
 				v-model:current-page="searchParams.page"
 				v-model:page-size="searchParams.limit"
-				:page-sizes="[5, 10, 20, 50]"
+				:page-sizes="[5, 10, 20, 50, 100, 200, 500, 1000]"
 				:total="state.total"
 				background
 				layout="total, sizes, prev, pager, next, jumper"

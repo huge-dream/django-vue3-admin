@@ -50,7 +50,7 @@ schema_view = get_schema_view(
         license=openapi.License(name="BSD License"),
     ),
     public=True,
-    permission_classes=(permissions.AllowAny,),
+    permission_classes=[permissions.AllowAny],
     generator_class=CustomOpenAPISchemaGenerator,
 )
 # 前端页面映射
@@ -102,15 +102,28 @@ urlpatterns = (
             path("api/login/", LoginView.as_view(), name="token_obtain_pair"),
             path("api/logout/", LogoutView.as_view(), name="token_obtain_pair"),
             path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-            re_path(
-                r"^api-auth/", include("rest_framework.urls", namespace="rest_framework")
-            ),
+            re_path(r"^api-auth/", include("rest_framework.urls", namespace="rest_framework")),
             path("api/captcha/", CaptchaView.as_view()),
             path("api/init/dictionary/", InitDictionaryViewSet.as_view()),
             path("api/init/settings/", InitSettingsViewSet.as_view()),
             path("apiLogin/", ApiLogin.as_view()),
 
             # 仅用于开发，上线需关闭
+            # path("api/token/", LoginTokenView.as_view()),
+
+            # 考勤模块
+            path("api/", include("jtgame.attendance.urls")),
+            # 授权书模块
+            path("api/", include("jtgame.authorization.urls")),
+            # 管理模块
+            path("api/", include("jtgame.game_manage.urls")),
+            # 日报模块
+            path("api/", include("jtgame.daily_report.urls")),
+            # 收入模块
+            path("api/", include("jtgame.income_statement.urls")),
+            # 腾讯文档模块
+            path("api/", include("jtgame.tencent_docx.urls")),
+
             path("api/token/", LoginTokenView.as_view()),
             # 前端页面映射
             path('web/', web_view, name='web_view'),

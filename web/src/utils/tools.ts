@@ -61,8 +61,15 @@ export function errorLog(error: any, notification = true) {
  * @description 创建一个错误
  * @param {String} msg 错误信息
  */
+// export function errorCreate(msg: any, notification = true) {
+// 	const error = new Error(msg);
+// 	errorLog(error, notification);
+// 	// throw error;
+// }
 export function errorCreate(msg: any, notification = true) {
-	const error = new Error(msg);
+	// 去掉消息中的接口路径
+	const cleanMsg = msg.replace(/: api\/[^\s]+/, '');  // 使用正则表达式去掉路径部分
+	const error = new Error(cleanMsg);
 	errorLog(error, notification);
 	// throw error;
 }

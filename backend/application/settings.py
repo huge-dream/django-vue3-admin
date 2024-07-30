@@ -12,8 +12,8 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 import os
 import sys
-from pathlib import Path
 from datetime import timedelta
+from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,6 +29,7 @@ from conf.env import *
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = "django-insecure--z8%exyzt7e_%i@1+#1mm=%lb5=^fx_57=1@a+_y7bg5-w%)sm"
+
 # 初始化plugins插件路径到环境变量中
 PLUGINS_PATH = os.path.join(BASE_DIR, "plugins")
 sys.path.insert(0, os.path.join(PLUGINS_PATH))
@@ -60,6 +61,14 @@ INSTALLED_APPS = [
     "captcha",
     "channels",
     "dvadmin.system",
+    "jtgame.attendance",
+    "jtgame.authorization",
+    "jtgame.game_manage",
+    "jtgame.daily_report",
+    "jtgame.income_statement",
+    "jtgame.tencent_docx",
+    
+    "plugins.dvadmin3_fastcrud"
 ]
 
 MIDDLEWARE = [
@@ -141,7 +150,7 @@ USE_I18N = True
 
 USE_L10N = True
 
-USE_TZ = False
+USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
@@ -155,7 +164,7 @@ STATICFILES_DIRS = [
 MEDIA_ROOT = "media"  # 项目下的目录
 MEDIA_URL = "/media/"  # 跟STATIC_URL类似，指定用户可以通过这个url找到文件
 
-#添加以下代码以后就不用写{% load staticfiles %}，可以直接引用
+# 添加以下代码以后就不用写{% load staticfiles %}，可以直接引用
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
     "django.contrib.staticfiles.finders.AppDirectoriesFinder"
@@ -177,20 +186,19 @@ CORS_ALLOW_CREDENTIALS = True  # 指明在跨域访问中，后端是否支持�
 # ********************* channels配置 ******************* #
 # ===================================================== #
 ASGI_APPLICATION = 'application.asgi.application'
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
-    }
-}
 # CHANNEL_LAYERS = {
-#     'default': {
-#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
-#         'CONFIG': {
-#             "hosts": [('127.0.0.1', 6379)], #需修改
-#         },
-#     },
+#     "default": {
+#         "BACKEND": "channels.layers.InMemoryChannelLayer"
+#     }
 # }
-
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [REDIS_URL],
+        },
+    },
+}
 
 # ================================================= #
 # ********************* 日志配置 ******************* #
@@ -280,6 +288,7 @@ LOGGING = {
 # *************** REST_FRAMEWORK配置 *************** #
 # ================================================= #
 
+# noinspection PyUnresolvedReferences
 REST_FRAMEWORK = {
     'DEFAULT_PARSER_CLASSES': (
         'rest_framework.parsers.JSONParser',
@@ -317,7 +326,7 @@ SIMPLE_JWT = {
     # token刷新后的有效时间
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     # 设置前缀
-    "AUTH_HEADER_TYPES": ("JWT",),
+    "AUTH_HEADER_TYPES": ("CUCKOO",),
     "ROTATE_REFRESH_TOKENS": True,
 }
 
@@ -374,11 +383,12 @@ API_LOG_METHODS = ["POST", "UPDATE", "DELETE", "PUT"]  # ['POST', 'DELETE']
 API_MODEL_MAP = {
     "/token/": "登录模块",
     "/api/login/": "登录模块",
-    "/api/plugins_market/plugins/": "插件市场",
 }
+DATA_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50M
+FILE_UPLOAD_MAX_MEMORY_SIZE = 52428800  # 50M
 
 DJANGO_CELERY_BEAT_TZ_AWARE = False
-CELERY_TIMEZONE = "Asia/Shanghai"  # celery 时区问题
+CELERY_TIMEZONE: str = "Asia/Shanghai"  # celery 时区问题
 # 静态页面压缩
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
@@ -404,11 +414,12 @@ PLUGINS_URL_PATTERNS = []
 # ********** 一键导入插件配置开始 **********
 # 例如:
 # from dvadmin_upgrade_center.settings import *    # 升级中心
-# from dvadmin_celery.settings import *            # celery 异步任务
+from dvadmin3_celery.settings import *            # celery 异步任务
+# from dvadmin_cloud_storage.settings import *      # 云存储
 # from dvadmin_third.settings import *            # 第三方用户管理
 # from dvadmin_ak_sk.settings import *            # 秘钥管理管理
 # from dvadmin_tenants.settings import *            # 租户管理
-#from dvadmin_social_auth.settings import *
-#from dvadmin_uniapp.settings import *
+# from dvadmin_social_auth.settings import *
+# from dvadmin_uniapp.settings import *
 # ...
 # ********** 一键导入插件配置结束 **********

@@ -1,0 +1,136 @@
+*** Starting uWSGI 2.0.26 (64bit) on [Tue Jul  9 17:00:59 2024] ***
+compiled with version: 4.8.5 20150623 (Red Hat 4.8.5-44) on 09 July 2024 08:32:03
+os: Linux-3.10.0-1160.102.1.el7.x86_64 #1 SMP Tue Oct 17 15:42:21 UTC 2023
+nodename: iv-yd6flg737kwuxjsgdfdp
+machine: x86_64
+clock source: unix
+pcre jit disabled
+detected number of CPU cores: 4
+current working directory: /home/Manager_dvadmin/backend
+writing pidfile to /www/server/python_project/vhost/pids/backend.pid
+detected binary path: /www/server/pyporject_evn/backend_venv/bin/uwsgi
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+chdir() to /home/Manager_dvadmin/backend
+your processes number limit is 63940
+your memory page size is 4096 bytes
+detected max file descriptor number: 1024
+lock engine: pthread robust mutexes
+thunder lock: disabled (you can enable it with --thunder-lock)
+uwsgi socket 0 bound to TCP address 127.0.0.1:8000 fd 3
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+Python version: 3.10.14 (main, Jul  9 2024, 16:15:38) [GCC 4.8.5 20150623 (Red Hat 4.8.5-44)]
+Set PythonHome to /www/server/pyporject_evn/backend_venv
+*** Python threads support is disabled. You can enable it with --enable-threads ***
+Python main interpreter initialized at 0x2074490
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+your server socket listen backlog is limited to 100 connections
+your mercy for graceful operations on workers is 60 seconds
+mapped 364600 bytes (356 KB) for 4 cores
+*** Operational MODE: preforking ***
+ModuleNotFoundError: No module named 'backend'
+unable to load app 0 (mountpoint='') (callable not found or import error)
+*** no app loaded. going in full dynamic mode ***
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+*** uWSGI is running in multiple interpreter mode ***
+spawned uWSGI master process (pid: 24437)
+spawned uWSGI worker 1 (pid: 24438, cores: 1)
+spawned uWSGI worker 2 (pid: 24439, cores: 1)
+spawned uWSGI worker 3 (pid: 24440, cores: 1)
+spawned uWSGI worker 4 (pid: 24441, cores: 1)
+invalid request block size: 21573 (max 4096)...skip
+invalid request block size: 21573 (max 4096)...skip
+invalid request block size: 21573 (max 4096)...skip
+invalid request block size: 21573 (max 4096)...skip
+SIGINT/SIGTERM received...killing workers...
+*** Starting uWSGI 2.0.26 (64bit) on [Tue Jul  9 17:01:31 2024] ***
+compiled with version: 4.8.5 20150623 (Red Hat 4.8.5-44) on 09 July 2024 08:32:03
+os: Linux-3.10.0-1160.102.1.el7.x86_64 #1 SMP Tue Oct 17 15:42:21 UTC 2023
+nodename: iv-yd6flg737kwuxjsgdfdp
+machine: x86_64
+clock source: unix
+pcre jit disabled
+detected number of CPU cores: 4
+current working directory: /home/Manager_dvadmin/backend
+writing pidfile to /www/server/python_project/vhost/pids/backend.pid
+detected binary path: /www/server/pyporject_evn/backend_venv/bin/uwsgi
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+chdir() to /home/Manager_dvadmin/backend
+your processes number limit is 63940
+your memory page size is 4096 bytes
+detected max file descriptor number: 1024
+lock engine: pthread robust mutexes
+thunder lock: disabled (you can enable it with --thunder-lock)
+uwsgi socket 0 bound to TCP address 127.0.0.1:8000 fd 3
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+Python version: 3.10.14 (main, Jul  9 2024, 16:15:38) [GCC 4.8.5 20150623 (Red Hat 4.8.5-44)]
+Set PythonHome to /www/server/pyporject_evn/backend_venv
+*** Python threads support is disabled. You can enable it with --enable-threads ***
+Python main interpreter initialized at 0x29e5490
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+your server socket listen backlog is limited to 100 connections
+your mercy for graceful operations on workers is 60 seconds
+mapped 364600 bytes (356 KB) for 4 cores
+*** Operational MODE: preforking ***
+ModuleNotFoundError: No module named 'backend'
+unable to load app 0 (mountpoint='') (callable not found or import error)
+*** no app loaded. going in full dynamic mode ***
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+*** uWSGI is running in multiple interpreter mode ***
+spawned uWSGI master process (pid: 24520)
+spawned uWSGI worker 1 (pid: 24521, cores: 1)
+spawned uWSGI worker 2 (pid: 24522, cores: 1)
+spawned uWSGI worker 3 (pid: 24523, cores: 1)
+spawned uWSGI worker 4 (pid: 24524, cores: 1)
+*** Starting uWSGI 2.0.26 (64bit) on [Tue Jul  9 17:03:08 2024] ***
+compiled with version: 4.8.5 20150623 (Red Hat 4.8.5-44) on 09 July 2024 08:32:03
+os: Linux-3.10.0-1160.102.1.el7.x86_64 #1 SMP Tue Oct 17 15:42:21 UTC 2023
+nodename: iv-yd6flg737kwuxjsgdfdp
+machine: x86_64
+clock source: unix
+pcre jit disabled
+detected number of CPU cores: 4
+current working directory: /home/Manager_dvadmin/backend
+writing pidfile to /www/server/python_project/vhost/pids/backend.pid
+detected binary path: /www/server/pyporject_evn/backend_venv/bin/uwsgi
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+chdir() to /home/Manager_dvadmin/backend/application
+your processes number limit is 63940
+your memory page size is 4096 bytes
+detected max file descriptor number: 1024
+lock engine: pthread robust mutexes
+thunder lock: disabled (you can enable it with --thunder-lock)
+uwsgi socket 0 bound to TCP address 127.0.0.1:8000 fd 3
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+Python version: 3.10.14 (main, Jul  9 2024, 16:15:38) [GCC 4.8.5 20150623 (Red Hat 4.8.5-44)]
+Set PythonHome to /www/server/pyporject_evn/backend_venv
+*** Python threads support is disabled. You can enable it with --enable-threads ***
+Python main interpreter initialized at 0x1fe4490
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+your server socket listen backlog is limited to 100 connections
+your mercy for graceful operations on workers is 60 seconds
+mapped 364600 bytes (356 KB) for 4 cores
+*** Operational MODE: preforking ***
+ModuleNotFoundError: No module named 'application'
+unable to load app 0 (mountpoint='') (callable not found or import error)
+*** no app loaded. going in full dynamic mode ***
+uWSGI running as root, you can use --uid/--gid/--chroot options
+*** WARNING: you are running uWSGI as root !!! (use the --uid flag) *** 
+*** uWSGI is running in multiple interpreter mode ***
+spawned uWSGI master process (pid: 24633)
+spawned uWSGI worker 1 (pid: 24634, cores: 1)
+spawned uWSGI worker 2 (pid: 24635, cores: 1)
+spawned uWSGI worker 3 (pid: 24636, cores: 1)
+spawned uWSGI worker 4 (pid: 24637, cores: 1)
+invalid request block size: 21573 (max 4096)...skip
+SIGINT/SIGTERM received...killing workers...

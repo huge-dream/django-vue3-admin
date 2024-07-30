@@ -10,9 +10,9 @@
 				</div>
 			</div>
 			<div class="login-left-img">
-				<img :src="loginMain" />
+				<img :src="loginMain"  alt=""/>
 			</div>
-			<img :src="loginBg" class="login-left-waves" />
+			<img :src="loginBg" class="login-left-waves"  alt=""/>
 		</div>
 		<div class="login-right flex z-10">
 			<div class="login-right-warp flex-margin">
@@ -44,12 +44,12 @@
 		</div>
 
 		<div class="login-authorization z-10">
-			<p>Copyright © {{ getSystemConfig['login.copyright'] || '2021-2024 django-vue-admin.com' }} 版权所有</p>
+			<p>Copyright © {{ getSystemConfig['login.copyright'] || '2024 cuckoo不咕鸟' }} 版权所有</p>
 			<p class="la-other">
 				<a href="https://beian.miit.gov.cn" target="_blank">{{ getSystemConfig['login.keep_record'] ||
-					'晋ICP备18005113号-3' }}</a>
+					'' }}</a>
 				|
-				<a :href="getSystemConfig['login.help_url'] ? getSystemConfig['login.help_url'] : 'https://django-vue-admin.com'"
+				<a :href="getSystemConfig['login.help_url'] ? getSystemConfig['login.help_url'] : 'http://jingtanggame.com/'"
 					target="_blank">帮助</a>
 				|
 				<a
@@ -61,7 +61,7 @@
 		</div>
 	</div>
 	<div v-if="siteBg">
-		<img :src="siteBg" class="fixed inset-0 z-1 w-full h-full" />
+		<img :src="siteBg" class="fixed inset-0 z-1 w-full h-full"  alt=""/>
 	</div>
 </template>
 

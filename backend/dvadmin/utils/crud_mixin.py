@@ -82,11 +82,11 @@ class FastCrudMixin:
                 result.append({"key": __name, "title": __verbose_name, "type": __type})
         return result
 
-    #获取key
-    def __find_key(self,dct: dict,
-                 target_key: str,
-                 level: int = -1,
-                 index: int = -1) -> tuple:
+    # 获取key
+    def __find_key(self, dct: dict,
+                   target_key: str,
+                   level: int = -1,
+                   index: int = -1) -> tuple:
         """Find a key within a nested dictionary and return its level and index."""
         for k, v in dct.items():
             level += 1
@@ -105,9 +105,9 @@ class FastCrudMixin:
                 continue
 
     # 修改字典中key的value
-    def __update_nested_dict(self,nested_dict: dict,
-                           target_key: str,
-                           new_value) -> dict:
+    def __update_nested_dict(self, nested_dict: dict,
+                             target_key: str,
+                             new_value) -> dict:
         """Update a nested dictionary with a new value."""
         split_target_key = target_key.split('.')
         if len(split_target_key) > 1:
@@ -133,14 +133,15 @@ class FastCrudMixin:
                 "type": type
             }
         # 对自定义的crud配置合并
-        if self.custom_crud_json and isinstance(self.custom_crud_json,dict):
+        if self.custom_crud_json and isinstance(self.custom_crud_json, dict):
             columns = columns | self.custom_crud_json
         # 对curd进行修改配置
-        if self.crud_update_key_value and isinstance(self.crud_update_key_value,dict):
+        if self.crud_update_key_value and isinstance(self.crud_update_key_value, dict):
             for key, value in self.crud_update_key_value.items():
-                columns = self.__update_nested_dict(columns,key,value)
+                columns = self.__update_nested_dict(columns, key, value)
         return columns
-    @action(methods=['get'], detail=False,permission_classes=[AllowAny])
+
+    @action(methods=['get'], detail=False, permission_classes=[AllowAny])
     def init_crud(self, request):
         self.permission_classes = [AllowAny]
         columns = self.__handle_crud()

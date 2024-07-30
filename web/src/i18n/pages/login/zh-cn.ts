@@ -9,8 +9,8 @@ export default {
 		two4: '友情链接',
 	},
 	account: {
-		accountPlaceholder1: '请输入登录账号',
-		accountPlaceholder2: '请输入登录密码',
+		accountPlaceholder1: '请输入登录账号/邮箱/手机号',
+		accountPlaceholder2: '请输入登录密码（默认密码为admin123456）',
 		accountPlaceholder3: '请输入验证码',
 		accountBtnText: '登 录',
 	},
@@ -22,7 +22,7 @@ export default {
 		msgText: '* 温馨提示：建议使用谷歌、Microsoft Edge，版本 79.0.1072.62 及以上浏览器，360浏览器请使用极速模式',
 	},
 	scan: {
-		text: '打开手机扫一扫，快速登录/注册',
+		text: '感谢使用 ——By.Cuckoo',
 	},
 	signInText: '欢迎回来！',
 };

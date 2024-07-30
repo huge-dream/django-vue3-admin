@@ -1,12 +1,9 @@
 import hashlib
-import mimetypes
 
 from rest_framework import serializers
-from rest_framework.decorators import action
 
 from application import dispatch
 from dvadmin.system.models import FileList
-from dvadmin.utils.json_response import DetailResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
 
@@ -15,8 +12,15 @@ class FileSerializer(CustomModelSerializer):
     url = serializers.SerializerMethodField(read_only=True)
 
     def get_url(self, instance):
-        # return 'media/' + str(instance.url)
-        return instance.file_url or (f'media/{str(instance.url)}')
+        # base_url = f"{self.request.scheme}://{self.request.get_host()}/"
+        base_url = dispatch.get_system_config_values(
+            "base.base_url") or f"{self.request.scheme}://{self.request.get_host()}/"
+        print(f"base_url: {base_url}\n"
+              f"instance.url: {instance.url}\n"
+              f"instance.file_url: {instance.file_url}")
+        if str(instance.url).startswith('http'):
+            return instance.url
+        return base_url + (instance.file_url or f'media/{str(instance.url)}')
 
     class Meta:
         model = FileList

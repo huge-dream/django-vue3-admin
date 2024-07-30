@@ -10,7 +10,7 @@ export default {
 	},
 	account: {
 		accountPlaceholder1: '請輸入登入賬號',
-		accountPlaceholder2: '請輸入登入密碼',
+		accountPlaceholder2: '請輸入登入密碼（默认密碼为admin123456）',
 		accountPlaceholder3: '請輸入驗證碼',
 		accountBtnText: '登入',
 	},

@@ -27,9 +27,6 @@ class DictionarySerializer(CustomModelSerializer):
         read_only_fields = ["id"]
 
 
-
-
-
 class DictionaryCreateUpdateSerializer(CustomModelSerializer):
     """
     字典管理 创建/更新时的列化器
@@ -41,9 +38,9 @@ class DictionaryCreateUpdateSerializer(CustomModelSerializer):
         在父级的字典编号验证重复性
         """
         initial_data = self.initial_data
-        parent = initial_data.get('parent',None)
+        parent = initial_data.get('parent', None)
         if parent is None:
-            unique =  Dictionary.objects.filter(value=value).exists()
+            unique = Dictionary.objects.filter(value=value).exists()
             if unique:
                 raise serializers.ValidationError("字典编号不能重复")
         return value
@@ -69,7 +66,7 @@ class DictionaryViewSet(CustomModelViewSet):
     search_fields = ['label']
 
     def get_queryset(self):
-        if self.action =='list':
+        if self.action == 'list':
             params = self.request.query_params
             parent = params.get('parent', None)
             if params:

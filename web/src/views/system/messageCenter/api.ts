@@ -24,7 +24,7 @@ export function GetObj(id: InfoReq) {
  * @returns {*}
  * @constructor
  */
-export function GetSelfReceive (query:PageQuery) {
+export function GetSelfReceive(query: PageQuery) {
     return request({
         url: apiPrefix + 'get_self_receive/',
         method: 'get',
@@ -39,8 +39,6 @@ export function AddObj(obj: AddReq) {
         data: obj,
     });
 }
-
-
 
 
 export function UpdateObj(obj: EditReq) {

@@ -84,7 +84,14 @@ class DvadminWebSocket(AsyncJsonWebsocketConsumer):
     async def disconnect(self, close_code):
         # Leave room group
         await self.channel_layer.group_discard(self.chat_group_name, self.channel_name)
-        print("连接关闭")
+        log_message = "用户{}已下线".format(self.user_id)
+        await self.channel_layer.group_send(
+            self.chat_group_name,
+            {
+                'type': 'chat.message',
+                'message': set_message('system', 'SYSTEM', log_message)
+            }
+        )
         try:
             await self.close(close_code)
         except Exception:

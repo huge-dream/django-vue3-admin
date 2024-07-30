@@ -82,7 +82,7 @@ function createService() {
 						ElMessageBox.alert(dataAxios.msg, '提示', {
 							confirmButtonText: 'OK',
 							callback: (action: Action) => {
-								window.location.reload();
+								// window.location.reload();
 							},
 						});
 						errorCreate(`${dataAxios.msg}: ${response.config.url}`);
@@ -173,7 +173,7 @@ function createRequestFunction(service: any) {
 			headers: {
 				'Content-Type': get(config, 'headers.Content-Type', 'application/json'),
 			},
-			timeout: 5000,
+			timeout: 300000,
 			baseURL: getBaseURL(),
 			data: {},
 		};
@@ -182,7 +182,7 @@ function createRequestFunction(service: any) {
 		const token = Session.get('token');
 		if (token != null) {
 			// @ts-ignore
-			configDefault.headers.Authorization = 'JWT ' + token;
+			configDefault.headers.Authorization = 'CUCKOO ' + token;
 		}
 		return service(Object.assign(configDefault, config));
 	};

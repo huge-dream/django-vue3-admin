@@ -1,0 +1,40 @@
+{
+  "name": "dvadmin3-celery-web",
+  "version": "1.0.2",
+  "description": "适用于django-vue3-admin的celery定时任务前端插件",
+  "private": false,
+  "type": "module",
+  "files": [
+    "dist"
+  ],
+  "main": "./dist/dvadmin3-celery-web.umd.cjs",
+  "module": "./dist/dvadmin3-celery-web.js",
+  "exports": {
+    "./dist/style.css": "./dist/style.css",
+    "./css": "./dist/style.css",
+    ".": {
+      "import": "./dist/dvadmin3-celery-web.js",
+      "require": "./dist/dvadmin3-celery-web.umd.cjs"
+    }
+  },
+  "scripts": {
+    "dev": "vite --port 9000 --open --force",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build-only": "vite build --watch",
+    "type-check": "vue-tsc --noEmit",
+    "lint": "eslint . --ext .vue,.js,.jsx,.cjs,.mjs,.ts,.tsx,.cts,.mts --fix --ignore-path .gitignore"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://gitee.com/huge-dream/dvadmin3-celery-web.git"
+  },
+  "keywords": [
+    "dvadmin",
+    "dvadmin3",
+    "django-vue3-admin",
+    "celery-web"
+  ],
+  "author": "H0nGzA1",
+  "license": "MIT"
+}

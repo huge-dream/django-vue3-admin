@@ -5,7 +5,7 @@ export const apiPrefix = '/api/system/user/';
 
 export function GetDept(query: PageQuery) {
     return request({
-        url: "/api/system/dept/dept_lazy_tree/",
+        url: "/api/system/dept/all_dept/",
         method: 'get',
         params: query,
     });
