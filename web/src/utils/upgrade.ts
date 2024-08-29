@@ -29,7 +29,7 @@ export async function checkVersion(){
         return
     }
     // 获取线上版本号 t为时间戳，防止缓存
-    await axios.get(`/${VERSION_FILE_NAME}?t=${new Date().getTime()}`).then(res => {
+    await axios.get(`${import.meta.env.VITE_PUBLIC_PATH}${VERSION_FILE_NAME}?t=${new Date().getTime()}`).then(res => {
         const {status, data} = res || {}
         if (status === 200) {
             // 获取当前版本号
