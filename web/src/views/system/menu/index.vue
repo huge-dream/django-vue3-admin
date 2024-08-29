@@ -138,7 +138,7 @@ onMounted(() => {
 .menu-box {
 	height: 100%;
 	padding: 10px;
-	background-color: #fff;
+	background-color: var(--el-fill-color-blank);;
 	box-sizing: border-box;
 }
 
