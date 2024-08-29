@@ -216,9 +216,13 @@ def get_all_models_objects(model_name=None):
 def get_model_from_app(app_name):
     """获取模型里的字段"""
     model_module = import_module(app_name + '.models')
+    exclude_models = getattr(model_module, 'exclude_models', [])
     filter_model = [
-        getattr(model_module, item) for item in dir(model_module)
-        if item != 'CoreModel' and issubclass(getattr(model_module, item).__class__, models.base.ModelBase)
+        value for key, value in model_module.__dict__.items()
+        if key != 'CoreModel'
+        and isinstance(value, type)
+        and issubclass(value, models.Model)
+        and key not in exclude_models
     ]
     model_list = []
     for model in filter_model:
