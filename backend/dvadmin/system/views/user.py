@@ -330,6 +330,10 @@ class UserViewSet(CustomModelViewSet):
         if not verify_password:
             old_pwd_md5 = hashlib.md5(old_pwd.encode(encoding='UTF-8')).hexdigest()
             verify_password = check_password(str(old_pwd_md5), request.user.password)
+            # 创建用户时、自定义密码无法修改问题
+            if not verify_password:
+                old_pwd_md5 = hashlib.md5(old_pwd_md5.encode(encoding='UTF-8')).hexdigest()
+                verify_password = check_password(str(old_pwd_md5), request.user.password)
         if verify_password:
             request.user.password = make_password(hashlib.md5(new_pwd.encode(encoding='UTF-8')).hexdigest())
             request.user.save()
