@@ -124,6 +124,7 @@ class LoginSerializer(TokenObtainPairSerializer):
                 user.is_active = False
                 user.save()
                 raise CustomValidationError("账号已被锁定,联系管理员解锁")
+            user.save()
             count = 5 - user.login_error_count
             raise CustomValidationError(f"账号/密码错误;重试{count}次后将被锁定~")
 
