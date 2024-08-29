@@ -153,7 +153,7 @@
 				center
 			>
 				<el-form-item label="原密码" required prop="oldPassword">
-					<el-input v-model="userPasswordInfo.oldPassword" placeholder="请输入原始密码" clearable></el-input>
+					<el-input type="password" v-model="userPasswordInfo.oldPassword" placeholder="请输入原始密码" show-password clearable></el-input>
 				</el-form-item>
 				<el-form-item required prop="newPassword" label="新密码">
 					<el-input type="password" v-model="userPasswordInfo.newPassword" placeholder="请输入新密码" show-password clearable></el-input>
