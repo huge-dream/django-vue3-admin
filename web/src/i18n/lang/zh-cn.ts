@@ -19,6 +19,7 @@ export default {
         loginLog: '登录日志',
         operationLog: '操作日志',
         systemApiWhiteList: '接口白名单',
+        messageCenter: '消息中心',
         limits: '权限管理',
         limitsFrontEnd: '前端控制',
         limitsFrontEndPage: '页面权限',
@@ -26,6 +27,15 @@ export default {
         limitsBackEnd: '后端控制',
         limitsBackEndEndPage: '页面权限',
         personal: '个人中心',
+        /* 客服中心 */
+        kefuCenter: '客服中心',
+        kefuUser: '坐席管理',
+        kefuGroup: '群组管理',
+        kefuTrunk: '线路管理',
+        kefuNumber: '号码管理',
+        kefuCustomer: '客户管理',
+        kefuAsr: '录音质检',
+        kefuRecord: '通话记录',
     },
     staticRoutes: {
         signIn: '登录',
@@ -143,4 +153,28 @@ export default {
         btnTwo: '马上更新',
         btnTwoLoading: '更新中',
     },
+    menu: {
+        searchPlaceholder: "请输入菜单名称",
+        menuList: "菜单列表",
+        tooltipContent: "1.红色菜单代表状态禁用; 2.添加菜单，如果是目录，组件地址为空即可; 3.添加根节点菜单，父级ID为空即可; 4.支持拖拽菜单;",
+        create: "新增",
+        edit: "编辑",
+        moveUp: "上移",
+        moveDown: "下移",
+        delete: "删除",
+        selectMenu: "请选择菜单！",
+        enterPermission: "按钮权限配置",
+        listPermission: "列表权限配置"
+    },
+    permission: {
+        keyword: "关键词",
+        serial: "序号",
+        name: "权限名称",
+        value: "权限值",
+        method: "请求方式",
+        address: "接口地址",
+        zhName: "中文名称",
+        field: "字段名称",
+        auto: "自动匹配"
+    }
 };

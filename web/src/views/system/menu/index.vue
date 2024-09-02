@@ -14,19 +14,20 @@
 			</el-col>
 
 			<el-col :span="18">
-        <el-tabs type="border-card">
-          <el-tab-pane label="按钮权限配置" >
-            <div style="height: 80vh">
-              <MenuButtonCom ref="menuButtonRef" />
-            </div>
-          </el-tab-pane>
-          <el-tab-pane label="列权限配置">
-            <div style="height: 80vh">
-              <MenuFieldCom ref="menuFieldRef"></MenuFieldCom>
-            </div>
-          </el-tab-pane>
-        </el-tabs>
-
+                <el-tabs type="border-card">
+                <!-- <el-tab-pane label="按钮权限配置" > -->
+                <el-tab-pane :label="proxy.$t('message.menu.enterPermission')">
+                    <div style="height: 80vh">
+                        <MenuButtonCom ref="menuButtonRef" />
+                    </div>
+                </el-tab-pane>
+                <!-- <el-tab-pane label="列权限配置"> -->
+                <el-tab-pane :label="proxy.$t('message.menu.listPermission')">
+                    <div style="height: 80vh">
+                        <MenuFieldCom ref="menuFieldRef"></MenuFieldCom>
+                    </div>
+                </el-tab-pane>
+                </el-tabs>
 			</el-col>
 		</el-row>
 
@@ -43,7 +44,7 @@
 </template>
 
 <script lang="ts" setup name="menuPages">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, getCurrentInstance } from 'vue';
 import XEUtils from 'xe-utils';
 import { ElMessageBox } from 'element-plus';
 import MenuTreeCom from './components/MenuTreeCom/index.vue';
@@ -117,6 +118,8 @@ const handleDeleteMenu = (id: string, callback: Function) => {
 		}
 	});
 };
+
+const { proxy }= getCurrentInstance();
 
 onMounted(() => {
 	getData();

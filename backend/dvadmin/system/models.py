@@ -157,6 +157,7 @@ class Menu(CoreModel):
     )
     icon = models.CharField(max_length=64, verbose_name="菜单图标", null=True, blank=True, help_text="菜单图标")
     name = models.CharField(max_length=64, verbose_name="菜单名称", help_text="菜单名称")
+    value = models.CharField(max_length=64, verbose_name="菜单标识", help_text="菜单标识", null=True)
     sort = models.IntegerField(default=1, verbose_name="显示排序", null=True, blank=True, help_text="显示排序")
     ISLINK_CHOICES = (
         (0, "否"),
@@ -196,26 +197,31 @@ class Menu(CoreModel):
                     cls.get_all_parent(parent_id, all_list, nodes)
                 nodes.append(ele)
         return nodes
+
     class Meta:
         db_table = table_prefix + "system_menu"
         verbose_name = "菜单表"
         verbose_name_plural = verbose_name
         ordering = ("sort",)
 
+
 class MenuField(CoreModel):
     model = models.CharField(max_length=64, verbose_name='表名')
     menu = models.ForeignKey(to='Menu', on_delete=models.CASCADE, verbose_name='菜单', db_constraint=False)
     field_name = models.CharField(max_length=64, verbose_name='模型表字段名')
     title = models.CharField(max_length=64, verbose_name='字段显示名')
+
     class Meta:
         db_table = table_prefix + "system_menu_field"
         verbose_name = "菜单字段表"
         verbose_name_plural = verbose_name
         ordering = ("id",)
 
+
 class FieldPermission(CoreModel):
     role = models.ForeignKey(to='Role', on_delete=models.CASCADE, verbose_name='角色', db_constraint=False)
-    field = models.ForeignKey(to='MenuField', on_delete=models.CASCADE,related_name='menu_field', verbose_name='字段', db_constraint=False)
+    field = models.ForeignKey(to='MenuField', on_delete=models.CASCADE, related_name='menu_field', verbose_name='字段',
+                              db_constraint=False)
     is_query = models.BooleanField(default=1, verbose_name='是否可查询')
     is_create = models.BooleanField(default=1, verbose_name='是否可创建')
     is_update = models.BooleanField(default=1, verbose_name='是否可更新')
@@ -399,7 +405,7 @@ def media_file_name(instance, filename):
 
 class FileList(CoreModel):
     name = models.CharField(max_length=200, null=True, blank=True, verbose_name="名称", help_text="名称")
-    url = models.FileField(upload_to=media_file_name, null=True, blank=True,)
+    url = models.FileField(upload_to=media_file_name, null=True, blank=True, )
     file_url = models.CharField(max_length=255, blank=True, verbose_name="文件地址", help_text="文件地址")
     engine = models.CharField(max_length=100, default='local', blank=True, verbose_name="引擎", help_text="引擎")
     mime_type = models.CharField(max_length=100, blank=True, verbose_name="Mime类型", help_text="Mime类型")
