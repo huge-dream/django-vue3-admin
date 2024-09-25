@@ -114,7 +114,7 @@ cd web
 
 # 安装依赖
 npm install yarn
-yarn install --registry=https://registry.npm.taobao.org
+yarn install --registry=https://registry.npmmirror.com
 
 # 启动服务
 yarn build

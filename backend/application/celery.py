@@ -15,7 +15,7 @@ else:
     from celery import Celery
 
     app = Celery(f"application")
-app.config_from_object('django.conf:settings')
+app.config_from_object('django.conf:settings', namespace='CELERY')
 app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
 platforms.C_FORCE_ROOT = True
 

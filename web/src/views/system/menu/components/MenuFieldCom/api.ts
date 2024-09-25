@@ -42,6 +42,13 @@ export function DelObj(id: DelReq) {
 	});
 }
 
+export function BatchDelete(keys: any) {
+	return request({
+		url: apiPrefix + 'multiple_delete/',
+		method: 'delete',
+		data: { keys },
+	});
+}
 /**
  * 获取所有model
  */

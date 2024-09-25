@@ -10,21 +10,12 @@
 				<el-input v-model="menuFormData.name" placeholder="请输入菜单名称" />
 			</el-form-item>
 			<el-form-item label="父级菜单" prop="parent">
-				<el-tree-select
-					v-model="menuFormData.parent"
-					:props="defaultTreeProps"
-					:data="deptDefaultList"
-					:cache-data="props.cacheData"
-					lazy
-					check-strictly
-					clearable
-					:load="handleTreeLoad"
-					placeholder="请选择父级菜单"
-					style="width: 100%"
-				/>
+				<el-tree-select v-model="menuFormData.parent" :props="defaultTreeProps" :data="deptDefaultList"
+					:cache-data="props.cacheData" lazy check-strictly clearable :load="handleTreeLoad"
+					placeholder="请选择父级菜单" style="width: 100%" />
 			</el-form-item>
 
-			<el-form-item  label="路由地址" prop="web_path">
+			<el-form-item label="路由地址" prop="web_path">
 				<el-input v-model="menuFormData.web_path" placeholder="请输入路由地址，请以/开头" />
 			</el-form-item>
 
@@ -35,12 +26,14 @@
 			<el-row>
 				<el-col :span="12">
 					<el-form-item required label="状态">
-						<el-switch v-model="menuFormData.status" width="60" inline-prompt active-text="启用" inactive-text="禁用" />
+						<el-switch v-model="menuFormData.status" width="60" inline-prompt active-text="启用"
+							inactive-text="禁用" />
 					</el-form-item>
 				</el-col>
 				<el-col :span="12">
 					<el-form-item v-if="menuFormData.status" required label="侧边显示">
-						<el-switch v-model="menuFormData.visible" width="60" inline-prompt active-text="显示" inactive-text="隐藏" />
+						<el-switch v-model="menuFormData.visible" width="60" inline-prompt active-text="显示"
+							inactive-text="隐藏" />
 					</el-form-item>
 				</el-col>
 			</el-row>
@@ -48,46 +41,45 @@
 			<el-row>
 				<el-col :span="12">
 					<el-form-item required label="是否目录">
-						<el-switch v-model="menuFormData.is_catalog" width="60" inline-prompt active-text="是" inactive-text="否" />
+						<el-switch v-model="menuFormData.is_catalog" width="60" inline-prompt active-text="是"
+							inactive-text="否" />
 					</el-form-item>
 				</el-col>
 				<el-col :span="12">
 					<el-form-item v-if="!menuFormData.is_catalog" required label="外链接">
-						<el-switch v-model="menuFormData.is_link" width="60" inline-prompt active-text="是" inactive-text="否" />
+						<el-switch v-model="menuFormData.is_link" width="60" inline-prompt active-text="是"
+							inactive-text="否" />
 					</el-form-item>
 				</el-col>
-        <el-col :span="12">
-          <el-form-item required v-if="!menuFormData.is_catalog" label="是否固定">
-            <el-switch v-model="menuFormData.is_affix" width="60" inline-prompt active-text="是" inactive-text="否" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="12">
-          <el-form-item v-if="!menuFormData.is_catalog && menuFormData.is_link" required label="是否内嵌">
-            <el-switch v-model="menuFormData.is_iframe" width="60" inline-prompt active-text="是" inactive-text="否" />
-          </el-form-item>
-        </el-col>
+				<el-col :span="12">
+					<el-form-item required v-if="!menuFormData.is_catalog" label="是否固定">
+						<el-switch v-model="menuFormData.is_affix" width="60" inline-prompt active-text="是"
+							inactive-text="否" />
+					</el-form-item>
+				</el-col>
+				<el-col :span="12">
+					<el-form-item v-if="!menuFormData.is_catalog && menuFormData.is_link" required label="是否内嵌">
+						<el-switch v-model="menuFormData.is_iframe" width="60" inline-prompt active-text="是"
+							inactive-text="否" />
+					</el-form-item>
+				</el-col>
 			</el-row>
 
 			<el-form-item label="备注">
-				<el-input v-model="menuFormData.description" maxlength="200" show-word-limit type="textarea" placeholder="请输入备注" />
+				<el-input v-model="menuFormData.description" maxlength="200" show-word-limit type="textarea"
+					placeholder="请输入备注" />
 			</el-form-item>
 
 			<el-divider></el-divider>
 
 			<div style="min-height: 184px">
 				<el-form-item v-if="!menuFormData.is_catalog && !menuFormData.is_link" label="组件地址" prop="component">
-					<el-autocomplete
-						class="w-full"
-						v-model="menuFormData.component"
-						:fetch-suggestions="querySearch"
-						:trigger-on-focus="false"
-						clearable
-						:debounce="100"
-						placeholder="输入组件地址"
-					/>
+					<el-autocomplete class="w-full" v-model="menuFormData.component" :fetch-suggestions="querySearch"
+						:trigger-on-focus="false" clearable :debounce="100" placeholder="输入组件地址" />
 				</el-form-item>
 
-				<el-form-item v-if="!menuFormData.is_catalog && !menuFormData.is_link" label="组件名称" prop="component_name">
+				<el-form-item v-if="!menuFormData.is_catalog && !menuFormData.is_link" label="组件名称"
+					prop="component_name">
 					<el-input v-model="menuFormData.component_name" placeholder="请输入组件名称" />
 				</el-form-item>
 
@@ -96,7 +88,8 @@
 				</el-form-item>
 
 				<el-form-item v-if="!menuFormData.is_catalog" label="缓存">
-					<el-switch v-model="menuFormData.cache" width="60" inline-prompt active-text="启用" inactive-text="禁用" />
+					<el-switch v-model="menuFormData.cache" width="60" inline-prompt active-text="启用"
+						inactive-text="禁用" />
 				</el-form-item>
 			</div>
 
@@ -111,6 +104,7 @@
 </template>
 
 <script lang="ts" setup>
+import XEUtils from 'xe-utils';
 import { ref, onMounted, reactive } from 'vue';
 import { ElForm, FormRules } from 'element-plus';
 import IconSelector from '/@/components/iconSelector/index.vue';
@@ -148,14 +142,14 @@ const validateWebPath = (rule: any, value: string, callback: Function) => {
 };
 
 const validateLinkUrl = (rule: any, value: string, callback: Function) => {
-  let pattern = /^\/.*?/;
-  let patternUrl = /http(s)?:\/\/([\w-]+\.)+[\w-]+(\/[\w- .\/?%&=]*)?/;
-  const reg = pattern.test(value) || patternUrl.test(value)
-  if (reg) {
-    callback();
-  } else {
-    callback(new Error('请输入正确的地址'));
-  }
+	let pattern = /^\/.*?/;
+	let patternUrl = /http(s)?:\/\/([\w-]+\.)+[\w-]+(\/[\w- .\/?%&=]*)?/;
+	const reg = pattern.test(value) || patternUrl.test(value)
+	if (reg) {
+		callback();
+	} else {
+		callback(new Error('请输入正确的地址'));
+	}
 };
 
 const props = withDefaults(defineProps<IProps>(), {
@@ -172,7 +166,7 @@ const rules = reactive<FormRules>({
 	name: [{ required: true, message: '菜单名称必填', trigger: 'blur' }],
 	component: [{ required: true, message: '请输入组件地址', trigger: 'blur' }],
 	component_name: [{ required: true, message: '请输入组件名称', trigger: 'blur' }],
-  link_url: [{ required: true, message: '请输入外链接地址',validator:validateLinkUrl, trigger: 'blur' }],
+	link_url: [{ required: true, message: '请输入外链接地址', validator: validateLinkUrl, trigger: 'blur' }],
 });
 
 let deptDefaultList = ref<MenuTreeItemType[]>([]);
@@ -189,9 +183,9 @@ let menuFormData = reactive<MenuFormDataType>({
 	description: '',
 	is_catalog: false,
 	is_link: false,
-  is_iframe: false,
-  is_affix: false,
-  link_url:''
+	is_iframe: false,
+	is_affix: false,
+	link_url: ''
 });
 let menuBtnLoading = ref(false);
 
@@ -210,9 +204,9 @@ const setMenuFormData = () => {
 		menuFormData.description = props.initFormData?.description || '';
 		menuFormData.is_catalog = !!props.initFormData.is_catalog;
 		menuFormData.is_link = !!props.initFormData.is_link;
-    menuFormData.is_iframe =!!props.initFormData.is_iframe;
-    menuFormData.is_affix =!!props.initFormData.is_affix;
-    menuFormData.link_url =props.initFormData.link_url;
+		menuFormData.is_iframe = !!props.initFormData.is_iframe;
+		menuFormData.is_affix = !!props.initFormData.is_affix;
+		menuFormData.link_url = props.initFormData.link_url;
 	}
 };
 
@@ -246,7 +240,7 @@ const createFilter = (queryString: string) => {
 const handleTreeLoad = (node: Node, resolve: Function) => {
 	if (node.level !== 0) {
 		lazyLoadMenu({ parent: node.data.id }).then((res: APIResponseData) => {
-			resolve(res.data);
+			resolve(XEUtils.filter(res.data, (i: MenuTreeItemType) => i.is_catalog));
 		});
 	}
 };
@@ -278,9 +272,14 @@ const handleCancel = (type: string = '') => {
 	formRef.value?.resetFields();
 };
 
+/**
+ * 初始化
+ */
 onMounted(async () => {
 	props.treeData.map((item) => {
-		deptDefaultList.value.push(item);
+		if (item.is_catalog) {
+			deptDefaultList.value.push(item);
+		}
 	});
 	setMenuFormData();
 });
@@ -290,6 +289,7 @@ onMounted(async () => {
 .menu-form-com {
 	margin: 10px;
 	overflow-y: auto;
+
 	.menu-form-alert {
 		color: #fff;
 		line-height: 24px;
@@ -298,6 +298,7 @@ onMounted(async () => {
 		border-radius: 4px;
 		background-color: var(--el-color-primary);
 	}
+
 	.menu-form-btns {
 		padding-bottom: 10px;
 		box-sizing: border-box;

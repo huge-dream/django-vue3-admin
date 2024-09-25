@@ -119,7 +119,6 @@ class UserUpdateSerializer(CustomModelSerializer):
         """
         更改激活状态
         """
-        print(111, value)
         if value:
             self.initial_data["login_error_count"] = 0
         return value
@@ -331,6 +330,10 @@ class UserViewSet(CustomModelViewSet):
         if not verify_password:
             old_pwd_md5 = hashlib.md5(old_pwd.encode(encoding='UTF-8')).hexdigest()
             verify_password = check_password(str(old_pwd_md5), request.user.password)
+            # 创建用户时、自定义密码无法修改问题
+            if not verify_password:
+                old_pwd_md5 = hashlib.md5(old_pwd_md5.encode(encoding='UTF-8')).hexdigest()
+                verify_password = check_password(str(old_pwd_md5), request.user.password)
         if verify_password:
             request.user.password = make_password(hashlib.md5(new_pwd.encode(encoding='UTF-8')).hexdigest())
             request.user.save()
@@ -407,11 +410,11 @@ class UserViewSet(CustomModelViewSet):
                 queryset = self.filter_queryset(self.get_queryset())
         else:
             queryset = self.filter_queryset(self.get_queryset())
-        print(queryset.values('id','name','dept__id'))
+        # print(queryset.values('id','name','dept__id'))
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True, request=request)
-            print(serializer.data)
+            # print(serializer.data)
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True, request=request)
 

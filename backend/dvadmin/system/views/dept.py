@@ -10,6 +10,7 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
 from dvadmin.system.models import Dept, RoleMenuButtonPermission, Users
+from dvadmin.utils.filters import DataLevelPermissionsFilter
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse, ErrorResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
@@ -125,17 +126,6 @@ class DeptViewSet(CustomModelViewSet):
         return SuccessResponse(data=data)
 
     @action(methods=["GET"], detail=False, permission_classes=[IsAuthenticated])
-    def dept_lazy_tree(self, request, *args, **kwargs):
-        parent = self.request.query_params.get('parent')
-        is_superuser = request.user.is_superuser
-        if is_superuser:
-            queryset = Dept.objects.values('id', 'name', 'parent')
-        else:
-            queryset = Dept.objects.values('id', 'name', 'parent')
-            queryset = self.filter_queryset(queryset)
-        return DetailResponse(data=queryset, msg="获取成功")
-
-    @action(methods=["GET"], detail=False, permission_classes=[IsAuthenticated], extra_filter_class=[])
     def all_dept(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
         data = queryset.filter(status=True).order_by('sort').values('name', 'id', 'parent')
