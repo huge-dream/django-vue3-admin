@@ -28,5 +28,4 @@ uvicorn==0.30.3
 gunicorn==22.0.0
 gevent==24.2.1
 Pillow==10.4.0
-dvadmin-celery==1.0.5
 pyinstaller==6.9.0

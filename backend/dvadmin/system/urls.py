@@ -18,6 +18,7 @@ from dvadmin.system.views.role_menu_button_permission import RoleMenuButtonPermi
 from dvadmin.system.views.system_config import SystemConfigViewSet
 from dvadmin.system.views.user import UserViewSet
 from dvadmin.system.views.menu_field import MenuFieldViewSet
+from dvadmin.system.views.download_center import DownloadCenterViewSet
 
 system_url = routers.SimpleRouter()
 system_url.register(r'menu', MenuViewSet)
@@ -36,6 +37,7 @@ system_url.register(r'role_menu_button_permission', RoleMenuButtonPermissionView
 system_url.register(r'role_menu_permission', RoleMenuPermissionViewSet)
 system_url.register(r'column', MenuFieldViewSet)
 system_url.register(r'login_log', LoginLogViewSet)
+system_url.register(r'download_center', DownloadCenterViewSet)
 
 
 urlpatterns = [
