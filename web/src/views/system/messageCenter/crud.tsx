@@ -1,46 +1,38 @@
 import * as api from './api';
-import {dict, useCompute, PageQuery, AddReq, DelReq, EditReq, CrudExpose, CrudOptions} from '@fast-crud/fast-crud';
+import { dict, useCompute, PageQuery, AddReq, DelReq, EditReq, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud';
 import tableSelector from '/@/components/tableSelector/index.vue';
-import {shallowRef, computed, ref, inject} from 'vue';
+import { shallowRef, computed } from 'vue';
 import manyToMany from '/@/components/manyToMany/index.vue';
-import {auth} from '/@/utils/authFunction'
-import  {createCrudOptions as userCrudOptions } from "/@/views/system/user/crud";
-import {request} from '/@/utils/service'
-const {compute} = useCompute();
+import { auth } from '/@/utils/authFunction';
+const { compute } = useCompute();
 
-interface CreateCrudOptionsTypes {
-    crudOptions: CrudOptions;
-}
+export default function ({ crudExpose, context }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+	const { tabActivted } = context; //从context中获取tabActivted
 
-export const createCrudOptions = function ({
-                                               crudExpose,
-                                               tabActivted
-                                           }: { crudExpose: CrudExpose; tabActivted: any }): CreateCrudOptionsTypes {
-    const pageRequest = async (query: PageQuery) => {
-        if (tabActivted.value === 'receive') {
-            return await api.GetSelfReceive(query);
-        }
-        return await api.GetList(query);
-    };
-    const editRequest = async ({form, row}: EditReq) => {
-        form.id = row.id;
-        return await api.UpdateObj(form);
-    };
-    const delRequest = async ({row}: DelReq) => {
-        return await api.DelObj(row.id);
-    };
-    const addRequest = async ({form}: AddReq) => {
-        return await api.AddObj(form);
-    };
+	const pageRequest = async (query: PageQuery) => {
+		if (tabActivted.value === 'receive') {
+			return await api.GetSelfReceive(query);
+		}
+		return await api.GetList(query);
+	};
+	const editRequest = async ({ form, row }: EditReq) => {
+		form.id = row.id;
+		return await api.UpdateObj(form);
+	};
+	const delRequest = async ({ row }: DelReq) => {
+		return await api.DelObj(row.id);
+	};
+	const addRequest = async ({ form }: AddReq) => {
+		return await api.AddObj(form);
+	};
 
-    const viewRequest = async ({row}: { row: any }) => {
-        return await api.GetObj(row.id);
-    };
+	const viewRequest = async ({ row }: { row: any }) => {
+		return await api.GetObj(row.id);
+	};
 
-    const IsReadFunc = computed(() => {
-        return tabActivted.value === 'receive';
-    });
-
+	const IsReadFunc = computed(() => {
+		return tabActivted.value === 'receive';
+	});
 
 	return {
 		crudOptions: {
@@ -50,27 +42,27 @@ export const createCrudOptions = function ({
 				editRequest,
 				delRequest,
 			},
-			actionbar:{
-				buttons:{
-					add:{
-						show:computed(() =>{
+			actionbar: {
+				buttons: {
+					add: {
+						show: computed(() => {
 							return tabActivted.value !== 'receive' && auth('messageCenter:Create');
-						})
+						}),
 					},
-				}
+				},
 			},
 			rowHandle: {
-				fixed:'right',
-				width:150,
+				fixed: 'right',
+				width: 150,
 				buttons: {
 					edit: {
 						show: false,
 					},
 					view: {
-						text:"查看",
-						type:'text',
-						iconRight:'View',
-						show:auth("messageCenter:Search"),
+						text: '查看',
+						type: 'text',
+						iconRight: 'View',
+						show: auth('messageCenter:Search'),
 						click({ index, row }) {
 							crudExpose.openView({ index, row });
 							if (tabActivted.value === 'receive') {
@@ -82,7 +74,7 @@ export const createCrudOptions = function ({
 					remove: {
 						iconRight: 'Delete',
 						type: 'text',
-						show:auth('messageCenter:Delete')
+						show: auth('messageCenter:Delete'),
 					},
 				},
 			},
@@ -99,7 +91,7 @@ export const createCrudOptions = function ({
 						show: true,
 					},
 					type: ['text', 'colspan'],
-					column:{
+					column: {
 						minWidth: 120,
 					},
 					form: {
@@ -132,7 +124,7 @@ export const createCrudOptions = function ({
 				target_type: {
 					title: '目标类型',
 					type: ['dict-radio', 'colspan'],
-					column:{
+					column: {
 						minWidth: 120,
 					},
 					dict: dict({
@@ -285,7 +277,7 @@ export const createCrudOptions = function ({
 							name: shallowRef(tableSelector),
 							vModel: 'modelValue',
 							displayLabel: compute(({ form }) => {
-								return form.target_dept_name;
+								return form.dept_info;
 							}),
 							tableConfig: {
 								url: '/api/system/dept/all_dept/',
@@ -297,7 +289,7 @@ export const createCrudOptions = function ({
 									{
 										prop: 'name',
 										label: '部门名称',
-                                        width: 150,
+										width: 150,
 									},
 									{
 										prop: 'status_label',
@@ -349,7 +341,7 @@ export const createCrudOptions = function ({
 							},
 						],
 						component: {
-							disabled: true,
+							disabled: false,
 							id: '1', // 当同一个页面有多个editor时，需要配置不同的id
 							editorConfig: {
 								// 是否只读
@@ -373,4 +365,4 @@ export const createCrudOptions = function ({
 			},
 		},
 	};
-};
+}

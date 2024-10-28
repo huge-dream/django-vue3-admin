@@ -65,5 +65,5 @@ export interface MenuFormDataType {
   is_link: boolean;
   is_iframe:boolean;
   is_affix:boolean;
-  link_url: string;
+  link_url: string|undefined;
 }

@@ -167,19 +167,13 @@
                         "method": 0
                     },
                     {
-                        "name": "查询所有",
+                        "name": "获取所有部门",
                         "value": "dept:SearchAll",
                         "api": "/api/system/dept/all_dept/",
                         "method": 0
                     },
                     {
-                        "name": "懒加载查询所有",
-                        "value": "dept:LazySearchAll",
-                        "api": "/api/system/dept/dept_lazy_tree/",
-                        "method": 0
-                    },
-                    {
-                        "name": "头信息",
+                        "name": "部门顶部信息",
                         "value": "dept:HeaderInfo",
                         "api": "/api/system/dept/dept_info/",
                         "method": 0
@@ -676,6 +670,53 @@
                         "field_name": "url",
                         "title": "url",
                         "model": "ApiWhiteList"
+                    }
+                ]
+            },
+            {
+                "name": "下载中心",
+                "icon": "ele-Download",
+                "sort": 9,
+                "is_link": false,
+                "is_catalog": false,
+                "web_path": "/downloadCenter",
+                "component": "system/downloadCenter/index",
+                "component_name": "downloadCenter",
+                "status": true,
+                "cache": false,
+                "visible": true,
+                "parent": 277,
+                "children": [],
+                "menu_button": [
+                    {
+                        "name": "查询",
+                        "value": "Search",
+                        "api": "/api/system/downloadCenter/",
+                        "method": 0
+                    },
+                    {
+                        "name": "详情",
+                        "value": "Retrieve",
+                        "api": "/api/system/downloadCenter/{id}/",
+                        "method": 0
+                    },
+                    {
+                        "name": "新增",
+                        "value": "Create",
+                        "api": "/api/system/downloadCenter/",
+                        "method": 1
+                    },
+                    {
+                        "name": "编辑",
+                        "value": "Update",
+                        "api": "/api/system/downloadCenter/{id}/",
+                        "method": 2
+                    },
+                    {
+                        "name": "删除",
+                        "value": "Delete",
+                        "api": "/api/system/downloadCenter/{id}/",
+                        "method": 3
                     }
                 ]
             }

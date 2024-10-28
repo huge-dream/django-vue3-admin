@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from captcha.views import CaptchaStore, captcha_image
 from django.contrib import auth
 from django.contrib.auth import login
+from django.db.models import Q
 from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
 from drf_yasg import openapi
@@ -83,11 +84,18 @@ class LoginSerializer(TokenObtainPairSerializer):
                 else:
                     self.image_code and self.image_code.delete()
                     raise CustomValidationError("图片验证码错误")
-
-        user = Users.objects.get(username=attrs['username'])
+        try:
+            user = Users.objects.get(
+                Q(username=attrs['username']) | Q(email=attrs['username']) | Q(mobile=attrs['username']))
+        except Users.DoesNotExist:
+            raise CustomValidationError("您登录的账号不存在")
+        except Users.MultipleObjectsReturned:
+            raise CustomValidationError("您登录的账号存在多个,请联系管理员检查登录账号唯一性")
         if not user.is_active:
             raise CustomValidationError("账号已被锁定,联系管理员解锁")
         try:
+            # 必须重置用户名为username,否则使用邮箱手机号登录会提示密码错误
+            attrs['username'] = user.username
             data = super().validate(attrs)
             data["name"] = self.user.name
             data["userId"] = self.user.id
@@ -114,6 +122,7 @@ class LoginSerializer(TokenObtainPairSerializer):
             user.login_error_count += 1
             if user.login_error_count >= 5:
                 user.is_active = False
+                user.save()
                 raise CustomValidationError("账号已被锁定,联系管理员解锁")
             user.save()
             count = 5 - user.login_error_count

@@ -44,6 +44,35 @@ class AnonymousUserPermission(BasePermission):
         return True
 
 
+class SuperuserPermission(BasePermission):
+    """
+    超级管理员权限类
+    """
+
+    def has_permission(self, request, view):
+        if isinstance(request.user, AnonymousUser):
+            return False
+        # 判断是否是超级管理员
+        if request.user.is_superuser:
+            return True
+
+
+class AdminPermission(BasePermission):
+    """
+    普通管理员权限类
+    """
+
+    def has_permission(self, request, view):
+        if isinstance(request.user, AnonymousUser):
+            return False
+        # 判断是否是超级管理员
+        is_superuser = request.user.is_superuser
+        # 判断是否是管理员角色
+        is_admin = request.user.role.values_list('admin', flat=True)
+        if is_superuser or True in is_admin:
+            return True
+
+
 def ReUUID(api):
     """
     将接口的uuid替换掉
@@ -81,8 +110,9 @@ class CustomPermission(BasePermission):
             # ********#
             if not hasattr(request.user, "role"):
                 return False
-            role_id_list = request.user.role.values_list('id',flat=True)
-            userApiList = RoleMenuButtonPermission.objects.filter(role__in=role_id_list).values(permission__api=F('menu_button__api'), permission__method=F('menu_button__method'))  # 获取当前用户的角色拥有的所有接口
+            role_id_list = request.user.role.values_list('id', flat=True)
+            userApiList = RoleMenuButtonPermission.objects.filter(role__in=role_id_list).values(
+                permission__api=F('menu_button__api'), permission__method=F('menu_button__method'))  # 获取当前用户的角色拥有的所有接口
             ApiList = [
                 str(item.get('permission__api').replace('{id}', '([a-zA-Z0-9-]+)')) + ":" + str(
                     item.get('permission__method')) + '$' for item in userApiList if item.get('permission__api')]

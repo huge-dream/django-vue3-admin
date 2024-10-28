@@ -37,11 +37,11 @@ class CoreModelFilterBankend(BaseFilterBackend):
         if any([create_datetime_after, create_datetime_before, update_datetime_after, update_datetime_before]):
             create_filter = Q()
             if create_datetime_after and create_datetime_before:
-                create_filter &= Q(create_datetime__gte=create_datetime_after) & Q(create_datetime__lte=create_datetime_before)
+                create_filter &= Q(create_datetime__gte=create_datetime_after) & Q(create_datetime__lte=f'{create_datetime_before} 23:59:59')
             elif create_datetime_after:
                 create_filter &= Q(create_datetime__gte=create_datetime_after)
             elif create_datetime_before:
-                create_filter &= Q(create_datetime__lte=create_datetime_before)
+                create_filter &= Q(create_datetime__lte=f'{create_datetime_before} 23:59:59')
 
             # 更新时间范围过滤条件
             update_filter = Q()

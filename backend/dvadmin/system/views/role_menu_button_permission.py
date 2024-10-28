@@ -6,9 +6,11 @@
 @Created on: 2021/6/3 003 0:30
 @Remark: 菜单按钮管理
 """
-from django.db.models import F, Subquery, OuterRef, Exists
+from django.db.models import F, Subquery, OuterRef, Exists, BooleanField, Q, Case, Value, When
+from django.db.models.functions import Coalesce
 from rest_framework import serializers
 from rest_framework.decorators import action
+from rest_framework.fields import ListField
 from rest_framework.permissions import IsAuthenticated
 
 from dvadmin.system.models import RoleMenuButtonPermission, Menu, MenuButton, Dept, RoleMenuPermission, FieldPermission, \
@@ -172,59 +174,103 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
     update_serializer_class = RoleMenuButtonPermissionCreateUpdateSerializer
     extra_filter_class = []
 
+    # @action(methods=['GET'], detail=False, permission_classes=[IsAuthenticated])
+    # def get_role_premission(self, request):
+    #     """
+    #     角色授权获取:
+    #     :param request: role
+    #     :return: menu,btns,columns
+    #     """
+    #     params = request.query_params
+    #     is_superuser = request.user.is_superuser
+    #     if is_superuser:
+    #         queryset = Menu.objects.filter(status=1, is_catalog=True).values('name', 'id').all()
+    #     else:
+    #         role_id = request.user.role.values_list('id', flat=True)
+    #         menu_list = RoleMenuPermission.objects.filter(role__in=role_id).values_list('menu__id', flat=True)
+    #         queryset = Menu.objects.filter(status=1, is_catalog=True, id__in=menu_list).values('name', 'id').all()
+    #     serializer = RoleMenuSerializer(queryset, many=True, request=request)
+    #     data = serializer.data
+    #     return DetailResponse(data=data)
+
     @action(methods=['GET'], detail=False, permission_classes=[IsAuthenticated])
-    def get_role_premission(self, request):
-        """
-        角色授权获取:
-        :param request: role
-        :return: menu,btns,columns
-        """
+    def get_role_permission(self, request):
         params = request.query_params
-        role = params.get('role', None)
-        if role is None:
-            return ErrorResponse(msg="未获取到角色信息")
+        # 需要授权的角色信息
+        current_role = params.get('role', None)
+        # 当前登录用户的角色
+        role_list = request.user.role.values_list('id', flat=True)
+        if current_role is None:
+            return ErrorResponse(msg='参数错误')
         is_superuser = request.user.is_superuser
         if is_superuser:
-            queryset = Menu.objects.filter(status=1, is_catalog=True).values('name', 'id').all()
+            menu_queryset = Menu.objects.prefetch_related('menuPermission').prefetch_related(
+                'menufield_set')
         else:
-            role_id = request.user.role.values_list('id', flat=True)
-            menu_list = RoleMenuPermission.objects.filter(role__in=role_id).values_list('id', flat=True)
-            queryset = Menu.objects.filter(status=1, is_catalog=True, id__in=menu_list).values('name', 'id').all()
-        serializer = RoleMenuSerializer(queryset, many=True, request=request)
-        data = serializer.data
-        return DetailResponse(data=data)
-        # data = []
-        # if is_superuser:
-        #     queryset = Menu.objects.filter(status=1, is_catalog=False).values('name', 'id').all()
-        # else:
-        #     role_id = request.user.role.values_list('id', flat=True)
-        #     menu_list = RoleMenuPermission.objects.filter(role__in=role_id).values_list('id', flat=True)
-        #     queryset = Menu.objects.filter(status=1, is_catalog=False, id__in=menu_list).values('name', 'id')
-        # for item in queryset:
-        #     parent_list = Menu.get_all_parent(item['id'])
-        #     names = [d["name"] for d in parent_list]
-        #     completeName = "/".join(names)
-        #     isCheck = RoleMenuPermission.objects.filter(
-        #         menu__id=item['id'],
-        #         role__id=role,
-        #     ).exists()
-        #     mbCheck = RoleMenuButtonPermission.objects.filter(
-        #         menu_button=OuterRef("pk"),
-        #         role__id=role,
-        #     )
-        #     btns = MenuButton.objects.filter(
-        #         menu__id=item['id'],
-        #     ).annotate(isCheck=Exists(mbCheck)).values('id', 'name', 'value', 'isCheck',
-        #                                                data_range=F('menu_button_permission__data_range'))
-        #     dicts = {
-        #         'name': completeName,
-        #         'id': item['id'],
-        #         'isCheck': isCheck,
-        #         'btns': btns,
-        #
-        #     }
-        #     data.append(dicts)
-        # return DetailResponse(data=data)
+            role_id_list = request.user.role.values_list('id', flat=True)
+            menu_list = RoleMenuPermission.objects.filter(role__in=role_id_list).values_list('menu__id', flat=True)
+
+            # 当前角色已授权的菜单
+            menu_queryset = Menu.objects.filter(id__in=menu_list).prefetch_related('menuPermission').prefetch_related(
+                'menufield_set')
+        result = []
+        for menu_item in menu_queryset:
+            isCheck = RoleMenuPermission.objects.filter(
+                menu_id=menu_item.id,
+                role_id=current_role
+            ).exists()
+            dicts = {
+                'name': menu_item.name,
+                'id': menu_item.id,
+                'parent': menu_item.parent.id if menu_item.parent else None,
+                'isCheck': isCheck,
+                'btns': [],
+                'columns': []
+            }
+            for mb_item in menu_item.menuPermission.all():
+                rolemenubuttonpermission_queryset = RoleMenuButtonPermission.objects.filter(
+                    menu_button_id=mb_item.id,
+                    role_id=current_role
+                ).first()
+                dicts['btns'].append(
+                    {
+                        'id': mb_item.id,
+                        'name': mb_item.name,
+                        'value': mb_item.value,
+                        'data_range': rolemenubuttonpermission_queryset.data_range
+                        if rolemenubuttonpermission_queryset
+                        else None,
+                        'isCheck': bool(rolemenubuttonpermission_queryset),
+                        'dept': rolemenubuttonpermission_queryset.dept.all().values_list('id', flat=True)
+                        if rolemenubuttonpermission_queryset
+                        else [],
+                    }
+                )
+            for column_item in menu_item.menufield_set.all():
+                # 需要授权角色已拥有的列权限
+                fieldpermission_queryset = column_item.menu_field.filter(role_id=current_role).first()
+                is_query = fieldpermission_queryset.is_query if fieldpermission_queryset else False
+                is_create = fieldpermission_queryset.is_create if fieldpermission_queryset else False
+                is_update = fieldpermission_queryset.is_update if fieldpermission_queryset else False
+                # 当前登录用户角色可分配的列权限
+                fieldpermission_queryset_disabled = column_item.menu_field.filter(role_id__in=role_list).first()
+                disabled_query = fieldpermission_queryset_disabled.is_query if fieldpermission_queryset_disabled else True
+                disabled_create = fieldpermission_queryset_disabled.is_create if fieldpermission_queryset_disabled else True
+                disabled_update = fieldpermission_queryset_disabled.is_update if fieldpermission_queryset_disabled else True
+
+                dicts['columns'].append({
+                    'id': column_item.id,
+                    'field_name': column_item.field_name,
+                    'title': column_item.title,
+                    'is_query': is_query,
+                    'is_create': is_create,
+                    'is_update': is_update,
+                    'disabled_query': False if is_superuser else not disabled_query,
+                    'disabled_create': False if is_superuser else not disabled_create,
+                    'disabled_update': False if is_superuser else not disabled_update,
+                })
+            result.append(dicts)
+        return DetailResponse(data=result)
 
     @action(methods=['PUT'], detail=True, permission_classes=[IsAuthenticated])
     def set_role_premission(self, request, pk):
@@ -238,27 +284,21 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         RoleMenuPermission.objects.filter(role=pk).delete()
         RoleMenuButtonPermission.objects.filter(role=pk).delete()
         for item in body:
-            for menu in item["menus"]:
-                if menu.get('isCheck'):
-                    menu_parent = Menu.get_all_parent(menu.get('id'))
-                    role_menu_permission_list = []
-                    for d in menu_parent:
-                        role_menu_permission_list.append(RoleMenuPermission(role_id=pk, menu_id=d["id"]))
-                    RoleMenuPermission.objects.bulk_create(role_menu_permission_list)
-                    # RoleMenuPermission.objects.create(role_id=pk, menu_id=menu.get('id'))
-                for btn in menu.get('btns'):
-                    if btn.get('isCheck'):
-                        data_range = btn.get('data_range', 0) or 0
-                        instance = RoleMenuButtonPermission.objects.create(role_id=pk, menu_button_id=btn.get('id'),
-                                                                           data_range=data_range)
-                        instance.dept.set(btn.get('dept', []))
-                for col in menu.get('columns'):
-                    FieldPermission.objects.update_or_create(role_id=pk, field_id=col.get('id'),
-                                                             defaults={
-                                                                 'is_query': col.get('is_query'),
-                                                                 'is_create': col.get('is_create'),
-                                                                 'is_update': col.get('is_update')
-                                                             })
+            if item.get('isCheck'):
+                RoleMenuPermission.objects.create(role_id=pk, menu_id=item["id"])
+            for btn in item.get('btns'):
+                if btn.get('isCheck'):
+                    data_range = btn.get('data_range', 0) or 0
+                    instance = RoleMenuButtonPermission.objects.create(role_id=pk, menu_button_id=btn.get('id'),
+                                                                       data_range=data_range)
+                    instance.dept.set(btn.get('dept', []))
+            for col in item.get('columns'):
+                FieldPermission.objects.update_or_create(role_id=pk, field_id=col.get('id'),
+                                                         defaults={
+                                                             'is_query': col.get('is_query'),
+                                                             'is_create': col.get('is_create'),
+                                                             'is_update': col.get('is_update')
+                                                         })
         return DetailResponse(msg="授权成功")
 
     @action(methods=['GET'], detail=False, permission_classes=[IsAuthenticated])
@@ -291,86 +331,45 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         is_superuser = request.user.is_superuser
         if is_superuser:
             data = [
-                {
-                    "value": 0,
-                    "label": '仅本人数据权限'
-                },
-                {
-                    "value": 1,
-                    "label": '本部门及以下数据权限'
-                },
-                {
-                    "value": 2,
-                    "label": '本部门数据权限'
-                },
-                {
-                    "value": 3,
-                    "label": '全部数据权限'
-                },
-                {
-                    "value": 4,
-                    "label": '自定义数据权限'
-                }
+                {"value": 0, "label": '仅本人数据权限'},
+                {"value": 1, "label": '本部门及以下数据权限'},
+                {"value": 2, "label": '本部门数据权限'},
+                {"value": 3, "label": '全部数据权限'},
+                {"value": 4, "label": '自定义数据权限'}
             ]
             return DetailResponse(data=data)
         else:
-            data = []
+            params = request.query_params
+            data = [{"value": 0, "label": '仅本人数据权限'}]
             role_list = request.user.role.values_list('id', flat=True)
-            if params := request.query_params:
-                if menu_button_id := params.get('menu_button', None):
-                    role_queryset = RoleMenuButtonPermission.objects.filter(
-                        role__in=role_list, menu_button__id=menu_button_id
-                    ).values_list('data_range', flat=True)
-                    data_range_list = list(set(role_queryset))
-                    for item in data_range_list:
-                        if item == 0:
-                            data = [{
-                                "value": 0,
-                                "label": '仅本人数据权限'
-                            }]
-                        elif item == 1:
-                            data = [{
-                                "value": 0,
-                                "label": '仅本人数据权限'
-                            }, {
-                                "value": 1,
-                                "label": '本部门及以下数据权限'
-                            },
-                                {
-                                    "value": 2,
-                                    "label": '本部门数据权限'
-                                }]
-                        elif item == 2:
-                            data = [{
-                                "value": 0,
-                                "label": '仅本人数据权限'
-                            },
-                                {
-                                    "value": 2,
-                                    "label": '本部门数据权限'
-                                }]
-                        elif item == 3:
-                            data = [{
-                                "value": 0,
-                                "label": '仅本人数据权限'
-                            },
-                                {
-                                    "value": 3,
-                                    "label": '全部数据权限'
-                                }, ]
-                        elif item == 4:
-                            data = [{
-                                "value": 0,
-                                "label": '仅本人数据权限'
-                            },
-                                {
-                                    "value": 4,
-                                    "label": '自定义数据权限'
-                                }]
-                        else:
-                            data = []
-                    return DetailResponse(data=data)
-        return ErrorResponse(msg="参数错误")
+            # 权限页面进入初始化获取所有的数据权限范围
+            role_queryset = RoleMenuButtonPermission.objects.filter(
+                role__in=role_list
+            ).values_list('data_range', flat=True)
+            # 通过按钮小齿轮获取指定按钮的权限
+            if menu_button_id := params.get('menu_button', None):
+                role_queryset = RoleMenuButtonPermission.objects.filter(
+                    role__in=role_list, menu_button__id=menu_button_id
+                ).values_list('data_range', flat=True)
+
+            data_range_list = list(set(role_queryset))
+            for item in data_range_list:
+                if item == 0:
+                    data = data
+                elif item == 1:
+                    data.extend([
+                        {"value": 1, "label": '本部门及以下数据权限'},
+                        {"value": 2, "label": '本部门数据权限'}
+                    ])
+                elif item == 2:
+                    data.extend([{"value": 2, "label": '本部门数据权限'}])
+                elif item == 3:
+                    data.extend([{"value": 3, "label": '全部数据权限'}])
+                elif item == 4:
+                    data.extend([{"value": 4, "label": '自定义数据权限'}])
+                else:
+                    data = []
+            return DetailResponse(data=data)
 
     @action(methods=['get'], detail=False, permission_classes=[IsAuthenticated])
     def role_to_dept_all(self, request):
@@ -379,23 +378,23 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         :param request:
         :return:
         """
-        params = request.query_params
         is_superuser = request.user.is_superuser
-        if is_superuser:
-            queryset = Dept.objects.values('id', 'name', 'parent')
-        else:
-            if not params:
-                return ErrorResponse(msg="参数错误")
-            menu_button = params.get('menu_button')
-            if menu_button is None:
-                return ErrorResponse(msg="参数错误")
-            role_list = request.user.role.values_list('id', flat=True)
-            queryset = RoleMenuButtonPermission.objects.filter(role__in=role_list, menu_button=None).values(
-                dept_id=F('dept__id'),
-                name=F('dept__name'),
-                parent=F('dept__parent')
-            )
-        return DetailResponse(data=queryset)
+        params = request.query_params
+        # 当前登录用户的角色
+        role_list = request.user.role.values_list('id', flat=True)
+
+        menu_button_id = params.get('menu_button')
+        # 当前登录用户角色可以分配的自定义部门权限
+        dept_checked_disabled = RoleMenuButtonPermission.objects.filter(
+            role_id__in=role_list, menu_button_id=menu_button_id
+        ).values_list('dept', flat=True)
+        dept_list = Dept.objects.values('id', 'name', 'parent')
+
+        data = []
+        for dept in dept_list:
+            dept["disabled"] = False if is_superuser else dept["id"] not in dept_checked_disabled
+            data.append(dept)
+        return DetailResponse(data=data)
 
     @action(methods=['get'], detail=False, permission_classes=[IsAuthenticated])
     def menu_to_button(self, request):

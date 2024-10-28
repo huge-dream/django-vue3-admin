@@ -1,8 +1,16 @@
 import { request } from '/@/utils/service';
-import { UserPageQuery, AddReq, DelReq, EditReq, InfoReq } from '@fast-crud/fast-crud';
+import { PageQuery, AddReq, DelReq, EditReq, InfoReq } from '@fast-crud/fast-crud';
 
-export const apiPrefix = '/api/system/login_log/';
-export function GetList(query: UserPageQuery) {
+export const apiPrefix = '/api/system/download_center/';
+
+export function GetPermission() {
+	return request({
+		url: apiPrefix + 'field_permission/',
+		method: 'get',
+	});
+}
+
+export function GetList(query: PageQuery) {
 	return request({
 		url: apiPrefix,
 		method: 'get',
@@ -38,11 +46,4 @@ export function DelObj(id: DelReq) {
 		method: 'delete',
 		data: { id },
 	});
-}
-
-export function GetPermission() {
-    return request({
-        url: apiPrefix + 'field_permission/',
-        method: 'get',
-    });
 }

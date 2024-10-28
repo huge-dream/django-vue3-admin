@@ -10,10 +10,12 @@ from django.db.models import F
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 
-from dvadmin.system.models import MenuButton, RoleMenuButtonPermission
+from dvadmin.system.models import MenuButton, RoleMenuButtonPermission, Menu
 from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
+
+
 
 
 class MenuButtonSerializer(CustomModelSerializer):
@@ -92,16 +94,14 @@ class MenuButtonViewSet(CustomModelViewSet):
         """
         menu_obj = Menu.objects.filter(id=request.data['menu']).first()
         result_list = [
-            {'menu': menu_obj.id, 'name': '新增', 'value': f'{menu_obj.component_name}:Create', 'api': f'/api{menu_obj.web_path}/',
-             'method': 1},
-            {'menu': menu_obj.id, 'name': '删除', 'value': f'{menu_obj.component_name}:Delete', 'api': f'/api{menu_obj.web_path}/{{id}}/',
-             'method': 3},
-            {'menu': menu_obj.id, 'name': '修改', 'value': f'{menu_obj.component_name}:Update', 'api': f'/api{menu_obj.web_path}/{{id}}/',
-             'method': 2},
-            {'menu': menu_obj.id, 'name': '查询', 'value': f'{menu_obj.component_name}:Search', 'api': f'/api{menu_obj.web_path}/',
-             'method': 0},
-            {'menu': menu_obj.id, 'name': '详情', 'value': f'{menu_obj.component_name}:Retrieve', 'api': f'/api{menu_obj.web_path}/{{id}}/',
-             'method': 0}]
+            {'menu': menu_obj.id, 'name': '新增', 'value': f'{menu_obj.component_name}:Create', 'api': f'/api/{menu_obj.component_name}/', 'method': 1},
+            {'menu': menu_obj.id, 'name': '删除', 'value': f'{menu_obj.component_name}:Delete', 'api': f'/api/{menu_obj.component_name}/{{id}}/', 'method': 3},
+            {'menu': menu_obj.id, 'name': '编辑', 'value': f'{menu_obj.component_name}:Update', 'api': f'/api/{menu_obj.component_name}/{{id}}/', 'method': 2},
+            {'menu': menu_obj.id, 'name': '查询', 'value': f'{menu_obj.component_name}:Search', 'api': f'/api/{menu_obj.component_name}/', 'method': 0},
+            {'menu': menu_obj.id, 'name': '详情', 'value': f'{menu_obj.component_name}:Retrieve', 'api': f'/api/{menu_obj.component_name}/{{id}}/', 'method': 0},
+            {'menu': menu_obj.id, 'name': '复制', 'value': f'{menu_obj.component_name}:Copy', 'api': f'/api/{menu_obj.component_name}/', 'method': 1},
+            {'menu': menu_obj.id, 'name': '导入', 'value': f'{menu_obj.component_name}:Import', 'api': f'/api/{menu_obj.component_name}/import_data/', 'method': 1},
+            {'menu': menu_obj.id, 'name': '导出', 'value': f'{menu_obj.component_name}:Export', 'api': f'/api{menu_obj.component_name}/export_data/', 'method': 1},]
         serializer = self.get_serializer(data=result_list, many=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()

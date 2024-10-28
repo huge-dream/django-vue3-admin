@@ -6,13 +6,14 @@
 @Created on: 2021/5/31 031 22:08
 @Remark: 公共基础model类
 """
+from datetime import datetime
 from importlib import import_module
 
-from django.apps import apps
-from django.db import models
-from django.conf import settings
-
 from application import settings
+from django.apps import apps
+from django.conf import settings
+from django.db import models
+from rest_framework.request import Request
 
 table_prefix = settings.TABLE_PREFIX  # 数据库表名前缀
 
@@ -60,8 +61,24 @@ class SoftDeleteModel(models.Model):
         """
         重写删除方法,直接开启软删除
         """
-        self.is_deleted = True
-        self.save(using=using)
+        if soft_delete:
+            self.is_deleted = True
+            self.save(using=using)
+            # 级联软删除关联对象
+            for related_object in self._meta.related_objects:
+                related_model = getattr(self, related_object.get_accessor_name())
+                # 处理一对多和多对多的关联对象
+                if related_object.one_to_many or related_object.many_to_many:
+                    related_objects = related_model.all()
+                elif related_object.one_to_one:
+                    related_objects = [related_model]
+                else:
+                    continue
+
+                for obj in related_objects:
+                    obj.delete(soft_delete=True)
+        else:
+            super().delete(using=using, *args, **kwargs)
 
 
 class CoreModel(models.Model):
@@ -87,6 +104,111 @@ class CoreModel(models.Model):
         verbose_name = '核心模型'
         verbose_name_plural = verbose_name
 
+    def get_request_user(self, request: Request):
+        if getattr(request, "user", None):
+            return request.user
+        return None
+
+    def get_request_user_id(self, request: Request):
+        if getattr(request, "user", None):
+            return getattr(request.user, "id", None)
+        return None
+
+    def get_request_user_name(self, request: Request):
+        if getattr(request, "user", None):
+            return getattr(request.user, "name", None)
+        return None
+
+    def get_request_user_username(self, request: Request):
+        if getattr(request, "user", None):
+            return getattr(request.user, "username", None)
+        return None
+
+    def common_insert_data(self, request: Request):
+        data = {
+            'create_datetime': datetime.now(),
+            'creator': self.get_request_user(request)
+        }
+        return {**data, **self.common_update_data(request)}
+
+    def common_update_data(self, request: Request):
+        return {
+            'update_datetime': datetime.now(),
+            'modifier': self.get_request_user_username(request)
+        }
+
+    exclude_fields = [
+        '_state',
+        'pk',
+        'id',
+        'create_datetime',
+        'update_datetime',
+        'creator',
+        'creator_id',
+        'creator_pk',
+        'creator_name',
+        'modifier',
+        'modifier_id',
+        'modifier_pk',
+        'modifier_name',
+        'dept_belong_id',
+    ]
+
+    def get_exclude_fields(self):
+        return self.exclude_fields
+
+    def get_all_fields(self):
+        return self._meta.fields
+
+    def get_all_fields_names(self):
+        return [field.name for field in self.get_all_fields()]
+
+    def get_need_fields_names(self):
+        return [field.name for field in self.get_all_fields() if field.name not in self.exclude_fields]
+
+    def to_data(self):
+        """将模型转化为字典（去除不包含字段）(注意与to_dict_data区分)。
+        """
+        res = {}
+        for field in self.get_need_fields_names():
+            field_value = getattr(self, field)
+            res[field] = field_value.id if (issubclass(field_value.__class__, CoreModel)) else field_value
+        return res
+
+    @property
+    def DATA(self):
+        return self.to_data()
+
+    def to_dict_data(self):
+        """需要导出的字段（去除不包含字段）（注意与to_data区分）
+        """
+        return {field: getattr(self, field) for field in self.get_need_fields_names()}
+
+    @property
+    def DICT_DATA(self):
+        return self.to_dict_data()
+
+    def insert(self, request):
+        """插入模型
+        """
+        assert self.pk is None, f'模型{self.__class__.__name__}还没有保存到数据中，不能手动指定ID'
+        validated_data = {**self.common_insert_data(request), **self.DICT_DATA}
+        return self.__class__._default_manager.create(**validated_data)
+
+    def update(self, request, update_data: dict[str, any] = None):
+        """更新模型
+        """
+        assert isinstance(update_data, dict), 'update_data必须为字典'
+        validated_data = {**self.common_insert_data(request), **update_data}
+        for key, value in validated_data.items():
+            # 不允许修改id,pk,uuid字段
+            if key in ['id', 'pk', 'uuid']:
+                continue
+            if hasattr(self, key):
+                setattr(self, key, value)
+        self.save()
+        return self
+
 
 def get_all_models_objects(model_name=None):
     """
@@ -97,16 +219,9 @@ def get_all_models_objects(model_name=None):
     if not settings.ALL_MODELS_OBJECTS:
         all_models = apps.get_models()
         for item in list(all_models):
-            table = {
-                "tableName": item._meta.verbose_name,
-                "table": item.__name__,
-                "tableFields": []
-            }
+            table = {"tableName": item._meta.verbose_name, "table": item.__name__, "tableFields": []}
             for field in item._meta.fields:
-                fields = {
-                    "title": field.verbose_name,
-                    "field": field.name
-                }
+                fields = {"title": field.verbose_name, "field": field.name}
                 table['tableFields'].append(fields)
             settings.ALL_MODELS_OBJECTS.setdefault(item.__name__, {"table": table, "object": item})
     if model_name:
@@ -117,25 +232,20 @@ def get_all_models_objects(model_name=None):
 def get_model_from_app(app_name):
     """获取模型里的字段"""
     model_module = import_module(app_name + '.models')
+    exclude_models = getattr(model_module, 'exclude_models', [])
     filter_model = [
-        getattr(model_module, item) for item in dir(model_module)
-        if item != 'CoreModel' and issubclass(getattr(model_module, item).__class__, models.base.ModelBase)
+        value for key, value in model_module.__dict__.items()
+        if key != 'CoreModel'
+        and isinstance(value, type)
+        and issubclass(value, models.Model)
+        and key not in exclude_models
     ]
     model_list = []
     for model in filter_model:
         if model.__name__ == 'AbstractUser':
             continue
-        fields = [
-            {'title': field.verbose_name, 'name': field.name, 'object': field}
-            for field in model._meta.fields
-        ]
-        model_list.append({
-            'app': app_name,
-            'verbose': model._meta.verbose_name,
-            'model': model.__name__,
-            'object': model,
-            'fields': fields
-        })
+        fields = [{'title': field.verbose_name, 'name': field.name, 'object': field} for field in model._meta.fields]
+        model_list.append({'app': app_name, 'verbose': model._meta.verbose_name, 'model': model.__name__, 'object': model, 'fields': fields})
     return model_list
 
 
