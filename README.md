@@ -77,7 +77,33 @@ Redis (Optional, latest version)
 ~~~
 
 ## frontend♝
+### Dependence
+#### NodeJS and NPM
+Browse [https://nodejs.org/en/download/prebuilt-binaries](https://nodejs.org/en/download/prebuilt-binaries)  or [https://nodejs.org/dist/latest/](https://nodejs.org/dist/latest/) to download the latest NodeJS.
+Then install it by adding the path to the environment PATH in your OS, e.g.:
+```bash
+wget https://nodejs.org/dist/v22.11.0/node-v22.11.0-linux-x64.tar.xz
+tar xvf node-v22.11.0-linux-x64.tar.xz
+export PATH=<path to the node folder>/bin:$PATH  # It's better add this in your ~/.bashrc
+```
 
+Confirm the versions:
+```
+$ node -v
+v22.11.0
+
+$npm -v
+10.9.0
+```
+
+#### eslint
+You may meet kinds of packages missing during install Yarn. Take `eslint` as a example:
+```
+# For the version details, it's easy for you to find out in the error info.
+npm install eslint@^8.0.0
+```
+
+### Install frontend
 ```bash
 # clone code
 git clone https://gitee.com/huge-dream/django-vue3-admin.git
@@ -86,7 +112,7 @@ git clone https://gitee.com/huge-dream/django-vue3-admin.git
 cd web
 
 # install dependence
-npm install yarn
+npm install yarn -g  # Ignoring '-g' could lead to 'NOT Found' issue with normal user after installation.
 yarn install --registry=https://registry.npm.taobao.org
 
 # Start service
@@ -98,7 +124,26 @@ yarn run dev
 ```
 
 ## backend💈
+### Dependence
+#### virtual environment
+```
+$ sudo apt install python3-venv python3-mysqldb libmysqlclient21 libmysqlclient-dev libpq-dev
 
+$ cd django-vue3-admin/backend  # NOTICE: ALL following steps are in this folder!!!
+$ python3 -m venv .venv
+$ source .venv/bin/activate
+$ pip3 install celery python-celery-common django_celery_beat django_celery_results
+
+```
+
+#### dvadmin3-celery
+```
+$ git clone https://gitee.com/huge-dream/dvadmin3-celery.git
+$ cp -r dvadmin3-celery/dvadmin3_celery/ .venv/lib/python3/site-packages  # Or change foler python3 to python3.x
+
+```
+
+#### Install backend
 ~~~bash
 1. enter code dir cd backend
 2. copy ./conf/env.example.py to ./conf dir，rename as env.py
