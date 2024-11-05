@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import datetime
 from urllib.parse import quote
 
 from django.db import transaction
@@ -11,8 +12,10 @@ from rest_framework.decorators import action
 from rest_framework.request import Request
 
 from dvadmin.utils.import_export import import_to_data
-from dvadmin.utils.json_response import DetailResponse
+from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 from dvadmin.utils.request_util import get_verbose_name
+from dvadmin.system.tasks import async_export_data
+from dvadmin.system.models import DownloadCenter
 
 
 class ImportSerializerMixin:
@@ -301,6 +304,17 @@ class ExportSerializerMixin:
         assert self.export_field_label, "'%s' 请配置对应的导出模板字段。" % self.__class__.__name__
         assert self.export_serializer_class, "'%s' 请配置对应的导出序列化器。" % self.__class__.__name__
         data = self.export_serializer_class(queryset, many=True, request=request).data
+        try:
+            from dvadmin3_celery import settings
+            async_export_data.delay(
+                data,
+                str(f"导出{get_verbose_name(queryset)}-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"),
+                DownloadCenter.objects.create(creator=request.user, task_name=f'{get_verbose_name(queryset)}数据导出任务').pk,
+                self.export_field_label
+            )
+            return SuccessResponse(msg="导入任务已创建，请前往‘下载中心’等待下载")
+        except:
+            pass
         # 导出excel 表
         response = HttpResponse(content_type="application/msexcel")
         response["Access-Control-Expose-Headers"] = f"Content-Disposition"

@@ -10,6 +10,7 @@ import { errorLog, errorCreate } from './tools.ts';
 import { Local, Session } from '/@/utils/storage';
 import qs from 'qs';
 import { getBaseURL } from './baseUrl';
+import { successMessage } from './message.js';
 /**
  * @description 创建请求实例
  */
@@ -204,6 +205,8 @@ export const requestForMock = createRequestFunction(serviceForMock);
  * @param filename
  */
 export const downloadFile = function ({ url, params, method, filename = '文件导出' }: any) {
+	// return request({ url: url, method: method, params: params })
+	// 	.then((res: any) => successMessage(res.msg));
 	request({
 		url: url,
 		method: method,
@@ -211,6 +214,8 @@ export const downloadFile = function ({ url, params, method, filename = '文件�
 		responseType: 'blob'
 		// headers: {Accept: 'application/vnd.openxmlformats-officedocument'}
 	}).then((res: any) => {
+		// console.log(res.headers['content-type']); // 根据content-type不同来判断是否异步下载
+		if (res.headers['content-type'] === 'application/json') return successMessage('导入任务已创建，请前往‘下载中心’等待下载');
 		const xlsxName = window.decodeURI(res.headers['content-disposition'].split('=')[1])
 		const fileName = xlsxName || `${filename}.xlsx`
 		if (res) {
