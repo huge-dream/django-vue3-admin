@@ -5,51 +5,52 @@
 				<img :src="siteLogo" />
 				<div class="login-left-logo-text">
 					<span>{{ getSystemConfig['login.site_title'] || getThemeConfig.globalViceTitle }}</span>
-					<span class="login-left-logo-text-msg">{{
+					<span class="login-left-logo-text-msg" style="margin-top: 5px;">{{
 						getSystemConfig['login.site_name'] || getThemeConfig.globalViceTitleMsg }}</span>
 				</div>
 			</div>
-			<div class="login-left-img">
-				<img :src="loginMain" />
-			</div>
-			<img :src="loginBg" class="login-left-waves" />
 		</div>
 		<div class="login-right flex z-10">
 			<div class="login-right-warp flex-margin">
-				<span class="login-right-warp-one"></span>
-				<span class="login-right-warp-two"></span>
+<!--				<span class="login-right-warp-one"></span>-->
+<!--				<span class="login-right-warp-two"></span>-->
 				<div class="login-right-warp-mian">
-					<div class="login-right-warp-main-title">{{ getSystemConfig['login.site_title'] ||
-						getThemeConfig.globalTitle }} 欢迎您！</div>
+					<div class="login-right-warp-main-title">
+            {{userInfos.pwd_change_count===0?'初次登录修改密码':'欢迎登录'}}
+          </div>
 					<div class="login-right-warp-main-form">
 						<div v-if="!state.isScan">
 							<el-tabs v-model="state.tabsActiveName">
-								<el-tab-pane :label="$t('message.label.one1')" name="account">
+                <el-tab-pane :label="$t('message.label.changePwd')" name="changePwd"  v-if="userInfos.pwd_change_count===0">
+                  <ChangePwd />
+                </el-tab-pane>
+								<el-tab-pane :label="$t('message.label.one1')" name="account" v-else>
 									<Account />
 								</el-tab-pane>
+
 								<!-- TODO 手机号码登录未接入，展示隐藏 -->
 								<!-- <el-tab-pane :label="$t('message.label.two2')" name="mobile">
 									<Mobile />
 								</el-tab-pane> -->
 							</el-tabs>
 						</div>
-						<Scan v-if="state.isScan" />
-						<div class="login-content-main-sacn" @click="state.isScan = !state.isScan">
-							<i class="iconfont" :class="state.isScan ? 'icon-diannao1' : 'icon-barcode-qr'"></i>
-							<div class="login-content-main-sacn-delta"></div>
-						</div>
+<!--						<Scan v-if="state.isScan" />-->
+<!--						<div class="login-content-main-sacn" @click="state.isScan = !state.isScan">-->
+<!--							<i class="iconfont" :class="state.isScan ? 'icon-diannao1' : 'icon-barcode-qr'"></i>-->
+<!--							<div class="login-content-main-sacn-delta"></div>-->
+<!--						</div>-->
 					</div>
 				</div>
 			</div>
 		</div>
 
 		<div class="login-authorization z-10">
-			<p>Copyright © {{ getSystemConfig['login.copyright'] || '2021-2024 django-vue-admin.com' }} 版权所有</p>
-			<p class="la-other">
+			<p>Copyright © {{ getSystemConfig['login.copyright'] || '2021-2024 北京信码新创科技有限公司' }} 版权所有</p>
+			<p class="la-other" style="margin-top: 5px;">
 				<a href="https://beian.miit.gov.cn" target="_blank">{{ getSystemConfig['login.keep_record'] ||
-					'晋ICP备18005113号-3' }}</a>
+					'京ICP备2021031018号' }}</a>
 				|
-				<a :href="getSystemConfig['login.help_url'] ? getSystemConfig['login.help_url'] : 'https://django-vue-admin.com'"
+				<a :href="getSystemConfig['login.help_url'] ? getSystemConfig['login.help_url'] : '#'"
 					target="_blank">帮助</a>
 				|
 				<a
@@ -60,26 +61,29 @@
 			</p>
 		</div>
 	</div>
-	<div v-if="siteBg">
-		<img :src="siteBg" class="fixed inset-0 z-1 w-full h-full" />
+	<div v-if="loginBg">
+		<img :src="loginBg" class="loginBg fixed inset-0 z-1 w-full h-full" />
 	</div>
 </template>
 
 <script setup lang="ts" name="loginIndex">
-import { defineAsyncComponent, onMounted, reactive, computed } from 'vue';
+import {defineAsyncComponent, onMounted, reactive, computed, watch} from 'vue';
 import { storeToRefs } from 'pinia';
 import { useThemeConfig } from '/@/stores/themeConfig';
 import { NextLoading } from '/@/utils/loading';
 import logoMini from '/@/assets/logo-mini.svg';
 import loginMain from '/@/assets/login-main.svg';
-import loginBg from '/@/assets/login-bg.svg';
+import loginBg from '/@/assets/login-bg.png';
 import { SystemConfigStore } from '/@/stores/systemConfig'
 import { getBaseURL } from "/@/utils/baseUrl";
 // 引入组件
 const Account = defineAsyncComponent(() => import('/@/views/system/login/component/account.vue'));
 const Mobile = defineAsyncComponent(() => import('/@/views/system/login/component/mobile.vue'));
 const Scan = defineAsyncComponent(() => import('/@/views/system/login/component/scan.vue'));
+const ChangePwd = defineAsyncComponent(() => import('/@/views/system/login/component/changePwd.vue'));
 import _ from "lodash-es";
+import {useUserInfo} from "/@/stores/userInfo";
+const { userInfos } = storeToRefs(useUserInfo());
 
 // 定义变量内容
 const storesThemeConfig = useThemeConfig();
@@ -88,6 +92,16 @@ const state = reactive({
 	tabsActiveName: 'account',
 	isScan: false,
 });
+
+
+watch(()=>userInfos.value.pwd_change_count,(val)=>{
+  if(val===0){
+    state.tabsActiveName ='changePwd'
+  }else{
+    state.tabsActiveName ='account'
+  }
+},{deep:true,immediate:true})
+
 
 // 获取布局配置信息
 const getThemeConfig = computed(() => {
@@ -187,13 +201,13 @@ onMounted(() => {
 		width: 700px;
 
 		.login-right-warp {
-			border: 1px solid var(--el-color-primary-light-3);
+			//border: 1px solid var(--el-color-primary-light-3);
 			border-radius: 3px;
 			width: 500px;
 			height: 500px;
 			position: relative;
 			overflow: hidden;
-			background-color: var(--el-color-white);
+			//background-color: var(--el-color-white);
 
 			.login-right-warp-one,
 			.login-right-warp-two {
@@ -265,7 +279,8 @@ onMounted(() => {
 				.login-right-warp-main-title {
 					height: 130px;
 					line-height: 130px;
-					font-size: 27px;
+					font-size: 32px;
+          font-weight: 600;
 					text-align: center;
 					letter-spacing: 3px;
 					animation: logoAnimation 0.3s ease;
@@ -321,7 +336,7 @@ onMounted(() => {
 	}
 
 	.login-authorization {
-		position: fixed;
+		position: absolute;
 		bottom: 30px;
 		left: 0;
 		right: 0;

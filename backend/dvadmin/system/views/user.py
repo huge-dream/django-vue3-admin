@@ -286,6 +286,7 @@ class UserViewSet(CustomModelViewSet):
             "dept": user.dept_id,
             "is_superuser": user.is_superuser,
             "role": user.role.values_list('id', flat=True),
+            "pwd_change_count":user.pwd_change_count
         }
         if hasattr(connection, 'tenant'):
             result['tenant_id'] = connection.tenant and connection.tenant.id
@@ -319,7 +320,6 @@ class UserViewSet(CustomModelViewSet):
         """密码修改"""
         data = request.data
         old_pwd = data.get("oldPassword")
-        print(old_pwd)
         new_pwd = data.get("newPassword")
         new_pwd2 = data.get("newPassword2")
         if old_pwd is None or new_pwd is None or new_pwd2 is None:
@@ -336,10 +336,25 @@ class UserViewSet(CustomModelViewSet):
                 verify_password = check_password(str(old_pwd_md5), request.user.password)
         if verify_password:
             request.user.password = make_password(hashlib.md5(new_pwd.encode(encoding='UTF-8')).hexdigest())
+            request.user.pwd_change_count += 1
             request.user.save()
             return DetailResponse(data=None, msg="修改成功")
         else:
             return ErrorResponse(msg="旧密码不正确")
+
+    @action(methods=["post"], detail=False, permission_classes=[IsAuthenticated])
+    def login_change_password(self, request, *args, **kwargs):
+        """初次登录进行密码修改"""
+        data = request.data
+        new_pwd = data.get("password")
+        new_pwd2 = data.get("password_regain")
+        if new_pwd != new_pwd2:
+            return ErrorResponse(msg="两次密码不匹配")
+        else:
+            request.user.password = make_password(hashlib.md5(new_pwd.encode(encoding='UTF-8')).hexdigest())
+            request.user.pwd_change_count += 1
+            request.user.save()
+            return DetailResponse(data=None, msg="修改成功")
 
     @action(methods=["PUT"], detail=True, permission_classes=[IsAuthenticated])
     def reset_to_default_password(self, request,pk):

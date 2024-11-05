@@ -71,6 +71,7 @@ class Users(CoreModel, AbstractUser):
         help_text="关联部门",
     )
     login_error_count = models.IntegerField(default=0, verbose_name="登录错误次数", help_text="登录错误次数")
+    pwd_change_count = models.IntegerField(default=0,blank=True, verbose_name="密码修改次数", help_text="密码修改次数")
     objects = CustomUserManager()
 
     def set_password(self, raw_password):
