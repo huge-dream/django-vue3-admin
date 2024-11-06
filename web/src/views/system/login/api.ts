@@ -13,6 +13,15 @@ export function login(params: object) {
         data: params
     });
 }
+
+export function loginChangePwd(data: object) {
+    return request({
+        url: '/api/system/user/login_change_password/',
+        method: 'post',
+        data: data
+    });
+}
+
 export function getUserInfo() {
     return request({
         url: '/api/system/user/user_info/',
