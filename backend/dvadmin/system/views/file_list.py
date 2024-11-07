@@ -1,6 +1,7 @@
 import hashlib
 import mimetypes
 
+import django_filters
 from rest_framework import serializers
 from rest_framework.decorators import action
 
@@ -64,6 +65,15 @@ class FileSerializer(CustomModelSerializer):
         return super().create(validated_data)
 
 
+class FileFilter(django_filters.FilterSet):
+    name = django_filters.CharFilter(field_name="name", lookup_expr="icontains", help_text="文件名")
+    mime_type = django_filters.CharFilter(field_name="mime_type", lookup_expr="icontains", help_text="文件类型")
+
+    class Meta:
+        model = FileList
+        fields = ['name', 'mime_type', 'upload_method']
+
+
 class FileViewSet(CustomModelViewSet):
     """
     文件管理接口
@@ -75,5 +85,5 @@ class FileViewSet(CustomModelViewSet):
     """
     queryset = FileList.objects.all()
     serializer_class = FileSerializer
-    filter_fields = ['name', ]
+    filter_class = FileFilter
     permission_classes = []
