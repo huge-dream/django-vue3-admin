@@ -408,6 +408,11 @@ class FileList(CoreModel):
     mime_type = models.CharField(max_length=100, blank=True, verbose_name="Mime类型", help_text="Mime类型")
     size = models.CharField(max_length=36, blank=True, verbose_name="文件大小", help_text="文件大小")
     md5sum = models.CharField(max_length=36, blank=True, verbose_name="文件md5", help_text="文件md5")
+    UPLOAD_METHOD_CHOIDES = (
+        (0, '默认上传'),
+        (1, '文件选择器上传'),
+    )
+    upload_method = models.SmallIntegerField(default=0, blank=True, null=True, choices=UPLOAD_METHOD_CHOIDES, verbose_name='上传方式', help_text='上传方式')
 
     def save(self, *args, **kwargs):
         if not self.md5sum:  # file is new
