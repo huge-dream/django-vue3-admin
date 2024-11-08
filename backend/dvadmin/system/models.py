@@ -413,6 +413,13 @@ class FileList(CoreModel):
         (1, '文件选择器上传'),
     )
     upload_method = models.SmallIntegerField(default=0, blank=True, null=True, choices=UPLOAD_METHOD_CHOIDES, verbose_name='上传方式', help_text='上传方式')
+    FILE_TYPE_CHOIDES = (
+        (0, '图片'),
+        (1, '视频'),
+        (2, '音频'),
+        (3, '其他'),
+    )
+    file_type = models.SmallIntegerField(default=3, choices=FILE_TYPE_CHOIDES, blank=True, null=True, verbose_name='文件类型', help_text='文件类型')
 
     def save(self, *args, **kwargs):
         if not self.md5sum:  # file is new
