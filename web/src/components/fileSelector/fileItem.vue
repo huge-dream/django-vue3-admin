@@ -10,9 +10,7 @@ import { ref, defineProps, PropType, watch, onMounted, h } from 'vue';
 const props = defineProps({
     fileData: { type: Object as PropType<any>, required: true },
 });
-const _OtherFileComponent = defineComponent({
-    template: '<el-icon><Files /></el-icon>'
-})
+const _OtherFileComponent = defineComponent({ template: '<el-icon><Files /></el-icon>' });
 const FileTypes = [
     { tag: 'img', attr: { src: props.fileData.url, draggable: false } },
     { tag: 'video', attr: { src: props.fileData.url, controls: false, autoplay: true, muted: true, loop: true } },
