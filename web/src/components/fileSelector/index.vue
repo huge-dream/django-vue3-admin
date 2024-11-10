@@ -1,10 +1,10 @@
 <template>
-	<el-select v-model="data" suffix-icon="arrow-down" clearable :multiple="props.multiple" placeholder="请选择文件"
+	<el-select v-show="props.selectable" v-model="data" suffix-icon="arrow-down" clearable :multiple="props.multiple" placeholder="请选择文件"
 		@click="selectVisiable = true" @clear="selectedInit" @remove-tag="selectedInit">
 		<el-option v-for="item, index in listAllData" :key="index" :value="item.id" :label="item.name" />
 	</el-select>
 	<el-dialog v-model="selectVisiable" :draggable="false" width="50%" :align-center="false"
-		@open="if (listData.length === 0) listRequest();">
+		@open="if (listData.length === 0) listRequest();" @closed="if (!props.selectable) clear();">
 		<template #header>
 			<span class="el-dialog__title">文件选择</span>
 			<el-divider style="margin: 0;" />
@@ -50,7 +50,7 @@
 					:hide-on-single-page="false" @change="handlePageChange" />
 			</div>
 		</div>
-		<template #footer>
+		<template #footer v-if="props.selectable">
 			<el-button type="default" @click="selectVisiable = false">取消</el-button>
 			<el-button type="primary" @click="selectVisiable = false">确定</el-button>
 		</template>
@@ -70,10 +70,17 @@ const AcceptList = ['image/*', 'video/*', 'audio/*', ''];
 const props = defineProps({
 	modelValue: {},
 	tabsType: { type: Object as PropType<'' | 'card' | 'border-card'>, default: '' },
+	itemSize: { type: Number, default: 100 },
+
 	// 1000图片 100视频 10音频 1 其他 控制tabs的显示
 	tabsShow: { type: Number, default: SHOW.ALL },
-	itemSize: { type: Number, default: 100 },
+
+	// 是否可以多选，默认单选
 	multiple: { type: Boolean, default: false },
+
+	// 是否可选，该参数用于控制是否显示select输入框。若赋值为false，则不会显示select输入框，也不会显示底部按钮
+	// 如果不显示select输入框，则无法触发dialog，需要父组件通过修改本组件暴露的 selectVisiable 状态来控制dialog
+	selectable: { type: Boolean, default: true },
 } as any);
 const selectVisiable = ref<boolean>(false);
 const tabsActived = ref<number>(0);
@@ -108,6 +115,7 @@ const handlePageChange = (currentPage: number, pageSize: number) => { pageForm.p
 // 选择的行为
 const listContainerRef = ref<any>();
 const onItemClick = async (e: MouseEvent) => {
+	if (!props.selectable) return;
 	let target = e.target as HTMLElement;
 	let flat = 0;  // -1删除 0不变 1添加
 	while (!target.dataset.id) target = target.parentElement as HTMLElement;
@@ -138,6 +146,7 @@ const onItemClick = async (e: MouseEvent) => {
 };
 // 每次列表刷新都得更新一下选择状态，因为所有标签页共享列表
 const selectedInit = async () => {
+	if (!props.selectable) return;
 	await nextTick();
 	for (let i of (listContainerRef.value?.children || [])) {
 		i.classList.remove('active');

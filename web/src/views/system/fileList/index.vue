@@ -11,11 +11,7 @@
         <span>{{ scope.row.size ? getSizeDisplay(scope.row.size) : '0b' }}</span>
       </template>
     </fs-crud>
-    <el-dialog v-model="selectorVisiable" @closed="fileSelectorRef.clear();">
-      <el-form-item label="文件">
-        <FileSelector ref="fileSelectorRef" :tabsShow="SHOW.ALL" :itemSize="120" :multiple="true" />
-      </el-form-item>
-    </el-dialog>
+    <FileSelector ref="fileSelectorRef" :tabsShow="SHOW.ALL" :itemSize="120" :multiple="false" :selectable="false" />
   </fs-page>
 </template>
 
@@ -27,12 +23,11 @@ import { getBaseURL } from '/@/utils/baseUrl';
 import FileSelector from '/@/components/fileSelector/index.vue';
 import { SHOW } from '/@/components/fileSelector/types';
 
-const selectorVisiable = ref(false);
 const fileSelectorRef = ref<any>(null);
 const getSizeDisplay = (n: number) => n < 1024 ? n + 'b' : (n < 1024 * 1024 ? (n / 1024).toFixed(2) + 'Kb' : (n / (1024 * 1024)).toFixed(2) + 'Mb');
 
 const openAddHandle = async () => {
-  selectorVisiable.value = true;
+  fileSelectorRef.value.selectVisiable = true;
   await nextTick();
 }
 // crud组件的ref
