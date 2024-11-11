@@ -1,7 +1,7 @@
 <template>
-	<el-select v-show="props.selectable" v-model="data" suffix-icon="arrow-down" clearable :multiple="props.multiple" placeholder="请选择文件"
-		@click="selectVisiable = true" @clear="selectedInit" @remove-tag="selectedInit">
-		<el-option v-for="item, index in listAllData" :key="index" :value="item.id" :label="item.name" />
+	<el-select v-show="props.selectable" v-model="data" suffix-icon="arrow-down" clearable :multiple="props.multiple"
+		placeholder="请选择文件" @click="selectVisiable = true" @clear="selectedInit" @remove-tag="selectedInit">
+		<el-option v-for="item, index in listAllData" :key="index" :value="item[props.valueKey]" :label="item.name" />
 	</el-select>
 	<el-dialog v-model="selectVisiable" :draggable="false" width="50%" :align-center="false"
 		@open="if (listData.length === 0) listRequest();" @closed="if (!props.selectable) clear();">
@@ -18,8 +18,8 @@
 			</el-tabs>
 			<el-row justify="space-between" class="headerBar">
 				<el-span :span="16">
-					<el-input v-model="filterForm.name" :placeholder="`请输入${TypeLabel[tabsActived]}名`" prefix-icon="search"
-						clearable @change="listRequest" />
+					<el-input v-model="filterForm.name" :placeholder="`请输入${TypeLabel[tabsActived]}名`"
+						prefix-icon="search" clearable @change="listRequest" />
 					<div>
 						<el-tag v-if="props.multiple" type="primary" effect="light">
 							一共选中&nbsp;{{ data?.length || 0 }}&nbsp;个文件
@@ -30,7 +30,8 @@
 					<el-button type="default" circle icon="refresh" @click="listRequest" />
 					<!-- 这里 show-file-list 和 clearFiles 一起使用确保不会显示上传列表 -->
 					<el-upload ref="uploadRef" :action="getBaseURL() + 'api/system/file/'" :multiple="false"
-						:data="{ upload_method: 1 }" :drag="false" :show-file-list="false" :accept="AcceptList[tabsActived]"
+						:data="{ upload_method: 1 }" :drag="false" :show-file-list="false"
+						:accept="AcceptList[tabsActived]"
 						:on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }">
 						<el-button type="primary" icon="plus">上传{{ TypeLabel[tabsActived] }}</el-button>
 					</el-upload>
@@ -40,14 +41,14 @@
 				style="width: 100%; height: calc(50vh); margin-top: 24px; padding: 4px;" />
 			<div ref="listContainerRef" class="listContainer" v-else>
 				<div v-for="item in listData" :style="{ width: (props.itemSize || 100) + 'px' }" :key="item.id"
-					@click="onItemClick($event)" :data-id="item.id">
+					@click="onItemClick($event)" :data-id="item[props.valueKey]">
 					<FileItem :fileData="item" />
 				</div>
 			</div>
 			<div class="listPaginator">
 				<el-pagination background size="small" layout="total, sizes, prev, pager, next" :total="pageForm.total"
-					v-model:page-size="pageForm.limit" :page-sizes="[10, 20, 30, 40, 50]" v-model:current-page="pageForm.page"
-					:hide-on-single-page="false" @change="handlePageChange" />
+					v-model:page-size="pageForm.limit" :page-sizes="[10, 20, 30, 40, 50]"
+					v-model:current-page="pageForm.page" :hide-on-single-page="false" @change="handlePageChange" />
 			</div>
 		</div>
 		<template #footer v-if="props.selectable">
@@ -81,6 +82,9 @@ const props = defineProps({
 	// 是否可选，该参数用于控制是否显示select输入框。若赋值为false，则不会显示select输入框，也不会显示底部按钮
 	// 如果不显示select输入框，则无法触发dialog，需要父组件通过修改本组件暴露的 selectVisiable 状态来控制dialog
 	selectable: { type: Boolean, default: true },
+
+	// v-model绑定的值是file数据的哪个key，默认是id
+	valueKey: { type: String, default: 'id' },
 } as any);
 const selectVisiable = ref<boolean>(false);
 const tabsActived = ref<number>(0);
@@ -88,9 +92,6 @@ const fileApiPrefix = '/api/system/file/';
 const fileApi = {
 	GetList: (query: UserPageQuery) => request({ url: fileApiPrefix, method: 'get', params: query }),
 	GetAll: () => request({ url: fileApiPrefix + 'get_all/' }),
-	AddObj: (obj: AddReq) => request({ url: fileApiPrefix, method: 'post', data: obj }),
-	UpdateObj: (obj: EditReq) => request({ url: fileApiPrefix + obj.id + '/', method: 'put', data: obj }),
-	DelObj: (id: DelReq) => request({ url: fileApiPrefix + id + '/', method: 'delete', data: { id } }),
 };
 // 过滤表单
 const filterForm = reactive({ name: '' });
@@ -119,7 +120,7 @@ const onItemClick = async (e: MouseEvent) => {
 	let target = e.target as HTMLElement;
 	let flat = 0;  // -1删除 0不变 1添加
 	while (!target.dataset.id) target = target.parentElement as HTMLElement;
-	let fileId = Number(target.dataset.id);
+	let fileId = target.dataset.id;
 	if (props.multiple) {
 		if (target.classList.contains('active')) {
 			target.classList.remove('active');
@@ -150,7 +151,7 @@ const selectedInit = async () => {
 	await nextTick();
 	for (let i of (listContainerRef.value?.children || [])) {
 		i.classList.remove('active');
-		let fid = Number((i as HTMLElement).dataset.id);
+		let fid = (i as HTMLElement).dataset.id;
 		if (props.multiple) {
 			if (data.value?.includes(fid)) i.classList.add('active');
 		} else {
