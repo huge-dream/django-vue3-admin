@@ -87,7 +87,7 @@ const props = defineProps({
 	valueKey: { type: String, default: 'id' },
 } as any);
 const selectVisiable = ref<boolean>(false);
-const tabsActived = ref<number>(0);
+const tabsActived = ref<number>([3, 2, 1, 0][((props.tabsShow & (props.tabsShow - 1)) === 0) ? Math.log2(props.tabsShow) : 3]);
 const fileApiPrefix = '/api/system/file/';
 const fileApi = {
 	GetList: (query: UserPageQuery) => request({ url: fileApiPrefix, method: 'get', params: query }),
