@@ -7,8 +7,8 @@
         :label="item.name" />
     </el-select>
     <div v-if="props.inputType === 'image'" style="position: relative;"
-      :style="{ width: props.inputImageSize + 'px', height: props.inputImageSize + 'px' }">
-      <el-image :src="data" fit="scale-down" :style="{ width: props.inputImageSize + 'px', aspectRatio: '1 / 1' }">
+      :style="{ width: props.inputSize + 'px', height: props.inputSize + 'px' }">
+      <el-image :src="data" fit="scale-down" :style="{ width: props.inputSize + 'px', aspectRatio: '1 / 1' }">
         <template #error>
           <div></div>
         </template>
@@ -26,9 +26,10 @@
     </div>
     <div v-if="props.inputType === 'video'"
       style="position: relative; display: flex; align-items: center;  justify-items: center;"
-      :style="{ width: props.inputImageSize * 2 + 'px', height: props.inputImageSize + 'px' }">
-      <video :src="data" :controls="false" :autoplay="true" :muted="true" :loop="true"></video>
-      <div v-show="!!data"
+      :style="{ width: props.inputSize * 2 + 'px', height: props.inputSize + 'px' }">
+      <video :src="data" :controls="false" :autoplay="true" :muted="true" :loop="true"
+        :style="{ maxWidth: props.inputSize * 2 + 'px', maxHeight: props.inputSize + 'px', margin: '0 auto' }"></video>
+      <div v-show="!(!!data)"
         style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
         <el-icon :size="24">
           <Plus />
@@ -41,8 +42,9 @@
     </div>
     <div v-if="props.inputType === 'audio'"
       style="position: relative; display: flex; align-items: center;  justify-items: center;"
-      :style="{ width: props.inputImageSize * 2 + 'px', height: props.inputImageSize + 'px' }">
-      <audio style="width: 100%; z-index: 1;" :src="data" :controls="!!data" :autoplay="false" :muted="true" :loop="true"></audio>
+      :style="{ width: props.inputSize * 2 + 'px', height: props.inputSize + 'px' }">
+      <audio :src="data" :controls="!!data" :autoplay="false" :muted="true" :loop="true"
+        style="width: 100%; z-index: 1;"></audio>
       <div v-show="!(!!data)"
         style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
         <el-icon :size="24">
@@ -140,8 +142,8 @@ const props = defineProps({
 
   // 表单item类型，不为selector是需要设置valueKey，否则可能获取不到媒体数据
   inputType: { type: Object as PropType<'selector' | 'image' | 'video' | 'audio'>, default: 'selector' },
-  // inputType为image时生效
-  inputImageSize: { type: Number, default: 100 },
+  // inputType不为selector时生效
+  inputSize: { type: Number, default: 100 },
 
   // v-model绑定的值是file数据的哪个key，默认是id
   valueKey: { type: String, default: 'id' },
