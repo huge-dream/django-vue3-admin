@@ -3,7 +3,7 @@
     <el-select v-if="props.inputType === 'selector'" v-model="data" suffix-icon="arrow-down" clearable
       :multiple="props.multiple" placeholder="请选择文件" @click="selectVisiable = true" @clear="selectedInit"
       @remove-tag="selectedInit">
-      <el-option v-for="item, index in listAllData" :key="index" :value="item[props.valueKey]" :label="item.name" />
+      <el-option v-for="item, index in listAllData" :key="index" :value="String(item[props.valueKey])" :label="item.name" />
     </el-select>
     <div v-if="props.inputType === 'image'" style="position: relative;"
       :style="{ width: props.inputImageSize + 'px', height: props.inputImageSize + 'px' }">
@@ -167,6 +167,7 @@ const listRequest = async () => {
   selectedInit();
 };
 const listRequestAll = async () => {
+  console.log(props.inputType)
   if (props.inputType !== 'selector') return;
   let res = await fileApi.GetAll();
   listAllData.value = res.data;
