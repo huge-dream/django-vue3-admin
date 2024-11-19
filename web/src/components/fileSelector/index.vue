@@ -42,7 +42,7 @@
     <div v-if="props.inputType === 'audio'"
       style="position: relative; display: flex; align-items: center;  justify-items: center;"
       :style="{ width: props.inputImageSize * 2 + 'px', height: props.inputImageSize + 'px' }">
-      <audio style="width: 100%;" :src="data" :controls="!!data" :autoplay="false" :muted="true" :loop="true"></audio>
+      <audio style="width: 100%; z-index: 1;" :src="data" :controls="!!data" :autoplay="false" :muted="true" :loop="true"></audio>
       <div v-show="!(!!data)"
         style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
         <el-icon :size="24">
