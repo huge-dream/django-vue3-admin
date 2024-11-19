@@ -5,7 +5,7 @@
       @remove-tag="selectedInit">
       <el-option v-for="item, index in listAllData" :key="index" :value="item[props.valueKey]" :label="item.name" />
     </el-select>
-    <div v-if="props.inputType === 'image'" style="position: relative;" class="imageInput"
+    <div v-if="props.inputType === 'image'" style="position: relative;"
       :style="{ width: props.inputImageSize + 'px', height: props.inputImageSize + 'px' }">
       <el-image :src="data" fit="scale-down" :style="{ width: props.inputImageSize + 'px', aspectRatio: '1 / 1' }">
         <template #error>
@@ -16,8 +16,23 @@
           </div>
         </template>
       </el-image>
-      <div @click="selectVisiable = true" class="imageHover"></div>
-      <el-icon v-show="!!data" class="imageCloseHover" :size="16" @click="dataClear">
+      <div @click="selectVisiable = true" class="addControllorHover"></div>
+      <el-icon v-show="!!data" class="closeHover" :size="16" @click="dataClear">
+        <Close />
+      </el-icon>
+    </div>
+    <div v-if="props.inputType === 'video'"
+      style="position: relative; display: flex; align-items: center;  justify-items: center;"
+      :style="{ width: props.inputImageSize + 'px', height: props.inputImageSize + 'px' }">
+      <video :src="data" :controls="false" :autoplay="true" :muted="true" :loop="true"></video>
+      <div v-show="!(!!data)"
+        style="position: absolute; left: 0; top: 0; height: 100%; aspect-ratio: 1 / 1; display: flex; justify-content: center; align-items: center;">
+        <el-icon :size="24">
+          <Plus />
+        </el-icon>
+      </div>
+      <div @click="selectVisiable = true" class="addControllorHover"></div>
+      <el-icon v-show="!!data" class="closeHover" :size="16" @click="dataClear">
         <Close />
       </el-icon>
     </div>
@@ -95,6 +110,7 @@ const props = defineProps({
   tabsShow: { type: Number, default: SHOW.ALL },
 
   // 是否可以多选，默认单选
+  // 该值为true时inputType必须是selector（暂不支持其他type的多选）
   multiple: { type: Boolean, default: false },
 
   // 是否可选，该参数用于只上传和展示而不选择和绑定model的情况
@@ -153,24 +169,16 @@ const onItemClick = async (e: MouseEvent) => {
   while (!target.dataset.id) target = target.parentElement as HTMLElement;
   let fileId = target.dataset.id;
   if (props.multiple) {
-    if (target.classList.contains('active')) {
-      target.classList.remove('active');
-      flat = -1;
-    } else {
-      target.classList.add('active');
-      flat = 1;
-    }
+    if (target.classList.contains('active')) { target.classList.remove('active'); flat = -1; }
+    else { target.classList.add('active'); flat = 1; }
     if (data.value) {
       if (flat === 1) data.value.push(fileId);
       else data.value.splice(data.value.indexOf(fileId), 1);
-    }
-    else data.value = [fileId];
+    } else data.value = [fileId];
     // 去重排序，<降序，>升序
     data.value = Array.from(new Set(data.value)).sort();
   } else {
-    for (let i of listContainerRef.value?.children) {
-      (i as HTMLElement).classList.remove('active');
-    }
+    for (let i of listContainerRef.value?.children) (i as HTMLElement).classList.remove('active');
     target.classList.add('active');
     data.value = fileId;
   }
@@ -183,11 +191,8 @@ const selectedInit = async () => {
   for (let i of (listContainerRef.value?.children || [])) {
     i.classList.remove('active');
     let fid = (i as HTMLElement).dataset.id;
-    if (props.multiple) {
-      if (data.value?.includes(fid)) i.classList.add('active');
-    } else {
-      if (fid === data.value) i.classList.add('active');
-    }
+    if (props.multiple) { if (data.value?.includes(fid)) i.classList.add('active'); }
+    else { if (fid === data.value) i.classList.add('active'); }
   }
 };
 const uploadRef = ref<any>();
@@ -219,7 +224,11 @@ const onDataChange = (value: any) => {
 defineExpose({ data, onDataChange, selectVisiable, clear, dataClear });
 
 
-onMounted(() => listRequestAll());
+onMounted(() => {
+  if (props.multiple && props.inputType !== 'selector')
+    throw new Error('FileSelector组件属性multiple为true时inputType必须为selector');
+  listRequestAll();
+});
 </script>
 
 <style scoped>
@@ -263,7 +272,7 @@ onMounted(() => listRequestAll());
   padding-top: 24px;
 }
 
-.imageHover {
+.addControllorHover {
   width: 100%;
   aspect-ratio: 1 / 1;
   position: absolute;
@@ -274,18 +283,18 @@ onMounted(() => listRequestAll());
   border: 1px solid #dcdfe6;
 }
 
-.imageHover:hover {
+.addControllorHover:hover {
   border-color: #c0c4cc;
 }
 
-.imageCloseHover {
+.closeHover {
   position: absolute;
   right: 2px;
   top: 2px;
   cursor: pointer;
 }
 
-.imageCloseHover:hover {
+.closeHover:hover {
   color: black;
 }
 </style>
