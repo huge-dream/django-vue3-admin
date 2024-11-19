@@ -23,10 +23,25 @@
     </div>
     <div v-if="props.inputType === 'video'"
       style="position: relative; display: flex; align-items: center;  justify-items: center;"
-      :style="{ width: props.inputImageSize + 'px', height: props.inputImageSize + 'px' }">
+      :style="{ width: props.inputImageSize * 2 + 'px', height: props.inputImageSize + 'px' }">
       <video :src="data" :controls="false" :autoplay="true" :muted="true" :loop="true"></video>
       <div v-show="!(!!data)"
-        style="position: absolute; left: 0; top: 0; height: 100%; aspect-ratio: 1 / 1; display: flex; justify-content: center; align-items: center;">
+        style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+        <el-icon :size="24">
+          <Plus />
+        </el-icon>
+      </div>
+      <div @click="selectVisiable = true" class="addControllorHover"></div>
+      <el-icon v-show="!!data" class="closeHover" :size="16" @click="dataClear">
+        <Close />
+      </el-icon>
+    </div>
+    <div v-if="props.inputType === 'audio'"
+      style="position: relative; display: flex; align-items: center;  justify-items: center;"
+      :style="{ width: props.inputImageSize * 2 + 'px', height: props.inputImageSize + 'px' }">
+      <audio style="width: 100%;" :src="data" :controls="!!data" :autoplay="false" :muted="true" :loop="true"></audio>
+      <div v-show="!(!!data)"
+        style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
         <el-icon :size="24">
           <Plus />
         </el-icon>
@@ -274,7 +289,7 @@ onMounted(() => {
 
 .addControllorHover {
   width: 100%;
-  aspect-ratio: 1 / 1;
+  height: 100%;
   position: absolute;
   left: 0;
   top: 0;
