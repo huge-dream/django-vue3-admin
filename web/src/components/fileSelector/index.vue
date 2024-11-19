@@ -3,19 +3,22 @@
     <el-select v-if="props.inputType === 'selector'" v-model="data" suffix-icon="arrow-down" clearable
       :multiple="props.multiple" placeholder="请选择文件" @click="selectVisiable = true" @clear="selectedInit"
       @remove-tag="selectedInit">
-      <el-option v-for="item, index in listAllData" :key="index" :value="String(item[props.valueKey])" :label="item.name" />
+      <el-option v-for="item, index in listAllData" :key="index" :value="String(item[props.valueKey])"
+        :label="item.name" />
     </el-select>
     <div v-if="props.inputType === 'image'" style="position: relative;"
       :style="{ width: props.inputImageSize + 'px', height: props.inputImageSize + 'px' }">
       <el-image :src="data" fit="scale-down" :style="{ width: props.inputImageSize + 'px', aspectRatio: '1 / 1' }">
         <template #error>
-          <div style="width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-            <el-icon :size="24">
-              <Plus />
-            </el-icon>
-          </div>
+          <div></div>
         </template>
       </el-image>
+      <div v-show="!(!!data)"
+        style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+        <el-icon :size="24">
+          <Plus />
+        </el-icon>
+      </div>
       <div @click="selectVisiable = true" class="addControllorHover"></div>
       <el-icon v-show="!!data" class="closeHover" :size="16" @click="dataClear">
         <Close />
@@ -25,7 +28,7 @@
       style="position: relative; display: flex; align-items: center;  justify-items: center;"
       :style="{ width: props.inputImageSize * 2 + 'px', height: props.inputImageSize + 'px' }">
       <video :src="data" :controls="false" :autoplay="true" :muted="true" :loop="true"></video>
-      <div v-show="!(!!data)"
+      <div v-show="!!data"
         style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
         <el-icon :size="24">
           <Plus />
@@ -167,7 +170,6 @@ const listRequest = async () => {
   selectedInit();
 };
 const listRequestAll = async () => {
-  console.log(props.inputType)
   if (props.inputType !== 'selector') return;
   let res = await fileApi.GetAll();
   listAllData.value = res.data;
@@ -226,7 +228,7 @@ const dataClear = () => { data.value = null; onDataChange(null); }
 
 
 // fs-crud部分
-const data = ref<any>();
+const data = ref<any>(null);
 const emit = defineEmits(['update:modelValue']);
 watch(() => props.modelValue, (val) => { data.value = val; }, { immediate: true });
 const { ui } = useUi();
