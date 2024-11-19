@@ -1,8 +1,8 @@
 <template>
-  <div v-show="props.showInput" style="width: 100%;">
+  <div v-show="props.showInput" style="width: 100%;" :class="props.class" :style="props.style">
     <el-select v-if="props.inputType === 'selector'" v-model="data" suffix-icon="arrow-down" clearable
-      :multiple="props.multiple" placeholder="请选择文件" @click="selectVisiable = true" @clear="selectedInit"
-      @remove-tag="selectedInit">
+      :multiple="props.multiple" placeholder="请选择文件" @click="selectVisiable = true && !props.disabled"
+      :disabled="props.disabled" @clear="selectedInit" @remove-tag="selectedInit">
       <el-option v-for="item, index in listAllData" :key="index" :value="String(item[props.valueKey])"
         :label="item.name" />
     </el-select>
@@ -19,8 +19,9 @@
           <Plus />
         </el-icon>
       </div>
-      <div @click="selectVisiable = true" class="addControllorHover"></div>
-      <el-icon v-show="!!data" class="closeHover" :size="16" @click="dataClear">
+      <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
+        :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
+      <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="dataClear">
         <Close />
       </el-icon>
     </div>
@@ -35,8 +36,9 @@
           <Plus />
         </el-icon>
       </div>
-      <div @click="selectVisiable = true" class="addControllorHover"></div>
-      <el-icon v-show="!!data" class="closeHover" :size="16" @click="dataClear">
+      <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
+        :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
+      <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="dataClear">
         <Close />
       </el-icon>
     </div>
@@ -51,8 +53,9 @@
           <Plus />
         </el-icon>
       </div>
-      <div @click="selectVisiable = true" class="addControllorHover"></div>
-      <el-icon v-show="!!data" class="closeHover" :size="16" @click="dataClear">
+      <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
+        :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
+      <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="dataClear">
         <Close />
       </el-icon>
     </div>
@@ -123,6 +126,10 @@ const TypeLabel = ['图片', '视频', '音频', '文件']
 const AcceptList = ['image/*', 'video/*', 'audio/*', ''];
 const props = defineProps({
   modelValue: {},
+  class: { type: String, default: '' },
+  style: { type: Object, default: {} },
+  disabled: { type: Boolean, default: false },
+
   tabsType: { type: Object as PropType<'' | 'card' | 'border-card'>, default: '' },
   itemSize: { type: Number, default: 100 },
 
