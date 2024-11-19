@@ -192,7 +192,7 @@ const selectedInit = async () => {
 };
 const uploadRef = ref<any>();
 // 清空状态
-const clear = () => {
+const clear = (dataClear?:boolean) => {
   filterForm.name = '';
   pageForm.page = 1;
   pageForm.limit = 10;
@@ -200,7 +200,7 @@ const clear = () => {
   listData.value = [];
   // all数据不能清，因为all只会在挂载的时候赋值一次
   // listAllData.value = [];
-  // data.value = null;
+  if (dataClear) data.value = null;
 };
 
 
@@ -215,7 +215,9 @@ const onDataChange = (value: any) => {
   formValidator.onChange();
   formValidator.onBlur();
 };
+
 defineExpose({ data, onDataChange, selectVisiable, clear });
+
 
 onMounted(() => listRequestAll());
 </script>
