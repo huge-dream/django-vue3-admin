@@ -17,7 +17,7 @@
         </template>
       </el-image>
       <div @click="selectVisiable = true" class="imageHover"></div>
-      <el-icon v-show="!!data" class="imageCloseHover" :size="16" @click="data = null; onDataChange(null);">
+      <el-icon v-show="!!data" class="imageCloseHover" :size="16" @click="dataClear">
         <Close />
       </el-icon>
     </div>
@@ -192,7 +192,7 @@ const selectedInit = async () => {
 };
 const uploadRef = ref<any>();
 // 清空状态
-const clear = (dataClear?:boolean) => {
+const clear = () => {
   filterForm.name = '';
   pageForm.page = 1;
   pageForm.limit = 10;
@@ -200,8 +200,8 @@ const clear = (dataClear?:boolean) => {
   listData.value = [];
   // all数据不能清，因为all只会在挂载的时候赋值一次
   // listAllData.value = [];
-  if (dataClear) data.value = null;
 };
+const dataClear = () => { data.value = null; onDataChange(null); }
 
 
 // fs-crud部分
@@ -216,7 +216,7 @@ const onDataChange = (value: any) => {
   formValidator.onBlur();
 };
 
-defineExpose({ data, onDataChange, selectVisiable, clear });
+defineExpose({ data, onDataChange, selectVisiable, clear, dataClear });
 
 
 onMounted(() => listRequestAll());
