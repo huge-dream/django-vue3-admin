@@ -10,6 +10,8 @@ import {
 	CreateCrudOptionsRet,
 	dict
 } from '@fast-crud/fast-crud';
+import fileSelector from '/@/components/fileSelector/index.vue';
+import { shallowRef } from 'vue';
 
 export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsProps): CreateCrudOptionsRet {
 	const pageRequest = async (query: UserPageQuery) => {
@@ -31,7 +33,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 				buttons: {
 					add: {
 						show: true,
-						click: () => context.openAddHandle?.()
+						// click: () => context.openAddHandle?.()
 					},
 				},
 			},
@@ -200,7 +202,25 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					search: {
 						show: true
 					}
-				}
+				},
+				// fileselectortest: {
+				// 	title: '文件选择器测试',
+				// 	type: 'file-selector',
+				// 	width: 200,
+				// 	form: {
+				// 		component: {
+				// 			name: shallowRef(fileSelector),
+				// 			vModel: 'modelValue',
+				// 			tabsShow: 0b0100,
+				// 			itemSize: 100,
+				// 			multiple: false,
+				// 			selectable: true,
+				// 			showInput: true,
+				// 			inputType: 'video',
+				// 			valueKey: 'url',
+				// 		}
+				// 	}
+				// }
 			},
 		},
 	};
