@@ -32,6 +32,7 @@ from dvadmin.system.views.login import (
     LogoutView,
     LoginTokenView
 )
+from dvadmin.system.views.register import RegisterView
 from dvadmin.system.views.system_config import InitSettingsViewSet
 from dvadmin.utils.swagger import CustomOpenAPISchemaGenerator
 
@@ -50,7 +51,7 @@ schema_view = get_schema_view(
         license=openapi.License(name="BSD License"),
     ),
     public=True,
-    permission_classes=(permissions.AllowAny,),
+    permission_classes=[permissions.AllowAny],
     generator_class=CustomOpenAPISchemaGenerator,
 )
 # 前端页面映射
@@ -60,6 +61,7 @@ import mimetypes
 import os
 
 
+# noinspection PyUnresolvedReferences
 def web_view(request):
     return render(request, 'web/index.html')
 
@@ -73,7 +75,7 @@ def serve_web_files(request, filename):
         raise Http404("File does not exist")
 
     # 根据文件扩展名，确定 MIME 类型
-    mime_type, _ = mimetypes.guess_type(filepath)
+    mime_type, _ = mimetypes.guess_type(str(filepath))
 
     # 打开文件并读取内容
     with open(filepath, 'rb') as f:
@@ -101,6 +103,7 @@ urlpatterns = (
             path("api/system/", include("dvadmin.system.urls")),
             path("api/login/", LoginView.as_view(), name="token_obtain_pair"),
             path("api/logout/", LogoutView.as_view(), name="token_obtain_pair"),
+            path("api/register/", RegisterView.as_view(), name="token_obtain_pair"),
             path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
             re_path(
                 r"^api-auth/", include("rest_framework.urls", namespace="rest_framework")
