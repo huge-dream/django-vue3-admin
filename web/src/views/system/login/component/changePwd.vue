@@ -1,16 +1,17 @@
 <template>
-	<el-form ref="formRef" size="large" class="login-content-form" :model="state.ruleForm" :rules="rules" @keyup.enter="loginClick">
+	<el-form ref="formRef" size="large" class="login-content-form" :model="state.ruleForm" :rules="rules"
+		@keyup.enter="loginClick">
 		<el-form-item class="login-animation1" prop="username">
-			<el-input type="text" :placeholder="$t('message.account.accountPlaceholder1')" readonly v-model="ruleForm.username"
-				clearable autocomplete="off">
+			<el-input type="text" :placeholder="$t('message.account.accountPlaceholder1')" readonly
+				v-model="ruleForm.username" clearable autocomplete="off">
 				<template #prefix>
 					<el-icon class="el-input__icon"><ele-User /></el-icon>
 				</template>
 			</el-input>
 		</el-form-item>
 		<el-form-item class="login-animation2" prop="password">
-			<el-input :type="isShowPassword ? 'text' : 'password'" :placeholder="$t('message.account.accountPlaceholder4')"
-				v-model="ruleForm.password">
+			<el-input :type="isShowPassword ? 'text' : 'password'"
+				:placeholder="$t('message.account.accountPlaceholder4')" v-model="ruleForm.password">
 				<template #prefix>
 					<el-icon class="el-input__icon"><ele-Unlock /></el-icon>
 				</template>
@@ -22,33 +23,32 @@
 				</template>
 			</el-input>
 		</el-form-item>
-		<el-form-item class="login-animation3"  prop="password_regain">
-      <el-input :type="isShowPassword ? 'text' : 'password'" :placeholder="$t('message.account.accountPlaceholder5')"
-                v-model="ruleForm.password_regain">
-        <template #prefix>
-          <el-icon class="el-input__icon"><ele-Unlock /></el-icon>
-        </template>
-        <template #suffix>
-          <i class="iconfont el-input__icon login-content-password"
-             :class="isShowPassword ? 'icon-yincangmima' : 'icon-xianshimima'"
-             @click="isShowPassword = !isShowPassword">
-          </i>
-        </template>
-      </el-input>
+		<el-form-item class="login-animation3" prop="password_regain">
+			<el-input :type="isShowPassword ? 'text' : 'password'"
+				:placeholder="$t('message.account.accountPlaceholder5')" v-model="ruleForm.password_regain">
+				<template #prefix>
+					<el-icon class="el-input__icon"><ele-Unlock /></el-icon>
+				</template>
+				<template #suffix>
+					<i class="iconfont el-input__icon login-content-password"
+						:class="isShowPassword ? 'icon-yincangmima' : 'icon-xianshimima'"
+						@click="isShowPassword = !isShowPassword">
+					</i>
+				</template>
+			</el-input>
 		</el-form-item>
 		<el-form-item class="login-animation4">
-			<el-button type="primary" class="login-content-submit" round @click="loginClick"
-				:loading="loading.signIn">
+			<el-button type="primary" class="login-content-submit" round @click="loginClick" :loading="loading.signIn">
 				<span>{{ $t('message.account.accountBtnText') }}</span>
 			</el-button>
 		</el-form-item>
 	</el-form>
-  <!--      申请试用-->
-  <div style="text-align: center" v-if="showApply()">
-    <el-button class="login-content-apply" link type="primary" plain round @click="applyBtnClick">
-      <span>申请试用</span>
-    </el-button>
-  </div>
+	<!--      申请试用-->
+	<div style="text-align: center" v-if="showApply()">
+		<el-button class="login-content-apply" link type="primary" plain round @click="applyBtnClick">
+			<span>申请试用</span>
+		</el-button>
+	</div>
 </template>
 
 <script lang="ts">
@@ -71,8 +71,8 @@ import { SystemConfigStore } from '/@/stores/systemConfig';
 import { BtnPermissionStore } from '/@/plugin/permission/store.permission';
 import { Md5 } from 'ts-md5';
 import { errorMessage } from '/@/utils/message';
-import {getBaseURL} from "/@/utils/baseUrl";
-import {loginChangePwd} from "/@/views/system/login/api";
+import { getBaseURL } from "/@/utils/baseUrl";
+import { loginChangePwd } from "/@/views/system/login/api";
 
 export default defineComponent({
 	name: 'changePwd',
@@ -88,35 +88,35 @@ export default defineComponent({
 			ruleForm: {
 				username: '',
 				password: '',
-        password_regain:''
+				password_regain: ''
 			},
 			loading: {
 				signIn: false,
 			},
 		});
 
-    const validatePass = (rule, value, callback) => {
-      const pwdRegex = new RegExp('(?=.*[0-9])(?=.*[a-zA-Z]).{8,30}');
-      if (value === '') {
-        callback(new Error('请输入密码'));
-      } else if (!pwdRegex.test(value)) {
-        callback(new Error('您的密码复杂度太低(密码中必须包含字母、数字)'));
-      } else {
-        if (state.ruleForm.password !== '') {
-          formRef.value.validateField('password');
-        }
-        callback();
-      }
-    };
-    const validatePass2 = (rule, value, callback) => {
-      if (value === '') {
-        callback(new Error('请再次输入密码'));
-      } else if (value !==state.ruleForm.password) {
-        callback(new Error('两次输入密码不一致!'));
-      } else {
-        callback();
-      }
-    };
+		const validatePass = (rule, value, callback) => {
+			const pwdRegex = new RegExp('(?=.*[0-9])(?=.*[a-zA-Z]).{8,30}');
+			if (value === '') {
+				callback(new Error('请输入密码'));
+			} else if (!pwdRegex.test(value)) {
+				callback(new Error('您的密码复杂度太低(密码中必须包含字母、数字)'));
+			} else {
+				if (state.ruleForm.password !== '') {
+					formRef.value.validateField('password');
+				}
+				callback();
+			}
+		};
+		const validatePass2 = (rule, value, callback) => {
+			if (value === '') {
+				callback(new Error('请再次输入密码'));
+			} else if (value !== state.ruleForm.password) {
+				callback(new Error('两次输入密码不一致!'));
+			} else {
+				callback();
+			}
+		};
 
 		const rules = reactive<FormRules>({
 			username: [
@@ -128,21 +128,21 @@ export default defineComponent({
 					message: '请填写密码',
 					trigger: 'blur',
 				},
-        {
-          validator: validatePass,
-          trigger: 'blur',
-        },
+				{
+					validator: validatePass,
+					trigger: 'blur',
+				},
 			],
-      password_regain: [
+			password_regain: [
 				{
 					required: true,
 					message: '请填写密码',
 					trigger: 'blur',
 				},
-        {
-          validator: validatePass2,
-          trigger: 'blur',
-        },
+				{
+					validator: validatePass2,
+					trigger: 'blur',
+				},
 			],
 		})
 		const formRef = ref();
@@ -159,7 +159,7 @@ export default defineComponent({
 			if (!formRef.value) return
 			await formRef.value.validate((valid: any) => {
 				if (valid) {
-					loginApi.loginChangePwd({ ...state.ruleForm, password: state.ruleForm.password,password_regain: state.ruleForm.password_regain }).then((res: any) => {
+					loginApi.loginChangePwd({ ...state.ruleForm, password: Md5.hashStr(state.ruleForm.password), password_regain: Md5.hashStr(state.ruleForm.password_regain) }).then((res: any) => {
 						if (res.code === 2000) {
 							if (!themeConfig.value.isRequestRoutes) {
 								// 前端控制路由，2、请注意执行顺序
@@ -175,7 +175,7 @@ export default defineComponent({
 						}
 					}).catch((err: any) => {
 						// 登录错误之后，刷新验证码
-            errorMessage("登录失败")
+						errorMessage("登录失败")
 					});
 				} else {
 					errorMessage("请填写登录信息")
@@ -212,14 +212,14 @@ export default defineComponent({
 			NextLoading.start();
 		};
 		onMounted(() => {
-      state.ruleForm.username = Cookies.get('username')
+			state.ruleForm.username = Cookies.get('username')
 			//获取系统配置
 			SystemConfigStore().getSystemConfigs();
 		});
-    // 是否显示申请试用按钮
-    const showApply = () => {
-      return window.location.href.indexOf('public') != -1
-    }
+		// 是否显示申请试用按钮
+		const showApply = () => {
+			return window.location.href.indexOf('public') != -1
+		}
 
 		return {
 			loginClick,
@@ -227,8 +227,8 @@ export default defineComponent({
 			state,
 			formRef,
 			rules,
-      applyBtnClick,
-      showApply,
+			applyBtnClick,
+			showApply,
 			...toRefs(state),
 		};
 	},
