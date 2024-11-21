@@ -48,26 +48,43 @@
         <el-col :span="18">
           <div class="pc-collapse-main" v-if="menuCurrent.btns && menuCurrent.btns.length > 0">
             <div class="pccm-item">
-              <div class="menu-form-alert">配置操作功能接口权限,配置数据权限点击小齿轮</div>
-              <!--批量设置按钮权限-->
-              <div>
-                <el-button-group>
-                  <el-button @click="handlePermissionChange('all')" type="success">全选</el-button>
-                  <el-button @click="handlePermissionChange('none')" type="warning">全不选</el-button>
-                  <el-button @click="handleBatchSettingClick" type="danger">批量设置数据权限</el-button>
-                </el-button-group>
+              <div class="menu-form-alert">
+                <span>配置操作功能接口权限,配置数据权限点击小齿轮</span>
+                <el-button @click="handleBatchSettingClick" type="warning" style="margin-left: 10px" size="small">
+                  批量设置数据权限
+                </el-button>
               </div>
-              <el-checkbox v-for="(btn, bIndex) in menuCurrent.btns" :key="bIndex" v-model="btn.isCheck"
-                           :label="btn.value">
-                <div class="btn-item">
-                  {{ btn.data_range !== null ? `${btn.name}(${formatDataRange(btn.data_range)})` : btn.name }}
-                  <span v-show="btn.isCheck" @click.stop.prevent="handleSettingClick(menuCurrent, btn)">
-                    <el-icon>
-                      <Setting/>
-                    </el-icon>
-                  </span>
-                </div>
-              </el-checkbox>
+              <el-table :data="menuCurrent.btns"
+                        border
+                        @selection-change="handleTableSelectionChange"
+                        class="compact-table"
+              >
+                <el-table-column type="selection" width="50" align="center">
+                  <template #default="{ row }">
+                    <el-checkbox v-model="row.isCheck" @change="handlePermissionChange"></el-checkbox>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="name" label="权限名称"/>
+                <el-table-column prop="data_range" label="权限范围">
+                  <template #default="{ row }">
+                    {{ row.data_range !== null ? formatDataRange(row.data_range) : '无' }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="value" label="权限值">
+                  <template #default="{ row }">
+                    {{ row.value || '无' }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="设置" width="60" align="center">
+                  <template #default="{ row }">
+                    <el-button type="text" @click="handleSettingClick(menuCurrent, row)">
+                      <el-icon>
+                        <Setting/>
+                      </el-icon>
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
             </div>
 
             <div class="pccm-item" v-if="menuCurrent.columns && menuCurrent.columns.length > 0">
@@ -357,6 +374,12 @@ const handlePermissionChange = (val: string) => {
   }
 };
 
+const handleTableSelectionChange = (val: any) => {
+  for (const btn of menuCurrent.value?.btns || []) {
+    btn.isCheck = val.length === menuCurrent.value?.btns?.length;
+  }
+};
+
 onMounted(() => {
 });
 </script>
@@ -454,7 +477,13 @@ onMounted(() => {
   }
 }
 </style>
-
+<style scoped>
+.compact-table .el-table__row {
+  height: auto;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+</style>
 <style lang="scss">
 .permission-com {
   .el-collapse {
