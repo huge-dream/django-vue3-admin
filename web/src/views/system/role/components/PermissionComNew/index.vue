@@ -368,15 +368,16 @@ const column = reactive({
   ],
 });
 
-const handlePermissionChange = (val: string) => {
-  for (const btn of menuCurrent.value?.btns || []) {
-    btn.isCheck = val === 'all';
+const handlePermissionChange = (btnId: number, isCheck: boolean) => {
+  const btn = menuCurrent.value?.btns?.find((item) => item.id === btnId);
+  if (btn) {
+    btn.isCheck = isCheck;
   }
 };
 
-const handleTableSelectionChange = (val: any) => {
+const handleTableSelectionChange = (selectedRows: any[]) => {
   for (const btn of menuCurrent.value?.btns || []) {
-    btn.isCheck = val.length === menuCurrent.value?.btns?.length;
+    btn.isCheck = selectedRows.some((selected) => selected.id === btn.id);
   }
 };
 
