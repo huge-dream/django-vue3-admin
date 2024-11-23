@@ -6,8 +6,7 @@
       <el-option v-for="item, index in listAllData" :key="index" :value="String(item[props.valueKey])"
         :label="item.name" />
     </el-select>
-    <div class="form-display" @mouseenter="formDisplayEnter" @mouseleave="formDisplayLeave"
-      v-if="props.inputType === 'image'" style="position: relative;"
+    <div v-if="props.inputType === 'image'" style="position: relative;"
       :style="{ width: props.inputSize + 'px', height: props.inputSize + 'px' }">
       <el-image :src="data" fit="scale-down" :style="{ width: props.inputSize + 'px', aspectRatio: '1 / 1' }">
         <template #error>
@@ -26,8 +25,7 @@
         <Close />
       </el-icon>
     </div>
-    <div class="form-display" @mouseenter="formDisplayEnter" @mouseleave="formDisplayLeave"
-      v-if="props.inputType === 'video'"
+    <div v-if="props.inputType === 'video'"
       style="position: relative; display: flex; align-items: center;  justify-items: center;"
       :style="{ width: props.inputSize * 2 + 'px', height: props.inputSize + 'px' }">
       <video :src="data" :controls="false" :autoplay="true" :muted="true" :loop="true"
@@ -44,8 +42,7 @@
         <Close />
       </el-icon>
     </div>
-    <div class="form-display" @mouseenter="formDisplayEnter" @mouseleave="formDisplayLeave"
-      v-if="props.inputType === 'audio'"
+    <div v-if="props.inputType === 'audio'"
       style="position: relative; display: flex; align-items: center;  justify-items: center;"
       :style="{ width: props.inputSize * 2 + 'px', height: props.inputSize + 'px' }">
       <audio :src="data" :controls="!!data" :autoplay="false" :muted="true" :loop="true"
@@ -64,7 +61,7 @@
     </div>
   </div>
   <el-dialog v-model="selectVisiable" :draggable="false" width="50%" :align-center="false"
-    @open="if (listData.length === 0) listRequest();" @closed="clear">
+    @open="if (listData.length === 0) listRequest();" @closed="clear" modal-class="_overlay">
     <template #header>
       <span class="el-dialog__title">文件选择</span>
       <el-divider style="margin: 0;" />
@@ -181,8 +178,6 @@ const listRequest = async () => {
   pageForm.limit = res.limit;
   selectedInit();
 };
-const formDisplayEnter = (e: MouseEvent) => (e.target as HTMLElement).style.setProperty('--fileselector-close-display', 'block');
-const formDisplayLeave = (e: MouseEvent) => (e.target as HTMLElement).style.setProperty('--fileselector-close-display', 'none');
 const listRequestAll = async () => {
   if (props.inputType !== 'selector') return;
   let res = await fileApi.GetAll();
@@ -264,9 +259,8 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.form-display {
-  --fileselector-close-display: none;
-  overflow: hidden;
+._overlay {
+  width: unset !important;
 }
 
 .headerBar>* {
@@ -325,10 +319,13 @@ onMounted(() => {
 }
 
 .closeHover {
-  display: var(--fileselector-close-display);
   position: absolute;
   right: 2px;
   top: 2px;
   cursor: pointer;
+}
+
+.closeHover:hover {
+  color: black;
 }
 </style>
