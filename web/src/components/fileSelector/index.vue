@@ -1,117 +1,119 @@
 <template>
-  <div v-show="props.showInput" style="width: 100%;" :class="props.class" :style="props.style">
-    <el-select v-if="props.inputType === 'selector'" v-model="data" suffix-icon="arrow-down" clearable
-      :multiple="props.multiple" placeholder="请选择文件" @click="selectVisiable = true && !props.disabled"
-      :disabled="props.disabled" @clear="selectedInit" @remove-tag="selectedInit">
-      <el-option v-for="item, index in listAllData" :key="index" :value="String(item[props.valueKey])"
-        :label="item.name" />
-    </el-select>
-    <div v-if="props.inputType === 'image'" style="position: relative;"
-      :style="{ width: props.inputSize + 'px', height: props.inputSize + 'px' }">
-      <el-image :src="data" fit="scale-down" :style="{ width: props.inputSize + 'px', aspectRatio: '1 / 1' }">
-        <template #error>
-          <div></div>
-        </template>
-      </el-image>
-      <div v-show="!(!!data)"
-        style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-        <el-icon :size="24">
-          <Plus />
+  <div>
+    <div v-show="props.showInput" style="width: 100%;" :class="props.class" :style="props.style">
+      <el-select v-if="props.inputType === 'selector'" v-model="data" suffix-icon="arrow-down" clearable
+        :multiple="props.multiple" placeholder="请选择文件" @click="selectVisiable = true && !props.disabled"
+        :disabled="props.disabled" @clear="selectedInit" @remove-tag="selectedInit">
+        <el-option v-for="item, index in listAllData" :key="index" :value="String(item[props.valueKey])"
+          :label="item.name" />
+      </el-select>
+      <div v-if="props.inputType === 'image'" style="position: relative;"
+        :style="{ width: props.inputSize + 'px', height: props.inputSize + 'px' }">
+        <el-image :src="data" fit="scale-down" :style="{ width: props.inputSize + 'px', aspectRatio: '1 / 1' }">
+          <template #error>
+            <div></div>
+          </template>
+        </el-image>
+        <div v-show="!(!!data)"
+          style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+          <el-icon :size="24">
+            <Plus />
+          </el-icon>
+        </div>
+        <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
+          :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
+        <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="dataClear">
+          <Close />
         </el-icon>
       </div>
-      <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
-        :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
-      <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="dataClear">
-        <Close />
-      </el-icon>
-    </div>
-    <div v-if="props.inputType === 'video'"
-      style="position: relative; display: flex; align-items: center;  justify-items: center;"
-      :style="{ width: props.inputSize * 2 + 'px', height: props.inputSize + 'px' }">
-      <video :src="data" :controls="false" :autoplay="true" :muted="true" :loop="true"
-        :style="{ maxWidth: props.inputSize * 2 + 'px', maxHeight: props.inputSize + 'px', margin: '0 auto' }"></video>
-      <div v-show="!(!!data)"
-        style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-        <el-icon :size="24">
-          <Plus />
+      <div v-if="props.inputType === 'video'"
+        style="position: relative; display: flex; align-items: center;  justify-items: center;"
+        :style="{ width: props.inputSize * 2 + 'px', height: props.inputSize + 'px' }">
+        <video :src="data" :controls="false" :autoplay="true" :muted="true" :loop="true"
+          :style="{ maxWidth: props.inputSize * 2 + 'px', maxHeight: props.inputSize + 'px', margin: '0 auto' }"></video>
+        <div v-show="!(!!data)"
+          style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+          <el-icon :size="24">
+            <Plus />
+          </el-icon>
+        </div>
+        <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
+          :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
+        <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="dataClear">
+          <Close />
         </el-icon>
       </div>
-      <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
-        :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
-      <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="dataClear">
-        <Close />
-      </el-icon>
-    </div>
-    <div v-if="props.inputType === 'audio'"
-      style="position: relative; display: flex; align-items: center;  justify-items: center;"
-      :style="{ width: props.inputSize * 2 + 'px', height: props.inputSize + 'px' }">
-      <audio :src="data" :controls="!!data" :autoplay="false" :muted="true" :loop="true"
-        style="width: 100%; z-index: 1;"></audio>
-      <div v-show="!(!!data)"
-        style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-        <el-icon :size="24">
-          <Plus />
+      <div v-if="props.inputType === 'audio'"
+        style="position: relative; display: flex; align-items: center;  justify-items: center;"
+        :style="{ width: props.inputSize * 2 + 'px', height: props.inputSize + 'px' }">
+        <audio :src="data" :controls="!!data" :autoplay="false" :muted="true" :loop="true"
+          style="width: 100%; z-index: 1;"></audio>
+        <div v-show="!(!!data)"
+          style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+          <el-icon :size="24">
+            <Plus />
+          </el-icon>
+        </div>
+        <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
+          :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
+        <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="dataClear">
+          <Close />
         </el-icon>
       </div>
-      <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
-        :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
-      <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="dataClear">
-        <Close />
-      </el-icon>
     </div>
-  </div>
-  <el-dialog v-model="selectVisiable" :draggable="false" width="50%" :align-center="false"
-    @open="if (listData.length === 0) listRequest();" @closed="clear" modal-class="_overlay">
-    <template #header>
-      <span class="el-dialog__title">文件选择</span>
-      <el-divider style="margin: 0;" />
-    </template>
-    <div style="padding: 4px;">
-      <el-tabs v-model="tabsActived" :type="props.tabsType" :stretch="true" @tab-change="handleTabChange">
-        <el-tab-pane v-if="props.tabsShow & SHOW.IMAGE" :name="0" label="图片" />
-        <el-tab-pane v-if="props.tabsShow & SHOW.VIDEO" :name="1" label="视频" />
-        <el-tab-pane v-if="props.tabsShow & SHOW.AUDIO" :name="2" label="音频" />
-        <el-tab-pane v-if="props.tabsShow & SHOW.OTHER" :name="3" label="其他" />
-      </el-tabs>
-      <el-row justify="space-between" class="headerBar">
-        <el-span :span="16">
-          <el-input v-model="filterForm.name" :placeholder="`请输入${TypeLabel[tabsActived]}名`" prefix-icon="search"
-            clearable @change="listRequest" />
-          <div>
-            <el-tag v-if="props.multiple" type="primary" effect="light">
-              一共选中&nbsp;{{ data?.length || 0 }}&nbsp;个文件
-            </el-tag>
+    <el-dialog v-model="selectVisiable" :draggable="false" width="50%" :align-center="false"
+      @open="if (listData.length === 0) listRequest();" @closed="clear" modal-class="">
+      <template #header>
+        <span class="el-dialog__title">文件选择</span>
+        <el-divider style="margin: 0;" />
+      </template>
+      <div style="padding: 4px;">
+        <el-tabs v-model="tabsActived" :type="props.tabsType" :stretch="true" @tab-change="handleTabChange">
+          <el-tab-pane v-if="props.tabsShow & SHOW.IMAGE" :name="0" label="图片" />
+          <el-tab-pane v-if="props.tabsShow & SHOW.VIDEO" :name="1" label="视频" />
+          <el-tab-pane v-if="props.tabsShow & SHOW.AUDIO" :name="2" label="音频" />
+          <el-tab-pane v-if="props.tabsShow & SHOW.OTHER" :name="3" label="其他" />
+        </el-tabs>
+        <el-row justify="space-between" class="headerBar">
+          <el-span :span="16">
+            <el-input v-model="filterForm.name" :placeholder="`请输入${TypeLabel[tabsActived]}名`" prefix-icon="search"
+              clearable @change="listRequest" />
+            <div>
+              <el-tag v-if="props.multiple" type="primary" effect="light">
+                一共选中&nbsp;{{ data?.length || 0 }}&nbsp;个文件
+              </el-tag>
+            </div>
+          </el-span>
+          <el-span :span="8">
+            <el-button type="default" circle icon="refresh" @click="listRequest" />
+            <!-- 这里 show-file-list 和 clearFiles 一起使用确保不会显示上传列表 -->
+            <el-upload ref="uploadRef" :action="getBaseURL() + 'api/system/file/'" :multiple="false"
+              :data="{ upload_method: 1 }" :drag="false" :show-file-list="false" :accept="AcceptList[tabsActived]"
+              :on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }">
+              <el-button type="primary" icon="plus">上传{{ TypeLabel[tabsActived] }}</el-button>
+            </el-upload>
+          </el-span>
+        </el-row>
+        <el-empty v-if="!listData.length" description="无内容，请上传"
+          style="width: 100%; height: calc(50vh); margin-top: 24px; padding: 4px;" />
+        <div ref="listContainerRef" class="listContainer" v-else>
+          <div v-for="item in listData" :style="{ width: (props.itemSize || 100) + 'px' }" :key="item.id"
+            @click="onItemClick($event)" :data-id="item[props.valueKey]">
+            <FileItem :fileData="item" />
           </div>
-        </el-span>
-        <el-span :span="8">
-          <el-button type="default" circle icon="refresh" @click="listRequest" />
-          <!-- 这里 show-file-list 和 clearFiles 一起使用确保不会显示上传列表 -->
-          <el-upload ref="uploadRef" :action="getBaseURL() + 'api/system/file/'" :multiple="false"
-            :data="{ upload_method: 1 }" :drag="false" :show-file-list="false" :accept="AcceptList[tabsActived]"
-            :on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }">
-            <el-button type="primary" icon="plus">上传{{ TypeLabel[tabsActived] }}</el-button>
-          </el-upload>
-        </el-span>
-      </el-row>
-      <el-empty v-if="!listData.length" description="无内容，请上传"
-        style="width: 100%; height: calc(50vh); margin-top: 24px; padding: 4px;" />
-      <div ref="listContainerRef" class="listContainer" v-else>
-        <div v-for="item in listData" :style="{ width: (props.itemSize || 100) + 'px' }" :key="item.id"
-          @click="onItemClick($event)" :data-id="item[props.valueKey]">
-          <FileItem :fileData="item" />
+        </div>
+        <div class="listPaginator">
+          <el-pagination background size="small" layout="total, sizes, prev, pager, next" :total="pageForm.total"
+            v-model:page-size="pageForm.limit" :page-sizes="[10, 20, 30, 40, 50]" v-model:current-page="pageForm.page"
+            :hide-on-single-page="false" @change="handlePageChange" />
         </div>
       </div>
-      <div class="listPaginator">
-        <el-pagination background size="small" layout="total, sizes, prev, pager, next" :total="pageForm.total"
-          v-model:page-size="pageForm.limit" :page-sizes="[10, 20, 30, 40, 50]" v-model:current-page="pageForm.page"
-          :hide-on-single-page="false" @change="handlePageChange" />
-      </div>
-    </div>
-    <template #footer v-if="props.showInput">
-      <el-button type="default" @click="selectVisiable = false">取消</el-button>
-      <el-button type="primary" @click="selectVisiable = false">确定</el-button>
-    </template>
-  </el-dialog>
+      <template #footer v-if="props.showInput">
+        <el-button type="default" @click="selectVisiable = false">取消</el-button>
+        <el-button type="primary" @click="selectVisiable = false">确定</el-button>
+      </template>
+    </el-dialog>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -259,10 +261,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-._overlay {
-  width: unset !important;
-}
-
 .headerBar>* {
   display: flex;
   justify-content: space-between;
