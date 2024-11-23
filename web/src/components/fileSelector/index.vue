@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div style="width: 100%;">
     <div v-show="props.showInput" style="width: 100%;" :class="props.class" :style="props.style">
       <el-select v-if="props.inputType === 'selector'" v-model="data" suffix-icon="arrow-down" clearable
         :multiple="props.multiple" placeholder="请选择文件" @click="selectVisiable = true && !props.disabled"
