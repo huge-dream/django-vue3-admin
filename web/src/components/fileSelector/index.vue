@@ -23,7 +23,7 @@
         </div>
         <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
           :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
-        <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="dataClear">
+        <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="clear">
           <Close />
         </el-icon>
       </div>
@@ -41,7 +41,7 @@
         </div>
         <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
           :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
-        <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="dataClear">
+        <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="clear">
           <Close />
         </el-icon>
       </div>
@@ -59,13 +59,13 @@
         </div>
         <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
           :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
-        <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="dataClear">
+        <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="clear">
           <Close />
         </el-icon>
       </div>
     </div>
     <el-dialog v-model="selectVisiable" :draggable="false" width="50%" :align-center="false"
-      @open="if (listData.length === 0) listRequest();" @closed="clear" modal-class="_overlay">
+      @open="if (listData.length === 0) listRequest();" @close="onClose" @closed="onClosed" modal-class="_overlay">
       <template #header>
         <span class="el-dialog__title">文件选择</span>
         <el-divider style="margin: 0;" />
@@ -112,8 +112,8 @@
         </div>
       </div>
       <template #footer v-if="props.showInput">
-        <el-button type="default" @click="selectVisiable = false">取消</el-button>
-        <el-button type="primary" @click="selectVisiable = false">确定</el-button>
+        <el-button type="default" @click="onClose">取消</el-button>
+        <el-button type="primary" @click="onSave">确定</el-button>
       </template>
     </el-dialog>
   </div>
@@ -216,7 +216,7 @@ const onItemClick = async (e: MouseEvent) => {
     target.classList.add('active');
     data.value = fileId;
   }
-  onDataChange(data.value);
+  // onDataChange(data.value);
 };
 // 每次列表刷新都得更新一下选择状态，因为所有标签页共享列表
 const selectedInit = async () => {
@@ -230,8 +230,22 @@ const selectedInit = async () => {
   }
 };
 const uploadRef = ref<any>();
+const onSave = () => {
+  onDataChange(data.value);
+  emit('onSave', data.value);
+  selectVisiable.value = false;
+};
+const onClose = () => {
+  data.value = props.modelValue;
+  emit('onClose');
+  selectVisiable.value = false;
+};
+const onClosed = () => {
+  clearState();
+  emit('onClosed');
+};
 // 清空状态
-const clear = () => {
+const clearState = () => {
   filterForm.name = '';
   pageForm.page = 1;
   pageForm.limit = 10;
@@ -240,12 +254,12 @@ const clear = () => {
   // all数据不能清，因为all只会在挂载的时候赋值一次
   // listAllData.value = [];
 };
-const dataClear = () => { data.value = null; onDataChange(null); }
+const clear = () => { data.value = null; onDataChange(null); }
 
 
 // fs-crud部分
 const data = ref<any>(null);
-const emit = defineEmits(['update:modelValue']);
+const emit = defineEmits(['update:modelValue', 'onSave', 'onClose', 'onClosed']);
 watch(() => props.modelValue, (val) => { data.value = val; }, { immediate: true });
 const { ui } = useUi();
 const formValidator = ui.formItem.injectFormItemContext();
@@ -255,8 +269,7 @@ const onDataChange = (value: any) => {
   formValidator.onBlur();
 };
 
-defineExpose({ data, onDataChange, selectVisiable, clear, dataClear });
-
+defineExpose({ data, onDataChange, selectVisiable, clearState, clear });
 
 onMounted(() => {
   if (props.multiple && props.inputType !== 'selector')
