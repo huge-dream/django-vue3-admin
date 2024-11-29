@@ -123,7 +123,7 @@ export default defineComponent({
 		});
 		// 是否关闭验证码
 		const isShowCaptcha = computed(() => {
-			return SystemConfigStore().systemConfig['base.captcha_state'];
+			return SystemConfigStore().systemConfig['base.login_captcha_state'];
 		});
 
 		const getCaptcha = async () => {

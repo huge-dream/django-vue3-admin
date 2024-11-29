@@ -3,6 +3,7 @@ export default {
 	label: {
 		one1: '账号密码登录',
 		two2: '手机号登录',
+		three3: '注册账号',
 		changePwd: '密码修改',
 	},
 	link: {
@@ -23,6 +24,15 @@ export default {
 		codeText: '获取验证码',
 		btnText: '登 录',
 		msgText: '* 温馨提示：建议使用谷歌、Microsoft Edge，版本 79.0.1072.62 及以上浏览器，360浏览器请使用极速模式',
+	},
+	register: {
+		registerPlaceholder1: '请输入账号',
+		registerPlaceholder2: '请输入密码',
+		registerPlaceholder3: '请再次输入密码',
+		registerPlaceholder4: '请输入昵称',
+		registerPlaceholder5: '请输入邮箱',
+		registerPlaceholder6: '请输入验证码',
+		registerBtnText: '注 册',
 	},
 	scan: {
 		text: '打开手机扫一扫，快速登录/注册',

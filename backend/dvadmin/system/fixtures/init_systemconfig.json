@@ -1,239 +1,330 @@
 [
-    {
-        "parent": null,
-        "title": "基础配置",
-        "key": "base",
-        "value": null,
-        "sort": 0,
-        "status": true,
-        "data_options": null,
-        "form_item_type": 0,
-        "rule": null,
-        "placeholder": null,
-        "setting": null,
-        "children": [
-            {
-                "parent": 10,
-                "title": "网页标题",
-                "key": "web_title",
-                "value": "DVAdmin",
-                "sort": 1,
-                "status": true,
-                "data_options": null,
-                "form_item_type": 0,
-                "rule": [],
-                "placeholder": "请输入网站标题",
-                "setting": null,
-                "children": []
-            },
-        {
-                "parent": 10,
-                "title": "网站小图标",
-                "key": "web_favicon",
-                "value": "",
-                "sort": 1,
-                "status": true,
-                "data_options": null,
-                "form_item_type": 0,
-                "rule": [],
-                "placeholder": "请输入网站小图标",
-                "setting": null,
-                "children": []
-            },
-            {
-                "parent": 10,
-                "title": "开启验证码",
-                "key": "captcha_state",
-                "value": true,
-                "sort": 1,
-                "status": true,
-                "data_options": null,
-                "form_item_type": 9,
-                "rule": [
-                    {
-                        "message": "必填项不能为空",
-                        "required": true
-                    }
-                ],
-                "placeholder": "请选择",
-                "setting": null,
-                "children": []
-            },
-            {
-                "parent": 10,
-                "title": "创建用户默认密码",
-                "key": "default_password",
-                "value": "admin123456",
-                "sort": 2,
-                "status": true,
-                "data_options": null,
-                "form_item_type": 0,
-                "rule": [
-                    {
-                        "message": "必填项不能为空",
-                        "required": true
-                    }
-                ],
-                "placeholder": "请输入默认密码",
-                "setting": null,
-                "children": []
-            }
-        ]
-    },
-    {
-        "parent": null,
-        "title": "登录页配置",
-        "key": "login",
-        "value": null,
+  {
+    "parent": null,
+    "title": "基础配置",
+    "key": "base",
+    "value": null,
+    "sort": 0,
+    "status": true,
+    "data_options": null,
+    "form_item_type": 0,
+    "rule": null,
+    "placeholder": null,
+    "setting": null,
+    "children": [
+      {
+        "parent": 10,
+        "title": "网页标题",
+        "key": "web_title",
+        "value": "DVAdmin",
         "sort": 1,
         "status": true,
         "data_options": null,
         "form_item_type": 0,
-        "rule": null,
-        "placeholder": null,
+        "rule": [],
+        "placeholder": "请输入网站标题",
         "setting": null,
-        "children": [
-            {
-                "parent": 1,
-                "title": "网站标题",
-                "key": "site_title",
-                "value": "Dvadmin",
-                "sort": 1,
-                "status": true,
-                "data_options": null,
-                "form_item_type": 0,
-                "rule": [],
-                "placeholder": "请输入网站标题",
-                "setting": null,
-                "children": []
-            },
-            {
-                "parent": 1,
-                "title": "网站名称",
-                "key": "site_name",
-                "value": "企业级后台管理系统",
-                "sort": 1,
-                "status": true,
-                "data_options": null,
-                "form_item_type": 0,
-                "rule": [
-                    {
-                        "message": "必填项不能为空",
-                        "required": true
-                    }
-                ],
-                "placeholder": "请输入网站名称",
-                "setting": null,
-                "children": []
-            },
-            {
-                "parent": 1,
-                "title": "登录网站logo",
-                "key": "site_logo",
-                "value": null,
-                "sort": 2,
-                "status": true,
-                "data_options": null,
-                "form_item_type": 7,
-                "rule": [],
-                "placeholder": "请上传网站logo",
-                "setting": null,
-                "children": []
-            },
-            {
-                "parent": 1,
-                "title": "登录页背景图",
-                "key": "login_background",
-                "value": null,
-                "sort": 3,
-                "status": true,
-                "data_options": null,
-                "form_item_type": 7,
-                "rule": [],
-                "placeholder": "请上传登录背景页",
-                "setting": null,
-                "children": []
-            },
-            {
-                "parent": 1,
-                "title": "版权信息",
-                "key": "copyright",
-                "value": "2021-2024 django-vue-admin.com 版权所有",
-                "sort": 4,
-                "status": true,
-                "data_options": null,
-                "form_item_type": 0,
-                "rule": [
-                    {
-                        "message": "必填项不能为空",
-                        "required": true
-                    }
-                ],
-                "placeholder": "请输入版权信息",
-                "setting": null,
-                "children": []
-            },
-            {
-                "parent": 1,
-                "title": "备案信息",
-                "key": "keep_record",
-                "value": "晋ICP备18005113号-3",
-                "sort": 5,
-                "status": true,
-                "data_options": null,
-                "form_item_type": 0,
-                "rule": [
-                    {
-                        "message": "必填项不能为空",
-                        "required": true
-                    }
-                ],
-                "placeholder": "请输入备案信息",
-                "setting": null,
-                "children": []
-            },
-            {
-                "parent": 1,
-                "title": "帮助链接",
-                "key": "help_url",
-                "value": "https://django-vue-admin.com",
-                "sort": 6,
-                "status": true,
-                "data_options": null,
-                "form_item_type": 0,
-                "rule": "",
-                "placeholder": "请输入帮助信息",
-                "setting": null,
-                "children": []
-            },
-            {
-                "parent": 1,
-                "title": "隐私链接",
-                "key": "privacy_url",
-                "value": "/api/system/clause/privacy.html",
-                "sort": 7,
-                "status": true,
-                "data_options": null,
-                "form_item_type": 0,
-                "rule": [],
-                "placeholder": "请填写隐私链接",
-                "setting": null,
-                "children": []
-            },
-            {
-                "parent": 1,
-                "title": "条款链接",
-                "key": "clause_url",
-                "value": "/api/system/clause/terms_service.html",
-                "sort": 8,
-                "status": true,
-                "data_options": null,
-                "form_item_type": 0,
-                "rule": [],
-                "placeholder": "请输入条款链接",
-                "setting": null,
-                "children": []
-            }
-        ]
-    }
+        "children": []
+      },
+      {
+        "parent": 10,
+        "title": "网站小图标",
+        "key": "web_favicon",
+        "value": "",
+        "sort": 1,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [],
+        "placeholder": "请输入网站小图标",
+        "setting": null,
+        "children": []
+      },
+      {
+        "parent": 10,
+        "title": "开启登录验证码",
+        "key": "login_captcha_state",
+        "value": true,
+        "sort": 1,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 9,
+        "rule": [
+          {
+            "message": "必填项不能为空",
+            "required": true
+          }
+        ],
+        "placeholder": "请选择",
+        "setting": null,
+        "children": []
+      },
+      {
+        "parent": 10,
+        "title": "创建用户默认密码",
+        "key": "default_password",
+        "value": "admin123456",
+        "sort": 2,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "message": "必填项不能为空",
+            "required": true
+          }
+        ],
+        "placeholder": "请输入默认密码",
+        "setting": null,
+        "children": []
+      }
+    ]
+  },
+  {
+    "parent": null,
+    "title": "登录页配置",
+    "key": "login",
+    "value": null,
+    "sort": 1,
+    "status": true,
+    "data_options": null,
+    "form_item_type": 0,
+    "rule": null,
+    "placeholder": null,
+    "setting": null,
+    "children": [
+      {
+        "parent": 1,
+        "title": "网站标题",
+        "key": "site_title",
+        "value": "Dvadmin",
+        "sort": 1,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [],
+        "placeholder": "请输入网站标题",
+        "setting": null,
+        "children": []
+      },
+      {
+        "parent": 1,
+        "title": "网站名称",
+        "key": "site_name",
+        "value": "企业级后台管理系统",
+        "sort": 1,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "message": "必填项不能为空",
+            "required": true
+          }
+        ],
+        "placeholder": "请输入网站名称",
+        "setting": null,
+        "children": []
+      },
+      {
+        "parent": 1,
+        "title": "登录网站logo",
+        "key": "site_logo",
+        "value": null,
+        "sort": 2,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 7,
+        "rule": [],
+        "placeholder": "请上传网站logo",
+        "setting": null,
+        "children": []
+      },
+      {
+        "parent": 1,
+        "title": "登录页背景图",
+        "key": "login_background",
+        "value": null,
+        "sort": 3,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 7,
+        "rule": [],
+        "placeholder": "请上传登录背景页",
+        "setting": null,
+        "children": []
+      },
+      {
+        "parent": 1,
+        "title": "版权信息",
+        "key": "copyright",
+        "value": "2021-2024 django-vue-admin.com 版权所有",
+        "sort": 4,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "message": "必填项不能为空",
+            "required": true
+          }
+        ],
+        "placeholder": "请输入版权信息",
+        "setting": null,
+        "children": []
+      },
+      {
+        "parent": 1,
+        "title": "备案信息",
+        "key": "keep_record",
+        "value": "晋ICP备18005113号-3",
+        "sort": 5,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "message": "必填项不能为空",
+            "required": true
+          }
+        ],
+        "placeholder": "请输入备案信息",
+        "setting": null,
+        "children": []
+      },
+      {
+        "parent": 1,
+        "title": "帮助链接",
+        "key": "help_url",
+        "value": "https://django-vue-admin.com",
+        "sort": 6,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": "",
+        "placeholder": "请输入帮助信息",
+        "setting": null,
+        "children": []
+      },
+      {
+        "parent": 1,
+        "title": "隐私链接",
+        "key": "privacy_url",
+        "value": "/api/system/clause/privacy.html",
+        "sort": 7,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [],
+        "placeholder": "请填写隐私链接",
+        "setting": null,
+        "children": []
+      },
+      {
+        "parent": 1,
+        "title": "条款链接",
+        "key": "clause_url",
+        "value": "/api/system/clause/terms_service.html",
+        "sort": 8,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [],
+        "placeholder": "请输入条款链接",
+        "setting": null,
+        "children": []
+      }
+    ]
+  },
+  {
+    "parent": null,
+    "title": "注册页配置",
+    "key": "register",
+    "value": null,
+    "sort": 2,
+    "status": true,
+    "data_options": null,
+    "form_item_type": 0,
+    "rule": null,
+    "placeholder": null,
+    "setting": null,
+    "children": [
+      {
+        "parent": 15,
+        "title": "允许注册",
+        "key": "register_state",
+        "value": false,
+        "sort": 1,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 9,
+        "rule": [
+          {
+            "message": "必填项不能为空",
+            "required": true
+          }
+        ],
+        "placeholder": "请选择",
+        "setting": null,
+        "children": []
+      },
+      {
+        "parent": 15,
+        "title": "开启注册验证码",
+        "key": "register_captcha_state",
+        "value": true,
+        "sort": 1,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 9,
+        "rule": [
+          {
+            "message": "必填项不能为空",
+            "required": true
+          }
+        ],
+        "placeholder": "请选择",
+        "setting": null,
+        "children": []
+      },
+      {
+        "parent": 15,
+        "title": "默认部门",
+        "key": "default_dept",
+        "value": "运营部",
+        "sort": 2,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 4,
+        "rule": [
+          {
+            "message": "必填项不能为空",
+            "required": true
+          }
+        ],
+        "placeholder": "新用户默认部门",
+        "setting": "register_default_dept",
+        "children": []
+      },
+      {
+        "parent": 15,
+        "title": "默认角色",
+        "key": "default_role",
+        "value": "用户",
+        "sort": 3,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 4,
+        "rule": [
+          {
+            "message": "必填项不能为空",
+            "required": true
+          }
+        ],
+        "placeholder": "新用户默认角色",
+        "setting": "register_default_role",
+        "children": []
+      }
+    ]
+  }
 ]

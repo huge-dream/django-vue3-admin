@@ -4,7 +4,7 @@ import { DictionaryStore } from '/@/stores/dictionary';
 /**
   * @method 获取指定name字典
   */
-export const dictionary = (name: string,key:string|number|undefined) => {
+export const dictionary = (name: string,key?:string|number|undefined) => {
   const dict = DictionaryStore()
   const dictionary = toRaw(dict.data)
   if(key!=undefined){

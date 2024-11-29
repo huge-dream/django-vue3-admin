@@ -28,3 +28,11 @@ export function getUserInfo() {
         method: 'get',
     });
 }
+
+export function register(params: object) {
+    return request({
+        url: '/api/register/',
+        method: 'post',
+        data: params
+    });
+}

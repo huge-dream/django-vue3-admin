@@ -1,22 +1,21 @@
 import base64
 import hashlib
 from datetime import datetime, timedelta
+
 from captcha.views import CaptchaStore, captcha_image
+from django.conf import settings
 from django.contrib import auth
 from django.contrib.auth import login
-from django.contrib.auth.hashers import check_password, make_password
 from django.db.models import Q
 from django.shortcuts import redirect
 from django.utils.translation import gettext_lazy as _
 from drf_yasg import openapi
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework import serializers
-from rest_framework.decorators import action
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
-from django.conf import settings
+
 from application import dispatch
 from dvadmin.system.models import Users
 from dvadmin.utils.json_response import ErrorResponse, DetailResponse
@@ -37,7 +36,7 @@ class CaptchaView(APIView):
     )
     def get(self, request):
         data = {}
-        if dispatch.get_system_config_values("base.captcha_state"):
+        if dispatch.get_system_config_values("base.login_captcha_state"):
             hashkey = CaptchaStore.generate_key()
             id = CaptchaStore.objects.filter(hashkey=hashkey).first().id
             imgage = captcha_image(request, hashkey)
@@ -64,11 +63,15 @@ class LoginSerializer(TokenObtainPairSerializer):
         fields = "__all__"
         read_only_fields = ["id"]
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.image_code = None
+
     default_error_messages = {"no_active_account": _("账号/密码错误")}
 
     def validate(self, attrs):
         captcha = self.initial_data.get("captcha", None)
-        if dispatch.get_system_config_values("base.captcha_state"):
+        if dispatch.get_system_config_values("base.login_captcha_state"):
             if captcha is None:
                 raise CustomValidationError("验证码不能为空")
             self.image_code = CaptchaStore.objects.filter(
@@ -80,8 +83,8 @@ class LoginSerializer(TokenObtainPairSerializer):
                 raise CustomValidationError("验证码过期")
             else:
                 if self.image_code and (
-                    self.image_code.response == captcha
-                    or self.image_code.challenge == captcha
+                        self.image_code.response == captcha
+                        or self.image_code.challenge == captcha
                 ):
                     self.image_code and self.image_code.delete()
                 else:

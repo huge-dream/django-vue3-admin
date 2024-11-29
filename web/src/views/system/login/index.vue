@@ -27,12 +27,16 @@
 								<el-tab-pane :label="$t('message.label.one1')" name="account" v-else>
 									<Account />
 								</el-tab-pane>
+                <el-tab-pane :label="$t('message.label.three3')" name="register" v-if="RegisterAllow">
+                  <Register />
+                </el-tab-pane>
 
 								<!-- TODO 手机号码登录未接入，展示隐藏 -->
 								<!-- <el-tab-pane :label="$t('message.label.two2')" name="mobile">
 									<Mobile />
 								</el-tab-pane> -->
 							</el-tabs>
+
 						</div>
 <!--						<Scan v-if="state.isScan" />-->
 <!--						<div class="login-content-main-sacn" @click="state.isScan = !state.isScan">-->
@@ -81,6 +85,7 @@ const Account = defineAsyncComponent(() => import('/@/views/system/login/compone
 const Mobile = defineAsyncComponent(() => import('/@/views/system/login/component/mobile.vue'));
 const Scan = defineAsyncComponent(() => import('/@/views/system/login/component/scan.vue'));
 const ChangePwd = defineAsyncComponent(() => import('/@/views/system/login/component/changePwd.vue'));
+const Register = defineAsyncComponent(() => import('/@/views/system/login/component/register.vue'));
 import _ from "lodash-es";
 import {useUserInfo} from "/@/stores/userInfo";
 const { userInfos } = storeToRefs(useUserInfo());
@@ -107,6 +112,10 @@ watch(()=>userInfos.value.pwd_change_count,(val)=>{
 const getThemeConfig = computed(() => {
 	return themeConfig.value;
 });
+// 注册是否开启
+const RegisterAllow = computed(() => {
+      return SystemConfigStore().systemConfig['register.register_state'] === '1';
+    });
 
 const systemConfigStore = SystemConfigStore()
 const { systemConfig } = storeToRefs(systemConfigStore)
