@@ -1,6 +1,6 @@
 <template>
-  <div style="width: 100%;">
-    <div v-show="props.showInput" style="width: 100%;" :class="props.class" :style="props.style">
+  <div style="width: 100%;" :style="props.style">
+    <div v-show="props.showInput" style="width: 100%;" :class="props.class" :style="props.inputStyle">
       <el-select v-if="props.inputType === 'selector'" v-model="data" suffix-icon="arrow-down" clearable
         :multiple="props.multiple" placeholder="请选择文件" @click="selectVisiable = true && !props.disabled"
         :disabled="props.disabled" @clear="selectedInit" @remove-tag="selectedInit">
@@ -133,6 +133,7 @@ const props = defineProps({
   modelValue: {},
   class: { type: String, default: '' },
   style: { type: Object, default: {} },
+  inputStyle: { type: Object, default: {} },
   disabled: { type: Boolean, default: false },
 
   tabsType: { type: Object as PropType<'' | 'card' | 'border-card'>, default: '' },
