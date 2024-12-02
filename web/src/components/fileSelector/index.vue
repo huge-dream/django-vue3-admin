@@ -64,22 +64,32 @@
         </el-icon>
       </div>
     </div>
-    <el-dialog v-model="selectVisiable" :draggable="false" width="50%" :align-center="false"
+    <el-dialog v-model="selectVisiable" :draggable="false" width="50%" :align-center="false" :append-to-body="true"
       @open="if (listData.length === 0) listRequest();" @close="onClose" @closed="onClosed" modal-class="_overlay">
       <template #header>
         <span class="el-dialog__title">文件选择</span>
         <el-divider style="margin: 0;" />
       </template>
       <div style="padding: 4px;">
-        <el-tabs v-model="tabsActived" :type="props.tabsType" :stretch="true" @tab-change="handleTabChange">
-          <el-tab-pane v-if="props.tabsShow & SHOW.IMAGE" :name="0" label="图片" />
-          <el-tab-pane v-if="props.tabsShow & SHOW.VIDEO" :name="1" label="视频" />
-          <el-tab-pane v-if="props.tabsShow & SHOW.AUDIO" :name="2" label="音频" />
-          <el-tab-pane v-if="props.tabsShow & SHOW.OTHER" :name="3" label="其他" />
-        </el-tabs>
+        <div style="width: 100%; display: flex; justify-content: space-between; gap: 12px;">
+          <el-tabs style="width: 100%;" v-model="tabsActived" :type="props.tabsType" :stretch="true"
+            @tab-change="handleTabChange">
+            <el-tab-pane v-if="props.tabsShow & SHOW.IMAGE" :name="0" label="图片" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.VIDEO" :name="1" label="视频" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.AUDIO" :name="2" label="音频" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.OTHER" :name="3" label="其他" />
+          </el-tabs>
+          <el-tabs style="width: 100%;" v-model="tabsActived" :type="props.tabsType" :stretch="true"
+            @tab-change="handleTabChange" v-if="isTenentMode">
+            <el-tab-pane v-if="props.tabsShow & SHOW.IMAGE" :name="4" label="系统图片" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.VIDEO" :name="5" label="系统视频" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.AUDIO" :name="6" label="系统音频" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.OTHER" :name="7" label="系统其他" />
+          </el-tabs>
+        </div>
         <el-row justify="space-between" class="headerBar">
           <el-span :span="16">
-            <el-input v-model="filterForm.name" :placeholder="`请输入${TypeLabel[tabsActived]}名`" prefix-icon="search"
+            <el-input v-model="filterForm.name" :placeholder="`请输入${TypeLabel[tabsActived % 4]}名`" prefix-icon="search"
               clearable @change="listRequest" />
             <div>
               <el-tag v-if="props.multiple" type="primary" effect="light">
@@ -93,7 +103,7 @@
             <el-upload ref="uploadRef" :action="getBaseURL() + 'api/system/file/'" :multiple="false"
               :data="{ upload_method: 1 }" :drag="false" :show-file-list="false" :accept="AcceptList[tabsActived]"
               :on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }">
-              <el-button type="primary" icon="plus">上传{{ TypeLabel[tabsActived] }}</el-button>
+              <el-button type="primary" icon="plus">上传{{ TypeLabel[tabsActived % 4] }}</el-button>
             </el-upload>
           </el-span>
         </el-row>
@@ -126,14 +136,19 @@ import { getBaseURL } from '/@/utils/baseUrl';
 import { request } from '/@/utils/service';
 import { SHOW } from './types';
 import FileItem from './fileItem.vue';
+import { pluginsAll } from '/@/views/plugins/index';
+import { storeToRefs } from "pinia";
+import { useUserInfo } from "/@/stores/userInfo";
 
+const isTenentMode = true || pluginsAll && pluginsAll.length && pluginsAll.indexOf('dvadmin3-tenents-web') >= 0;
+const isSuperTenent = true || (storeToRefs(useUserInfo())).userInfos.schema_name === 'public';
 const TypeLabel = ['图片', '视频', '音频', '文件']
 const AcceptList = ['image/*', 'video/*', 'audio/*', ''];
 const props = defineProps({
   modelValue: {},
   class: { type: String, default: '' },
-  style: { type: Object, default: {} },
-  inputStyle: { type: Object, default: {} },
+  style: { type: Object as PropType<Object | string>, default: {} },
+  inputStyle: { type: Object as PropType<Object | string>, default: {} },
   disabled: { type: Boolean, default: false },
 
   tabsType: { type: Object as PropType<'' | 'card' | 'border-card'>, default: '' },
@@ -177,7 +192,14 @@ const pageForm = reactive({ page: 1, limit: 10, total: 0 });
 const listData = ref<any[]>([]);
 const listAllData = ref<any[]>([]);
 const listRequest = async () => {
-  let res = await fileApi.GetList({ page: pageForm.page, limit: pageForm.limit, file_type: tabsActived.value, upload_method: 1, ...filterForm });
+  let res = await fileApi.GetList({
+    page: pageForm.page,
+    limit: pageForm.limit,
+    file_type: isTenentMode ? tabsActived.value % 4 : tabsActived.value,
+    system: tabsActived.value > 3,
+    upload_method: 1,
+    ...filterForm
+  });
   listData.value = res.data;
   pageForm.total = res.total;
   pageForm.page = res.page;
@@ -276,6 +298,8 @@ onMounted(() => {
   if (props.multiple && props.inputType !== 'selector')
     throw new Error('FileSelector组件属性multiple为true时inputType必须为selector');
   listRequestAll();
+  console.log('tenentmdoe', isTenentMode);
+  console.log('supertenent', isSuperTenent);
 });
 </script>
 

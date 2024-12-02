@@ -100,3 +100,12 @@ class FileViewSet(CustomModelViewSet):
     @action(methods=['GET'], detail=False)
     def get_all(self, request):
         return DetailResponse(data=self.get_serializer(self.get_queryset(), many=True).data)
+
+    def get_queryset(self):
+        if self.request.query_params.get('system', 'False') == 'True' and dispatch.is_tenants_mode():
+            from django_tenants.utils import tenant_context, get_tenant_model
+            with tenant_context(get_tenant_model().objects.filter(schema_name='public').first()):
+                print('系统内置文件')
+                return super().get_queryset()
+        print('常规文件')
+        return super().get_queryset()

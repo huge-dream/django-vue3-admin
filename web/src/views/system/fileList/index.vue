@@ -42,8 +42,8 @@
         </el-icon>
       </div>
     </div>
-    <FileSelector inputStyle="display: none;" ref="fileSelectorRef" :tabsShow="SHOW.ALL" :itemSize="120"
-      :multiple="false" :selectable="false" />
+    <FileSelector :showInput="false" ref="fileSelectorRef" :tabsShow="SHOW.ALL" :itemSize="120" :multiple="false"
+      :selectable="false" />
   </fs-page>
 </template>
 
