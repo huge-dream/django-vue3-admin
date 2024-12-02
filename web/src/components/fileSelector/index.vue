@@ -177,7 +177,7 @@ const pageForm = reactive({ page: 1, limit: 10, total: 0 });
 const listData = ref<any[]>([]);
 const listAllData = ref<any[]>([]);
 const listRequest = async () => {
-  let res = await fileApi.GetList({ page: pageForm.page, limit: pageForm.limit, file_type: tabsActived.value, ...filterForm });
+  let res = await fileApi.GetList({ page: pageForm.page, limit: pageForm.limit, file_type: tabsActived.value, upload_method: 1, ...filterForm });
   listData.value = res.data;
   pageForm.total = res.total;
   pageForm.page = res.page;
