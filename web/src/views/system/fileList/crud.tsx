@@ -33,7 +33,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 				buttons: {
 					add: {
 						show: true,
-						// click: () => context.openAddHandle?.()
+						click: () => context.openAddHandle?.()
 					},
 				},
 			},
@@ -42,6 +42,17 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 				addRequest,
 				editRequest,
 				delRequest,
+			},
+			tabs: {
+				show: true,
+				name: 'file_type',
+				type: '',
+				options: [
+					{ value: 0, label: '图片' },
+					{ value: 1, label: '视频' },
+					{ value: 2, label: '音频' },
+					{ value: 3, label: '其他' },
+				]
 			},
 			rowHandle: {
 				//固定右侧
@@ -118,6 +129,16 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 						},
 					},
 				},
+				preview: {
+					title: '预览',
+					column: {
+						minWidth: 120,
+						align: 'center'
+					},
+					form: {
+						show: false
+					}
+				},
 				url: {
 					title: '文件地址',
 					type: 'file-uploader',
@@ -145,10 +166,6 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					type: 'input',
 					form: {
 						show: false,
-						component: {
-							placeholder: '请输入文件名称',
-							clearable: true
-						},
 					},
 					column: {
 						minWidth: 160
@@ -201,6 +218,15 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					},
 					search: {
 						show: true
+					}
+				},
+				create_datetime: {
+					title: '创建时间',
+					column: {
+						minWidth: 160
+					},
+					form: {
+						show: false
 					}
 				},
 				// fileselectortest: {
