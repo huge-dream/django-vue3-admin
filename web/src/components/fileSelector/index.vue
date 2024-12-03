@@ -114,7 +114,7 @@
         <div ref="listContainerRef" class="listContainer" v-else>
           <div v-for="item, index in listData" :style="{ width: (props.itemSize || 100) + 'px' }" :key="index"
             @click="onItemClick($event)" :data-id="item[props.valueKey]">
-            <FileItem :fileData="item" />
+            <FileItem :fileData="item" :api="fileApi" @onDelFile="listRequest(); listRequestAll();" />
           </div>
         </div>
         <div class="listPaginator">
@@ -185,6 +185,7 @@ const tabsActived = ref<number>([3, 2, 1, 0][((props.tabsShow & (props.tabsShow 
 const fileApiPrefix = '/api/system/file/';
 const fileApi = {
   GetList: (query: UserPageQuery) => request({ url: fileApiPrefix, method: 'get', params: query }),
+  DelObj: (id: DelReq) => request({ url: fileApiPrefix + id + '/', method: 'delete', data: { id } }),
   GetAll: () => request({ url: fileApiPrefix + 'get_all/' }),
 };
 // 过滤表单
