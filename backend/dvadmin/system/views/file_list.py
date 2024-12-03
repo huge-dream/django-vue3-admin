@@ -2,12 +2,13 @@ import hashlib
 import mimetypes
 
 import django_filters
+from django.db import connection
 from rest_framework import serializers
 from rest_framework.decorators import action
 
 from application import dispatch
 from dvadmin.system.models import FileList
-from dvadmin.utils.json_response import DetailResponse
+from dvadmin.utils.json_response import DetailResponse, SuccessResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
 
@@ -99,13 +100,17 @@ class FileViewSet(CustomModelViewSet):
 
     @action(methods=['GET'], detail=False)
     def get_all(self, request):
-        return DetailResponse(data=self.get_serializer(self.get_queryset(), many=True).data)
+        data1 = self.get_serializer(self.get_queryset(), many=True).data
+        data2 = []
+        if dispatch.is_tenants_mode():
+            from django_tenants.utils import schema_context
+            with schema_context('public'):
+                data2 = self.get_serializer(FileList.objects.all(), many=True).data
+        return DetailResponse(data=data2+data1)
 
-    def get_queryset(self):
+    def list(self, request, *args, **kwargs):
         if self.request.query_params.get('system', 'False') == 'True' and dispatch.is_tenants_mode():
-            from django_tenants.utils import tenant_context, get_tenant_model
-            with tenant_context(get_tenant_model().objects.filter(schema_name='public').first()):
-                print('系统内置文件')
-                return super().get_queryset()
-        print('常规文件')
-        return super().get_queryset()
+            from django_tenants.utils import schema_context
+            with schema_context('public'):
+                return super().list(request, *args, **kwargs)
+        return super().list(request, *args, **kwargs)

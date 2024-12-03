@@ -73,7 +73,7 @@
       <div style="padding: 4px;">
         <div style="width: 100%; display: flex; justify-content: space-between; gap: 12px;">
           <el-tabs style="width: 100%;" v-model="tabsActived" :type="props.tabsType" :stretch="true"
-            @tab-change="handleTabChange">
+            @tab-change="handleTabChange" v-if="!isSuperTenent">
             <el-tab-pane v-if="props.tabsShow & SHOW.IMAGE" :name="0" label="图片" />
             <el-tab-pane v-if="props.tabsShow & SHOW.VIDEO" :name="1" label="视频" />
             <el-tab-pane v-if="props.tabsShow & SHOW.AUDIO" :name="2" label="音频" />
@@ -101,8 +101,9 @@
             <el-button type="default" circle icon="refresh" @click="listRequest" />
             <!-- 这里 show-file-list 和 clearFiles 一起使用确保不会显示上传列表 -->
             <el-upload ref="uploadRef" :action="getBaseURL() + 'api/system/file/'" :multiple="false"
-              :data="{ upload_method: 1 }" :drag="false" :show-file-list="false" :accept="AcceptList[tabsActived]"
-              :on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }">
+              :data="{ upload_method: 1 }" :drag="false" :show-file-list="false" :accept="AcceptList[tabsActived % 4]"
+              :on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }"
+              v-if="tabsActived > 3 ? isSuperTenent : true">
               <el-button type="primary" icon="plus">上传{{ TypeLabel[tabsActived % 4] }}</el-button>
             </el-upload>
           </el-span>
@@ -110,7 +111,7 @@
         <el-empty v-if="!listData.length" description="无内容，请上传"
           style="width: 100%; height: calc(50vh); margin-top: 24px; padding: 4px;" />
         <div ref="listContainerRef" class="listContainer" v-else>
-          <div v-for="item in listData" :style="{ width: (props.itemSize || 100) + 'px' }" :key="item.id"
+          <div v-for="item,index in listData" :style="{ width: (props.itemSize || 100) + 'px' }" :key="index"
             @click="onItemClick($event)" :data-id="item[props.valueKey]">
             <FileItem :fileData="item" />
           </div>
@@ -140,8 +141,9 @@ import { pluginsAll } from '/@/views/plugins/index';
 import { storeToRefs } from "pinia";
 import { useUserInfo } from "/@/stores/userInfo";
 
-const isTenentMode = true || pluginsAll && pluginsAll.length && pluginsAll.indexOf('dvadmin3-tenents-web') >= 0;
-const isSuperTenent = true || (storeToRefs(useUserInfo())).userInfos.schema_name === 'public';
+const isTenentMode = pluginsAll && pluginsAll.length && pluginsAll.indexOf('dvadmin3-tenants-web') >= 0;
+const userInfos = storeToRefs(useUserInfo()).userInfos
+const isSuperTenent = userInfos.value.schema_name === 'public';
 const TypeLabel = ['图片', '视频', '音频', '文件']
 const AcceptList = ['image/*', 'video/*', 'audio/*', ''];
 const props = defineProps({
@@ -173,8 +175,8 @@ const props = defineProps({
   // inputType不为selector时生效
   inputSize: { type: Number, default: 100 },
 
-  // v-model绑定的值是file数据的哪个key，默认是id
-  valueKey: { type: String, default: 'id' },
+  // v-model绑定的值是file数据的哪个key，默认是url
+  valueKey: { type: String, default: 'url' },
 } as any);
 
 const selectVisiable = ref<boolean>(false);
@@ -200,6 +202,8 @@ const listRequest = async () => {
     upload_method: 1,
     ...filterForm
   });
+  listData.value = [];
+  await nextTick();
   listData.value = res.data;
   pageForm.total = res.total;
   pageForm.page = res.page;
