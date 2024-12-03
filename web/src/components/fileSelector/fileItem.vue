@@ -12,6 +12,7 @@
 <script setup lang="ts">
 import { defineComponent } from 'vue';
 import { ref, defineProps, PropType, watch, onMounted, h } from 'vue';
+import { successNotification } from '/@/utils/message';
 const props = defineProps({
   fileData: { type: Object as PropType<any>, required: true },
   api: { type: Object as PropType<any>, required: true },
@@ -26,7 +27,10 @@ const FileTypes = [
 const isShow = ref<boolean>(false);
 const itemRef = ref<HTMLDivElement>();
 const data = ref<any>(null);
-const delFileHandle = () => props.api.DelObj(props.fileData.id).then(() => emit('onDelFile'));
+const delFileHandle = () => props.api.DelObj(props.fileData.id).then(() => {
+  successNotification('删除成功');
+  emit('onDelFile');
+});
 watch(props.fileData, (nVal) => data.value = nVal, { immediate: true, deep: true });
 const emit = defineEmits(['onDelFile']);
 defineExpose({});

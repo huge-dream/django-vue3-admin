@@ -105,7 +105,8 @@
                 :on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }">
                 <el-button type="primary" icon="plus">上传{{ TypeLabel[tabsActived % 4] }}</el-button>
               </el-upload>
-              <el-button type="info" icon="link"> 网络{{ TypeLabel[tabsActived % 4] }} </el-button>
+              <el-button type="info" icon="link" @click="netVisiable = true"> 网络{{ TypeLabel[tabsActived % 4] }}
+              </el-button>
             </template>
           </el-col>
         </el-row>
@@ -123,6 +124,26 @@
             :hide-on-single-page="false" @change="handlePageChange" />
         </div>
       </div>
+      <!-- 只要在获取中，最大程度阻止关闭dialog -->
+      <el-dialog v-model="netVisiable" :draggable="false" width="50%" :align-center="false" :append-to-body="true"
+        :title="'网络' + TypeLabel[tabsActived % 4] + '上传'" @closed="netUrl = ''" :close-on-click-modal="!netLoading"
+        :close-on-press-escape="!netLoading" :show-close="netLoading" modal-class="_overlay">
+        <el-form-item :label="TypeLabel[tabsActived % 4] + '链接'">
+          <el-input v-model="netUrl" placeholder="请输入网络连接" clearable>
+            <template #prepend>
+              <el-select v-model="netPrefix" style="width: 110px;">
+                <el-option v-for="item, index in ['HTTP://', 'HTTPS://']" :key="index" :label="item" :value="item" />
+              </el-select>
+            </template>
+          </el-input>
+        </el-form-item>
+        <template #footer>
+          <el-button v-if="!netLoading" type="default" @click="netVisiable = false">取消</el-button>
+          <el-button type="primary" @click="confirmNetUrl" :loading="netLoading">
+            {{ netLoading ? '网络文件获取中...' : '确定' }}
+          </el-button>
+        </template>
+      </el-dialog>
       <template #footer v-if="props.showInput">
         <el-button type="default" @click="onClose">取消</el-button>
         <el-button type="primary" @click="onSave">确定</el-button>
@@ -141,10 +162,12 @@ import FileItem from './fileItem.vue';
 import { pluginsAll } from '/@/views/plugins/index';
 import { storeToRefs } from "pinia";
 import { useUserInfo } from "/@/stores/userInfo";
+import { errorNotification, successNotification } from '/@/utils/message';
 
-const isTenentMode = pluginsAll && pluginsAll.length && pluginsAll.indexOf('dvadmin3-tenants-web') >= 0;
-const userInfos = storeToRefs(useUserInfo()).userInfos
-const isSuperTenent = userInfos.value.schema_name === 'public';
+const userInfos = storeToRefs(useUserInfo()).userInfos;
+const isTenentMode = !!(pluginsAll && pluginsAll.length && pluginsAll.indexOf('dvadmin3-tenants-web') >= 0);
+const isSuperTenent = (userInfos.value as any).schema_name === 'public';
+
 const TypeLabel = ['图片', '视频', '音频', '文件']
 const AcceptList = ['image/*', 'video/*', 'audio/*', ''];
 const props = defineProps({
@@ -185,6 +208,7 @@ const tabsActived = ref<number>([3, 2, 1, 0][((props.tabsShow & (props.tabsShow 
 const fileApiPrefix = '/api/system/file/';
 const fileApi = {
   GetList: (query: UserPageQuery) => request({ url: fileApiPrefix, method: 'get', params: query }),
+  AddObj: (obj: AddReq) => request({ url: fileApiPrefix, method: 'post', data: obj }),
   DelObj: (id: DelReq) => request({ url: fileApiPrefix + id + '/', method: 'delete', data: { id } }),
   GetAll: () => request({ url: fileApiPrefix + 'get_all/' }),
 };
@@ -284,6 +308,38 @@ const clearState = () => {
   // listAllData.value = [];
 };
 const clear = () => { data.value = null; onDataChange(null); }
+
+
+// 网络文件部分
+const netLoading = ref<boolean>(false);
+const netVisiable = ref<boolean>(false);
+const netUrl = ref<string>('');
+const netPrefix = ref<string>('HTTP://');
+const confirmNetUrl = () => {
+  if (!netUrl.value) return;
+  netLoading.value = true;
+  fetch(netUrl.value).then(async (res: Response) => {
+    if (!res.ok) errorNotification(`网络${TypeLabel[tabsActived.value % 4]}获取失败，链接 ${netUrl.value}`);
+    const _ = res.url.split('?')[0].split('/');
+    let filename = _[_.length - 1];
+    // let filetype = res.headers.get('content-type')?.split('/')[1] || '';
+    let blob = await res.blob();
+    let file = new File([blob], filename, { type: blob.type });
+    let form = new FormData();
+    form.append('file', file);
+    form.append('upload_method', '1');
+    fetch(getBaseURL() + 'api/system/file/', { method: 'post', body: form })
+      .then(() => successNotification('网络文件获取成功！'))
+      .then(() => {
+        netLoading.value = false;
+        netVisiable.value = false;
+        listRequest();
+        listRequestAll();
+      });
+  });
+};
+
+
 
 
 // fs-crud部分
