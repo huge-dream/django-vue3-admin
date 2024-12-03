@@ -102,10 +102,12 @@
             <template v-if="tabsActived > 3 ? isSuperTenent : true">
               <el-upload ref="uploadRef" :action="getBaseURL() + 'api/system/file/'" :multiple="false" :drag="false"
                 :data="{ upload_method: 1 }" :show-file-list="true" :accept="AcceptList[tabsActived % 4]"
-                :on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }">
+                :on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }"
+                v-if="props.showUploadButton">
                 <el-button type="primary" icon="plus">上传{{ TypeLabel[tabsActived % 4] }}</el-button>
               </el-upload>
-              <el-button type="info" icon="link" @click="netVisiable = true"> 网络{{ TypeLabel[tabsActived % 4] }}
+              <el-button type="info" icon="link" @click="netVisiable = true" v-if="props.showNetButton">
+                网络{{ TypeLabel[tabsActived % 4] }}
               </el-button>
             </template>
           </el-col>
@@ -201,6 +203,9 @@ const props = defineProps({
 
   // v-model绑定的值是file数据的哪个key，默认是url
   valueKey: { type: String, default: 'url' },
+
+  showUploadButton: { type: Boolean, default: true },
+  showNetButton: { type: Boolean, default: true },
 } as any);
 
 const selectVisiable = ref<boolean>(false);
