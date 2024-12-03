@@ -88,7 +88,7 @@
           </el-tabs>
         </div>
         <el-row justify="space-between" class="headerBar">
-          <el-span :span="16">
+          <el-col :span="8">
             <el-input v-model="filterForm.name" :placeholder="`请输入${TypeLabel[tabsActived % 4]}名`" prefix-icon="search"
               clearable @change="listRequest" />
             <div>
@@ -96,22 +96,23 @@
                 一共选中&nbsp;{{ data?.length || 0 }}&nbsp;个文件
               </el-tag>
             </div>
-          </el-span>
-          <el-span :span="8">
+          </el-col>
+          <el-col :span="12" style="width: 100%; display: flex; gap: 12px; justify-content: flex-end;">
             <el-button type="default" circle icon="refresh" @click="listRequest" />
-            <!-- 这里 show-file-list 和 clearFiles 一起使用确保不会显示上传列表 -->
-            <el-upload ref="uploadRef" :action="getBaseURL() + 'api/system/file/'" :multiple="false"
-              :data="{ upload_method: 1 }" :drag="false" :show-file-list="false" :accept="AcceptList[tabsActived % 4]"
-              :on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }"
-              v-if="tabsActived > 3 ? isSuperTenent : true">
-              <el-button type="primary" icon="plus">上传{{ TypeLabel[tabsActived % 4] }}</el-button>
-            </el-upload>
-          </el-span>
+            <template v-if="tabsActived > 3 ? isSuperTenent : true">
+              <el-upload ref="uploadRef" :action="getBaseURL() + 'api/system/file/'" :multiple="false" :drag="false"
+                :data="{ upload_method: 1 }" :show-file-list="true" :accept="AcceptList[tabsActived % 4]"
+                :on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }">
+                <el-button type="primary" icon="plus">上传{{ TypeLabel[tabsActived % 4] }}</el-button>
+              </el-upload>
+              <el-button type="info" icon="link"> 网络{{ TypeLabel[tabsActived % 4] }} </el-button>
+            </template>
+          </el-col>
         </el-row>
         <el-empty v-if="!listData.length" description="无内容，请上传"
           style="width: 100%; height: calc(50vh); margin-top: 24px; padding: 4px;" />
         <div ref="listContainerRef" class="listContainer" v-else>
-          <div v-for="item,index in listData" :style="{ width: (props.itemSize || 100) + 'px' }" :key="index"
+          <div v-for="item, index in listData" :style="{ width: (props.itemSize || 100) + 'px' }" :key="index"
             @click="onItemClick($event)" :data-id="item[props.valueKey]">
             <FileItem :fileData="item" />
           </div>
@@ -338,8 +339,6 @@ onMounted(() => {
 
 .listContainer>* {
   aspect-ratio: 1 / 1;
-  /* border: 1px solid rgba(0, 0, 0, .1); */
-  /* div阴影，2px范围，均匀投影，0偏移 */
   box-shadow: 0 0 4px rgba(0, 0, 0, .2);
   cursor: pointer;
   border-radius: 8px;
