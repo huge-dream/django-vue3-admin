@@ -129,7 +129,7 @@
       <!-- 只要在获取中，最大程度阻止关闭dialog -->
       <el-dialog v-model="netVisiable" :draggable="false" width="50%" :align-center="false" :append-to-body="true"
         :title="'网络' + TypeLabel[tabsActived % 4] + '上传'" @closed="netUrl = ''" :close-on-click-modal="!netLoading"
-        :close-on-press-escape="!netLoading" :show-close="netLoading" modal-class="_overlay">
+        :close-on-press-escape="!netLoading" :show-close="!netLoading" modal-class="_overlay">
         <el-form-item :label="TypeLabel[tabsActived % 4] + '链接'">
           <el-input v-model="netUrl" placeholder="请输入网络连接" clearable>
             <template #prepend>
@@ -323,8 +323,13 @@ const netPrefix = ref<string>('HTTP://');
 const confirmNetUrl = () => {
   if (!netUrl.value) return;
   netLoading.value = true;
-  fetch(netUrl.value).then(async (res: Response) => {
-    if (!res.ok) errorNotification(`网络${TypeLabel[tabsActived.value % 4]}获取失败，链接 ${netUrl.value}`);
+  let controller = new AbortController();
+  let timeout = setTimeout(() => {
+    controller.abort();
+  }, 10 * 1000);
+  fetch(netUrl.value, { signal: controller.signal }).then(async (res: Response) => {
+    clearTimeout(timeout);
+    if (!res.ok) errorNotification(`网络${TypeLabel[tabsActived.value % 4]}获取失败！`);
     const _ = res.url.split('?')[0].split('/');
     let filename = _[_.length - 1];
     // let filetype = res.headers.get('content-type')?.split('/')[1] || '';
@@ -334,13 +339,15 @@ const confirmNetUrl = () => {
     form.append('file', file);
     form.append('upload_method', '1');
     fetch(getBaseURL() + 'api/system/file/', { method: 'post', body: form })
-      .then(() => successNotification('网络文件获取成功！'))
-      .then(() => {
-        netLoading.value = false;
-        netVisiable.value = false;
-        listRequest();
-        listRequestAll();
-      });
+      .then(() => successNotification('网络文件上传成功！'))
+      .then(() => { netVisiable.value = false; listRequest(); listRequestAll(); })
+      .catch(() => errorNotification('网络文件上传失败！'))
+      .then(() => netLoading.value = false);
+  }).catch((err: any) => {
+    console.log(err);
+    clearTimeout(timeout);
+    errorNotification(`网络${TypeLabel[tabsActived.value % 4]}获取失败！`);
+    netLoading.value = false;
   });
 };
 
@@ -365,8 +372,8 @@ onMounted(() => {
   if (props.multiple && props.inputType !== 'selector')
     throw new Error('FileSelector组件属性multiple为true时inputType必须为selector');
   listRequestAll();
-  console.log('tenentmdoe', isTenentMode);
-  console.log('supertenent', isSuperTenent);
+  console.log('fileselector tenentmdoe', isTenentMode);
+  console.log('fileselector supertenent', isSuperTenent);
 });
 </script>
 
@@ -384,6 +391,10 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   gap: 12px;
+}
+
+:deep(.el-input-group__prepend) {
+  padding: 0 20px;
 }
 
 .listContainer {
