@@ -112,8 +112,8 @@
         <el-empty v-if="!listData.length" description="无内容，请上传"
           style="width: 100%; height: calc(50vh); margin-top: 24px; padding: 4px;" />
         <div ref="listContainerRef" class="listContainer" v-else>
-          <div v-for="item, index in listData" :style="{ width: (props.itemSize || 100) + 'px' }" :key="index"
-            @click="onItemClick($event)" :data-id="item[props.valueKey]">
+          <div v-for="item, index in listData" :key="index" @click="onItemClick($event)" :data-id="item[props.valueKey]"
+            :style="{ width: (props.itemSize || 100) + 'px', cursor: props.selectable ? 'pointer' : 'normal' }">
             <FileItem :fileData="item" :api="fileApi" @onDelFile="listRequest(); listRequestAll();" />
           </div>
         </div>
@@ -341,7 +341,6 @@ onMounted(() => {
 .listContainer>* {
   aspect-ratio: 1 / 1;
   box-shadow: 0 0 4px rgba(0, 0, 0, .2);
-  cursor: pointer;
   border-radius: 8px;
   overflow: hidden;
 }
