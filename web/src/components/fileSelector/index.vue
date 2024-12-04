@@ -323,6 +323,7 @@ const netPrefix = ref<string>('HTTP://');
 const netChange = () => {
   let s = netUrl.value.trim();
   if (s.toUpperCase().startsWith('HTTP://') || s.toUpperCase().startsWith('HTTPS://')) s = s.split('://')[1];
+  if (s.startsWith('/')) s = s.substring(1);
   netUrl.value = s;
 };
 const confirmNetUrl = () => {
