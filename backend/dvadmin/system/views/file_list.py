@@ -2,6 +2,7 @@ import hashlib
 import mimetypes
 
 import django_filters
+from django.conf import settings
 from django.db import connection
 from rest_framework import serializers
 from rest_framework.decorators import action
@@ -17,8 +18,21 @@ class FileSerializer(CustomModelSerializer):
     url = serializers.SerializerMethodField(read_only=True)
 
     def get_url(self, instance):
-        base_url = f"{self.request.scheme}://{self.request.get_host()}/"
-        return base_url + (instance.file_url or (f'media/{str(instance.url)}'))
+        if self.request.query_params.get('prefix'):
+            if settings.ENVIRONMENT in ['local']:
+                prefix = 'http://127.0.0.1:8000'
+            elif settings.ENVIRONMENT in ['test']:
+                prefix = 'http://{host}/api'.format(host=self.request.get_host())
+            else:
+                prefix = 'https://{host}/api'.format(host=self.request.get_host())
+            if instance.file_url:
+                return instance.file_url if instance.file_url.startswith('http') else f"{prefix}/{instance.file_url}"
+            return (f'{prefix}/media/{str(instance.url)}')
+        return instance.file_url or (f'media/{str(instance.url)}')
+
+    class Meta:
+        model = FileList
+        fields = "__all__"
 
     class Meta:
         model = FileList
