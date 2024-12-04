@@ -12,15 +12,17 @@
       </template>
       <template #cell_preview="scope">
         <div v-if="scope.row.file_type === 0">
-          <el-image style="width: 100%; aspect-ratio: 1 /1 ;" :src="scope.row.url" :preview-src-list="[scope.row.url]"
-            :preview-teleported="true" />
+          <el-image style="width: 100%; aspect-ratio: 1 /1 ;" :src="getBaseURL(scope.row.url)"
+            :preview-src-list="[getBaseURL(scope.row.url)]" :preview-teleported="true" />
         </div>
-        <div v-if="scope.row.file_type === 1" class="_preview" @click="openPreviewHandle(scope.row.url, 'video')">
+        <div v-if="scope.row.file_type === 1" class="_preview"
+          @click="openPreviewHandle(getBaseURL(scope.row.url), 'video')">
           <el-icon :size="60">
             <VideoCamera />
           </el-icon>
         </div>
-        <div v-if="scope.row.file_type === 2" class="_preview" @click="openPreviewHandle(scope.row.url, 'video')">
+        <div v-if="scope.row.file_type === 2" class="_preview"
+          @click="openPreviewHandle(getBaseURL(scope.row.url), 'video')">
           <el-icon :size="60">
             <Headset />
           </el-icon>

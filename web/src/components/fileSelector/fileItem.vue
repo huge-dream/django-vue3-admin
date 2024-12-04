@@ -13,15 +13,16 @@
 import { defineComponent } from 'vue';
 import { ref, defineProps, PropType, watch, onMounted, h } from 'vue';
 import { successNotification } from '/@/utils/message';
+import { getBaseURL } from '/@/utils/baseUrl';
 const props = defineProps({
   fileData: { type: Object as PropType<any>, required: true },
   api: { type: Object as PropType<any>, required: true },
 });
 const _OtherFileComponent = defineComponent({ template: '<el-icon><Files /></el-icon>' });
 const FileTypes = [
-  { tag: 'img', attr: { src: props.fileData.url, draggable: false } },
-  { tag: 'video', attr: { src: props.fileData.url, controls: false, autoplay: true, muted: true, loop: true } },
-  { tag: 'audio', attr: { src: props.fileData.url, controls: true, autoplay: false, muted: false, loop: false, volume: 0 } },
+  { tag: 'img', attr: { src: getBaseURL(props.fileData.url), draggable: false } },
+  { tag: 'video', attr: { src: getBaseURL(props.fileData.url), controls: false, autoplay: true, muted: true, loop: true } },
+  { tag: 'audio', attr: { src: getBaseURL(props.fileData.url), controls: true, autoplay: false, muted: false, loop: false, volume: 0 } },
   { tag: _OtherFileComponent, attr: { style: { fontSize: '2rem' } } },
 ];
 const isShow = ref<boolean>(false);
