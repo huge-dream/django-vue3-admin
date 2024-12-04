@@ -1,8 +1,8 @@
 <template>
   <div ref="itemRef" class="file-item" :title="data.name" @mouseenter="isShow = true" @mouseleave="isShow = false">
-    <div class="file-name" :class="{ show: isShow }">{{ data.name }}</div>
+    <div v-if="showTitle" class="file-name" :class="{ show: isShow }">{{ data.name }}</div>
     <component :is="FileTypes[data.file_type].tag" v-bind="FileTypes[data.file_type].attr" />
-    <div class="file-del" :class="{ show: isShow }">
+    <div v-if="props.showClose" class="file-del" :class="{ show: isShow }">
       <el-icon :size="24" color="white" @click.stop="delFileHandle" style="cursor: pointer;">
         <CircleClose style="mix-blend-mode: difference;" />
       </el-icon>
@@ -17,6 +17,8 @@ import { getBaseURL } from '/@/utils/baseUrl';
 const props = defineProps({
   fileData: { type: Object as PropType<any>, required: true },
   api: { type: Object as PropType<any>, required: true },
+  showTitle: { type: Boolean, default: true },
+  showClose: { type: Boolean, default: true },
 });
 const _OtherFileComponent = defineComponent({ template: '<el-icon><Files /></el-icon>' });
 const FileTypes = [

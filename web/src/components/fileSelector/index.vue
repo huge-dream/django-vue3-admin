@@ -117,7 +117,7 @@
         <div ref="listContainerRef" class="listContainer" v-else>
           <div v-for="item, index in listData" :key="index" @click="onItemClick($event)" :data-id="item[props.valueKey]"
             :style="{ width: (props.itemSize || 100) + 'px', cursor: props.selectable ? 'pointer' : 'normal' }">
-            <FileItem :fileData="item" :api="fileApi" @onDelFile="listRequest(); listRequestAll();" />
+            <FileItem :fileData="item" :api="fileApi" :showClose="tabsActived < 4" @onDelFile="listRequest(); listRequestAll();" />
           </div>
         </div>
         <div class="listPaginator">
