@@ -126,12 +126,12 @@
             :hide-on-single-page="false" @change="handlePageChange" />
         </div>
       </div>
-      <!-- 只要在获取中，最大程度阻止关闭dialog -->
+      <!-- 只要在获取中，就最大程度阻止关闭dialog -->
       <el-dialog v-model="netVisiable" :draggable="false" width="50%" :align-center="false" :append-to-body="true"
         :title="'网络' + TypeLabel[tabsActived % 4] + '上传'" @closed="netUrl = ''" :close-on-click-modal="!netLoading"
         :close-on-press-escape="!netLoading" :show-close="!netLoading" modal-class="_overlay">
         <el-form-item :label="TypeLabel[tabsActived % 4] + '链接'">
-          <el-input v-model="netUrl" placeholder="请输入网络连接" clearable>
+          <el-input v-model="netUrl" placeholder="请输入网络连接" clearable @input="netChange">
             <template #prepend>
               <el-select v-model="netPrefix" style="width: 110px;">
                 <el-option v-for="item, index in ['HTTP://', 'HTTPS://']" :key="index" :label="item" :value="item" />
@@ -320,6 +320,11 @@ const netLoading = ref<boolean>(false);
 const netVisiable = ref<boolean>(false);
 const netUrl = ref<string>('');
 const netPrefix = ref<string>('HTTP://');
+const netChange = () => {
+  let s = netUrl.value.trim();
+  if (s.toUpperCase().startsWith('HTTP://') || s.toUpperCase().startsWith('HTTPS://')) s = s.split('://')[1];
+  netUrl.value = s;
+};
 const confirmNetUrl = () => {
   if (!netUrl.value) return;
   netLoading.value = true;
@@ -327,7 +332,7 @@ const confirmNetUrl = () => {
   let timeout = setTimeout(() => {
     controller.abort();
   }, 10 * 1000);
-  fetch(netUrl.value, { signal: controller.signal }).then(async (res: Response) => {
+  fetch(netPrefix.value + netUrl.value, { signal: controller.signal }).then(async (res: Response) => {
     clearTimeout(timeout);
     if (!res.ok) errorNotification(`网络${TypeLabel[tabsActived.value % 4]}获取失败！`);
     const _ = res.url.split('?')[0].split('/');
