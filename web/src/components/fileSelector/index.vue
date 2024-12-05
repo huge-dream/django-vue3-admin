@@ -1,69 +1,71 @@
 <template>
-  <div style="width: 100%;" :style="props.style">
-    <div v-show="props.showInput" style="width: 100%;" :class="props.class" :style="props.inputStyle">
-      <el-select v-if="props.inputType === 'selector'" v-model="data" suffix-icon="arrow-down" clearable
-        :multiple="props.multiple" placeholder="请选择文件" @click="selectVisiable = true && !props.disabled"
-        :disabled="props.disabled" @clear="selectedInit" @remove-tag="selectedInit">
-        <el-option v-for="item, index in listAllData" :key="index" :value="String(item[props.valueKey])"
-          :label="item.name" />
-      </el-select>
-      <div v-if="props.inputType === 'image'" style="position: relative;" class="form-display"
-        @mouseenter="formDisplayEnter" @mouseleave="formDisplayLeave"
-        :style="{ width: props.inputSize + 'px', height: props.inputSize + 'px' }">
-        <el-image :src="data" fit="scale-down" :style="{ width: props.inputSize + 'px', aspectRatio: '1 / 1' }">
-          <template #error>
-            <div></div>
-          </template>
-        </el-image>
-        <div v-show="!(!!data)"
-          style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-          <el-icon :size="24">
-            <Plus />
+  <div style="width: 100%;" :class="props.class" :style="props.style">
+    <slot name="input" v-bind="{}">
+      <div v-if="props.showInput" style="width: 100%;" :class="props.inputClass" :style="props.inputStyle">
+        <el-select v-if="props.inputType === 'selector'" v-model="data" suffix-icon="arrow-down" clearable
+          :multiple="props.multiple" placeholder="请选择文件" @click="selectVisiable = true && !props.disabled"
+          :disabled="props.disabled" @clear="selectedInit" @remove-tag="selectedInit">
+          <el-option v-for="item, index in listAllData" :key="index" :value="String(item[props.valueKey])"
+            :label="item.name" />
+        </el-select>
+        <div v-if="props.inputType === 'image'" style="position: relative;" class="form-display"
+          @mouseenter="formDisplayEnter" @mouseleave="formDisplayLeave"
+          :style="{ width: props.inputSize + 'px', height: props.inputSize + 'px' }">
+          <el-image :src="data" fit="scale-down" :style="{ width: props.inputSize + 'px', aspectRatio: '1 / 1' }">
+            <template #error>
+              <div></div>
+            </template>
+          </el-image>
+          <div v-show="!(!!data)"
+            style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+            <el-icon :size="24">
+              <Plus />
+            </el-icon>
+          </div>
+          <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
+            :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
+          <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="clear">
+            <Close />
           </el-icon>
         </div>
-        <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
-          :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
-        <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="clear">
-          <Close />
-        </el-icon>
-      </div>
-      <div v-if="props.inputType === 'video'" class="form-display" @mouseenter="formDisplayEnter"
-        @mouseleave="formDisplayLeave"
-        style="position: relative; display: flex; align-items: center;  justify-items: center;"
-        :style="{ width: props.inputSize * 2 + 'px', height: props.inputSize + 'px' }">
-        <video :src="data" :controls="false" :autoplay="true" :muted="true" :loop="true"
-          :style="{ maxWidth: props.inputSize * 2 + 'px', maxHeight: props.inputSize + 'px', margin: '0 auto' }"></video>
-        <div v-show="!(!!data)"
-          style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-          <el-icon :size="24">
-            <Plus />
+        <div v-if="props.inputType === 'video'" class="form-display" @mouseenter="formDisplayEnter"
+          @mouseleave="formDisplayLeave"
+          style="position: relative; display: flex; align-items: center;  justify-items: center;"
+          :style="{ width: props.inputSize * 2 + 'px', height: props.inputSize + 'px' }">
+          <video :src="data" :controls="false" :autoplay="true" :muted="true" :loop="true"
+            :style="{ maxWidth: props.inputSize * 2 + 'px', maxHeight: props.inputSize + 'px', margin: '0 auto' }"></video>
+          <div v-show="!(!!data)"
+            style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+            <el-icon :size="24">
+              <Plus />
+            </el-icon>
+          </div>
+          <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
+            :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
+          <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="clear">
+            <Close />
           </el-icon>
         </div>
-        <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
-          :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
-        <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="clear">
-          <Close />
-        </el-icon>
-      </div>
-      <div v-if="props.inputType === 'audio'" class="form-display" @mouseenter="formDisplayEnter"
-        @mouseleave="formDisplayLeave"
-        style="position: relative; display: flex; align-items: center;  justify-items: center;"
-        :style="{ width: props.inputSize * 2 + 'px', height: props.inputSize + 'px' }">
-        <audio :src="data" :controls="!!data" :autoplay="false" :muted="true" :loop="true"
-          style="width: 100%; z-index: 1;"></audio>
-        <div v-show="!(!!data)"
-          style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
-          <el-icon :size="24">
-            <Plus />
+        <div v-if="props.inputType === 'audio'" class="form-display" @mouseenter="formDisplayEnter"
+          @mouseleave="formDisplayLeave"
+          style="position: relative; display: flex; align-items: center;  justify-items: center;"
+          :style="{ width: props.inputSize * 2 + 'px', height: props.inputSize + 'px' }">
+          <audio :src="data" :controls="!!data" :autoplay="false" :muted="true" :loop="true"
+            style="width: 100%; z-index: 1;"></audio>
+          <div v-show="!(!!data)"
+            style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+            <el-icon :size="24">
+              <Plus />
+            </el-icon>
+          </div>
+          <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
+            :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
+          <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="clear">
+            <Close />
           </el-icon>
         </div>
-        <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
-          :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
-        <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="clear">
-          <Close />
-        </el-icon>
       </div>
-    </div>
+    </slot>
     <el-dialog v-model="selectVisiable" :draggable="false" width="50%" :align-center="false" :append-to-body="true"
       @open="if (listData.length === 0) listRequest();" @close="onClose" @closed="onClosed" modal-class="_overlay">
       <template #header>
@@ -117,7 +119,8 @@
         <div ref="listContainerRef" class="listContainer" v-else>
           <div v-for="item, index in listData" :key="index" @click="onItemClick($event)" :data-id="item[props.valueKey]"
             :style="{ width: (props.itemSize || 100) + 'px', cursor: props.selectable ? 'pointer' : 'normal' }">
-            <FileItem :fileData="item" :api="fileApi" :showClose="tabsActived < 4 || isSuperTenent" @onDelFile="listRequest(); listRequestAll();" />
+            <FileItem :fileData="item" :api="fileApi" :showClose="tabsActived < 4 || isSuperTenent"
+              @onDelFile="listRequest(); listRequestAll();" />
           </div>
         </div>
         <div class="listPaginator">
@@ -174,7 +177,8 @@ const TypeLabel = ['图片', '视频', '音频', '文件']
 const AcceptList = ['image/*', 'video/*', 'audio/*', ''];
 const props = defineProps({
   modelValue: {},
-  class: { type: String, default: '' },
+  class: { type: Object as PropType<String | Object>, default: '' },
+  inputClass: { type: Object as PropType<String | Object>, default: '' },
   style: { type: Object as PropType<Object | string>, default: {} },
   inputStyle: { type: Object as PropType<Object | string>, default: {} },
   disabled: { type: Boolean, default: false },
@@ -263,7 +267,7 @@ const onItemClick = async (e: MouseEvent) => {
   if (props.multiple) {
     if (target.classList.contains('active')) { target.classList.remove('active'); flat = -1; }
     else { target.classList.add('active'); flat = 1; }
-    if (data.value) {
+    if (data.value.length) {
       if (flat === 1) data.value.push(fileId);
       else data.value.splice(data.value.indexOf(fileId), 1);
     } else data.value = [fileId];
@@ -279,7 +283,7 @@ const onItemClick = async (e: MouseEvent) => {
 // 每次列表刷新都得更新一下选择状态，因为所有标签页共享列表
 const selectedInit = async () => {
   if (!props.selectable) return;
-  await nextTick();
+  await nextTick(); // 不等待一次不会刷新
   for (let i of (listContainerRef.value?.children || [])) {
     i.classList.remove('active');
     let fid = (i as HTMLElement).dataset.id;
@@ -363,7 +367,11 @@ const confirmNetUrl = () => {
 // fs-crud部分
 const data = ref<any>(null);
 const emit = defineEmits(['update:modelValue', 'onSave', 'onClose', 'onClosed']);
-watch(() => props.modelValue, (val) => { data.value = val; }, { immediate: true });
+watch(
+  () => props.modelValue,
+  (val) => data.value = val,
+  { immediate: true }
+);
 const { ui } = useUi();
 const formValidator = ui.formItem.injectFormItemContext();
 const onDataChange = (value: any) => {
