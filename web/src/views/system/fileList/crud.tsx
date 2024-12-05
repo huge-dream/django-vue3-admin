@@ -1,7 +1,19 @@
 import * as api from './api';
-import { UserPageQuery, AddReq, DelReq, EditReq, CrudExpose, CrudOptions, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud';
+import {
+	UserPageQuery,
+	AddReq,
+	DelReq,
+	EditReq,
+	CrudExpose,
+	CrudOptions,
+	CreateCrudOptionsProps,
+	CreateCrudOptionsRet,
+	dict
+} from '@fast-crud/fast-crud';
+import fileSelector from '/@/components/fileSelector/index.vue';
+import { shallowRef } from 'vue';
 
-export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsProps): CreateCrudOptionsRet {
 	const pageRequest = async (query: UserPageQuery) => {
 		return await api.GetList(query);
 	};
@@ -20,7 +32,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 			actionbar: {
 				buttons: {
 					add: {
-						show: false,
+						show: true,
+						click: () => context.openAddHandle?.()
 					},
 				},
 			},
@@ -30,11 +43,22 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 				editRequest,
 				delRequest,
 			},
+			tabs: {
+				show: true,
+				name: 'file_type',
+				type: '',
+				options: [
+					{ value: 0, label: '图片' },
+					{ value: 1, label: '视频' },
+					{ value: 2, label: '音频' },
+					{ value: 3, label: '其他' },
+				]
+			},
 			rowHandle: {
 				//固定右侧
 				fixed: 'right',
 				width: 200,
-				show:false,
+				show: false,
 				buttons: {
 					view: {
 						show: false,
@@ -95,14 +119,25 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						show: true,
 					},
 					type: 'input',
-					column:{
-						minWidth: 120,
+					column: {
+						minWidth: 200,
 					},
 					form: {
 						component: {
 							placeholder: '请输入文件名称',
+							clearable: true
 						},
 					},
+				},
+				preview: {
+					title: '预览',
+					column: {
+						minWidth: 120,
+						align: 'center'
+					},
+					form: {
+						show: false
+					}
 				},
 				url: {
 					title: '文件地址',
@@ -110,8 +145,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					search: {
 						disabled: true,
 					},
-					column:{
-						minWidth: 200,
+					column: {
+						minWidth: 360,
 					},
 				},
 				md5sum: {
@@ -119,13 +154,99 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					search: {
 						disabled: true,
 					},
-					column:{
-						minWidth: 120,
+					column: {
+						minWidth: 300,
 					},
 					form: {
-						disabled: false,
+						disabled: false
 					},
 				},
+				mime_type: {
+					title: '文件类型',
+					type: 'input',
+					form: {
+						show: false,
+					},
+					column: {
+						minWidth: 160
+					}
+				},
+				file_type: {
+					title: '文件类型',
+					type: 'dict-select',
+					dict: dict({
+						data: [
+							{ label: '图片', value: 0, color: 'success' },
+							{ label: '视频', value: 1, color: 'warning' },
+							{ label: '音频', value: 2, color: 'danger' },
+							{ label: '其他', value: 3, color: 'primary' },
+						]
+					}),
+					column: {
+						show: false
+					},
+					search: {
+						show: true
+					},
+					form: {
+						show: false,
+						component: {
+							placeholder: '请选择文件类型'
+						}
+					}
+				},
+				size: {
+					title: '文件大小',
+					column: {
+						minWidth: 120
+					},
+					form: {
+						show: false
+					}
+				},
+				upload_method: {
+					title: '上传方式',
+					type: 'dict-select',
+					dict: dict({
+						data: [
+							{ label: '默认上传', value: 0, color: 'primary' },
+							{ label: '文件选择器上传', value: 1, color: 'warning' },
+						]
+					}),
+					column: {
+						minWidth: 140
+					},
+					search: {
+						show: true
+					}
+				},
+				create_datetime: {
+					title: '创建时间',
+					column: {
+						minWidth: 160
+					},
+					form: {
+						show: false
+					}
+				},
+				// fileselectortest: {
+				// 	title: '文件选择器测试',
+				// 	type: 'file-selector',
+				// 	width: 200,
+				// 	form: {
+				// 		component: {
+				// 			name: shallowRef(fileSelector),
+				// 			vModel: 'modelValue',
+				// 			tabsShow: 0b0100,
+				// 			itemSize: 100,
+				// 			multiple: false,
+				// 			selectable: true,
+				// 			showInput: true,
+				// 			inputType: 'video',
+				// 			valueKey: 'url',
+				// 		}
+				// 	}
+				// }
 			},
 		},
 	};

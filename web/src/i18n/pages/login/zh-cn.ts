@@ -3,6 +3,7 @@ export default {
 	label: {
 		one1: '账号密码登录',
 		two2: '手机号登录',
+		changePwd: '密码修改',
 	},
 	link: {
 		one3: '第三方登录',
@@ -12,6 +13,8 @@ export default {
 		accountPlaceholder1: '请输入登录账号/邮箱/手机号',
 		accountPlaceholder2: '请输入登录密码',
 		accountPlaceholder3: '请输入验证码',
+		accountPlaceholder4:'请输入新密码',
+		accountPlaceholder5:'请再次输入新密码',
 		accountBtnText: '登 录',
 	},
 	mobile: {
