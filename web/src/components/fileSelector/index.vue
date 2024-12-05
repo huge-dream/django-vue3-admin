@@ -90,37 +90,46 @@
           </el-tabs>
         </div>
         <el-row justify="space-between" class="headerBar">
-          <el-col :span="8">
-            <el-input v-model="filterForm.name" :placeholder="`请输入${TypeLabel[tabsActived % 4]}名`" prefix-icon="search"
-              clearable @change="listRequest" />
-            <div>
-              <el-tag v-if="props.multiple" type="primary" effect="light">
-                一共选中&nbsp;{{ data?.length || 0 }}&nbsp;个文件
-              </el-tag>
-            </div>
+          <el-col :span="12">
+            <slot name="actionbar-left">
+              <el-input v-model="filterForm.name" :placeholder="`请输入${TypeLabel[tabsActived % 4]}名`"
+                prefix-icon="search" clearable @change="listRequest" />
+              <div>
+                <el-tag v-if="props.multiple" type="primary" effect="light">
+                  一共选中&nbsp;{{ data?.length || 0 }}&nbsp;个文件
+                </el-tag>
+              </div>
+            </slot>
           </el-col>
           <el-col :span="12" style="width: 100%; display: flex; gap: 12px; justify-content: flex-end;">
-            <el-button type="default" circle icon="refresh" @click="listRequest" />
-            <template v-if="tabsActived > 3 ? isSuperTenent : true">
-              <el-upload ref="uploadRef" :action="getBaseURL() + 'api/system/file/'" :multiple="false" :drag="false"
-                :data="{ upload_method: 1 }" :show-file-list="true" :accept="AcceptList[tabsActived % 4]"
-                :on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }"
-                v-if="props.showUploadButton">
-                <el-button type="primary" icon="plus">上传{{ TypeLabel[tabsActived % 4] }}</el-button>
-              </el-upload>
-              <el-button type="info" icon="link" @click="netVisiable = true" v-if="props.showNetButton">
-                网络{{ TypeLabel[tabsActived % 4] }}
-              </el-button>
-            </template>
+            <slot name="actionbar-right" v-bind="{}">
+              <el-button type="default" circle icon="refresh" @click="listRequest" />
+              <template v-if="tabsActived > 3 ? isSuperTenent : true">
+                <el-upload ref="uploadRef" :action="getBaseURL() + 'api/system/file/'" :multiple="false" :drag="false"
+                  :data="{ upload_method: 1 }" :show-file-list="true" :accept="AcceptList[tabsActived % 4]"
+                  :on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }"
+                  v-if="props.showUploadButton">
+                  <el-button type="primary" icon="plus">上传{{ TypeLabel[tabsActived % 4] }}</el-button>
+                </el-upload>
+                <el-button type="info" icon="link" @click="netVisiable = true" v-if="props.showNetButton">
+                  网络{{ TypeLabel[tabsActived % 4] }}
+                </el-button>
+              </template>
+            </slot>
           </el-col>
         </el-row>
-        <el-empty v-if="!listData.length" description="无内容，请上传"
-          style="width: 100%; height: calc(50vh); margin-top: 24px; padding: 4px;" />
+        <div v-if="!listData.length">
+          <slot name="empty">
+            <el-empty description="无内容，请上传" style="width: 100%; height: calc(50vh); margin-top: 24px; padding: 4px;" />
+          </slot>
+        </div>
         <div ref="listContainerRef" class="listContainer" v-else>
           <div v-for="item, index in listData" :key="index" @click="onItemClick($event)" :data-id="item[props.valueKey]"
             :style="{ width: (props.itemSize || 100) + 'px', cursor: props.selectable ? 'pointer' : 'normal' }">
-            <FileItem :fileData="item" :api="fileApi" :showClose="tabsActived < 4 || isSuperTenent"
-              @onDelFile="listRequest(); listRequestAll();" />
+            <slot name="item" :data="item">
+              <FileItem :fileData="item" :api="fileApi" :showClose="tabsActived < 4 || isSuperTenent"
+                @onDelFile="listRequest(); listRequestAll();" />
+            </slot>
           </div>
         </div>
         <div class="listPaginator">

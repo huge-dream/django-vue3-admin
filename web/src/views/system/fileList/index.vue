@@ -1,5 +1,23 @@
 <template>
   <fs-page>
+    <FileSelector v-model="selected" :showInput="false" ref="fileSelectorRef" :tabsShow="SHOW.ALL" :itemSize="120"
+      :multiple="true" :selectable="false">
+      <!-- <template #input="scope">
+        input：{{ scope }}
+      </template> -->
+      <!-- <template #actionbar-left="scope">
+        actionbar-left：{{ scope }}
+      </template> -->
+      <!-- <template #actionbar-right="scope">
+        actionbar-right：{{ scope }}
+      </template> -->
+      <!-- <template #empty="scope">
+        empty：{{ scope }}
+      </template> -->
+      <!-- <template #item="{ data }">
+        {{ data }}
+      </template> -->
+    </FileSelector>
     <fs-crud ref="crudRef" v-bind="crudBinding">
       <template #actionbar-left="scope">
         <el-upload :action="getBaseURL() + 'api/system/file/'" :multiple="false"
@@ -44,8 +62,6 @@
         </el-icon>
       </div>
     </div>
-    <FileSelector :showInput="false" ref="fileSelectorRef" :tabsShow="SHOW.ALL" :itemSize="120" :multiple="false"
-      :selectable="false" />
   </fs-page>
 </template>
 
@@ -75,6 +91,7 @@ const { crudOptions } = createCrudOptions({ crudExpose, context: { openAddHandle
 // 初始化crud配置
 const { resetCrudOptions } = useCrud({ crudExpose, crudOptions });
 
+const selected = ref<any>([]);
 const openPreview = ref<boolean>(false);
 const videoPreviewSrc = ref<string>('');
 const audioPreviewSrc = ref<string>('');
