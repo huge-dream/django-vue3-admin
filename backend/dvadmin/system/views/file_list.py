@@ -34,10 +34,6 @@ class FileSerializer(CustomModelSerializer):
         model = FileList
         fields = "__all__"
 
-    class Meta:
-        model = FileList
-        fields = "__all__"
-
     def create(self, validated_data):
         file_engine = dispatch.get_system_config_values("fileStorageConfig.file_engine") or 'local'
         file_backup = dispatch.get_system_config_values("fileStorageConfig.file_backup")

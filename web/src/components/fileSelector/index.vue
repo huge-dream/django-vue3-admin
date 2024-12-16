@@ -66,7 +66,7 @@
         </div>
       </div>
     </slot>
-    <el-dialog v-model="selectVisiable" :draggable="false" width="50%" :align-center="false" :append-to-body="true"
+    <el-dialog v-model="selectVisiable" :draggable="true" width="50%" :align-center="false" :append-to-body="true"
       @open="if (listData.length === 0) listRequest();" @close="onClose" @closed="onClosed" modal-class="_overlay">
       <template #header>
         <span class="el-dialog__title">文件选择</span>
@@ -248,7 +248,7 @@ const listRequest = async () => {
   });
   listData.value = [];
   await nextTick();
-  listData.value = res.data;
+  listData.value = (res.data as any[]).map((item: any) => ({ ...item, url: getBaseURL(item.url) }));
   pageForm.total = res.total;
   pageForm.page = res.page;
   pageForm.limit = res.limit;
@@ -277,8 +277,10 @@ const onItemClick = async (e: MouseEvent) => {
     if (target.classList.contains('active')) { target.classList.remove('active'); flat = -1; }
     else { target.classList.add('active'); flat = 1; }
     if (data.value.length) {
-      if (flat === 1) data.value.push(fileId);
-      else data.value.splice(data.value.indexOf(fileId), 1);
+      let _l = JSON.parse(JSON.stringify(data.value));
+      if (flat === 1) _l.push(fileId);
+      else _l.splice(_l.indexOf(fileId), 1);
+      data.value = _l;
     } else data.value = [fileId];
     // 去重排序，<降序，>升序
     data.value = Array.from(new Set(data.value)).sort();
@@ -378,7 +380,7 @@ const data = ref<any>(null);
 const emit = defineEmits(['update:modelValue', 'onSave', 'onClose', 'onClosed']);
 watch(
   () => props.modelValue,
-  (val) => data.value = val,
+  (val) => data.value = props.multiple ? JSON.parse(JSON.stringify(val)) : val,
   { immediate: true }
 );
 const { ui } = useUi();
