@@ -46,11 +46,9 @@ class FieldPermissionMixin:
             # 遍历原始数据并填充结果字典
             for item in data:
                 field_name = item.pop('field_name')
-                for key, value in item.items():
-                    if field_name in result:
-                        if value:
-                            result[field_name][key] = True
-                    else:
-                        result[field_name] = {}
-                        result[field_name][key] = value
+                if field_name not in result:
+                    result[field_name] = item
+                else:
+                    for key, value in item.items():
+                        result[field_name][key] = result[field_name][key] or value
         return DetailResponse(data=result)
