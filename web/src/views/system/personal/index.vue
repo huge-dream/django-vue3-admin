@@ -32,7 +32,7 @@
 										<el-col :xs="24" :sm="24" class="personal-item mb6">
 											<div class="personal-item-label">角色：</div>
 											<div class="personal-item-value">
-												<el-tag v-for="(item, index) in state.personalForm.role_info" :key="index">{{ item.name }}</el-tag>
+												<el-tag v-for="(item, index) in state.personalForm.role_info" :key="index" style="margin-right: 5px;">{{ item.name }}</el-tag>
 											</div>
 										</el-col>
 									</el-row>
