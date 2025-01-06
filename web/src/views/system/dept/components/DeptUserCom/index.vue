@@ -42,6 +42,15 @@
 		<template #actionbar-right>
 			<importExcel api="api/system/user/" v-auth="'user:Import'">导入 </importExcel>
 		</template>
+		<template #cell_avatar="scope">
+              <div v-if="scope.row.avatar" style="display: flex; justify-content: center; align-items: center;">
+                <el-image 
+                  style="width: 50px; height: 50px; border-radius: 50%; aspect-ratio: 1 /1 ; " 
+                  :src="getBaseURL(scope.row.avatar)"
+                  :preview-src-list="[getBaseURL(scope.row.avatar)]" 
+                  :preview-teleported="true" />
+              </div>
+            </template>
 	</fs-crud>
 
 	<el-dialog v-model="resetPwdVisible" title="重设密码" width="400px" draggable :before-close="handleResetPwdClose">
@@ -69,6 +78,7 @@ import { ECharts, EChartsOption, init } from 'echarts';
 import { getDeptInfoById, resetPwd } from './api';
 import { warningNotification, successNotification } from '/@/utils/message';
 import { HeadDeptInfoType } from '../../types';
+import {getBaseURL} from '/@/utils/baseUrl';
 
 let deptCountChart: ECharts;
 let deptSexChart: ECharts;
