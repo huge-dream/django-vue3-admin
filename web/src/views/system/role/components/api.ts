@@ -86,3 +86,36 @@ export function getRoleToDeptAll(query: object) {
 		params: query,
 	});
 }
+
+/**
+ * 获取所有用户
+ * @param query
+ * @returns
+ */
+export function getAllUsers() {
+	return request({
+		url: '/api/system/user/',
+		method: 'get',
+		params: { limit: 999 },
+	}).then((res: any) => {
+		return XEUtils.map(res.data, (item: any) => {
+			return {
+				id: item.id,
+				name: item.name,
+			};
+		});
+	});
+}
+
+/**
+ * 设置角色-用户
+ * @param query
+ * @returns
+ */
+export function setRoleUsers(roleId: string | number | undefined, data: object) {
+	return request({
+		url: `/api/system/role/${roleId}/set_role_users/`,
+		method: 'put',
+		data,
+	});
+}

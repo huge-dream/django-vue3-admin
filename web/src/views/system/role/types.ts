@@ -16,6 +16,15 @@ export interface RoleItemType {
 	creator: string;
 }
 
+export interface UsersType {
+	id: string | number;
+	name: string;
+}
+export interface RoleUsersType {
+	all_users: UsersType[];
+	right_users: UsersType[];
+}
+
 /**
  * 权限配置 抽屉组件参数数据类型
  */
@@ -26,6 +35,8 @@ export interface RoleDrawerType {
 	roleId: string | number | undefined;
 	/** 角色名称*/
 	roleName: string | undefined;
+	/** 用户*/
+	users: UsersType[];
 }
 
 /**
@@ -82,7 +93,7 @@ export interface RoleMenuFieldHeaderType {
 	/** 模型表字段名 */
 	label: string;
 	/** 字段显示名	*/
-	disabled: string ;
+	disabled: string;
 	/** 是否可查询 */
 	checked: boolean;
 }
