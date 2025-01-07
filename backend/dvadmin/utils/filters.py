@@ -340,7 +340,7 @@ class CustomDjangoFilterBackend(DjangoFilterBackend):
                         from timezone_field import TimeZoneField
 
                         # 不进行 过滤的model 类
-                        if isinstance(field, (models.JSONField, TimeZoneField)):
+                        if isinstance(field, (models.JSONField, TimeZoneField, models.FileField)):
                             continue
                         # warn if the field doesn't exist.
                         if field is None:

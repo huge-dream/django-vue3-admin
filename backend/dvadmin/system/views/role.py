@@ -26,6 +26,12 @@ class RoleSerializer(CustomModelSerializer):
     """
     角色-序列化器
     """
+    users = serializers.SerializerMethodField()
+
+    @staticmethod
+    def get_users(instance):
+        users = instance.users_set.exclude(id=1).values('id', 'name', 'dept__name')
+        return users
 
     class Meta:
         model = Role
@@ -116,3 +122,23 @@ class RoleViewSet(CustomModelViewSet, FastCrudMixin,FieldPermissionMixin):
     create_serializer_class = RoleCreateUpdateSerializer
     update_serializer_class = RoleCreateUpdateSerializer
     search_fields = ['name', 'key']
+
+    @action(methods=['PUT'], detail=True, permission_classes=[IsAuthenticated])
+    def set_role_users(self, request, pk):
+        """
+        设置 角色-用户
+        :param request:
+        :return:
+        """
+        data = request.data
+        direction = data.get('direction')
+        movedKeys = data.get('movedKeys')
+        role = Role.objects.get(pk=pk)
+        if direction == "left":
+            # left : 移除用户权限
+            role.users_set.remove(*movedKeys)
+        else:
+            # right : 添加用户权限
+            role.users_set.add(*movedKeys)
+        serializer = RoleSerializer(role)
+        return DetailResponse(data=serializer.data, msg="更新成功")
