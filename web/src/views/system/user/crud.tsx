@@ -257,10 +257,10 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                     }),
                     column: {
                         minWidth: 200, //最小列宽
-                        formatter({value,row,index}){
-                            const values = row.role_info.map((item:any) => item.name);
-                            return values.join(',')
-                        }
+                        // formatter({value,row,index}){
+                        //     const values = row.role_info.map((item:any) => item.name);
+                        //     return values.join(',')
+                        // }
                     },
                     form: {
                         rules: [
@@ -382,12 +382,13 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                 },
                 avatar: {
                     title: '头像',
-                    type: 'avatar-cropper',
+                    type: 'avatar-uploader',
+                    align: 'center',
                     form: {
                         show: false,
                     },
                     column: {
-                        minWidth: 400, //最小列宽
+                        minWidth: 100, //最小列宽
                     },
                 },
                 ...commonCrudConfig({
