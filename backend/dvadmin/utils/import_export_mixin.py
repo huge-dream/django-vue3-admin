@@ -305,11 +305,10 @@ class ExportSerializerMixin:
         assert self.export_serializer_class, "'%s' 请配置对应的导出序列化器。" % self.__class__.__name__
         data = self.export_serializer_class(queryset, many=True, request=request).data
         try:
-            from dvadmin3_celery import settings
             async_export_data.delay(
                 data,
                 str(f"导出{get_verbose_name(queryset)}-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.xlsx"),
-                DownloadCenter.objects.create(creator=request.user, task_name=f'{get_verbose_name(queryset)}数据导出任务').pk,
+                DownloadCenter.objects.create(creator=request.user, task_name=f'{get_verbose_name(queryset)}数据导出任务', dept_belong_id=request.user.dept_id).pk,
                 self.export_field_label
             )
             return SuccessResponse(msg="导入任务已创建，请前往‘下载中心’等待下载")

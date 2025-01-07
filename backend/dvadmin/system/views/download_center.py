@@ -41,6 +41,9 @@ class DownloadCenterViewSet(CustomModelViewSet):
     serializer_class = DownloadCenterSerializer
     filter_class = DownloadCenterFilterSet
     permission_classes = []
+    extra_filter_class = []
 
     def get_queryset(self):
+        if self.request.user.is_superuser:
+            return super().get_queryset()
         return super().get_queryset().filter(creator=self.request.user)
