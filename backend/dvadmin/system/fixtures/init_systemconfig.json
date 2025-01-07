@@ -111,7 +111,7 @@
                 "parent": 1,
                 "title": "网站名称",
                 "key": "site_name",
-                "value": "企业级后台管理系统",
+                "value": "课题组管理系统",
                 "sort": 1,
                 "status": true,
                 "data_options": null,

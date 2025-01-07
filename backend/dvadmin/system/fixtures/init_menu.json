@@ -1440,5 +1440,35 @@
         ],
         "menu_button": [],
         "menu_field": []
+    },
+    {
+        "name": "课题组管理",
+        "icon": "ele-Tickets",
+        "sort": 4,
+        "is_link": false,
+        "is_catalog": true,
+        "web_path": "/ResearchGroupManagement",
+        "component": "",
+        "component_name": "menu",
+        "status": true,
+        "cache": false,
+        "visible": true,
+        "parent": null,
+        "children": [
+            {
+                "name": "课题组设置",
+                "icon": "ele-Reading",
+                "sort": 1,
+                "is_link": false,
+                "is_catalog": false,
+                "web_path": "/rmanage",
+                "component": "system/ResearchGroupManagement/rmanage/index",
+                "component_name": "rmanage",
+                "status": true,
+                "cache": false,
+                "visible": true,
+                "children": []
+            }
+        ]
     }
 ]
