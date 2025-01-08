@@ -3,6 +3,7 @@ import * as api from './api';
 import { dictionary } from '/@/utils/dictionary';
 import { successMessage } from '../../../utils/message';
 import { auth } from '/@/utils/authFunction';
+import { nextTick, computed } from 'vue';
 
 /**
  *
@@ -46,7 +47,12 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 			rowHandle: {
 				//固定右侧
 				fixed: 'right',
-				width: 320,
+				width:  computed(() => {
+					if (auth('role:AuthorizedAdd') || auth('role:AuthorizedSearch')){
+						return 420;
+					}
+					return 320;
+				}),
 				buttons: {
 					view: {
 						show: true,
@@ -56,6 +62,19 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					},
 					remove: {
 						show: auth('role:Delete'),
+					},
+					assignment: {
+						type: 'primary',
+						text: '授权用户',
+						show: auth('role:AuthorizedAdd') || auth('role:AuthorizedSearch'),
+						click: (ctx: any) => {
+							const { row } = ctx;
+							context!.RoleUserDrawer.handleDrawerOpen(row);
+							nextTick(() => {
+								context!.RoleUserRef.value.setSearchFormData({ form: { role_id: row.id } });
+								context!.RoleUserRef.value.doRefresh();
+							});
+						},
 					},
 					permission: {
 						type: 'primary',
