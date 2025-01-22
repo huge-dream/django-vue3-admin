@@ -8,7 +8,27 @@
           <el-option v-for="item, index in listAllData" :key="index" :value="String(item[props.valueKey])"
             :label="item.name" />
         </el-select>
-        <div v-if="props.inputType === 'image'" style="position: relative;" class="form-display"
+
+        <div v-if="props.inputType === 'image' && props.multiple"
+          style="width: 100%; display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px;">
+          <el-image v-for="item, index in (data || [])" :src="item" :key="index" fit="scale-down" class="itemList"
+            :style="{ width: props.inputSize + 'px', aspectRatio: '1 / 1' }" />
+          <div style="position: relative;" :style="{ width: props.inputSize + 'px', height: props.inputSize + 'px' }">
+            <div
+              style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
+              <el-icon :size="24">
+                <Plus />
+              </el-icon>
+            </div>
+            <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
+              :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
+            <el-icon v-show="(!!data && !props.disabled) && !props.multiple" class="closeHover" :size="16"
+              @click="clear">
+              <Close />
+            </el-icon>
+          </div>
+        </div>
+        <div v-if="props.inputType === 'image' && !props.multiple" class="form-display" style="position: relative;"
           @mouseenter="formDisplayEnter" @mouseleave="formDisplayLeave"
           :style="{ width: props.inputSize + 'px', height: props.inputSize + 'px' }">
           <el-image :src="data" fit="scale-down" :style="{ width: props.inputSize + 'px', aspectRatio: '1 / 1' }">
@@ -24,10 +44,11 @@
           </div>
           <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
             :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
-          <el-icon v-show="!!data && !props.disabled" class="closeHover" :size="16" @click="clear">
+          <el-icon v-show="(!!data && !props.disabled) && !props.multiple" class="closeHover" :size="16" @click="clear">
             <Close />
           </el-icon>
         </div>
+
         <div v-if="props.inputType === 'video'" class="form-display" @mouseenter="formDisplayEnter"
           @mouseleave="formDisplayLeave"
           style="position: relative; display: flex; align-items: center;  justify-items: center;"
@@ -46,6 +67,7 @@
             <Close />
           </el-icon>
         </div>
+
         <div v-if="props.inputType === 'audio'" class="form-display" @mouseenter="formDisplayEnter"
           @mouseleave="formDisplayLeave"
           style="position: relative; display: flex; align-items: center;  justify-items: center;"
@@ -199,7 +221,7 @@ const props = defineProps({
   tabsShow: { type: Number, default: SHOW.ALL },
 
   // 是否可以多选，默认单选
-  // 该值为true时inputType必须是selector（暂不支持其他type的多选）
+  // 该值为true时inputType必须是selector或image（暂不支持其他type的多选）
   multiple: { type: Boolean, default: false },
 
   // 是否可选，该参数用于只上传和展示而不选择和绑定model的情况
@@ -274,6 +296,7 @@ const onItemClick = async (e: MouseEvent) => {
   while (!target.dataset.id) target = target.parentElement as HTMLElement;
   let fileId = target.dataset.id;
   if (props.multiple) {
+    if (!!!data.value) data.value = [];
     if (target.classList.contains('active')) { target.classList.remove('active'); flat = -1; }
     else { target.classList.add('active'); flat = 1; }
     if (data.value.length) {
@@ -394,7 +417,8 @@ const onDataChange = (value: any) => {
 defineExpose({ data, onDataChange, selectVisiable, clearState, clear });
 
 onMounted(() => {
-  if (props.multiple && props.inputType !== 'selector')
+
+  if (props.multiple && !['selector', 'image'].includes(props.inputType))
     throw new Error('FileSelector组件属性multiple为true时inputType必须为selector');
   listRequestAll();
   console.log('fileselector tenentmdoe', isTenentMode);
@@ -474,5 +498,10 @@ onMounted(() => {
   right: 2px;
   top: 2px;
   cursor: pointer;
+}
+
+.itemList {
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
 }
 </style>
