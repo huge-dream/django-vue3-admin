@@ -49,7 +49,7 @@ urlpatterns = [
     path('system_config/get_relation_info/', SystemConfigViewSet.as_view({'get': 'get_relation_info'})),
     # path('login_log/', LoginLogViewSet.as_view({'get': 'list'})),
     # path('login_log/<int:pk>/', LoginLogViewSet.as_view({'get': 'retrieve'})),
-    path('dept_lazy_tree/', DeptViewSet.as_view({'get': 'dept_lazy_tree'})),
+    # path('dept_lazy_tree/', DeptViewSet.as_view({'get': 'dept_lazy_tree'})),
     path('clause/privacy.html', PrivacyView.as_view()),
     path('clause/terms_service.html', TermsServiceView.as_view()),
 ]
