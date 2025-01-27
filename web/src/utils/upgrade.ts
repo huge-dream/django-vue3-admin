@@ -26,7 +26,7 @@ export function showUpgrade() {
 
 // 生产环境前端版本校验，
 export async function checkVersion() {
-	if (META_ENV.NODE_ENV === 'development') {
+	if (META_ENV.MODE === 'development') {
 		// 开发环境无需校验前端版本
 		return;
 	}
