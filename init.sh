@@ -26,6 +26,11 @@ fi
 echo "正在启动容器..."
 docker-compose up -d
 
+if [ $? -ne 0 ]; then
+    echo "docker-compose up -d 执行失败！"
+    exit 1
+fi
+
 MYSQL_PORT=3306
 REDIS_PORT=6379
 
