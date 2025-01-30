@@ -85,6 +85,7 @@
 
 				<el-form-item v-if="!menuFormData.is_catalog && menuFormData.is_link" label="外链接" prop="link_url">
 					<el-input v-model="menuFormData.link_url" placeholder="请输入外链接地址" />
+          <el-alert :title="`输入{{token}}可自动替换系统 token `" type="info" />
 				</el-form-item>
 
 				<el-form-item v-if="!menuFormData.is_catalog" label="缓存">
