@@ -21,13 +21,14 @@ const menuApi = useMenuApi();
 
 const layouModules: any = import.meta.glob('../layout/routerView/*.{vue,tsx}');
 const viewsModules: any = import.meta.glob('../views/**/*.{vue,tsx}');
+const greatDream: any = import.meta.glob('@great-dream/**/*.{vue,tsx}');
 
 /**
  * 获取目录下的 .vue、.tsx 全部文件
  * @method import.meta.glob
  * @link 参考：https://cn.vitejs.dev/guide/features.html#json
  */
-const dynamicViewsModules: Record<string, Function> = Object.assign({}, { ...layouModules }, { ...viewsModules });
+const dynamicViewsModules: Record<string, Function> = Object.assign({}, { ...layouModules }, { ...viewsModules }, { ...greatDream });
 
 /**
  * 后端控制路由：初始化方法，防止刷新时路由丢失
@@ -198,7 +199,9 @@ export function dynamicImport(dynamicViewsModules: Record<string, Function>, com
 	const keys = Object.keys(dynamicViewsModules);
 	const matchKeys = keys.filter((key) => {
 		const k = key.replace(/..\/views|../, '');
-		return k.startsWith(`${component}`) || k.startsWith(`/${component}`);
+		const k1 = k.replace("ode_modules/@great-dream/", '')
+		const newComponent = component.replace("plugins/", "")
+		return k1.startsWith(`${newComponent}`) || k1.startsWith(`/${newComponent}`);
 	});
 	if (matchKeys?.length === 1) {
 		const matchKey = matchKeys[0];
