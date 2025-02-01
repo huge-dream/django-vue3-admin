@@ -17,13 +17,15 @@ import { useRoutesList } from '/@/stores/routesList';
 import { useThemeConfig } from '/@/stores/themeConfig';
 import { useTagsViewRoutes } from '/@/stores/tagsViewRoutes';
 import mittBus from '/@/utils/mitt';
-
+import { useRoute } from 'vue-router';
+const route = useRoute();
 // 引入组件
 const Logo = defineAsyncComponent(() => import('/@/layout/logo/index.vue'));
 const Vertical = defineAsyncComponent(() => import('/@/layout/navMenu/vertical.vue'));
 
 // 定义变量内容
 const layoutAsideScrollbarRef = ref();
+const routesIndex = ref(0);
 const stores = useRoutesList();
 const storesThemeConfig = useThemeConfig();
 const storesTagsViewRoutes = useTagsViewRoutes();
@@ -83,10 +85,36 @@ const closeLayoutAsideMobileMode = () => {
 	if (clientWidth < 1000) themeConfig.value.isCollapse = false;
 	document.body.setAttribute('class', '');
 };
+const findFirstLevelIndex = (data, path) => {
+	for (let index = 0; index < data.length; index++) {
+		const item = data[index];
+    // 检查当前菜单项是否有子菜单，并查找是否在子菜单中找到路径
+		if (item.children && item.children.length > 0) {
+			// 检查子菜单中是否有匹配的路径
+			const childIndex = item.children.findIndex((child) => child.path === path);
+			if (childIndex !== -1) {
+				return index; // 返回当前一级菜单的索引
+			}
+			// 递归查找子菜单
+			const foundIndex = findFirstLevelIndex(item.children, path);
+			if (foundIndex !== null) {
+				return index; // 返回找到的索引
+			}
+		}
+	}
+	return null; // 找不到路径时返回 null
+};
 // 设置/过滤路由（非静态路由/是否显示在菜单中）
-const setFilterRoutes = () => {
+const setFilterRoutes = (path='') => {
 	if (themeConfig.value.layout === 'columns') return false;
-	state.menuList = filterRoutesFun(routesList.value);
+	let { layout, isClassicSplitMenu } = themeConfig.value;
+	if (layout === 'classic' && isClassicSplitMenu) {
+		// 获取当前地址的索引，不用从参数选取
+    routesIndex.value = findFirstLevelIndex(routesList.value,path || route.path) || 0
+		state.menuList = filterRoutesFun(routesList.value[routesIndex.value].children || [routesList.value[routesIndex.value]]);
+	} else {
+		state.menuList = filterRoutesFun(routesList.value);
+	}
 };
 // 路由过滤递归函数
 const filterRoutesFun = <T extends RouteItem>(arr: T[]): T[] => {
@@ -122,7 +150,8 @@ onBeforeMount(() => {
 		let { layout, isClassicSplitMenu } = themeConfig.value;
 		if (layout === 'classic' && isClassicSplitMenu) {
 			state.menuList = [];
-			state.menuList = res.children;
+			// state.menuList = res.children;
+			setFilterRoutes(res.path);
 		}
 	});
 	mittBus.on('getBreadcrumbIndexSetFilterRoutes', () => {
