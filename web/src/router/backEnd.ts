@@ -199,7 +199,8 @@ export function dynamicImport(dynamicViewsModules: Record<string, Function>, com
 	const keys = Object.keys(dynamicViewsModules);
 	const matchKeys = keys.filter((key) => {
 		const k = key.replace(/..\/views|../, '');
-		const k1 = k.replace("ode_modules/@great-dream/", '')
+		const k0 = k.replace("ode_modules/@great-dream/", '')
+		const k1 = k0.replace("/plugins", '')
 		const newComponent = component.replace("plugins/", "")
 		return k1.startsWith(`${newComponent}`) || k1.startsWith(`/${newComponent}`);
 	});
