@@ -216,10 +216,18 @@ class RoleMenuButtonInitSerializer(CustomModelSerializer):
     menu_button__value = serializers.CharField(source='menu_button.value')
     data_range = serializers.CharField(max_length=100, required=False)
 
+    def update(self, instance, validated_data):
+        init_data = self.initial_data
+        role_id = Role.objects.filter(key=init_data['role__key']).first()
+        menu_button_id = MenuButton.objects.filter(value=init_data['menu_button__value']).first()
+        validated_data['role'] = role_id
+        validated_data['menu_button'] = menu_button_id
+        instance = super().create(validated_data)
+        instance.dept.set([])
+        return super().update(instance, validated_data)
+    
     def create(self, validated_data):
         init_data = self.initial_data
-        validated_data.pop('menu_button__value')
-        validated_data.pop('role__key')
         role_id = Role.objects.filter(key=init_data['role__key']).first()
         menu_button_id = MenuButton.objects.filter(value=init_data['menu_button__value']).first()
         validated_data['role'] = role_id
@@ -229,7 +237,7 @@ class RoleMenuButtonInitSerializer(CustomModelSerializer):
         return instance
 
     def save(self, **kwargs):
-        if self.instance and self.initial_data.get('reset'):
+        if not self.instance or self.initial_data.get('reset'):
             return super().save(**kwargs)
         return self.instance
 
