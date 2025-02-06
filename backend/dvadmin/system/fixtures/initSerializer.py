@@ -19,6 +19,20 @@ class UsersInitSerializer(CustomModelSerializer):
     """
     初始化获取数信息(用于生成初始化json文件)
     """
+    role_key = serializers.SerializerMethodField()
+    dept_key = serializers.SerializerMethodField()
+
+    def get_dept_key(self, obj):
+        if obj.dept:
+            return obj.dept.key
+        else:
+            return None
+
+    def get_role_key(self, obj):
+        if obj.role.all():
+            return [role.key for role in obj.role.all()]
+        else:
+            return []
 
     def save(self, **kwargs):
         instance = super().save(**kwargs)
@@ -35,7 +49,7 @@ class UsersInitSerializer(CustomModelSerializer):
         model = Users
         fields = ["username", "email", 'mobile', 'avatar', "name", 'gender', 'user_type', "dept", 'user_type',
                   'first_name', 'last_name', 'email', 'is_staff', 'is_active', 'creator', 'dept_belong_id',
-                  'password', 'last_login', 'is_superuser']
+                  'password', 'last_login', 'is_superuser', 'role_key' ,'dept_key']
         read_only_fields = ['id']
         extra_kwargs = {
             'creator': {'write_only': True},
