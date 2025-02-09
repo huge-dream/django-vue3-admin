@@ -6,6 +6,8 @@
 @Created on: 2021/6/1 001 22:57
 @Remark: 自定义视图集
 """
+import copy
+
 from django.db import transaction
 from django_filters import DateTimeFromToRangeFilter
 from django_filters.rest_framework import FilterSet
@@ -67,12 +69,14 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
         kwargs.setdefault('context', self.get_serializer_context())
         # 全部以可见字段为准
         can_see = self.get_menu_field(serializer_class)
-        # 排除掉序列化器级的字段
-        # sub_set = set(serializer_class._declared_fields.keys()) - set(can_see)
-        # for field in sub_set:
-        #     serializer_class._declared_fields.pop(field)
-        # if not self.request.user.is_superuser:
-        #     serializer_class.Meta.fields = can_see
+        # 排除掉序列化器级的字段(排除字段权限中未授权的字段)
+        if not self.request.user.is_superuser:
+            exclude_set = set(serializer_class._declared_fields.keys()) - set(can_see)
+            for field in exclude_set:
+                serializer_class._declared_fields.pop(field)
+            meta = copy.deepcopy(serializer_class.Meta)
+            meta.fields = list(can_see)
+            serializer_class.Meta = meta
         # 在分页器中使用
         self.request.permission_fields = can_see
         if isinstance(self.request.data, list):
@@ -90,8 +94,9 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
                 break
         if finded is False:
             return []
-        return MenuField.objects.filter(model=model['model']
-        ).values('field_name', 'title')
+        roles = self.request.user.role.values_list('id', flat=True)
+        return FieldPermission.objects.filter(is_query=True, role__in=roles, field__model=model['model']).values_list(
+            'field__field_name', flat=True)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, request=request)
