@@ -231,9 +231,17 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
         isCheck = data.get('isCheck', None)
         roleId = data.get('roleId', None)
         btnId = data.get('btnId', None)
+        data_range = data.get('data_range', None) or 0  # 默认仅本人权限
+        dept = data.get('dept', None) or []  # 默认空部门
+
         if isCheck:
             # 添加权限：创建关联记录
-            RoleMenuButtonPermission.objects.create(role_id=roleId, menu_button_id=btnId)
+            instance = RoleMenuButtonPermission.objects.create(role_id=roleId,
+                                                               menu_button_id=btnId,
+                                                               data_range=data_range)
+            # 自定义部门权限
+            if data_range == 4 and dept:
+                instance.dept.set(dept)
         else:
             # 删除权限：移除关联记录
             RoleMenuButtonPermission.objects.filter(role_id=roleId, menu_button_id=btnId).delete()
