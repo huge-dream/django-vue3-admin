@@ -8,7 +8,21 @@
 			<sub-item :chil="val.children" />
 		</el-sub-menu>
 		<template v-else>
-			<el-menu-item :index="val.path" :key="val.path">
+      <a v-if="val.name==='templateCenter'" href="#/templateCenter" target="_blank">
+        <el-menu-item   :key="val.path">
+          <template v-if="!val.meta.isLink || (val.meta.isLink && val.meta.isIframe)">
+            <SvgIcon :name="val.meta.icon" />
+            <span>{{ $t(val.meta.title) }}</span>
+          </template>
+          <template v-else>
+            <a class="w100" @click.prevent="onALinkClick(val)">
+              <SvgIcon :name="val.meta.icon" />
+              {{ $t(val.meta.title) }}
+            </a>
+          </template>
+        </el-menu-item>
+      </a>
+			<el-menu-item v-else :index="val.path" :key="val.path">
 				<template v-if="!val.meta.isLink || (val.meta.isLink && val.meta.isIframe)">
 					<SvgIcon :name="val.meta.icon" />
 					<span>{{ $t(val.meta.title) }}</span>

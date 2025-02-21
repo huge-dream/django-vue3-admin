@@ -11,6 +11,7 @@ const pathResolve = (dir: string) => {
 
 const alias: Record<string, string> = {
 	'/@': pathResolve('./src/'),
+	'@great-dream': pathResolve('./node_modules/@great-dream/'),
 	'@views': pathResolve('./src/views'),
 	'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js',
 	'@dvaformflow':pathResolve('./src/viwes/plugins/dvaadmin_form_flow/src/')

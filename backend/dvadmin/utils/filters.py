@@ -33,7 +33,7 @@ class CoreModelFilterBankend(BaseFilterBackend):
         create_datetime_after = request.query_params.get('create_datetime_after', None)
         create_datetime_before = request.query_params.get('create_datetime_before', None)
         update_datetime_after = request.query_params.get('update_datetime_after', None)
-        update_datetime_before = request.query_params.get('update_datetime_after', None)
+        update_datetime_before = request.query_params.get('update_datetime_before', None)
         if any([create_datetime_after, create_datetime_before, update_datetime_after, update_datetime_before]):
             create_filter = Q()
             if create_datetime_after and create_datetime_before:

@@ -37,7 +37,7 @@
 			<i class="icon-skin iconfont" :title="$t('message.user.title3')"></i>
 		</div>
 		<div class="layout-navbars-breadcrumb-user-icon">
-			<el-popover placement="bottom" trigger="click" transition="el-zoom-in-top" :width="300" :persistent="false">
+			<el-popover placement="bottom" trigger="hover" transition="el-zoom-in-top" :width="300" :persistent="false">
 				<template #reference>
 					<el-badge :value="messageCenter.unread" :hidden="messageCenter.unread === 0">
 						<el-icon :title="$t('message.user.title4')">
@@ -58,7 +58,7 @@
 			></i>
 		</div>
     <div>
-      <span v-if="!isSocketOpen">
+      <span v-if="!isSocketOpen" class="online-status-span">
         <el-popconfirm
           width="250"
           ref="onlinePopoverRef"
@@ -71,7 +71,7 @@
         >
           <template #reference>
             <el-badge is-dot class="item" :class="{'online-status': isSocketOpen,'online-down':!isSocketOpen}">
-              <img :src="userInfos.avatar || headerImage" class="layout-navbars-breadcrumb-user-link-photo mr5" />
+              <img :src="getBaseURL(userInfos.avatar) || headerImage" class="layout-navbars-breadcrumb-user-link-photo mr5" />
             </el-badge>
           </template>
         </el-popconfirm>
@@ -93,7 +93,7 @@
 				<el-dropdown-menu>
 					<el-dropdown-item command="/home">{{ $t('message.user.dropdown1') }}</el-dropdown-item>
 					<el-dropdown-item command="/personal">{{ $t('message.user.dropdown2') }}</el-dropdown-item>
-					<el-dropdown-item command="wareHouse">{{ $t('message.user.dropdown6') }}</el-dropdown-item>
+					<el-dropdown-item command="/versionUpgradeLog">更新日志</el-dropdown-item>
 					<el-dropdown-item divided command="logOut">{{ $t('message.user.dropdown5') }}</el-dropdown-item>
 				</el-dropdown-menu>
 			</template>
@@ -250,6 +250,7 @@ onMounted(() => {
 
 //消息中心的未读数量
 import { messageCenterStore } from '/@/stores/messageCenter';
+import {getBaseURL} from "/@/utils/baseUrl";
 const messageCenter = messageCenterStore();
 </script>
 

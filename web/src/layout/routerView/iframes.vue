@@ -23,6 +23,7 @@
 <script setup lang="ts" name="layoutIframeView">
 import { computed, watch, ref, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
+import {cookie} from "xe-utils";
 
 // 定义父组件传过来的值
 const props = defineProps({
@@ -49,7 +50,15 @@ const route = useRoute();
 
 // 处理 list 列表，当打开时，才进行加载
 const setIframeList = computed(() => {
-	return (<RouteItems>props.list).filter((v: RouteItem) => v.meta?.isIframeOpen);
+	return (<RouteItems>props.list).filter((v: RouteItem) => {
+    if (v.meta?.isIframeOpen) {
+        const isLink = v.meta?.isLink || '';
+      	if (isLink.includes("{{token}}")) {
+          v.meta.isLink = isLink.replace("{{token}}", cookie.get('token'))
+        }
+    }
+    return v.meta?.isIframeOpen
+  });
 });
 // 获取 iframe 当前路由 path
 const getRoutePath = computed(() => {
