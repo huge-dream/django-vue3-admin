@@ -228,26 +228,26 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
             show: false
           }
         },
-        fileselectortest: {
-          title: '文件选择器测试',
-          type: 'file-selector',
-          column: {
-            minWidth: 200
-          },
-          form: {
-            component: {
-              name: fileSelector,
-              vModel: 'modelValue',
-              tabsShow: 0b1111,
-              itemSize: 100,
-              multiple: true,
-              selectable: true,
-              showInput: true,
-              inputType: 'image',
-              valueKey: 'url',
-            }
-          }
-        }
+        // fileselectortest: {
+        //   title: '文件选择器测试',
+        //   type: 'file-selector',
+        //   column: {
+        //     minWidth: 200
+        //   },
+        //   form: {
+        //     component: {
+        //       name: fileSelector,
+        //       vModel: 'modelValue',
+        //       tabsShow: 0b1111,
+        //       itemSize: 100,
+        //       multiple: true,
+        //       selectable: true,
+        //       showInput: true,
+        //       inputType: 'image',
+        //       valueKey: 'url',
+        //     }
+        //   }
+        // }
       },
     },
   };

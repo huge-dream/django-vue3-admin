@@ -11,8 +11,14 @@
 
         <div v-if="props.inputType === 'image' && props.multiple"
           style="width: 100%; display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 4px;">
-          <el-image v-for="item, index in (data || [])" :src="item" :key="index" fit="scale-down" class="itemList"
-            :style="{ width: props.inputSize + 'px', aspectRatio: '1 / 1' }" />
+          <div v-for="item, index in (data || [])" style="position: relative;"
+            :style="{ width: props.inputSize + 'px', height: props.inputSize + 'px' }">
+            <el-image :src="item" :key="index" fit="scale-down" class="itemList"
+              :style="{ width: props.inputSize + 'px', aspectRatio: '1 / 1' }" />
+            <el-icon v-show="(!!data && !props.disabled)" class="closeHover" :size="16" @click="clearOne(item)">
+              <Close />
+            </el-icon>
+          </div>
           <div style="position: relative;" :style="{ width: props.inputSize + 'px', height: props.inputSize + 'px' }">
             <div
               style="position: absolute; left: 0; top: 0; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center;">
@@ -22,10 +28,6 @@
             </div>
             <div @click="selectVisiable = true && !props.disabled" class="addControllorHover"
               :style="{ cursor: props.disabled ? 'not-allowed' : 'pointer' }"></div>
-            <el-icon v-show="(!!data && !props.disabled) && !props.multiple" class="closeHover" :size="16"
-              @click="clear">
-              <Close />
-            </el-icon>
           </div>
         </div>
         <div v-if="props.inputType === 'image' && !props.multiple" class="form-display" style="position: relative;"
@@ -350,8 +352,12 @@ const clearState = () => {
   // all数据不能清，因为all只会在挂载的时候赋值一次
   // listAllData.value = [];
 };
-const clear = () => { data.value = null; onDataChange(null); }
-
+const clear = () => { data.value = null; onDataChange(null); };
+const clearOne = (item: any) => {
+  let _l = (JSON.parse(JSON.stringify(data.value)) as any[]).filter((i:any)=> i !== item)
+  data.value = _l;
+  onDataChange(_l);
+};
 
 // 网络文件部分
 const netLoading = ref<boolean>(false);
