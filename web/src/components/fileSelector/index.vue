@@ -415,7 +415,14 @@ watch(
 const { ui } = useUi();
 const formValidator = ui.formItem.injectFormItemContext();
 const onDataChange = (value: any) => {
-  emit('update:modelValue', value);
+  console.log(value)
+  let _v;
+  if (typeof value === 'string') _v = value.replace(/\\/g, '/');
+  else {
+    _v = [];
+    for (let i of value) _v.push(i.replace(/\\/g, '/'));
+  }
+  emit('update:modelValue', _v);
   formValidator.onChange();
   formValidator.onBlur();
 };
