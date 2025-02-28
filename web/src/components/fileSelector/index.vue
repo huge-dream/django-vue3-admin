@@ -354,7 +354,7 @@ const clearState = () => {
 };
 const clear = () => { data.value = null; onDataChange(null); };
 const clearOne = (item: any) => {
-  let _l = (JSON.parse(JSON.stringify(data.value)) as any[]).filter((i:any)=> i !== item)
+  let _l = (JSON.parse(JSON.stringify(data.value)) as any[]).filter((i: any) => i !== item)
   data.value = _l;
   onDataChange(_l);
 };
@@ -415,12 +415,13 @@ watch(
 const { ui } = useUi();
 const formValidator = ui.formItem.injectFormItemContext();
 const onDataChange = (value: any) => {
-  console.log(value)
-  let _v;
-  if (typeof value === 'string') _v = value.replace(/\\/g, '/');
-  else {
-    _v = [];
-    for (let i of value) _v.push(i.replace(/\\/g, '/'));
+  let _v = null;
+  if (value) {
+    if (typeof value === 'string') _v = value.replace(/\\/g, '/');
+    else {
+      _v = [];
+      for (let i of value) _v.push(i.replace(/\\/g, '/'));
+    }
   }
   emit('update:modelValue', _v);
   formValidator.onChange();
