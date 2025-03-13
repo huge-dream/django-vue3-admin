@@ -1,4 +1,4 @@
-FROM registry.cn-zhangjiakou.aliyuncs.com/dvadmin-pro/dvadmin3-base-web:16.19-alpine
+FROM registry.cn-zhangjiakou.aliyuncs.com/dvadmin-pro/dvadmin3-base-web:18.20-alpine
 WORKDIR /web/
 COPY web/. .
 RUN yarn install --registry=https://registry.npmmirror.com
