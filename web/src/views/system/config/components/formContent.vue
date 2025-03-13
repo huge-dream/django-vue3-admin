@@ -175,48 +175,7 @@
           </div>
           <!--   数组       -->
           <div v-else-if="item.form_item_type_label === 'array'" :key="index + 10">
-            <vxe-table
-                border
-                resizable
-                auto-resize
-                show-overflow
-                keep-source
-                :ref="'xTable_' + item.key"
-                height="200"
-                :edit-rules="validRules"
-                :edit-config="{ trigger: 'click', mode: 'row', showStatus: true }"
-            >
-              <vxe-column field="title" title="标题" :edit-render="{ autofocus: '.vxe-input--inner' }">
-                <template #edit="{ row }">
-                  <vxe-input v-model="row.title" type="text"></vxe-input>
-                </template>
-              </vxe-column>
-              <vxe-column field="key" title="键名" :edit-render="{ autofocus: '.vxe-input--inner' }">
-                <template #edit="{ row }">
-                  <vxe-input v-model="row.key" type="text"></vxe-input>
-                </template>
-              </vxe-column>
-              <vxe-column field="value" title="键值" :edit-render="{}">
-                <template #edit="{ row }">
-                  <vxe-input v-model="row.value" type="text"></vxe-input>
-                </template>
-              </vxe-column>
-              <vxe-column title="操作" width="100" show-overflow>
-                <template #default="{ row, index }">
-                  <el-popover placement="top" width="160" v-model="childRemoveVisible">
-                    <p>删除后无法恢复,确定删除吗？</p>
-                    <div style="text-align: right; margin: 0">
-                      <el-button size="mini" type="text" @click="childRemoveVisible = false">取消</el-button>
-                      <el-button type="primary" size="mini" @click="onRemoveChild(row, index, item.key)">确定</el-button>
-                    </div>
-                    <el-button type="text" slot="reference">删除</el-button>
-                  </el-popover>
-                </template>
-              </vxe-column>
-            </vxe-table>
-            <div>
-              <el-button size="mini" @click="onAppend('xTable_' + item.key)">追加</el-button>
-            </div>
+            <crudTable  v-model="formData[item.key]"></crudTable>
           </div>
         </el-col>
         <el-col :span="2" :offset="1">
@@ -248,32 +207,11 @@ import type { FormInstance, FormRules, TableInstance } from 'element-plus';
 import { successMessage, errorMessage } from '/@/utils/message';
 import { Session } from '/@/utils/storage';
 import {Edit,Finished,Delete} from "@element-plus/icons-vue";
+import crudTable from "./components/crudTable.vue"
 const props = defineProps(['options', 'editableTabsItem']);
 
 let formData: any = reactive({});
 let formList: any = ref([]);
-let childTableData = ref([]);
-let childRemoveVisible = ref(false);
-const validRules = reactive<FormRules>({
-  title: [
-    {
-      required: true,
-      message: '必须填写',
-    },
-  ],
-  key: [
-    {
-      required: true,
-      message: '必须填写',
-    },
-  ],
-  value: [
-    {
-      required: true,
-      message: '必须填写',
-    },
-  ],
-});
 const formRef =  ref<FormInstance>()
 let uploadUrl = ref(getBaseURL() + 'api/system/file/');
 let uploadHeaders = ref({
@@ -294,24 +232,14 @@ const getInit = () => {
       if (item.value) {
         _formData[key] = item.value;
       } else {
-        if ([5, 12, 14].indexOf(item.form_item_type) !== -1) {
+        if ([5, 12,11, 14].indexOf(item.form_item_type) !== -1) {
           _formData[key] = [];
         } else {
           _formData[key] = item.value;
         }
       }
-      if (item.form_item_type_label === 'array') {
-        console.log('test');
-        nextTick(() => {
-          const tableName = 'xTable_' + key;
-          const tabelRef = ref<TableInstance>();
-          console.log(tabelRef);
-          // const $table = this.$refs[tableName][0];
-          // $table.loadData(item.chinldern);
-        });
-      }
     }
-    formData = Object.assign(formData, _formData)
+    formData = Object.assign({}, _formData)
   });
 };
 
@@ -322,31 +250,6 @@ const onSubmit = (formEl: FormInstance | undefined) => {
   const values = Object.values(formData);
   for (const index in formList.value) {
     const item = formList.value[index];
-    // eslint-disable-next-line camelcase
-    const form_item_type_label = item.form_item_type_label;
-
-    // eslint-disable-next-line camelcase
-    if (form_item_type_label === 'array') {
-      const parentId = item.id;
-      const tableName = 'xTable_' + item.key;
-      // const $table = this.$refs[tableName][0];
-      // const { tableData } = $table.getTableData();
-      // for (const child of tableData) {
-      // 	if (!child.id && child.key && child.value) {
-      // 		child.parent = parentId;
-      // 		child.id = null;
-      // 		formList.push(child);
-      // 	}
-      // }
-      // // 必填项的判断
-      // for (const arr of item.rule) {
-      // 	if (arr.required && tableData.length === 0) {
-      // 		errorMessage(item.title + '不能为空');
-      // 		return;
-      // 	}
-      // }
-      // item.value = tableData;
-    }
     // 赋值操作
     keys.map((mapKey, mapIndex) => {
       if (mapKey === item.key) {
@@ -380,39 +283,6 @@ const onSubmit = (formEl: FormInstance | undefined) => {
   });
 };
 
-// 追加
-const onAppend = (tableName: any) => {
-  // const $table = this.$refs[tableName][0];
-  // const { tableData } = $table.getTableData();
-  // const tableLength = tableData.length;
-  // if (tableLength === 0) {
-  // 	const { row: newRow } = $table.insert();
-  // 	console.log(newRow);
-  // } else {
-  // 	const errMap = $table.validate().catch((errMap: any) => errMap);
-  // 	if (errMap) {
-  // 		errorMessage('校验不通过!');
-  // 	} else {
-  // 		const { row: newRow } = $table.insert();
-  // 		console.log(newRow);
-  // 	}
-  // }
-};
-
-// 子表删除
-const onRemoveChild = (row: any, index: any, refName: any) => {
-  console.log(row, index);
-  if (row.id) {
-    api.DelObj(row.id).then((res: any) => {
-      // this.refreshView();
-    });
-  } else {
-    // this.childTableData.splice(index, 1);
-    // const tableName = 'xTable_' + refName;
-    // const tableData = this.$refs[tableName][0].remove(row);
-    // console.log(tableData);
-  }
-};
 
 // 图片预览
 const handlePictureCardPreview = (file: any) => {
