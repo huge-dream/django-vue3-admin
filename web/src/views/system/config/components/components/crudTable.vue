@@ -6,7 +6,7 @@
 </template>
 
 <script setup lang="ts">
-import {defineComponent, onMounted, watch} from "vue";
+import {computed, defineComponent, onMounted, watch} from "vue";
 import {CreateCrudOptionsProps, CreateCrudOptionsRet, useFs, AddReq,
   compute,
   DelReq,
@@ -34,6 +34,9 @@ const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsPr
         },
         col:{
           span:24
+        },
+        afterSubmit({mode}){
+          emit('update:modelValue', crudBinding.value.data);
         }
       },
       toolbar:{
@@ -96,6 +99,7 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:modelValue'])
 
+
 //通过导出modelValue, 可以导出成为一个input组件
 watch(
     () => {
@@ -103,7 +107,6 @@ watch(
     },
     (value = []) => {
       crudBinding.value.data = value;
-      //emit('update:modelValue', value);
     },
     {
       immediate: true
