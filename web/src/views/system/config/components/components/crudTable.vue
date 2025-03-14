@@ -28,6 +28,14 @@ const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsPr
         mode: "row",
         activeDefault:true
       },
+      form:{
+        wrapper:{
+          width:"500px"
+        },
+        col:{
+          span:24
+        }
+      },
       toolbar:{
         show:false
       },
@@ -42,6 +50,9 @@ const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsPr
         title: {
           title: "标题",
           form:{
+            component:{
+              placeholder:"请输入标题"
+            },
             rules:[{
               required: true,
               message: '必须填写',
@@ -51,6 +62,9 @@ const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsPr
         key: {
           title: "键名",
           form:{
+            component:{
+              placeholder:"请输入键名"
+            },
             rules:[{
               required: true,
               message: '必须填写',
@@ -60,6 +74,9 @@ const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsPr
         value: {
           title: "键值",
           form:{
+            component:{
+              placeholder:"请输入键值"
+            },
             rules:[{
               required: true,
               message: '必须填写',
