@@ -11,6 +11,7 @@ import {
   dict
 } from '@fast-crud/fast-crud';
 import fileSelector from '/@/components/fileSelector/index.vue';
+import { getBaseURL } from '/@/utils/baseUrl';
 
 export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsProps): CreateCrudOptionsRet {
   const pageRequest = async (query: UserPageQuery) => {
@@ -146,6 +147,11 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           },
           column: {
             minWidth: 360,
+            component: {
+                async buildUrl(value: any) {
+                    return getBaseURL(value);
+                    }
+            }
           },
         },
         md5sum: {
