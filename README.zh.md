@@ -65,8 +65,8 @@
 ## 给框架点赞
 
 <div style="display: flex; gap: 10px;">
- <img src='https://django-vue-admin.com/alipay.jpg'>
- <img src='https://django-vue-admin.com/wechat.jpg'>
+ <img src='https://django-vue-admin.com/alipay.jpg' width='200'>
+ <img src='https://django-vue-admin.com/wechat.jpg' width='200'>
 </div>
 
 
