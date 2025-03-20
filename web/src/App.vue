@@ -11,7 +11,7 @@
 
 <script setup lang="ts" name="app">
 import { defineAsyncComponent, computed, ref, onBeforeMount, onMounted, onUnmounted, nextTick, watch, onBeforeUnmount } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from 'vue-i18n';
 import { storeToRefs } from 'pinia';
 import { useTagsViewRoutes } from '/@/stores/tagsViewRoutes';
@@ -26,7 +26,8 @@ const LockScreen = defineAsyncComponent(() => import('/@/layout/lockScreen/index
 const Setings = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/setings.vue'));
 const CloseFull = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/closeFull.vue'));
 const Upgrade = defineAsyncComponent(() => import('/@/layout/upgrade/index.vue'));
-
+import { ElMessageBox, ElNotification, NotificationHandle } from 'element-plus';
+import { useCore } from '/@/utils/cores';
 // 定义变量内容
 const { messages, locale } = useI18n();
 const setingsRef = ref();
@@ -35,7 +36,8 @@ const stores = useTagsViewRoutes();
 const storesThemeConfig = useThemeConfig();
 const { themeConfig } = storeToRefs(storesThemeConfig);
 import websocket from '/@/utils/websocket';
-import { ElNotification } from 'element-plus';
+const core = useCore();
+const router = useRouter();
 // 获取版本号
 const getVersion = computed(() => {
 	let isVersion = false;
@@ -67,7 +69,15 @@ onMounted(() => {
 		mittBus.on('openSetingsDrawer', () => {
 			setingsRef.value.openDrawer();
 		});
+    // 设置皮肤缓存版本，每次更新版本可以所有用户清空缓存
+    const themeConfigVersion = '1.0.0'
 		// 获取缓存中的布局配置
+    if (Local.get('themeConfigVersion') !== themeConfigVersion) {
+        Local.clear();
+        Local.set('themeConfigVersion', themeConfigVersion);
+	      window.location.reload();
+        return
+    }
 		if (Local.get('themeConfig')) {
 			storesThemeConfig.setThemeConfig({ themeConfig: Local.get('themeConfig') });
 			document.documentElement.style.cssText = Local.get('themeConfigStyle');
@@ -117,7 +127,25 @@ const wsReceive = (message: any) => {
 			position: 'bottom-right',
 			duration: 5000,
 		});
+	} else if (data.contentType === 'Content') {
+		ElMessageBox.confirm(data.content, data.notificationTitle, {
+			confirmButtonText: data.notificationButton,
+      dangerouslyUseHTMLString: true,
+			cancelButtonText: '关闭',
+			type: 'info',
+			closeOnClickModal: false,
+		}).then(() => {
+        ElMessageBox.close();
+				const path = data.path;
+        if (route.path === path) {
+          core.bus.emit('onNewTask', { name: 'onNewTask' });
+        } else {
+          router.push({ path});
+        }
+			})
+			.catch(() => {});
 	}
+
 };
 onBeforeUnmount(() => {
 	// 关闭连接

@@ -54,16 +54,21 @@
 ## 交流
 
 - 交流社区：[戳我](https://bbs.django-vue-admin.com)👩‍👦‍👦
-
 - 插件市场：[戳我](https://bbs.django-vue-admin.com/plugMarket.html)👩‍👦‍👦
-
 -  django-vue-admin交流01群(已满)：812482043 [点击链接加入群聊](https://qm.qq.com/cgi-bin/qm/qr?k=aJVwjDvH-Es4MPJQuoO32N0SucK22TE5&jump_from=webapi)
 -  django-vue-admin交流02群(已满)：687252418  [点击链接加入群聊](https://qm.qq.com/cgi-bin/qm/qr?k=4jJN4IjWGfxJ8YJXbb_gTsuWjR34WLdc&jump_from=webapi)
--  django-vue-admin交流03群：442108213  [点击链接加入群聊](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=wsm5oSz3K8dElBYUDtLTcQSEPhINFkl8&authKey=M6sbER0z59ZakgBr5erFeZyFZU15CI52bErNZa%2FxSvvGIuVAbY0N5866v89hm%2FK4&noverify=0&group_code=442108213)
+- django-vue-admin交流03群(已满)：442108213  [点击链接加入群聊](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=wsm5oSz3K8dElBYUDtLTcQSEPhINFkl8&authKey=M6sbER0z59ZakgBr5erFeZyFZU15CI52bErNZa%2FxSvvGIuVAbY0N5866v89hm%2FK4&noverify=0&group_code=442108213)
+- django-vue-admin交流04群：442108213  [点击链接加入群聊](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=wsm5oSz3K8dElBYUDtLTcQSEPhINFkl8&authKey=M6sbER0z59ZakgBr5erFeZyFZU15CI52bErNZa%2FxSvvGIuVAbY0N5866v89hm%2FK4&noverify=0&group_code=442108213)
 
-- 二维码
 
-  <img src='https://images.gitee.com/uploads/images/2022/0530/233203_5fb11883_5074988.jpeg' width='200'>
+
+## 给框架点赞
+
+<div style="display: flex; gap: 10px;">
+ <img src='https://django-vue-admin.com/alipay.jpg' width='200'>
+ <img src='https://django-vue-admin.com/wechat.jpg' width='200'>
+</div>
+
 
 ## 源码地址
 
@@ -88,7 +93,19 @@ github地址：[https://github.com/huge-dream/django-vue3-admin](https://github.
 13.  🔌[插件市场 ](https://bbs.django-vue-admin.com/plugMarket.html)：基于Django-Vue-Admin框架开发的应用和插件。
 
 ##  插件市场 🔌
-更新中...
+1. #### [dvadmin3-folw 后台审批流插件](https://bbs.django-vue-admin.com/plugMarket/139.html)
+
+2. #### [dvadmin3 celery插件前端](https://bbs.django-vue-admin.com/plugMarket/134.html)
+
+3. #### [dvadmin3 celery插件后端](https://bbs.django-vue-admin.com/plugMarket/133.html)
+
+4. #### [dvadmin3-build插件](https://bbs.django-vue-admin.com/plugMarket/136.html)
+
+5. #### [dvadmin3-uniapp](https://e.coding.net/dvadmin-private/code/dvadmin3-uniapp-app.git)
+
+6. #### dvadmin3-folw-uniapp 审批(开发中，近期上线)
+
+
 
 ##  仓库分支说明 💈
 主分支：master（稳定版本）
@@ -209,6 +226,20 @@ docker-compose up -d --build
 ![image-09](https://foruda.gitee.com/images/1701350479266000753/e4e4f7c5_5074988.png)
 
 ![image-10](https://foruda.gitee.com/images/1701350501421625746/f8dd215e_5074988.png)
+
+## 审批流插件
+
+![输入链接说明](https://bbs.django-vue-admin.com/uploads/20250321/97fbbf29673edfd66a1edd49237791bb.png)
+
+![输入链接说明](https://bbs.django-vue-admin.com/uploads/20250321/c43aa51278cbc478287c718d22397479.png)
+
+
+![输入链接说明](https://bbs.django-vue-admin.com/uploads/20250321/9732a5cca9c1166d1a65c35e313ab90d.png)
+
+
+![输入链接说明](https://bbs.django-vue-admin.com/uploads/20250321/3ca9dd0801ce76d21435abcc8a3d505a.png)
+
+![输入链接说明](https://bbs.django-vue-admin.com/uploads/20250321/a87a8d2329ef66880af5b0f16c5ff823.png)
 
 
 

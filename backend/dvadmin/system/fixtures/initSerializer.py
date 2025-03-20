@@ -19,6 +19,20 @@ class UsersInitSerializer(CustomModelSerializer):
     """
     初始化获取数信息(用于生成初始化json文件)
     """
+    role_key = serializers.SerializerMethodField()
+    dept_key = serializers.SerializerMethodField()
+
+    def get_dept_key(self, obj):
+        if obj.dept:
+            return obj.dept.key
+        else:
+            return None
+
+    def get_role_key(self, obj):
+        if obj.role.all():
+            return [role.key for role in obj.role.all()]
+        else:
+            return []
 
     def save(self, **kwargs):
         instance = super().save(**kwargs)
@@ -35,7 +49,7 @@ class UsersInitSerializer(CustomModelSerializer):
         model = Users
         fields = ["username", "email", 'mobile', 'avatar', "name", 'gender', 'user_type', "dept", 'user_type',
                   'first_name', 'last_name', 'email', 'is_staff', 'is_active', 'creator', 'dept_belong_id',
-                  'password', 'last_login', 'is_superuser']
+                  'password', 'last_login', 'is_superuser', 'role_key' ,'dept_key']
         read_only_fields = ['id']
         extra_kwargs = {
             'creator': {'write_only': True},
@@ -175,15 +189,21 @@ class RoleMenuInitSerializer(CustomModelSerializer):
     """
     初始化角色菜单(用于生成初始化json文件)
     """
-    role__key = serializers.CharField(max_length=100, required=True)
-    menu__web_path = serializers.CharField(max_length=100, required=True)
-    menu__component_name = serializers.CharField(max_length=100, required=True, allow_blank=True)
+    role__key = serializers.CharField(source='role.key')
+    menu__web_path = serializers.CharField(source='menu.web_path')
+    menu__component_name = serializers.CharField(source='menu.component_name', allow_blank=True)
+
+    def update(self, instance, validated_data):
+        init_data = self.initial_data
+        role_id = Role.objects.filter(key=init_data['role__key']).first()
+        menu_id = Menu.objects.filter(web_path=init_data['menu__web_path'], component_name=init_data['menu__component_name']).first()
+        validated_data['role'] = role_id
+        validated_data['menu'] = menu_id
+        return super().update(instance, validated_data)
+    
 
     def create(self, validated_data):
         init_data = self.initial_data
-        validated_data.pop('menu__web_path')
-        validated_data.pop('menu__component_name')
-        validated_data.pop('role__key')
         role_id = Role.objects.filter(key=init_data['role__key']).first()
         menu_id = Menu.objects.filter(web_path=init_data['menu__web_path'], component_name=init_data['menu__component_name']).first()
         validated_data['role'] = role_id
@@ -192,7 +212,7 @@ class RoleMenuInitSerializer(CustomModelSerializer):
 
     class Meta:
         model = RoleMenuPermission
-        fields = ['role__key', 'menu__web_path', 'menu__component_name', 'creator', 'dept_belong_id']
+        fields = ['role__key', 'menu__web_path', 'menu__component_name','creator', 'dept_belong_id']
         read_only_fields = ["id"]
         extra_kwargs = {
             'role': {'required': False},
@@ -206,14 +226,22 @@ class RoleMenuButtonInitSerializer(CustomModelSerializer):
     """
     初始化角色菜单按钮(用于生成初始化json文件)
     """
-    role__key = serializers.CharField(max_length=100, required=True)
-    menu_button__value = serializers.CharField(max_length=100, required=True)
+    role__key = serializers.CharField(source='role.key')
+    menu_button__value = serializers.CharField(source='menu_button.value')
     data_range = serializers.CharField(max_length=100, required=False)
 
+    def update(self, instance, validated_data):
+        init_data = self.initial_data
+        role_id = Role.objects.filter(key=init_data['role__key']).first()
+        menu_button_id = MenuButton.objects.filter(value=init_data['menu_button__value']).first()
+        validated_data['role'] = role_id
+        validated_data['menu_button'] = menu_button_id
+        instance = super().create(validated_data)
+        instance.dept.set([])
+        return super().update(instance, validated_data)
+    
     def create(self, validated_data):
         init_data = self.initial_data
-        validated_data.pop('menu_button__value')
-        validated_data.pop('role__key')
         role_id = Role.objects.filter(key=init_data['role__key']).first()
         menu_button_id = MenuButton.objects.filter(value=init_data['menu_button__value']).first()
         validated_data['role'] = role_id
@@ -223,7 +251,7 @@ class RoleMenuButtonInitSerializer(CustomModelSerializer):
         return instance
 
     def save(self, **kwargs):
-        if self.instance and self.initial_data.get('reset'):
+        if not self.instance or self.initial_data.get('reset'):
             return super().save(**kwargs)
         return self.instance
 

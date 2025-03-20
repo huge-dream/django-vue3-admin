@@ -336,7 +336,7 @@ class UserViewSet(CustomModelViewSet):
                 verify_password = check_password(str(old_pwd_md5), request.user.password)
         if verify_password:
             # request.user.password = make_password(hashlib.md5(new_pwd.encode(encoding='UTF-8')).hexdigest())
-            request.user.password = make_password(new_pwd)
+            request.user.password = make_password(hashlib.md5(new_pwd.encode(encoding='UTF-8')).hexdigest())
             request.user.pwd_change_count += 1
             request.user.save()
             return DetailResponse(data=None, msg="修改成功")

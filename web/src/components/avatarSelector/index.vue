@@ -1,6 +1,6 @@
 <template>
 	<div class="user-info-head" @click="editCropper()">
-		<el-avatar :size="100" :src="options.img" />
+		<el-avatar :size="100" :src="getBaseURL(options.img)" />
 		<el-dialog :title="title" v-model="dialogVisiable" width="600px" append-to-body @opened="modalOpened" @close="closeDialog">
 			<el-row>
 				<el-col class="flex justify-center">
@@ -50,10 +50,11 @@ import { VueCropper } from 'vue-cropper';
 import { useUserInfo } from '/@/stores/userInfo';
 import { getCurrentInstance, nextTick, reactive, ref, computed, onMounted, defineExpose } from 'vue';
 import { base64ToFile } from '/@/utils/tools';
+import headerImage from "/@/assets/img/headerImage.png";
+import {getBaseURL} from "/@/utils/baseUrl";
 const userStore = useUserInfo();
 const { proxy } = getCurrentInstance();
 
-const open = ref(false);
 const visible = ref(false);
 const title = ref('修改头像');
 const emit = defineEmits(['uploadImg']);
@@ -75,7 +76,7 @@ const dialogVisiable = computed({
 
 //图片裁剪数据
 const options = reactive({
-	img: userStore.userInfos.avatar, // 裁剪图片的地址
+	img: userStore.userInfos.avatar || headerImage, // 裁剪图片的地址
 	fileName: '',
 	autoCrop: true, // 是否默认生成截图框
 	autoCropWidth: 200, // 默认生成截图框宽度
@@ -165,6 +166,7 @@ const updateAvatar = (img) => {
 
 defineExpose({
 	updateAvatar,
+	editCropper
 });
 </script>
 
@@ -172,7 +174,6 @@ defineExpose({
 .user-info-head {
 	position: relative;
 	display: inline-block;
-	height: 120px;
 }
 
 .user-info-head:hover:after {

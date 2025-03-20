@@ -5,6 +5,7 @@
 	"license": "MIT",
 	"scripts": {
 		"dev": "vite --force",
+		"build:dev":"vite build --mode development",
 		"build": "vite build",
 		"build:local": "vite build --mode local_prod",
 		"lint-fix": "eslint --fix --ext .js --ext .jsx --ext .vue src/"
@@ -15,6 +16,7 @@
 		"@fast-crud/fast-extends": "^1.21.2",
 		"@fast-crud/ui-element": "^1.21.2",
 		"@fast-crud/ui-interface": "^1.21.2",
+		"@great-dream/dvadmin3-celery-web": "^3.1.3",
 		"@iconify/vue": "^4.1.2",
 		"@types/lodash": "^4.17.7",
 		"@vitejs/plugin-vue-jsx": "^4.0.1",

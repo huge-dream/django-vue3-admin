@@ -49,6 +49,10 @@
 👩‍👦‍👦文档地址：[coding](https://dvadmin-private.coding.net/share/km/cec69f3d-30fe-47d5-bd97-e9e851f0b776/K-2)
 
 
+## 给框架点赞
+ <img src='https://django-vue-admin.com/alipay.jpg' width='200'>
+ <img src='https://django-vue-admin.com/wechat.jpg' width='200'>
+
 
 ## 交流
 
