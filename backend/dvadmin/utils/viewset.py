@@ -70,13 +70,13 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
         # 全部以可见字段为准
         can_see = self.get_menu_field(serializer_class)
         # 排除掉序列化器级的字段(排除字段权限中未授权的字段)
-        if not self.request.user.is_superuser:
-            exclude_set = set(serializer_class._declared_fields.keys()) - set(can_see)
-            for field in exclude_set:
-                serializer_class._declared_fields.pop(field)
-            meta = copy.deepcopy(serializer_class.Meta)
-            meta.fields = list(can_see)
-            serializer_class.Meta = meta
+        # if not self.request.user.is_superuser:
+        #     exclude_set = set(serializer_class._declared_fields.keys()) - set(can_see)
+        #     for field in exclude_set:
+        #         serializer_class._declared_fields.pop(field)
+        #     meta = copy.deepcopy(serializer_class.Meta)
+        #     meta.fields = list(can_see)
+        #     serializer_class.Meta = meta
         # 在分页器中使用
         self.request.permission_fields = can_see
         if isinstance(self.request.data, list):
@@ -87,16 +87,17 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
 
     def get_menu_field(self, serializer_class):
         """获取字段权限"""
-        finded = False
-        for model in get_custom_app_models():
-            if model['object'] is serializer_class.Meta.model:
-                finded = True
-                break
-        if finded is False:
+
+        if not any(model['object'] is serializer_class.Meta.model for model in get_custom_app_models()):
             return []
-        roles = self.request.user.role.values_list('id', flat=True)
-        return FieldPermission.objects.filter(is_query=True, role__in=roles, field__model=model['model']).values_list(
-            'field__field_name', flat=True)
+
+        # 匿名用户没有角色
+        ret = FieldPermission.objects.filter(field__model=serializer_class.Meta.model.__name__)
+        if hasattr(self.request.user, 'role'):
+            roles = self.request.user.role.values_list('id', flat=True)
+            ret = ret.filter(is_query=True, role__in=roles)
+
+        return ret.values_list('field__field_name', flat=True)
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data, request=request)
