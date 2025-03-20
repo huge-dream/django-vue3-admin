@@ -54,16 +54,21 @@
 ## 交流
 
 - 交流社区：[戳我](https://bbs.django-vue-admin.com)👩‍👦‍👦
-
 - 插件市场：[戳我](https://bbs.django-vue-admin.com/plugMarket.html)👩‍👦‍👦
-
 -  django-vue-admin交流01群(已满)：812482043 [点击链接加入群聊](https://qm.qq.com/cgi-bin/qm/qr?k=aJVwjDvH-Es4MPJQuoO32N0SucK22TE5&jump_from=webapi)
 -  django-vue-admin交流02群(已满)：687252418  [点击链接加入群聊](https://qm.qq.com/cgi-bin/qm/qr?k=4jJN4IjWGfxJ8YJXbb_gTsuWjR34WLdc&jump_from=webapi)
--  django-vue-admin交流03群：442108213  [点击链接加入群聊](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=wsm5oSz3K8dElBYUDtLTcQSEPhINFkl8&authKey=M6sbER0z59ZakgBr5erFeZyFZU15CI52bErNZa%2FxSvvGIuVAbY0N5866v89hm%2FK4&noverify=0&group_code=442108213)
+- django-vue-admin交流03群(已满)：442108213  [点击链接加入群聊](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=wsm5oSz3K8dElBYUDtLTcQSEPhINFkl8&authKey=M6sbER0z59ZakgBr5erFeZyFZU15CI52bErNZa%2FxSvvGIuVAbY0N5866v89hm%2FK4&noverify=0&group_code=442108213)
+- django-vue-admin交流04群：442108213  [点击链接加入群聊](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=wsm5oSz3K8dElBYUDtLTcQSEPhINFkl8&authKey=M6sbER0z59ZakgBr5erFeZyFZU15CI52bErNZa%2FxSvvGIuVAbY0N5866v89hm%2FK4&noverify=0&group_code=442108213)
 
-- 二维码
 
-  <img src='https://images.gitee.com/uploads/images/2022/0530/233203_5fb11883_5074988.jpeg' width='200'>
+
+## 给框架点赞
+
+<div style="display: flex; gap: 10px;">
+ <img src='https://django-vue-admin.com/alipay.jpg'>
+ <img src='https://django-vue-admin.com/wechat.jpg'>
+</div>
+
 
 ## 源码地址
 
