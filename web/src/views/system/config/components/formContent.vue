@@ -210,7 +210,7 @@ import {Edit,Finished,Delete} from "@element-plus/icons-vue";
 import crudTable from "./components/crudTable.vue"
 const props = defineProps(['options', 'editableTabsItem']);
 
-let formData: any = reactive({});
+let formData: any = ref({});
 let formList: any = ref([]);
 const formRef =  ref<FormInstance>()
 let uploadUrl = ref(getBaseURL() + 'api/system/file/');
@@ -233,29 +233,26 @@ const getInit = () => {
         _formData[key] = item.value;
       } else {
         if ([5, 12,11, 14].indexOf(item.form_item_type) !== -1) {
-          _formData[key] = [];
+          _formData[key] = item.value || [];
         } else {
           _formData[key] = item.value;
         }
       }
     }
-    formData = Object.assign({}, _formData)
+    formData.value = Object.assign({}, _formData)
   });
 };
 
 // 提交数据
 const onSubmit = (formEl: FormInstance | undefined) => {
-  // const form = JSON.parse(JSON.stringify(form));
-  const keys = Object.keys(formData);
-  const values = Object.values(formData);
+  const keys = Object.keys(formData.value);
+  const values = Object.values(formData.value);
   for (const index in formList.value) {
     const item = formList.value[index];
     // 赋值操作
-    keys.map((mapKey, mapIndex) => {
+    keys.forEach((mapKey, mapIndex) => {
       if (mapKey === item.key) {
-        if (item.form_item_type_label !== 'array') {
-          item.value = values[mapIndex];
-        }
+        item.value = values[mapIndex];
         // 必填项的验证
         if (['img', 'imgs'].indexOf(item.form_item_type_label) > -1) {
           for (const arr of item.rule) {
