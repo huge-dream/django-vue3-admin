@@ -123,6 +123,27 @@ class Dept(CoreModel):
     )
 
     @classmethod
+    def _recursion(cls, instance, parent, result):
+        new_instance = getattr(instance, parent, None)
+        res = []
+        data = getattr(instance, result, None)
+        if data:
+            res.append(data)
+        if new_instance:
+            array = cls._recursion(new_instance, parent, result)
+            res += array
+        return res
+
+    @classmethod
+    def get_region_name(cls, obj):
+        """
+        获取某个用户的递归所有部门名称
+        """
+        dept_name_all = cls._recursion(obj, "parent", "name")
+        dept_name_all.reverse()
+        return "/".join(dept_name_all)
+
+    @classmethod
     def recursion_all_dept(cls, dept_id: int, dept_all_list=None, dept_list=None):
         """
         递归获取部门的所有下级部门
