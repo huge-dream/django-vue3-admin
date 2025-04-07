@@ -5,7 +5,7 @@
 	"license": "MIT",
 	"scripts": {
 		"dev": "vite --force",
-		"build:dev":"vite build --mode development",
+		"build:dev": "vite build --mode development",
 		"build": "vite build",
 		"build:local": "vite build --mode local_prod",
 		"lint-fix": "eslint --fix --ext .js --ext .jsx --ext .vue src/"
@@ -26,6 +26,7 @@
 		"axios": "^1.7.4",
 		"countup.js": "^2.8.0",
 		"cropperjs": "^1.6.2",
+		"date-holidays": "^3.24.1",
 		"e-icon-picker": "2.1.1",
 		"echarts": "^5.5.1",
 		"echarts-gl": "^2.0.9",
@@ -37,6 +38,7 @@
 		"js-table2excel": "^1.1.2",
 		"jsplumb": "^2.15.6",
 		"lodash-es": "^4.17.21",
+		"lunar-javascript": "^1.7.1",
 		"mitt": "^3.0.1",
 		"nprogress": "^0.2.0",
 		"pinia": "^2.0.28",
