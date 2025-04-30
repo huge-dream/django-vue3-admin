@@ -13,15 +13,15 @@ export default defineConfig({
   build: {
     // outDir: '../backend/static/previewer',
     lib: {
-      entry: path.resolve(__dirname, './index.ts'), // 库的入口文件
+      entry: path.resolve(__dirname, 'src/views/plugins/dvadmin3-flow-web/src/flowH5/index.ts'), // 库的入口文件
       name: 'previewer', // 库的全局变量名称
       fileName: (format) => `index.${format}.js`, // 输出文件名格式
     },
     rollupOptions: {
       input:{
-        previewer: path.resolve(__dirname, './index.ts'),
+        previewer: path.resolve(__dirname, 'src/views/plugins/dvadmin3-flow-web/src/flowH5/index.ts'),
       },
-      external: ['vue'], // 指定外部依赖
+      external: ['vue','xe-utils'], // 指定外部依赖
       output:{
         // dir: '../backend/static/previewer', // 输出目录
         entryFileNames: 'index.[format].js', // 入口文件名格式
