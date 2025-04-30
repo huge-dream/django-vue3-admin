@@ -9,8 +9,8 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from application import dispatch
 from dvadmin.utils.models import CoreModel, table_prefix, get_custom_app_models
 
-
-class Role(CoreModel):
+from dvadmin3_flow.base_model import FlowBaseModel
+class Role(CoreModel,FlowBaseModel):
     name = models.CharField(max_length=64, verbose_name="角色名称", help_text="角色名称")
     key = models.CharField(max_length=64, unique=True, verbose_name="权限字符", help_text="权限字符")
     sort = models.IntegerField(default=1, verbose_name="角色顺序", help_text="角色顺序")
@@ -121,6 +121,27 @@ class Dept(CoreModel):
         blank=True,
         help_text="上级部门",
     )
+
+    @classmethod
+    def _recursion(cls, instance, parent, result):
+        new_instance = getattr(instance, parent, None)
+        res = []
+        data = getattr(instance, result, None)
+        if data:
+            res.append(data)
+        if new_instance:
+            array = cls._recursion(new_instance, parent, result)
+            res += array
+        return res
+
+    @classmethod
+    def get_region_name(cls, obj):
+        """
+        获取某个用户的递归所有部门名称
+        """
+        dept_name_all = cls._recursion(obj, "parent", "name")
+        dept_name_all.reverse()
+        return "/".join(dept_name_all)
 
     @classmethod
     def recursion_all_dept(cls, dept_id: int, dept_all_list=None, dept_list=None):
