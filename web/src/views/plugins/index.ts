@@ -22,4 +22,13 @@ export const scanAndInstallPlugins = (app: any) => {
 	}
 	pluginsAll = Array.from(pluginNames);
 	console.log('已发现插件：', pluginsAll);
+	for (const pluginName of pluginsAll) {
+		const plugin = import(`./${pluginName}/index.ts`);
+		plugin.then((module) => {
+			app.use(module.default)
+			console.log(`${pluginName}插件已加载`)
+		}).catch((error) => {
+			console.log(`${pluginName}插件下无index.ts`)
+		})
+	}
 };

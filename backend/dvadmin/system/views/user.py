@@ -352,7 +352,7 @@ class UserViewSet(CustomModelViewSet):
         if new_pwd != new_pwd2:
             return ErrorResponse(msg="两次密码不匹配")
         else:
-            request.user.password = make_password(hashlib.md5(new_pwd.encode(encoding='UTF-8')).hexdigest())
+            request.user.password = make_password(new_pwd)
             request.user.pwd_change_count += 1
             request.user.save()
             return DetailResponse(data=None, msg="修改成功")
