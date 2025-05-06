@@ -77,7 +77,13 @@ class Users(CoreModel, AbstractUser):
     objects = CustomUserManager()
 
     def set_password(self, raw_password):
-        super().set_password(hashlib.md5(raw_password.encode(encoding="UTF-8")).hexdigest())
+        if raw_password:
+            super().set_password(hashlib.md5(raw_password.encode(encoding="UTF-8")).hexdigest())
+
+    def save(self, *args, **kwargs):
+        if self.name == "":
+            self.name = self.username
+        super().save(*args, **kwargs)
 
     class Meta:
         db_table = table_prefix + "system_users"

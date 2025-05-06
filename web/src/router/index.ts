@@ -98,10 +98,22 @@ export function formatTwoStageRoutes(arr: any) {
 
 const frameOutRoutes = staticRoutes.map(item => item.path)
 
+const checkToken = ()=>{
+    const urlParams = new URLSearchParams(window.location.search);
+    const _oauth2_token = urlParams.get('_oauth2_token');
+    if (_oauth2_token) {
+        Session.set('token', _oauth2_token);
+        const cleanUrl = window.location.href.split('?')[0];
+        window.history.replaceState({}, '', cleanUrl);
+        useUserInfo(pinia).setUserInfos();
+
+    }
+}
 // 路由加载前
 router.beforeEach(async (to, from, next) => {
     // 检查浏览器本地版本与线上版本是否一致，判断是否需要刷新页面进行更新
     await checkVersion()
+    checkToken()
     NProgress.configure({showSpinner: false});
     if (to.meta.title) NProgress.start();
     const token = Session.get('token');
