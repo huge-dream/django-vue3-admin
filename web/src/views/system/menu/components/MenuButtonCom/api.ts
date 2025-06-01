@@ -48,3 +48,10 @@ export function BatchAdd(obj: AddReq) {
 	});
 }
 
+export function BatchDelete(keys: any) {
+	return request({
+		url: apiPrefix + 'multiple_delete/',
+		method: 'delete',
+		data: { keys },
+	});
+}

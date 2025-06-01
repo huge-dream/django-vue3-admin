@@ -1,3 +1,4 @@
+import XEUtils from 'xe-utils';
 import {useColumnPermission} from '/@/stores/columnPermission';
 
 type permissionType = 'is_create' | 'is_query' | 'is_update';
@@ -22,41 +23,18 @@ export const handleColumnPermission = async (func: Function, crudOptions: any,ex
 		}
 	}
 	const columns = crudOptions.columns;
-	const excludeColumns = ['_index','id', 'create_datetime', 'update_datetime'].concat(excludeColumn)
-	for (let col in columns) {
-		if (excludeColumns.includes(col)) {
-			continue
-		}else{
-			if (columns[col].column) {
-				columns[col].column.show = false
-			} else {
-				columns[col]['column'] = {
-					show: false
-				}
+	const excludeColumns = ['checked','_index','id', 'create_datetime', 'update_datetime'].concat(excludeColumn)
+	XEUtils.eachTree(columns, (item, key) => {
+		if (!excludeColumns.includes(String(key)) && key in res.data) {
+			// 如果列表不可见，则禁止在列设置中选择
+			// 只有列表不可见，才修改列配置，这样才不影响默认的配置
+			if (!res.data[key]['is_query']) {
+				item.column.show = false;
+				item.column.columnSetDisabled = true;
 			}
-			columns[col].addForm = {
-				show: false
-			}
-			columns[col].editForm = {
-				show: false
-			}
+			item.addForm = { show: res.data[key]['is_create'] };
+			item.editForm = { show: res.data[key]['is_update'] };
 		}
-
-		for (let item of res.data) {
-			if (excludeColumns.includes(item.field_name)) {
-				continue
-			} else if(item.field_name === col) {
-				columns[col].column.show = item['is_query']
-				// 如果列表不可见，则禁止在列设置中选择
-				if(!item['is_query'])columns[col].column.columnSetDisabled = true
-				columns[col].addForm = {
-					show: item['is_create']
-				}
-				columns[col].editForm = {
-					show: item['is_update']
-				}
-			}
-		}
-	}
+	});
 	return crudOptions
 }

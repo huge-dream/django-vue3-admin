@@ -32,6 +32,14 @@ class ApiLoggingMiddleware(MiddlewareMixin):
         request.request_path = get_request_path(request)
 
     def __handle_response(self, request, response):
+
+        # 判断有无log_id属性，使用All记录时，会出现此情况
+        if request.request_data.get('log_id', None) is None:
+            return
+        
+        # 移除log_id，不记录此ID
+        log_id = request.request_data.pop('log_id')
+
         # request_data,request_ip由PermissionInterfaceMiddleware中间件中添加的属性
         body = getattr(request, 'request_data', {})
         # 请求含有password则用*替换掉(暂时先用于所有接口的password请求参数)
@@ -60,7 +68,7 @@ class ApiLoggingMiddleware(MiddlewareMixin):
             'status': True if response.data.get('code') in [2000, ] else False,
             'json_result': {"code": response.data.get('code'), "msg": response.data.get('msg')},
         }
-        operation_log, creat = OperationLog.objects.update_or_create(defaults=info, id=self.operation_log_id)
+        operation_log, creat = OperationLog.objects.update_or_create(defaults=info, id=log_id)
         if not operation_log.request_modular and settings.API_MODEL_MAP.get(request.request_path, None):
             operation_log.request_modular = settings.API_MODEL_MAP[request.request_path]
             operation_log.save()
@@ -71,7 +79,8 @@ class ApiLoggingMiddleware(MiddlewareMixin):
                 if self.methods == 'ALL' or request.method in self.methods:
                     log = OperationLog(request_modular=get_verbose_name(view_func.cls.queryset))
                     log.save()
-                    self.operation_log_id = log.id
+                    # self.operation_log_id = log.id
+                    request.request_data['log_id'] = log.id
 
         return
 

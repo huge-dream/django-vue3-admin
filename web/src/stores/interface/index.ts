@@ -12,6 +12,7 @@ export interface UserInfosState {
 	email: string;
 	mobile: string;
 	gender: string;
+	pwd_change_count:null|number;
 	dept_info: {
 		dept_id: number;
 		dept_name: string;

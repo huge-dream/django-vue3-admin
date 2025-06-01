@@ -5,34 +5,39 @@ from rest_framework.permissions import IsAuthenticated
 
 from dvadmin.system.models import FieldPermission, MenuField
 from dvadmin.utils.json_response import DetailResponse
-from dvadmin.utils.models import get_custom_app_models
+
+
+def merge_permission(data):
+    """
+    合并权限
+    """
+    result = {}
+    for item in data:
+        field_name = item.pop('field_name')
+        if field_name not in result:
+            result[field_name] = item
+        else:
+            for key, value in item.items():
+                result[field_name][key] = result[field_name][key] or value
+    return result
 
 
 class FieldPermissionMixin:
-    @action(methods=['get'], detail=False,permission_classes=[IsAuthenticated])
+    @action(methods=['get'], detail=False, permission_classes=[IsAuthenticated])
     def field_permission(self, request):
         """
         获取字段权限
         """
-        finded = False
-        for model in get_custom_app_models():
-            if model['object'] is self.serializer_class.Meta.model:
-                finded = True
-                break
-            if finded:
-                break
-        if finded is False:
-            return []
+        model = self.serializer_class.Meta.model.__name__
         user = request.user
-        if user.is_superuser==1:
-            data = MenuField.objects.filter( model=model['model']).values('field_name')
-            for item in data:
-                item['is_create'] = True
-                item['is_query'] = True
-                item['is_update'] = True
+        # 创建一个默认字典来存储最终的结果
+        if user.is_superuser == 1:
+            data = MenuField.objects.filter(model=model).values('field_name')
+            result = {item['field_name']: {"is_create": True, "is_query": True, "is_update": True} for item in data}
         else:
             roles = request.user.role.values_list('id', flat=True)
-            data= FieldPermission.objects.filter(
-                 field__model=model['model'],role__in=roles
-            ).values( 'is_create', 'is_query', 'is_update',field_name=F('field__field_name'))
-        return DetailResponse(data=data)
+            data = FieldPermission.objects.filter(
+                field__model=model, role__in=roles
+            ).values('is_create', 'is_query', 'is_update', field_name=F('field__field_name'))
+            result = merge_permission(data)
+        return DetailResponse(data=result)

@@ -11,6 +11,7 @@ const pathResolve = (dir: string) => {
 
 const alias: Record<string, string> = {
 	'/@': pathResolve('./src/'),
+	'@great-dream': pathResolve('./node_modules/@great-dream/'),
 	'@views': pathResolve('./src/views'),
 	'vue-i18n': 'vue-i18n/dist/vue-i18n.cjs.js',
 	'@dvaformflow':pathResolve('./src/viwes/plugins/dvaadmin_form_flow/src/')
@@ -31,7 +32,7 @@ const viteConfig = defineConfig((mode: ConfigEnv) => {
 		server: {
 			host: '0.0.0.0',
 			port: env.VITE_PORT as unknown as number,
-			open: true,
+			open: false,
 			hmr: true,
 			proxy: {
 				'/gitee': {

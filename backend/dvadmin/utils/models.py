@@ -61,8 +61,24 @@ class SoftDeleteModel(models.Model):
         """
         重写删除方法,直接开启软删除
         """
-        self.is_deleted = True
-        self.save(using=using)
+        if soft_delete:
+            self.is_deleted = True
+            self.save(using=using)
+            # 级联软删除关联对象
+            for related_object in self._meta.related_objects:
+                related_model = getattr(self, related_object.get_accessor_name())
+                # 处理一对多和多对多的关联对象
+                if related_object.one_to_many or related_object.many_to_many:
+                    related_objects = related_model.all()
+                elif related_object.one_to_one:
+                    related_objects = [related_model]
+                else:
+                    continue
+
+                for obj in related_objects:
+                    obj.delete(soft_delete=True)
+        else:
+            super().delete(using=using, *args, **kwargs)
 
 
 class CoreModel(models.Model):
@@ -216,9 +232,13 @@ def get_all_models_objects(model_name=None):
 def get_model_from_app(app_name):
     """获取模型里的字段"""
     model_module = import_module(app_name + '.models')
+    exclude_models = getattr(model_module, 'exclude_models', [])
     filter_model = [
-        getattr(model_module, item) for item in dir(model_module)
-        if item != 'CoreModel' and issubclass(getattr(model_module, item).__class__, models.base.ModelBase)
+        value for key, value in model_module.__dict__.items()
+        if key != 'CoreModel'
+        and isinstance(value, type)
+        and issubclass(value, models.Model)
+        and key not in exclude_models
     ]
     model_list = []
     for model in filter_model:

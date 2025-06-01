@@ -2,8 +2,9 @@ import * as api from './api';
 import { dict, UserPageQuery, AddReq, DelReq, EditReq, compute, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud';
 import { request } from '/@/utils/service';
 import { dictionary } from '/@/utils/dictionary';
-import { inject } from 'vue';
+import { inject, nextTick, ref } from 'vue';
 import {auth} from "/@/utils/authFunction";
+import XEUtils from 'xe-utils';
 
 
 
@@ -27,8 +28,41 @@ export const createCrudOptions = function ({ crudExpose, props,modelDialog,selec
 		form.menu = selectOptions.value.id;
 		return await api.AddObj(form);
 	};
+// 记录选中的行
+const selectedRows = ref<any>([]);
 
+const onSelectionChange = (changed: any) => {
+	const tableData = crudExpose.getTableData();
+	const unChanged = tableData.filter((row: any) => !changed.includes(row));
+	// 添加已选择的行
+	XEUtils.arrayEach(changed, (item: any) => {
+		const ids = XEUtils.pluck(selectedRows.value, 'id');
+		if (!ids.includes(item.id)) {
+			selectedRows.value = XEUtils.union(selectedRows.value, [item]);
+		}
+	});
+	// 剔除未选择的行
+	XEUtils.arrayEach(unChanged, (unItem: any) => {
+		selectedRows.value = XEUtils.remove(selectedRows.value, (item: any) => item.id !== unItem.id);
+	});
+};
+const toggleRowSelection = () => {
+	// 多选后，回显默认勾选
+	const tableRef = crudExpose.getBaseTableRef();
+	const tableData = crudExpose.getTableData();
+	const selected = XEUtils.filter(tableData, (item: any) => {
+		const ids = XEUtils.pluck(selectedRows.value, 'id');
+		return ids.includes(item.id);
+	});
+
+	nextTick(() => {
+		XEUtils.arrayEach(selected, (item) => {
+			tableRef.toggleRowSelection(item, true);
+		});
+	});
+};
 	return {
+		selectedRows,
 		crudOptions: {
 			request: {
 				pageRequest,
@@ -77,7 +111,22 @@ export const createCrudOptions = function ({ crudExpose, props,modelDialog,selec
 					width: '600px',
 				},
 			},
+			table: {
+				rowKey: 'id', //设置你的主键id， 默认rowKey=id
+				onSelectionChange,
+				onRefreshed: () => toggleRowSelection(),
+			},
 			columns: {
+				$checked: {
+					title: '选择',
+					form: { show: false },
+					column: {
+						type: 'selection',
+						align: 'center',
+						width: '70px',
+						columnSetDisabled: true, //禁止在列设置中选择
+					},
+				},
 				_index: {
 					title: '序号',
 					form: { show: false },

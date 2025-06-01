@@ -9,27 +9,28 @@ import {
     CreateCrudOptionsProps,
     CreateCrudOptionsRet
 } from '@fast-crud/fast-crud';
-import {request} from '/@/utils/service';
-import {dictionary} from '/@/utils/dictionary';
-import {successMessage} from '/@/utils/message';
-import {auth} from '/@/utils/authFunction';
-import {SystemConfigStore} from "/@/stores/systemConfig";
-import {storeToRefs} from "pinia";
-import {computed} from "vue";
+import { request } from '/@/utils/service';
+import { dictionary } from '/@/utils/dictionary';
+import { successMessage } from '/@/utils/message';
+import { auth } from '/@/utils/authFunction';
+import { SystemConfigStore } from "/@/stores/systemConfig";
+import { storeToRefs } from "pinia";
+import { computed } from "vue";
 import { Md5 } from 'ts-md5';
-import {commonCrudConfig} from "/@/utils/commonCrud";
-export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps): CreateCrudOptionsRet {
+import { commonCrudConfig } from "/@/utils/commonCrud";
+import { ElMessageBox } from 'element-plus';
+export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
     const pageRequest = async (query: UserPageQuery) => {
         return await api.GetList(query);
     };
-    const editRequest = async ({form, row}: EditReq) => {
+    const editRequest = async ({ form, row }: EditReq) => {
         form.id = row.id;
         return await api.UpdateObj(form);
     };
-    const delRequest = async ({row}: DelReq) => {
+    const delRequest = async ({ row }: DelReq) => {
         return await api.DelObj(row.id);
     };
-    const addRequest = async ({form}: AddReq) => {
+    const addRequest = async ({ form }: AddReq) => {
         return await api.AddObj(form);
     };
 
@@ -37,13 +38,13 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
         return await api.exportData(query)
     }
 
-    const resetToDefaultPasswordRequest = async (row:EditReq)=>{
+    const resetToDefaultPasswordRequest = async (row: EditReq) => {
         await api.resetToDefaultPassword(row.id)
         successMessage("重置密码成功")
     }
 
     const systemConfigStore = SystemConfigStore()
-    const {systemConfig} = storeToRefs(systemConfigStore)
+    const { systemConfig } = storeToRefs(systemConfigStore)
     const getSystemConfig = computed(() => {
         // console.log(systemConfig.value)
         return systemConfig.value
@@ -79,9 +80,10 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                         text: "导出",//按钮文字
                         title: "导出",//鼠标停留显示的信息
                         show: auth('user:Export'),
-                        click() {
-                            return exportRequest(crudExpose!.getSearchFormData())
-                        }
+                        click: (ctx: any) => ElMessageBox.confirm(
+                            '确定重设密码吗？', '提示',
+                            { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+                        ).then(() => resetToDefaultPasswordRequest(ctx.row))
                     }
                 }
             },
@@ -113,7 +115,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                         },
                         //@ts-ignore
                         click: (ctx: any) => {
-                            const {row} = ctx;
+                            const { row } = ctx;
                             resetToDefaultPasswordRequest(row)
                         },
                     },
@@ -122,7 +124,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
             columns: {
                 _index: {
                     title: '序号',
-                    form: {show: false},
+                    form: { show: false },
                     column: {
                         type: 'index',
                         align: 'center',
@@ -176,7 +178,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                             placeholder: '请输入密码',
                         },
                     },
-                    valueResolve({form}) {
+                    valueResolve({ form }) {
                         if (form.password) {
                             form.password = Md5.hashStr(form.password)
                         }
@@ -219,7 +221,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                     }),
                     column: {
                         minWidth: 200, //最小列宽
-                        formatter({value,row,index}){
+                        formatter({ value, row, index }) {
                             return row.dept_name_all
                         }
                     },
@@ -235,7 +237,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                             filterable: true,
                             placeholder: '请选择',
                             props: {
-                                checkStrictly:true,
+                                checkStrictly: true,
                                 props: {
                                     value: 'id',
                                     label: 'name',
@@ -257,10 +259,10 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                     }),
                     column: {
                         minWidth: 200, //最小列宽
-                        formatter({value,row,index}){
-                            const values = row.role_info.map((item:any) => item.name);
-                            return values.join(',')
-                        }
+                        // formatter({ value, row, index }) {
+                        //     const values = row.role_info.map((item: any) => item.name);
+                        //     return values.join(',')
+                        // }
                     },
                     form: {
                         rules: [
@@ -333,7 +335,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                             span: 12,
                         },
                     },
-                    component: {props: {color: 'auto'}}, // 自动染色
+                    component: { props: { color: 'auto' } }, // 自动染色
                 },
                 user_type: {
                     title: '用户类型',
@@ -382,12 +384,13 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                 },
                 avatar: {
                     title: '头像',
-                    type: 'avatar-cropper',
+                    type: 'avatar-uploader',
+                    align: 'center',
                     form: {
                         show: false,
                     },
                     column: {
-                        minWidth: 400, //最小列宽
+                        minWidth: 100, //最小列宽
                     },
                 },
                 ...commonCrudConfig({

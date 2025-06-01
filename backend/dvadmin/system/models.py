@@ -1,5 +1,7 @@
 import hashlib
 import os
+from time import time
+from pathlib import PurePosixPath
 
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
@@ -7,8 +9,8 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from application import dispatch
 from dvadmin.utils.models import CoreModel, table_prefix, get_custom_app_models
 
-
-class Role(CoreModel):
+from dvadmin3_flow.base_model import FlowBaseModel
+class Role(CoreModel,FlowBaseModel):
     name = models.CharField(max_length=64, verbose_name="角色名称", help_text="角色名称")
     key = models.CharField(max_length=64, unique=True, verbose_name="权限字符", help_text="权限字符")
     sort = models.IntegerField(default=1, verbose_name="角色顺序", help_text="角色顺序")
@@ -71,6 +73,7 @@ class Users(CoreModel, AbstractUser):
         help_text="关联部门",
     )
     login_error_count = models.IntegerField(default=0, verbose_name="登录错误次数", help_text="登录错误次数")
+    pwd_change_count = models.IntegerField(default=0,blank=True, verbose_name="密码修改次数", help_text="密码修改次数")
     objects = CustomUserManager()
 
     def set_password(self, raw_password):
@@ -118,6 +121,27 @@ class Dept(CoreModel):
         blank=True,
         help_text="上级部门",
     )
+
+    @classmethod
+    def _recursion(cls, instance, parent, result):
+        new_instance = getattr(instance, parent, None)
+        res = []
+        data = getattr(instance, result, None)
+        if data:
+            res.append(data)
+        if new_instance:
+            array = cls._recursion(new_instance, parent, result)
+            res += array
+        return res
+
+    @classmethod
+    def get_region_name(cls, obj):
+        """
+        获取某个用户的递归所有部门名称
+        """
+        dept_name_all = cls._recursion(obj, "parent", "name")
+        dept_name_all.reverse()
+        return "/".join(dept_name_all)
 
     @classmethod
     def recursion_all_dept(cls, dept_id: int, dept_all_list=None, dept_list=None):
@@ -405,6 +429,18 @@ class FileList(CoreModel):
     mime_type = models.CharField(max_length=100, blank=True, verbose_name="Mime类型", help_text="Mime类型")
     size = models.CharField(max_length=36, blank=True, verbose_name="文件大小", help_text="文件大小")
     md5sum = models.CharField(max_length=36, blank=True, verbose_name="文件md5", help_text="文件md5")
+    UPLOAD_METHOD_CHOIDES = (
+        (0, '默认上传'),
+        (1, '文件选择器上传'),
+    )
+    upload_method = models.SmallIntegerField(default=0, blank=True, null=True, choices=UPLOAD_METHOD_CHOIDES, verbose_name='上传方式', help_text='上传方式')
+    FILE_TYPE_CHOIDES = (
+        (0, '图片'),
+        (1, '视频'),
+        (2, '音频'),
+        (3, '其他'),
+    )
+    file_type = models.SmallIntegerField(default=3, choices=FILE_TYPE_CHOIDES, blank=True, null=True, verbose_name='文件类型', help_text='文件类型')
 
     def save(self, *args, **kwargs):
         if not self.md5sum:  # file is new
@@ -595,3 +631,41 @@ class MessageCenterTargetUser(CoreModel):
         db_table = table_prefix + "message_center_target_user"
         verbose_name = "消息中心目标用户表"
         verbose_name_plural = verbose_name
+
+
+def media_file_name_downloadcenter(instance:'DownloadCenter', filename):
+    h = instance.md5sum
+    basename, ext = os.path.splitext(filename)
+    return PurePosixPath("files", "dlct", h[:1], h[1:2], basename + '-' + str(time()).replace('.', '') + ext.lower())
+
+
+class DownloadCenter(CoreModel):
+    TASK_STATUS_CHOICES = [
+        (0, '任务已创建'),
+        (1, '任务进行中'),
+        (2, '任务完成'),
+        (3, '任务失败'),
+    ]
+    task_name = models.CharField(max_length=255, verbose_name="任务名称", help_text="任务名称")
+    task_status = models.SmallIntegerField(default=0, choices=TASK_STATUS_CHOICES, verbose_name='是否可下载', help_text='是否可下载')
+    file_name = models.CharField(max_length=255, null=True, blank=True, verbose_name="文件名", help_text="文件名")
+    url = models.FileField(upload_to=media_file_name_downloadcenter, null=True, blank=True)
+    size = models.BigIntegerField(default=0, verbose_name="文件大小", help_text="文件大小")
+    md5sum = models.CharField(max_length=36, null=True, blank=True, verbose_name="文件md5", help_text="文件md5")
+
+    def save(self, *args, **kwargs):
+        if self.url:
+            if not self.md5sum:  # file is new
+                md5 = hashlib.md5()
+                for chunk in self.url.chunks():
+                    md5.update(chunk)
+                self.md5sum = md5.hexdigest()
+            if not self.size:
+                self.size = self.url.size
+        super(DownloadCenter, self).save(*args, **kwargs)
+
+    class Meta:
+        db_table = table_prefix + "download_center"
+        verbose_name = "下载中心"
+        verbose_name_plural = verbose_name
+        ordering = ("-create_datetime",)
