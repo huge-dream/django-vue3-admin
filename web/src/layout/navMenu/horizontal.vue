@@ -93,7 +93,7 @@ const initElMenuOffsetLeft = () => {
 	nextTick(() => {
 		let els = <HTMLElement>document.querySelector('.el-menu.el-menu--horizontal li.is-active');
 		if (!els) return false;
-		elMenuHorizontalScrollRef.value.$refs.wrapRef.scrollLeft = els.offsetLeft;
+		// elMenuHorizontalScrollRef.value.$refs.wrapRef.scrollLeft = els.offsetLeft;
 	});
 };
 // 路由过滤递归函数

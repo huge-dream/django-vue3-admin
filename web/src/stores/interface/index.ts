@@ -6,6 +6,7 @@ import {useFrontendMenuStore} from "/@/stores/frontendMenu";
 
 // 用户信息
 export interface UserInfosState {
+	id:'',
 	avatar: string;
 	username: string;
 	name: string;
