@@ -235,5 +235,252 @@
                 "children": []
             }
         ]
-    }
+    },
+    {
+    "title": "文件存储配置",
+    "key": "file_storage",
+    "value": null,
+    "sort": 0,
+    "status": true,
+    "data_options": null,
+    "form_item_type": 0,
+    "rule": null,
+    "placeholder": null,
+    "setting": null,
+    "children": [
+      {
+        "title": "存储引擎",
+        "key": "file_engine",
+        "value": "local",
+        "sort": 1,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 4,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请选择存储引擎",
+        "setting": "file_engine",
+        "children": []
+      },
+      {
+        "title": "文件是否备份",
+        "key": "file_backup",
+        "value": false,
+        "sort": 2,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 9,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "启用云存储时,文件是否备份到本地",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "阿里云-AccessKey",
+        "key": "aliyun_access_key",
+        "value": null,
+        "sort": 3,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入AccessKey",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "阿里云-Secret",
+        "key": "aliyun_access_secret",
+        "value": null,
+        "sort": 4,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入Secret",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "阿里云-Endpoint",
+        "key": "aliyun_endpoint",
+        "value": null,
+        "sort": 5,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入Endpoint",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "阿里云-上传路径",
+        "key": "aliyun_path",
+        "value": "/media/",
+        "sort": 5,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入上传路径",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "阿里云-Bucket",
+        "key": "aliyun_bucket",
+        "value": null,
+        "sort": 7,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入Bucket",
+        "setting": null,
+        "children": []
+      },{
+        "title": "阿里云-cdn地址",
+        "key": "aliyun_cdn_url",
+        "value": null,
+        "sort": 7,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入cdn地址",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "腾讯云-SecretId",
+        "key": "tencent_secret_id",
+        "value": null,
+        "sort": 8,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入SecretId",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "腾讯云-SecretKey",
+        "key": "tencent_secret_key",
+        "value": null,
+        "sort": 9,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入SecretKey",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "腾讯云-Region",
+        "key": "tencent_region",
+        "value": null,
+        "sort": 10,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入Region",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "腾讯云-Bucket",
+        "key": "tencent_bucket",
+        "value": null,
+        "sort": 11,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入Bucket",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "腾讯云-上传路径",
+        "key": "tencent_path",
+        "value": "/media/",
+        "sort": 12,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入上传路径",
+        "setting": null,
+        "children": []
+      }
+    ]
+  }
 ]

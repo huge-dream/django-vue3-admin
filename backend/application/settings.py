@@ -399,8 +399,12 @@ DICTIONARY_CONFIG = {}
 # ================================================= #
 # 租户共享app
 TENANT_SHARED_APPS = []
+# 普通租户独有app
+TENANT_EXCLUSIVE_APPS = []
 # 插件 urlpatterns
 PLUGINS_URL_PATTERNS = []
+# 所有模式有的
+SHARED_APPS = []
 # ********** 一键导入插件配置开始 **********
 # 例如:
 # from dvadmin_upgrade_center.settings import *    # 升级中心
