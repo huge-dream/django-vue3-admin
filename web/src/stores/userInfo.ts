@@ -12,6 +12,7 @@ import headerImage from '/@/assets/img/headerImage.png';
 export const useUserInfo = defineStore('userInfo', {
 	state: (): UserInfosStates => ({
 		userInfos: {
+			id:'',
 			avatar: '',
 			username: '',
 			name: '',
@@ -37,6 +38,7 @@ export const useUserInfo = defineStore('userInfo', {
 			this.userInfos.pwd_change_count = count;
 		},
 		async updateUserInfos(userInfos:any) {
+			this.userInfos.id = userInfos.id;
 			this.userInfos.username = userInfos.name;
 			this.userInfos.avatar = userInfos.avatar;
 			this.userInfos.name = userInfos.name;
@@ -54,6 +56,7 @@ export const useUserInfo = defineStore('userInfo', {
 				this.userInfos = Session.get('userInfo');
 			} else {
 				let userInfos: any = await this.getApiUserInfo();
+				this.userInfos.id = userInfos.id;
 				this.userInfos.username = userInfos.data.name;
 				this.userInfos.avatar = userInfos.data.avatar;
 				this.userInfos.name = userInfos.data.name;
@@ -74,6 +77,7 @@ export const useUserInfo = defineStore('userInfo', {
 				url: '/api/system/user/user_info/',
 				method: 'get',
 			}).then((res:any)=>{
+				this.userInfos.id = res.data.id;
 				this.userInfos.username = res.data.name;
 				this.userInfos.avatar = (res.data.avatar && getBaseURL(res.data.avatar)) || headerImage;
 				this.userInfos.name = res.data.name;
