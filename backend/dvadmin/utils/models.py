@@ -81,6 +81,26 @@ class SoftDeleteModel(models.Model):
             super().delete(using=using, *args, **kwargs)
 
 
+class CoreModelManager(models.Manager):
+    def get_queryset(self):
+        is_deleted = getattr(self.model, 'is_soft_delete', False)
+        flow_work_status = getattr(self.model, 'flow_work_status', False)
+        queryset = super().get_queryset()
+        if flow_work_status:
+            queryset = queryset.filter(flow_work_status=1)
+        if is_deleted:
+            queryset = queryset.filter(is_deleted=False)
+        return queryset
+    def create(self,request: Request=None, **kwargs):
+        data = {**kwargs}
+        if request:
+            request_user = request.user
+            data["creator"] = request_user
+            data["modifier"] = request_user.id
+            data["dept_belong_id"] = request_user.dept_id
+        # 调用父类的create方法执行实际的创建操作
+        return super().create(**data)
+
 class CoreModel(models.Model):
     """
     核心标准抽象模型模型,可直接继承使用
@@ -98,7 +118,8 @@ class CoreModel(models.Model):
                                            verbose_name="修改时间")
     create_datetime = models.DateTimeField(auto_now_add=True, null=True, blank=True, help_text="创建时间",
                                            verbose_name="创建时间")
-
+    objects = CoreModelManager()
+    all_objects = models.Manager()
     class Meta:
         abstract = True
         verbose_name = '核心模型'
