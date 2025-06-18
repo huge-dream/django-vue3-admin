@@ -19,6 +19,7 @@ import { computed } from "vue";
 import { Md5 } from 'ts-md5';
 import { commonCrudConfig } from "/@/utils/commonCrud";
 import { ElMessageBox } from 'element-plus';
+import {exportData} from "./api";
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
     const pageRequest = async (query: UserPageQuery) => {
         return await api.GetList(query);
@@ -81,9 +82,9 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                         title: "导出",//鼠标停留显示的信息
                         show: auth('user:Export'),
                         click: (ctx: any) => ElMessageBox.confirm(
-                            '确定重设密码吗？', '提示',
+                            '确定导出数据吗？', '提示',
                             { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
-                        ).then(() => resetToDefaultPasswordRequest(ctx.row))
+                        ).then(() => exportData(ctx.row))
                     }
                 }
             },
