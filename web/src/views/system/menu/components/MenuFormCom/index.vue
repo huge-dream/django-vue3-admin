@@ -254,6 +254,9 @@ const handleSubmit = () => {
 			let res;
 			menuBtnLoading.value = true;
 			if (menuFormData.id) {
+        if (menuFormData.parent == undefined) {
+          menuFormData.parent = null
+        }
 				res = await UpdateObj(menuFormData);
 			} else {
 				res = await AddObj(menuFormData);
