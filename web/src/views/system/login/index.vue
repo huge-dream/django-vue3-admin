@@ -34,7 +34,9 @@
 								</el-tab-pane> -->
 							</el-tabs>
 						</div>
-<!--						<Scan v-if="state.isScan" />-->
+            <OAuth2 />
+
+            <!--						<Scan v-if="state.isScan" />-->
 <!--						<div class="login-content-main-sacn" @click="state.isScan = !state.isScan">-->
 <!--							<i class="iconfont" :class="state.isScan ? 'icon-diannao1' : 'icon-barcode-qr'"></i>-->
 <!--							<div class="login-content-main-sacn-delta"></div>-->
@@ -81,6 +83,8 @@ const Account = defineAsyncComponent(() => import('/@/views/system/login/compone
 const Mobile = defineAsyncComponent(() => import('/@/views/system/login/component/mobile.vue'));
 const Scan = defineAsyncComponent(() => import('/@/views/system/login/component/scan.vue'));
 const ChangePwd = defineAsyncComponent(() => import('/@/views/system/login/component/changePwd.vue'));
+const OAuth2 = defineAsyncComponent(() => import('/@/views/system/login/component/oauth2.vue'));
+
 import _ from "lodash-es";
 import {useUserInfo} from "/@/stores/userInfo";
 const { userInfos } = storeToRefs(useUserInfo());

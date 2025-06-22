@@ -28,3 +28,10 @@ export function getUserInfo() {
         method: 'get',
     });
 }
+
+export function getBackends() {
+    return request({
+        url: '/api/dvadmin3_social_oauth2/backend/get_login_backend/',
+        method: 'get',
+    });
+}
