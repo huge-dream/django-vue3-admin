@@ -35,8 +35,8 @@ class FileSerializer(CustomModelSerializer):
         fields = "__all__"
 
     def create(self, validated_data):
-        file_engine = dispatch.get_system_config_values("fileStorageConfig.file_engine") or 'local'
-        file_backup = dispatch.get_system_config_values("fileStorageConfig.file_backup")
+        file_engine = dispatch.get_system_config_values("file_storage.file_engine") or 'local'
+        file_backup = dispatch.get_system_config_values("file_storage.file_backup")
         file = self.initial_data.get('file')
         file_size = file.size
         validated_data['name'] = str(file)
@@ -52,15 +52,15 @@ class FileSerializer(CustomModelSerializer):
         if file_backup:
             validated_data['url'] = file
         if file_engine == 'oss':
-            from dvadmin_cloud_storage.views.aliyun import ali_oss_upload
-            file_path = ali_oss_upload(file)
+            from dvadmin.utils.aliyunoss import ali_oss_upload
+            file_path = ali_oss_upload(file, file_name=validated_data['name'])
             if file_path:
                 validated_data['file_url'] = file_path
             else:
                 raise ValueError("上传失败")
         elif file_engine == 'cos':
-            from dvadmin_cloud_storage.views.tencent import tencent_cos_upload
-            file_path = tencent_cos_upload(file)
+            from dvadmin.utils.tencentcos import tencent_cos_upload
+            file_path = tencent_cos_upload(file, file_name=validated_data['name'])
             if file_path:
                 validated_data['file_url'] = file_path
             else:

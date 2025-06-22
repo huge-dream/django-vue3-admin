@@ -29,7 +29,7 @@ class Command(BaseCommand):
     def serializer_data(self, serializer, query_set: QuerySet):
         serializer = serializer(query_set, many=True)
         data = json.loads(json.dumps(serializer.data, ensure_ascii=False))
-        with open(os.path.join(BASE_DIR, f'init_{query_set.model._meta.model_name}.json'), 'w') as f:
+        with open(os.path.join(BASE_DIR, f'init_{query_set.model._meta.model_name}.json'), 'w',encoding='utf-8') as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
         return
 

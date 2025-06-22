@@ -35,7 +35,6 @@ const route = useRoute();
 const stores = useTagsViewRoutes();
 const storesThemeConfig = useThemeConfig();
 const { themeConfig } = storeToRefs(storesThemeConfig);
-import websocket from '/@/utils/websocket';
 const core = useCore();
 const router = useRouter();
 // 获取版本号
@@ -92,63 +91,5 @@ onMounted(() => {
 onUnmounted(() => {
 	mittBus.off('openSetingsDrawer', () => {});
 });
-// 监听路由的变化，设置网站标题
-watch(
-	() => route.path,
-	() => {
-		other.useTitle();
-    other.useFavicon();
-    if (!websocket.websocket) {
-      //websockt 模块
-      try {
-        websocket.init(wsReceive)
-      } catch (e) {
-        console.log('websocket错误');
-      }
-    }
-	},
-	{
-		deep: true,
-	}
-);
 
-// websocket相关代码
-import { messageCenterStore } from '/@/stores/messageCenter';
-const wsReceive = (message: any) => {
-	const data = JSON.parse(message.data);
-	const { unread } = data;
-	const messageCenter = messageCenterStore();
-	messageCenter.setUnread(unread);
-	if (data.contentType === 'SYSTEM') {
-		ElNotification({
-			title: '系统消息',
-			message: data.content,
-			type: 'success',
-			position: 'bottom-right',
-			duration: 5000,
-		});
-	} else if (data.contentType === 'Content') {
-		ElMessageBox.confirm(data.content, data.notificationTitle, {
-			confirmButtonText: data.notificationButton,
-      dangerouslyUseHTMLString: true,
-			cancelButtonText: '关闭',
-			type: 'info',
-			closeOnClickModal: false,
-		}).then(() => {
-        ElMessageBox.close();
-				const path = data.path;
-        if (route.path === path) {
-          core.bus.emit('onNewTask', { name: 'onNewTask' });
-        } else {
-          router.push({ path});
-        }
-			})
-			.catch(() => {});
-	}
-
-};
-onBeforeUnmount(() => {
-	// 关闭连接
-	websocket.close();
-});
 </script>

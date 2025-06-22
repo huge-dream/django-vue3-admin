@@ -4,7 +4,6 @@
 		class="tableSelector"
 		multiple
     :collapseTags="props.tableConfig.collapseTags"
-		@remove-tag="removeTag"
 		v-model="data"
 		placeholder="请选择"
 		@visible-change="visibleChange"
@@ -29,9 +28,9 @@
 					max-height="200"
 					height="200"
 					:highlight-current-row="!props.tableConfig.isMultiple"
-          @selection-change="handleSelectionChange"
+					@selection-change="handleSelectionChange"
 					@select="handleSelectionChange"
-          @selectAll="handleSelectionChange"
+					@selectAll="handleSelectionChange"
 					@current-change="handleCurrentChange"
 				>
 					<el-table-column v-if="props.tableConfig.isMultiple" fixed type="selection" reserve-selection width="55" />
@@ -59,34 +58,36 @@
 </template>
 
 <script setup lang="ts">
-import {computed, defineProps, onMounted, reactive, ref, watch} from 'vue';
+import { computed, defineProps, onMounted, reactive, ref, watch } from 'vue';
 import XEUtils from 'xe-utils';
 import { request } from '/@/utils/service';
 
 const props = defineProps({
 	modelValue: {
-    type: Array || String || Number,
-    default: () => []
-  },
+		type: Array || String || Number,
+		default: () => [],
+	},
 	tableConfig: {
-    type: Object,
-    default:{
-      url: null,
-      label: null, //显示值
-      value: null, //数据值
-      isTree: false,
-      lazy: true,
-      size:'default',
-      load: () => {},
-      data: [], //默认数据
-      isMultiple: false, //是否多选
-      collapseTags:false,
-      treeProps: { children: 'children', hasChildren: 'hasChildren' },
-      columns: [], //每一项对应的列表项
-    },
-  },
+		type: Object,
+		default: {
+			url: null,
+			label: null, //显示值
+			value: null, //数据值
+			isTree: false,
+			lazy: true,
+			size: 'default',
+			load: () => {},
+			data: [], //默认数据
+			isMultiple: false, //是否多选
+			collapseTags: false,
+			treeProps: { children: 'children', hasChildren: 'hasChildren' },
+			columns: [], //每一项对应的列表项
+		},
+	},
 	displayLabel: {},
 } as any);
+console.log(props.tableConfig);
+
 const emit = defineEmits(['update:modelValue']);
 // tableRef
 const tableRef = ref();
@@ -137,6 +138,8 @@ const handleCurrentChange = (val: any) => {
  */
 const getDict = async () => {
 	const url = props.tableConfig.url;
+	console.log(url);
+
 	const params = {
 		page: pageConfig.page,
 		limit: pageConfig.limit,
@@ -162,29 +165,25 @@ const getDict = async () => {
 
 // 获取节点值
 const getNodeValues = () => {
+	console.log(props.tableConfig.url);
+	
 	request({
-    url:props.tableConfig.valueUrl,
-    method:'post',
-    data:{ids:props.modelValue}
-  }).then(res=>{
-    if(res.data.length>0){
-      data.value = res.data.map((item:any)=>{
-        return item[props.tableConfig.label]
-      })
+		url: props.tableConfig.url,
+		method: 'post',
+		data: { ids: props.modelValue },
+	}).then((res) => {
+		if (res.data.length > 0) {
+			data.value = res.data.map((item: any) => {
+				return item[props.tableConfig.label];
+			});
 
-      tableRef.value!.clearSelection()
-      res.data.forEach((row) => {
-        tableRef.value!.toggleRowSelection(
-            row,
-            true,
-            false
-        )
-      })
-    }
-
-  })
- }
-
+			tableRef.value!.clearSelection();
+			res.data.forEach((row) => {
+				tableRef.value!.toggleRowSelection(row, true, false);
+			});
+		}
+	});
+};
 
 /**
  * 下拉框展开/关闭
@@ -205,12 +204,11 @@ const handlePageChange = (page: any) => {
 	getDict();
 };
 
-onMounted(()=>{
-  setTimeout(()=>{
-    getNodeValues()
-  },1000)
-})
-
+onMounted(() => {
+	// setTimeout(() => {
+	// 	getNodeValues();
+	// }, 1000);
+});
 </script>
 
 <style scoped>

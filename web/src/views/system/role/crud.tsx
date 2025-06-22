@@ -181,7 +181,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 						},
 					},
 					dict: dict({
-						value: dictionary('button_status_bool'),
+						data: dictionary('button_status_bool'),
 					}),
 				},
 			},

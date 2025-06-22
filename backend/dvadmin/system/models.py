@@ -9,8 +9,8 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from application import dispatch
 from dvadmin.utils.models import CoreModel, table_prefix, get_custom_app_models
 
-from dvadmin3_flow.base_model import FlowBaseModel
-class Role(CoreModel,FlowBaseModel):
+
+class Role(CoreModel):
     name = models.CharField(max_length=64, verbose_name="角色名称", help_text="角色名称")
     key = models.CharField(max_length=64, unique=True, verbose_name="权限字符", help_text="权限字符")
     sort = models.IntegerField(default=1, verbose_name="角色顺序", help_text="角色顺序")
@@ -77,7 +77,13 @@ class Users(CoreModel, AbstractUser):
     objects = CustomUserManager()
 
     def set_password(self, raw_password):
-        super().set_password(hashlib.md5(raw_password.encode(encoding="UTF-8")).hexdigest())
+        if raw_password:
+            super().set_password(hashlib.md5(raw_password.encode(encoding="UTF-8")).hexdigest())
+
+    def save(self, *args, **kwargs):
+        if self.name == "":
+            self.name = self.username
+        super().save(*args, **kwargs)
 
     class Meta:
         db_table = table_prefix + "system_users"

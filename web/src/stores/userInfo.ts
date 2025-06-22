@@ -12,6 +12,7 @@ import headerImage from '/@/assets/img/headerImage.png';
 export const useUserInfo = defineStore('userInfo', {
 	state: (): UserInfosStates => ({
 		userInfos: {
+			id:'',
 			avatar: '',
 			username: '',
 			name: '',
@@ -19,6 +20,7 @@ export const useUserInfo = defineStore('userInfo', {
 			mobile: '',
 			gender: '',
 			pwd_change_count:null,
+			is_superuser: false,
 			dept_info: {
 				dept_id: 0,
 				dept_name: '',
@@ -37,6 +39,7 @@ export const useUserInfo = defineStore('userInfo', {
 			this.userInfos.pwd_change_count = count;
 		},
 		async updateUserInfos(userInfos:any) {
+			this.userInfos.id = userInfos.id;
 			this.userInfos.username = userInfos.name;
 			this.userInfos.avatar = userInfos.avatar;
 			this.userInfos.name = userInfos.name;
@@ -46,6 +49,7 @@ export const useUserInfo = defineStore('userInfo', {
 			this.userInfos.dept_info = userInfos.dept_info;
 			this.userInfos.role_info = userInfos.role_info;
 			this.userInfos.pwd_change_count = userInfos.pwd_change_count;
+			this.userInfos.is_superuser = userInfos.is_superuser;
 			Session.set('userInfo', this.userInfos);
 		},
 		async setUserInfos() {
@@ -54,6 +58,7 @@ export const useUserInfo = defineStore('userInfo', {
 				this.userInfos = Session.get('userInfo');
 			} else {
 				let userInfos: any = await this.getApiUserInfo();
+				this.userInfos.id = userInfos.id;
 				this.userInfos.username = userInfos.data.name;
 				this.userInfos.avatar = userInfos.data.avatar;
 				this.userInfos.name = userInfos.data.name;
@@ -63,17 +68,16 @@ export const useUserInfo = defineStore('userInfo', {
 				this.userInfos.dept_info = userInfos.data.dept_info;
 				this.userInfos.role_info = userInfos.data.role_info;
 				this.userInfos.pwd_change_count = userInfos.data.pwd_change_count;
+				this.userInfos.is_superuser = userInfos.data.is_superuser;
 				Session.set('userInfo', this.userInfos);
 			}
-		},
-		async setWebSocketState(socketState: boolean) {
-			this.isSocketOpen = socketState;
 		},
 		async getApiUserInfo() {
 			return request({
 				url: '/api/system/user/user_info/',
 				method: 'get',
 			}).then((res:any)=>{
+				this.userInfos.id = res.data.id;
 				this.userInfos.username = res.data.name;
 				this.userInfos.avatar = (res.data.avatar && getBaseURL(res.data.avatar)) || headerImage;
 				this.userInfos.name = res.data.name;
@@ -83,6 +87,7 @@ export const useUserInfo = defineStore('userInfo', {
 				this.userInfos.dept_info = res.data.dept_info;
 				this.userInfos.role_info = res.data.role_info;
 				this.userInfos.pwd_change_count = res.data.pwd_change_count;
+				this.userInfos.is_superuser = res.data.is_superuser;
 				Session.set('userInfo', this.userInfos);
 			})
 		},
