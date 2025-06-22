@@ -11,6 +11,7 @@
 		highlight-current
 		show-checkbox
 		default-expand-all
+		:check-on-click-leaf="false"
 	>
 	</el-tree>
 </template>

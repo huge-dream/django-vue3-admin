@@ -2,7 +2,8 @@
 	<div class="layout-navbars-breadcrumb-user-news">
 		<div class="head-box">
 			<div class="head-box-title">{{ $t('message.user.newTitle') }}</div>
-<!--			<div class="head-box-btn" v-if="state.newsList.length > 0" @click="onAllReadClick">{{ $t('message.user.newBtn') }}</div>-->
+
+			<!-- <div class="head-box-btn" v-if="state.newsList.length > 0" @click="onAllReadClick">{{ $t('message.user.newBtn') }}</div> -->
 		</div>
 		<div class="content-box">
 			<template v-if="state.newsList.length > 0">
@@ -21,7 +22,7 @@
 </template>
 
 <script setup lang="ts" name="layoutBreadcrumbUserNews">
-import { reactive,onBeforeMount,ref,onMounted } from 'vue';
+import { reactive, onBeforeMount, ref, onMounted } from 'vue';
 
 // 定义变量内容
 const state = reactive({
@@ -33,27 +34,28 @@ const onAllReadClick = () => {
 	state.newsList = [];
 };
 // 前往通知中心点击
-import {useRouter } from "vue-router";
-const route = useRouter()
+import { useRouter } from 'vue-router';
+const route = useRouter();
 const onGoToGiteeClick = () => {
-  route.push('/messageCenter')
+	route.push('/messageCenter');
 };
 //获取最新消息
-import { request } from "/@/utils/service";
-const getLastMsg= ()=>{
-  request({
-    url: '/api/system/message_center/get_newest_msg/',
-    method: 'get',
-    params: {}
-  }).then((res:any) => {
-    const { data } = res
-    state.newsList= [data]
-  })
-}
-onMounted(()=>{
-  getLastMsg()
-})
-
+import { request } from '/@/utils/service';
+const getLastMsg = () => {
+	request({
+		url: '/api/system/message_center/get_newest_msg/',
+		method: 'get',
+		params: {},
+	}).then((res: any) => {
+		const { data } = res;
+		console.log(data);
+		
+		state.newsList = [data];
+	});
+};
+onMounted(() => {
+	getLastMsg();
+});
 </script>
 
 <style scoped lang="scss">

@@ -131,10 +131,7 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps): Creat
 						data: [
 							{ value: 0, label: '按用户' },
 							{ value: 1, label: '按角色' },
-							{
-								value: 2,
-								label: '按部门',
-							},
+							{ value: 2, label: '按部门' },
 							{ value: 3, label: '通知公告' },
 						],
 					}),
@@ -142,14 +139,7 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps): Creat
 						component: {
 							optionName: 'el-radio-button',
 						},
-						rules: [
-							{
-								required: true,
-								message: '必选项',
-								// @ts-ignore
-								trigger: ['blur', 'change'],
-							},
-						],
+						rules: [{ required: true, message: '必选项', trigger: ['blur', 'change'] }],
 					},
 				},
 				target_user: {
@@ -191,10 +181,7 @@ export default function ({ crudExpose, context }: CreateCrudOptionsProps): Creat
 						}),
 						rules: [
 							// 表单校验规则
-							{
-								required: true,
-								message: '必填项',
-							},
+							{ required: true, message: '必填项' },
 						],
 					},
 					column: {

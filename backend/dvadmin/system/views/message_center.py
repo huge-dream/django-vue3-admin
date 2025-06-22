@@ -36,7 +36,7 @@ class MessageCenterSerializer(CustomModelSerializer):
         return serializer.data
 
     def get_user_info(self, instance, parsed_query):
-        if instance.target_type  in (1,2,3):
+        if instance.target_type in (1, 2, 3):
             return []
         users = instance.target_user.all()
         # You can do what ever you want in here
@@ -108,7 +108,7 @@ class MessageCenterTargetUserListSerializer(CustomModelSerializer):
         return serializer.data
 
     def get_user_info(self, instance, parsed_query):
-        if instance.target_type  in (1,2,3):
+        if instance.target_type in (1, 2, 3):
             return []
         users = instance.target_user.all()
         # You can do what ever you want in here
@@ -139,21 +139,6 @@ class MessageCenterTargetUserListSerializer(CustomModelSerializer):
         read_only_fields = ["id"]
 
 
-def websocket_push(user_id, message):
-    """
-    主动推送消息
-    """
-    username = "user_" + str(user_id)
-    channel_layer = get_channel_layer()
-    async_to_sync(channel_layer.group_send)(
-        username,
-        {
-            "type": "push.message",
-            "json": message
-        }
-    )
-
-
 class MessageCenterCreateSerializer(CustomModelSerializer):
     """
     消息中心-新增-序列化器
@@ -182,10 +167,6 @@ class MessageCenterCreateSerializer(CustomModelSerializer):
         targetuser_instance = MessageCenterTargetUserSerializer(data=targetuser_data, many=True, request=self.request)
         targetuser_instance.is_valid(raise_exception=True)
         targetuser_instance.save()
-        for user in users:
-            unread_count = MessageCenterTargetUser.objects.filter(users__id=user, is_read=False).count()
-            websocket_push(user, message={"sender": 'system', "contentType": 'SYSTEM',
-                                          "content": '您有一条新消息~', "unread": unread_count})
         return data
 
     class Meta:
@@ -225,10 +206,6 @@ class MessageCenterViewSet(CustomModelViewSet):
             queryset.save()
         instance = self.get_object()
         serializer = self.get_serializer(instance)
-        # 主动推送消息
-        unread_count = MessageCenterTargetUser.objects.filter(users__id=user_id, is_read=False).count()
-        websocket_push(user_id, message={"sender": 'system', "contentType": 'TEXT',
-                                         "content": '您查看了一条消息~', "unread": unread_count})
         return DetailResponse(data=serializer.data, msg="获取成功")
 
     @action(methods=['GET'], detail=False, permission_classes=[IsAuthenticated])

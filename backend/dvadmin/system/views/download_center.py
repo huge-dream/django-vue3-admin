@@ -44,6 +44,11 @@ class DownloadCenterViewSet(CustomModelViewSet):
     extra_filter_class = []
 
     def get_queryset(self):
+        # 判断是否是 Swagger 文档生成阶段，防止报错
+        if getattr(self, 'swagger_fake_view', False):
+            return self.queryset.model.objects.none()
+
+        # 正常请求下的逻辑
         if self.request.user.is_superuser:
             return super().get_queryset()
         return super().get_queryset().filter(creator=self.request.user)
