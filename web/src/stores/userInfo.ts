@@ -72,9 +72,6 @@ export const useUserInfo = defineStore('userInfo', {
 				Session.set('userInfo', this.userInfos);
 			}
 		},
-		async setWebSocketState(socketState: boolean) {
-			this.isSocketOpen = socketState;
-		},
 		async getApiUserInfo() {
 			return request({
 				url: '/api/system/user/user_info/',
