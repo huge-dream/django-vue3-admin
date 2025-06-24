@@ -25,6 +25,8 @@ import fontAwesome470 from 'e-icon-picker/icon/fontawesome/font-awesome.v4.7.0.j
 import eIconList from 'e-icon-picker/icon/default-icon/eIconList.js';
 import iconfont from '/@/assets/iconfont/iconfont.json'; //引入json文件
 import '/@/assets/iconfont/iconfont.css'; //引入css
+import '/@/assets/iconfont/iconfont-01/iconfont.css'; //引入css
+import '/@/assets/iconfont/iconfont-02/iconfont.css'; //引入css
 // 自动注册插件
 import { scanAndInstallPlugins } from '/@/views/plugins/index';
 import VXETable from 'vxe-table'
