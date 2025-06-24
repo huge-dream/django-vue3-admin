@@ -47,10 +47,10 @@
 		</div>
 
 		<div class="login-authorization z-10">
-			<p>Copyright © {{ getSystemConfig['login.copyright'] || '2021-2024 北京信码新创科技有限公司' }} 版权所有</p>
+			<p>Copyright © {{ getSystemConfig['login.copyright'] || '2021-2025 django-vue-admin.com' }} 版权所有</p>
 			<p class="la-other" style="margin-top: 5px;">
 				<a href="https://beian.miit.gov.cn" target="_blank">{{ getSystemConfig['login.keep_record'] ||
-					'京ICP备2021031018号' }}</a>
+					'晋ICP备18005113号-3' }}</a>
 				|
 				<a :href="getSystemConfig['login.help_url'] ? getSystemConfig['login.help_url'] : '#'"
 					target="_blank">帮助</a>
