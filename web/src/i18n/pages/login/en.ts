@@ -3,6 +3,7 @@ export default {
 	label: {
 		one1: 'User name login',
 		two2: 'Mobile number',
+		changePwd: 'Change The Password',
 	},
 	link: {
 		one3: 'Third party login',

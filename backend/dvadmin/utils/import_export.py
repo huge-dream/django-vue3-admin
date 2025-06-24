@@ -86,4 +86,5 @@ def import_to_data(file_url, field_data, m2m_fields=None):
             else:
                 array[key] = cell_value
         tables.append(array)
-    return tables
+    data = [i for i in tables if len(i) != 0]
+    return data

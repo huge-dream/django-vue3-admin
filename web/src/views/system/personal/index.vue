@@ -32,7 +32,7 @@
 										<el-col :xs="24" :sm="24" class="personal-item mb6">
 											<div class="personal-item-label">角色：</div>
 											<div class="personal-item-value">
-												<el-tag v-for="(item, index) in state.personalForm.role_info" :key="index">{{ item.name }}</el-tag>
+												<el-tag v-for="(item, index) in state.personalForm.role_info" :key="index" style="margin-right: 5px;">{{ item.name }}</el-tag>
 											</div>
 										</el-col>
 									</el-row>
@@ -354,7 +354,8 @@ const uploadImg = (data: any) => {
 	api.uploadAvatar(formdata).then((res: any) => {
 		if (res.code === 2000) {
 			selectImgVisible.value = false;
-			state.personalForm.avatar = getBaseURL() + res.data.url;
+			// state.personalForm.avatar = getBaseURL() + res.data.url;
+			state.personalForm.avatar = res.data.url;
 			api.updateUserInfo(state.personalForm).then((res: any) => {
 				successMessage('更新成功');
 				getUserInfo();

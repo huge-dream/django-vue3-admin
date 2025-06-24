@@ -22,7 +22,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django_filters.utils import get_model_field
 from rest_framework.filters import BaseFilterBackend
 from django_filters.conf import settings
-from dvadmin.system.models import Dept, ApiWhiteList, RoleMenuButtonPermission
+from dvadmin.system.models import Dept, ApiWhiteList, RoleMenuButtonPermission, MenuButton
 from dvadmin.utils.models import CoreModel
 
 class CoreModelFilterBankend(BaseFilterBackend):
@@ -33,7 +33,7 @@ class CoreModelFilterBankend(BaseFilterBackend):
         create_datetime_after = request.query_params.get('create_datetime_after', None)
         create_datetime_before = request.query_params.get('create_datetime_before', None)
         update_datetime_after = request.query_params.get('update_datetime_after', None)
-        update_datetime_before = request.query_params.get('update_datetime_after', None)
+        update_datetime_before = request.query_params.get('update_datetime_before', None)
         if any([create_datetime_after, create_datetime_before, update_datetime_after, update_datetime_before]):
             create_filter = Q()
             if create_datetime_after and create_datetime_before:
@@ -149,13 +149,16 @@ class DataLevelPermissionsFilter(BaseFilterBackend):
         if _pk: # 判断是否是单例查询
             re_api = re.sub(_pk,'{id}', api)
         role_id_list = request.user.role.values_list('id', flat=True)
-        role_permission_list=RoleMenuButtonPermission.objects.filter(
-            role__in=role_id_list,
-            role__status=1,
-            menu_button__api=re_api,
-            menu_button__method=method).values(
-            'data_range'
-        )
+        # 修复权限获取bug
+        menu_button_ids = MenuButton.objects.filter(api=re_api,method=method).values_list('id', flat=True)
+        role_permission_list = []
+        if menu_button_ids:
+            role_permission_list=RoleMenuButtonPermission.objects.filter(
+                role__in=role_id_list,
+                role__status=1,
+                menu_button_id__in=menu_button_ids).values(
+                'data_range'
+            )
         dataScope_list = []  # 权限范围列表
         for ele in role_permission_list:
                 # 判断用户是否为超级管理员角色/如果拥有[全部数据权限]则返回所有数据
@@ -340,7 +343,7 @@ class CustomDjangoFilterBackend(DjangoFilterBackend):
                         from timezone_field import TimeZoneField
 
                         # 不进行 过滤的model 类
-                        if isinstance(field, (models.JSONField, TimeZoneField)):
+                        if isinstance(field, (models.JSONField, TimeZoneField, models.FileField)):
                             continue
                         # warn if the field doesn't exist.
                         if field is None:

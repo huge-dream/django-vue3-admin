@@ -28,6 +28,8 @@ import {checkVersion} from "/@/utils/upgrade";
 const storesThemeConfig = useThemeConfig(pinia);
 const {themeConfig} = storeToRefs(storesThemeConfig);
 const {isRequestRoutes} = themeConfig.value;
+import {useUserInfo} from "/@/stores/userInfo";
+const { userInfos } = storeToRefs(useUserInfo());
 
 /**
  * 创建一个可以被 Vue 应用程序使用的路由实例
@@ -96,10 +98,22 @@ export function formatTwoStageRoutes(arr: any) {
 
 const frameOutRoutes = staticRoutes.map(item => item.path)
 
+const checkToken = ()=>{
+    const urlParams = new URLSearchParams(window.location.search);
+    const _oauth2_token = urlParams.get('_oauth2_token');
+    if (_oauth2_token) {
+        Session.set('token', _oauth2_token);
+        const cleanUrl = window.location.href.split('?')[0];
+        window.history.replaceState({}, '', cleanUrl);
+        useUserInfo(pinia).setUserInfos();
+
+    }
+}
 // 路由加载前
 router.beforeEach(async (to, from, next) => {
     // 检查浏览器本地版本与线上版本是否一致，判断是否需要刷新页面进行更新
     await checkVersion()
+    checkToken()
     NProgress.configure({showSpinner: false});
     if (to.meta.title) NProgress.start();
     const token = Session.get('token');
@@ -111,7 +125,10 @@ router.beforeEach(async (to, from, next) => {
             next(`/login?redirect=${to.path}&params=${JSON.stringify(to.query ? to.query : to.params)}`);
             Session.clear();
             NProgress.done();
-        } else if (token && to.path === '/login') {
+        }else if (token && to.path === '/login' && userInfos.value.pwd_change_count===0 ) {
+            next('/login');
+            NProgress.done();
+        } else if (token && to.path === '/login' && userInfos.value.pwd_change_count>0) {
             next('/home');
             NProgress.done();
         }else if(token &&  frameOutRoutes.includes(to.path) ){

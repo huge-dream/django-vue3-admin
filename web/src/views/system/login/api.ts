@@ -13,9 +13,25 @@ export function login(params: object) {
         data: params
     });
 }
+
+export function loginChangePwd(data: object) {
+    return request({
+        url: '/api/system/user/login_change_password/',
+        method: 'post',
+        data: data
+    });
+}
+
 export function getUserInfo() {
     return request({
         url: '/api/system/user/user_info/',
+        method: 'get',
+    });
+}
+
+export function getBackends() {
+    return request({
+        url: '/api/dvadmin3_social_oauth2/backend/get_login_backend/',
         method: 'get',
     });
 }

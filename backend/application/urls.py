@@ -24,6 +24,7 @@ from rest_framework_simplejwt.views import (
 
 from application import dispatch
 from application import settings
+from application.sse_views import sse_view
 from dvadmin.system.views.dictionary import InitDictionaryViewSet
 from dvadmin.system.views.login import (
     LoginView,
@@ -40,6 +41,7 @@ dispatch.init_system_config()
 dispatch.init_dictionary()
 # =========== 初始化系统配置 =================
 
+permission_classes = [permissions.AllowAny, ] if settings.DEBUG else [permissions.IsAuthenticated, ]
 schema_view = get_schema_view(
     openapi.Info(
         title="Snippets API",
@@ -50,7 +52,7 @@ schema_view = get_schema_view(
         license=openapi.License(name="BSD License"),
     ),
     public=True,
-    permission_classes=(permissions.AllowAny,),
+    permission_classes=permission_classes,
     generator_class=CustomOpenAPISchemaGenerator,
 )
 # 前端页面映射
@@ -115,6 +117,8 @@ urlpatterns = (
             # 前端页面映射
             path('web/', web_view, name='web_view'),
             path('web/<path:filename>', serve_web_files, name='serve_web_files'),
+            # sse
+            path('sse/', sse_view, name='sse'),
         ]
         + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
         + static(settings.STATIC_URL, document_root=settings.STATIC_URL)

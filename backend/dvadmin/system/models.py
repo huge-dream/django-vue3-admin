@@ -73,10 +73,17 @@ class Users(CoreModel, AbstractUser):
         help_text="关联部门",
     )
     login_error_count = models.IntegerField(default=0, verbose_name="登录错误次数", help_text="登录错误次数")
+    pwd_change_count = models.IntegerField(default=0,blank=True, verbose_name="密码修改次数", help_text="密码修改次数")
     objects = CustomUserManager()
 
     def set_password(self, raw_password):
-        super().set_password(hashlib.md5(raw_password.encode(encoding="UTF-8")).hexdigest())
+        if raw_password:
+            super().set_password(hashlib.md5(raw_password.encode(encoding="UTF-8")).hexdigest())
+
+    def save(self, *args, **kwargs):
+        if self.name == "":
+            self.name = self.username
+        super().save(*args, **kwargs)
 
     class Meta:
         db_table = table_prefix + "system_users"
@@ -120,6 +127,27 @@ class Dept(CoreModel):
         blank=True,
         help_text="上级部门",
     )
+
+    @classmethod
+    def _recursion(cls, instance, parent, result):
+        new_instance = getattr(instance, parent, None)
+        res = []
+        data = getattr(instance, result, None)
+        if data:
+            res.append(data)
+        if new_instance:
+            array = cls._recursion(new_instance, parent, result)
+            res += array
+        return res
+
+    @classmethod
+    def get_region_name(cls, obj):
+        """
+        获取某个用户的递归所有部门名称
+        """
+        dept_name_all = cls._recursion(obj, "parent", "name")
+        dept_name_all.reverse()
+        return "/".join(dept_name_all)
 
     @classmethod
     def recursion_all_dept(cls, dept_id: int, dept_all_list=None, dept_list=None):
@@ -407,6 +435,18 @@ class FileList(CoreModel):
     mime_type = models.CharField(max_length=100, blank=True, verbose_name="Mime类型", help_text="Mime类型")
     size = models.CharField(max_length=36, blank=True, verbose_name="文件大小", help_text="文件大小")
     md5sum = models.CharField(max_length=36, blank=True, verbose_name="文件md5", help_text="文件md5")
+    UPLOAD_METHOD_CHOIDES = (
+        (0, '默认上传'),
+        (1, '文件选择器上传'),
+    )
+    upload_method = models.SmallIntegerField(default=0, blank=True, null=True, choices=UPLOAD_METHOD_CHOIDES, verbose_name='上传方式', help_text='上传方式')
+    FILE_TYPE_CHOIDES = (
+        (0, '图片'),
+        (1, '视频'),
+        (2, '音频'),
+        (3, '其他'),
+    )
+    file_type = models.SmallIntegerField(default=3, choices=FILE_TYPE_CHOIDES, blank=True, null=True, verbose_name='文件类型', help_text='文件类型')
 
     def save(self, *args, **kwargs):
         if not self.md5sum:  # file is new

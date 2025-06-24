@@ -4,7 +4,7 @@ import { request } from '/@/utils/service';
 import * as api from './api';
 import { dictionary } from '/@/utils/dictionary';
 import { successMessage } from '/@/utils/message';
-import {auth} from "/@/utils/authFunction";
+import { auth } from "/@/utils/authFunction";
 
 export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsProps): CreateCrudOptionsRet {
 	const pageRequest = async (query: UserPageQuery) => {
@@ -100,10 +100,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 							placement: 'top',
 							content: '重设密码',
 						},
-						click: (ctx: any) => {
-							const { row } = ctx;
-							context?.handleResetPwdOpen(row);
-						},
+						click: (ctx: any) => context?.handleResetPwdOpen(ctx.row),
 					},
 				},
 			},
@@ -185,10 +182,10 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 						// value: vm.systemConfig('base.default_password'),
 					},
 					/* valueResolve(row, key) {
-                        if (row.password) {
-                            row.password = vm.$md5(row.password)
-                        }
-                    } */
+						if (row.password) {
+							row.password = vm.$md5(row.password)
+						}
+					} */
 				},
 				name: {
 					title: '姓名',
@@ -221,7 +218,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					}),
 					column: {
 						minWidth: 200, //最小列宽
-						formatter({value,row,index}){
+						formatter({ value, row, index }) {
 							return row.dept_name_all
 						}
 					},
@@ -263,10 +260,10 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					}),
 					column: {
 						minWidth: 200, //最小列宽
-						formatter({value,row,index}){
-							const values = row.role_info.map((item:any) => item.name);
-							return values.join(',')
-						}
+						// formatter({ value, row, index }) {
+						// 	const values = row.role_info.map((item: any) => item.name);
+						// 	return values.join(',')
+						// }
 					},
 					form: {
 						rules: [
@@ -385,12 +382,12 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 				},
 				avatar: {
 					title: '头像',
-					type: 'avatar-cropper',
+					type: 'avatar-uploader',
 					form: {
 						show: false,
 					},
-					column:{
-						width:150,
+					column: {
+						width: 100,
 						showOverflowTooltip: true,
 					}
 				},

@@ -45,6 +45,12 @@
 			</el-button>
 		</el-form-item>
 	</el-form>
+  <!--      申请试用-->
+  <div style="text-align: center" v-if="showApply()">
+    <el-button class="login-content-apply" link type="primary" plain round @click="applyBtnClick">
+      <span>申请试用</span>
+    </el-button>
+  </div>
 </template>
 
 <script lang="ts">
@@ -67,6 +73,7 @@ import { SystemConfigStore } from '/@/stores/systemConfig';
 import { BtnPermissionStore } from '/@/plugin/permission/store.permission';
 import { Md5 } from 'ts-md5';
 import { errorMessage } from '/@/utils/message';
+import {getBaseURL} from "/@/utils/baseUrl";
 
 export default defineComponent({
 	name: 'loginAccount',
@@ -125,7 +132,10 @@ export default defineComponent({
 				state.ruleForm.captchaKey = ret.data.key;
 			});
 		};
-		const refreshCaptcha = async () => {
+		const applyBtnClick = async () => {
+			window.open(getBaseURL('/api/system/apply_for_trial/'));
+		};
+    const refreshCaptcha = async () => {
 			state.ruleForm.captcha=''
 			loginApi.getCaptcha().then((ret: any) => {
 				state.ruleForm.captchaImgBase = ret.data.image_base;
@@ -138,8 +148,13 @@ export default defineComponent({
 				if (valid) {
 					loginApi.login({ ...state.ruleForm, password: Md5.hashStr(state.ruleForm.password) }).then((res: any) => {
 						if (res.code === 2000) {
-							Session.set('token', res.data.access);
-							Cookies.set('username', res.data.name);
+              const {data} = res
+              Cookies.set('username', res.data.username);
+              Session.set('token', res.data.access);
+              useUserInfo().setPwdChangeCount(data.pwd_change_count)
+              if(data.pwd_change_count==0){
+                return router.push('/login');
+              }
 							if (!themeConfig.value.isRequestRoutes) {
 								// 前端控制路由，2、请注意执行顺序
 								initFrontEndControlRoutes();
@@ -162,35 +177,33 @@ export default defineComponent({
 			})
 
 		};
-		const getUserInfo = () => {
-			useUserInfo().setUserInfos();
-		};
+
 
 
 		// 登录成功后的跳转
 		const loginSuccess = () => {
-			//登录成功获取用户信息,获取系统字典数据
-			getUserInfo();
 			//获取所有字典
 			DictionaryStore().getSystemDictionarys();
-
 			// 初始化登录成功时间问候语
 			let currentTimeInfo = currentTime.value;
 			// 登录成功，跳到转首页
-			// 如果是复制粘贴的路径，非首页/登录页，那么登录成功后重定向到对应的路径中
-			if (route.query?.redirect) {
-				router.push({
-					path: <string>route.query?.redirect,
-					query: Object.keys(<string>route.query?.params).length > 0 ? JSON.parse(<string>route.query?.params) : '',
-				});
-			} else {
-				router.push('/');
-			}
-			// 登录成功提示
-			// 关闭 loading
-			state.loading.signIn = true;
-			const signInText = t('message.signInText');
-			ElMessage.success(`${currentTimeInfo}，${signInText}`);
+      const pwd_change_count = userInfos.value.pwd_change_count
+      if(pwd_change_count>0){
+        // 如果是复制粘贴的路径，非首页/登录页，那么登录成功后重定向到对应的路径中
+        if (route.query?.redirect) {
+        	router.push({
+        		path: <string>route.query?.redirect,
+        		query: Object.keys(<string>route.query?.params).length > 0 ? JSON.parse(<string>route.query?.params) : '',
+        	});
+        } else {
+        	router.push('/');
+        }
+        // 登录成功提示
+        // 关闭 loading
+        state.loading.signIn = true;
+        const signInText = t('message.signInText');
+        ElMessage.success(`${currentTimeInfo}，${signInText}`);
+      }
 			// 添加 loading，防止第一次进入界面时出现短暂空白
 			NextLoading.start();
 		};
@@ -199,7 +212,10 @@ export default defineComponent({
 			//获取系统配置
 			SystemConfigStore().getSystemConfigs();
 		});
-
+    // 是否显示申请试用按钮
+    const showApply = () => {
+      return window.location.href.indexOf('public') != -1
+    }
 
 		return {
 			refreshCaptcha,
@@ -209,6 +225,8 @@ export default defineComponent({
 			state,
 			formRef,
 			rules,
+      applyBtnClick,
+      showApply,
 			...toRefs(state),
 		};
 	},
@@ -249,7 +267,7 @@ export default defineComponent({
 	.login-content-submit {
 		width: 100%;
 		letter-spacing: 2px;
-		font-weight: 300;
+		font-weight: 800;
 		margin-top: 15px;
 	}
 }

@@ -546,5 +546,50 @@
                 "children": []
             }
         ]
+    },
+    {
+        "label": "文件存储引擎",
+        "value": "file_engine",
+        "type": 0,
+        "color": null,
+        "is_value": false,
+        "status": true,
+        "sort": 9,
+        "remark": null,
+        "children": [
+            {
+                "label": "本地",
+                "value": "local",
+                "type": 0,
+                "color": "primary",
+                "is_value": true,
+                "status": true,
+                "sort": 1,
+                "remark": null,
+                "children": []
+            },
+            {
+                "label": "阿里云oss",
+                "value": "oss",
+                "type": 0,
+                "color": "success",
+                "is_value": true,
+                "status": true,
+                "sort": 2,
+                "remark": null,
+                "children": []
+            },
+            {
+                "label": "腾讯cos",
+                "value": "cos",
+                "type": 0,
+                "color": "warning",
+                "is_value": true,
+                "status": true,
+                "sort": 3,
+                "remark": null,
+                "children": []
+            }
+        ]
     }
 ]

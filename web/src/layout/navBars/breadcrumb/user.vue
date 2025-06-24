@@ -37,7 +37,7 @@
 			<i class="icon-skin iconfont" :title="$t('message.user.title3')"></i>
 		</div>
 		<div class="layout-navbars-breadcrumb-user-icon">
-			<el-popover placement="bottom" trigger="click" transition="el-zoom-in-top" :width="300" :persistent="false">
+			<el-popover placement="bottom" trigger="hover" transition="el-zoom-in-top" :width="300" :persistent="false">
 				<template #reference>
 					<el-badge :value="messageCenter.unread" :hidden="messageCenter.unread === 0">
 						<el-icon :title="$t('message.user.title4')">
@@ -57,33 +57,14 @@
 				:class="!state.isScreenfull ? 'icon-fullscreen' : 'icon-tuichuquanping'"
 			></i>
 		</div>
-    <div>
-      <span v-if="!isSocketOpen">
-        <el-popconfirm
-          width="250"
-          ref="onlinePopoverRef"
-          :confirm-button-text="$t('message.user.retry')"
-          :icon="InfoFilled"
-          trigger="hover"
-          icon-color="#626AEF"
-          :title="$t('message.user.onlinePrompt')"
-          @confirm="onlineConfirmEvent"
-        >
-          <template #reference>
-            <el-badge is-dot class="item" :class="{'online-status': isSocketOpen,'online-down':!isSocketOpen}">
-              <img :src="userInfos.avatar || headerImage" class="layout-navbars-breadcrumb-user-link-photo mr5" />
-            </el-badge>
-          </template>
-        </el-popconfirm>
-      </span>
-    </div>
+		<div></div>
 		<el-dropdown :show-timeout="70" :hide-timeout="50" @command="onHandleCommandClick">
 			<span class="layout-navbars-breadcrumb-user-link">
-        <span v-if="isSocketOpen">
-          <el-badge is-dot class="item" :class="{'online-status': isSocketOpen,'online-down':!isSocketOpen}">
-            <img :src="userInfos.avatar || headerImage" class="layout-navbars-breadcrumb-user-link-photo mr5" />
-          </el-badge>
-        </span>
+				<span v-if="isSocketOpen">
+					<el-badge is-dot class="item" :class="{ 'online-status': isSocketOpen, 'online-down': !isSocketOpen }">
+						<img :src="userInfos.avatar || headerImage" class="layout-navbars-breadcrumb-user-link-photo mr5" />
+					</el-badge>
+				</span>
 				{{ userInfos.username === '' ? 'common' : userInfos.username }}
 				<el-icon class="el-icon--right">
 					<ele-ArrowDown />
@@ -93,7 +74,7 @@
 				<el-dropdown-menu>
 					<el-dropdown-item command="/home">{{ $t('message.user.dropdown1') }}</el-dropdown-item>
 					<el-dropdown-item command="/personal">{{ $t('message.user.dropdown2') }}</el-dropdown-item>
-					<el-dropdown-item command="wareHouse">{{ $t('message.user.dropdown6') }}</el-dropdown-item>
+					<el-dropdown-item command="/versionUpgradeLog">更新日志</el-dropdown-item>
 					<el-dropdown-item divided command="logOut">{{ $t('message.user.dropdown5') }}</el-dropdown-item>
 				</el-dropdown-menu>
 			</template>
@@ -115,8 +96,7 @@ import other from '/@/utils/other';
 import mittBus from '/@/utils/mitt';
 import { Session, Local } from '/@/utils/storage';
 import headerImage from '/@/assets/img/headerImage.png';
-import websocket from '/@/utils/websocket';
-import { InfoFilled } from '@element-plus/icons-vue'
+import { InfoFilled } from '@element-plus/icons-vue';
 // 引入组件
 const UserNews = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/userNews.vue'));
 const Search = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/search.vue'));
@@ -148,17 +128,6 @@ const layoutUserFlexNum = computed(() => {
 // 定义变量内容
 const { isSocketOpen } = storeToRefs(useUserInfo());
 
-// websocket状态
-const onlinePopoverRef = ref()
-const onlineConfirmEvent = () => {
-  if (!isSocketOpen.value) {
-      websocket.is_reonnect = true
-      websocket.reconnect_current = 1
-      websocket.reconnect()
-  }
-  // 手动隐藏弹出
-  unref(onlinePopoverRef).popperRef?.delayHide?.()
-}
 // 全屏点击时
 const onScreenfullClick = () => {
 	if (!screenfull.isEnabled) {
@@ -237,8 +206,10 @@ const onLanguageChange = (lang: string) => {
 	initI18nOrSize('globalI18n', 'disabledI18n');
 };
 // 初始化组件大小/i18n
-const initI18nOrSize = (value: string, attr: string) => {
-	state[attr] = Local.get('themeConfig')[value];
+const initI18nOrSize = (value: string, attr: keyof typeof state) => {
+	const themeConfig = Local.get('themeConfig') as { [key: string]: any } | null;
+	const configValue = ((themeConfig && themeConfig[value]) as string) || '';
+	state[attr] = configValue as unknown as never;
 };
 // 页面加载时
 onMounted(() => {
@@ -246,11 +217,32 @@ onMounted(() => {
 		initI18nOrSize('globalComponentSize', 'disabledSize');
 		initI18nOrSize('globalI18n', 'disabledI18n');
 	}
+	getMessageCenterCount();
 });
 
 //消息中心的未读数量
 import { messageCenterStore } from '/@/stores/messageCenter';
+import { getBaseURL } from '/@/utils/baseUrl';
 const messageCenter = messageCenterStore();
+let eventSource: EventSource | null = null; // 存储 EventSource 实例
+const token = Session.get('token');
+const getMessageCenterCount = () => {
+	// 创建 EventSource 实例并连接到后端 SSE 端点
+	eventSource = new EventSource(`${getBaseURL()}/sse/?token=${token}`); // 替换为你的后端地址
+
+	// 监听消息事件
+	eventSource.onmessage = function (event) {
+		messageCenter.setUnread(+event.data); // 更新总记录数
+	};
+
+	// 错误处理
+	eventSource.onerror = function (err) {
+		console.error('SSE 错误:', err);
+		if (eventSource !== null && eventSource.readyState === EventSource.CLOSED) {
+			console.log('连接已关闭');
+		}
+	};
+};
 </script>
 
 <style scoped lang="scss">
@@ -297,29 +289,29 @@ const messageCenter = messageCenterStore();
 	:deep(.el-badge__content.is-fixed) {
 		top: 12px;
 	}
-  .online-status{
-    cursor: pointer;
-    :deep(.el-badge__content.is-fixed) {
-      top: 30px;
-      font-size: 14px;
-      left: 5px;
-      height: 12px;
-      width: 12px;
-      padding: 0;
-      background-color: #18bc9c;
-    }
-  }
-  .online-down{
-    cursor: pointer;
-    :deep(.el-badge__content.is-fixed) {
-      top: 30px;
-      font-size: 14px;
-      left: 5px;
-      height: 12px;
-      width: 12px;
-      padding: 0;
-      background-color: #979b9c;
-    }
-  }
+	.online-status {
+		cursor: pointer;
+		:deep(.el-badge__content.is-fixed) {
+			top: 30px;
+			font-size: 14px;
+			left: 5px;
+			height: 12px;
+			width: 12px;
+			padding: 0;
+			background-color: #18bc9c;
+		}
+	}
+	.online-down {
+		cursor: pointer;
+		:deep(.el-badge__content.is-fixed) {
+			top: 30px;
+			font-size: 14px;
+			left: 5px;
+			height: 12px;
+			width: 12px;
+			padding: 0;
+			background-color: #979b9c;
+		}
+	}
 }
 </style>

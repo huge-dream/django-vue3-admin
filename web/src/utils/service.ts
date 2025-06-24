@@ -215,6 +215,7 @@ export const downloadFile = function ({ url, params, method, filename = '文件�
 		// headers: {Accept: 'application/vnd.openxmlformats-officedocument'}
 	}).then((res: any) => {
 		// console.log(res.headers['content-type']); // 根据content-type不同来判断是否异步下载
+		// if (res.headers && res.headers['Content-type'] === 'application/json') return successMessage('导入任务已创建，请前往‘下载中心’等待下载');
 		if (res.headers['content-type'] === 'application/json') return successMessage('导入任务已创建，请前往‘下载中心’等待下载');
 		const xlsxName = window.decodeURI(res.headers['content-disposition'].split('=')[1])
 		const fileName = xlsxName || `${filename}.xlsx`
