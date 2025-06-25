@@ -60,11 +60,9 @@
 		<div></div>
 		<el-dropdown :show-timeout="70" :hide-timeout="50" @command="onHandleCommandClick">
 			<span class="layout-navbars-breadcrumb-user-link">
-				<span v-if="isSocketOpen">
-					<el-badge is-dot class="item" :class="{ 'online-status': isSocketOpen, 'online-down': !isSocketOpen }">
-						<img :src="userInfos.avatar || headerImage" class="layout-navbars-breadcrumb-user-link-photo mr5" />
-					</el-badge>
-				</span>
+				<el-badge is-dot class="item online-status">
+					<img :src="userInfos.avatar || headerImage" class="layout-navbars-breadcrumb-user-link-photo mr5" />
+				</el-badge>
 				{{ userInfos.username === '' ? 'common' : userInfos.username }}
 				<el-icon class="el-icon--right">
 					<ele-ArrowDown />
@@ -124,9 +122,6 @@ const layoutUserFlexNum = computed(() => {
 	else num = '';
 	return num;
 });
-
-// 定义变量内容
-const { isSocketOpen } = storeToRefs(useUserInfo());
 
 // 全屏点击时
 const onScreenfullClick = () => {
