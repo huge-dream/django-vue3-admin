@@ -1,8 +1,8 @@
-@import './index.scss';
+@use './index.scss' as index;
 
 /* 页面宽度小于576px
 ------------------------------- */
-@media screen and (max-width: $xs) {
+@media screen and (max-width: index.$xs) {
 	// MessageBox 弹框
 	.el-message-box {
 		width: 80% !important;
@@ -11,7 +11,7 @@
 
 /* 页面宽度小于768px
 ------------------------------- */
-@media screen and (max-width: $sm) {
+@media screen and (max-width: index.$sm) {
 	// Breadcrumb 面包屑
 	.layout-navbars-breadcrumb-hide {
 		display: none;

@@ -1,4 +1,4 @@
-@import 'mixins/index.scss';
+@use 'mixins/index.scss' as index;
 
 /* Button 按钮
 ------------------------------- */
@@ -100,7 +100,7 @@
 .el-sub-menu .iconfont,
 .el-menu-item .fa,
 .el-sub-menu .fa {
-	@include generalIcon;
+	@include index.generalIcon;
 }
 // 水平菜单、横向菜单高亮 背景色，鼠标 hover 时，有子级菜单的背景色
 .el-menu-item.is-active,
