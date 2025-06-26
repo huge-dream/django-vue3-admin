@@ -17,10 +17,7 @@ def event_stream(user_id):
         last_db_change_time = cache.get('last_db_change_time', 0)
         # 只有当数据库发生变化时才检查总数
         if last_db_change_time and last_db_change_time > last_sent_time:
-            if user_id == 1:
-                count = MessageCenterTargetUser.objects.filter(is_read=False).count()
-            else:
-                count = MessageCenterTargetUser.objects.filter(users=user_id, is_read=False).count()
+            count = MessageCenterTargetUser.objects.filter(users=user_id, is_read=False).count()
             yield f"data: {count}\n\n"
             last_sent_time = time.time()
 
