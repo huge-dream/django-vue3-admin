@@ -221,12 +221,21 @@ import { getBaseURL } from '/@/utils/baseUrl';
 const messageCenter = messageCenterStore();
 let eventSource: EventSource | null = null; // 存储 EventSource 实例
 const token = Session.get('token');
+const isConnected = ref(false); // 标志变量，记录是否已连接过
 const getMessageCenterCount = () => {
 	// 创建 EventSource 实例并连接到后端 SSE 端点
-	eventSource = new EventSource(`${getBaseURL()}/sse/?token=${token}`); // 替换为你的后端地址
-
+	eventSource = new EventSource(`${getBaseURL()}sse/?token=${token}`); // 替换为你的后端地址
+	// 首次连接成功时打印一次
+	eventSource.onopen = function () {
+		if (!isConnected.value) {
+			console.log('SSE 首次连接成功');
+			isConnected.value = true; // 设置标志为已连接
+		}
+	};
 	// 监听消息事件
 	eventSource.onmessage = function (event) {
+		console.log(event.data);
+
 		messageCenter.setUnread(+event.data); // 更新总记录数
 	};
 

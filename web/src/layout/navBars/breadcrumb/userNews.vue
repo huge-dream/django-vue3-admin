@@ -48,9 +48,8 @@ const getLastMsg = () => {
 		params: {},
 	}).then((res: any) => {
 		const { data } = res;
-		console.log(data);
+		if (data) state.newsList = [data];
 		
-		state.newsList = [data];
 	});
 };
 onMounted(() => {
