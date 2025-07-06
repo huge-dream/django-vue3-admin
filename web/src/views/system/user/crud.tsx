@@ -19,7 +19,7 @@ import { computed } from "vue";
 import { Md5 } from 'ts-md5';
 import { commonCrudConfig } from "/@/utils/commonCrud";
 import { ElMessageBox } from 'element-plus';
-import {exportData} from "./api";
+import { exportData } from "./api";
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
     const pageRequest = async (query: UserPageQuery) => {
         return await api.GetList(query);
@@ -106,19 +106,15 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                         type: 'text',
                         show: auth('user:Delete'),
                     },
-                    custom: {
-                        text: '重设密码',
+                    resetDefaultPwd: {
+                        text: '重置密码',
                         type: 'text',
-                        show: auth('user:ResetPassword'),
-                        tooltip: {
-                            placement: 'top',
-                            content: '重设密码',
-                        },
-                        //@ts-ignore
-                        click: (ctx: any) => {
-                            const { row } = ctx;
-                            resetToDefaultPasswordRequest(row)
-                        },
+                        iconRight: 'Setting',
+                        show: auth('user:ResetDefaultPassword'),
+                        click: (ctx: any) => ElMessageBox.confirm(
+                            '确定重置为系统默认密码吗？', '提示',
+                            { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+                        ).then(() => resetToDefaultPasswordRequest(ctx.row))
                     },
                 },
             },
