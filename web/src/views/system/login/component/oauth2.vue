@@ -40,7 +40,7 @@ export default defineComponent({
 		// };
 
 		onMounted(() => {
-			getBackends();
+			// getBackends();
 		});
 		return {
 			...toRefs(state),
