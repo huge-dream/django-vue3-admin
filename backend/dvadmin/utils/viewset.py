@@ -152,3 +152,13 @@ class CustomModelViewSet(ModelViewSet, ImportSerializerMixin, ExportSerializerMi
             return SuccessResponse(data=[], msg="删除成功")
         else:
             return ErrorResponse(msg="未获取到keys字段")
+
+    @action(methods=['post'], detail=False)
+    def get_by_ids(self, request):
+        """通过IDS列表获取数据"""
+        ids = request.data.get('ids', [])
+        if ids and ids != ['']:
+            queryset = self.get_queryset().filter(id__in=ids)
+            serializer = self.get_serializer(queryset, many=True)
+            return DetailResponse(data=serializer.data)
+        return DetailResponse(data=None)
