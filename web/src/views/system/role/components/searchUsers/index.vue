@@ -25,7 +25,7 @@
 			</template>
 		<template #pagination-left>
 			<el-tooltip content="批量删除所选择的用户权限">
-				<el-button v-show="selectedRowsCount > 0 && auth('role:AuthorizedDel')" type="danger"  @click="multipleDel" :icon="Delete">批量删除</el-button>
+				<el-button v-show="selectedRowsCount > 0 && auth('role:SetMenu')" type="danger"  @click="multipleDel" :icon="Delete">批量删除</el-button>
 			</el-tooltip>
 		</template>
 	 </fs-crud>
