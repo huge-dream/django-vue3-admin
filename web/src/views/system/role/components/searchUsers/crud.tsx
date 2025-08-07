@@ -75,7 +75,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
       actionbar: {
         buttons: {
           add: {
-            show: auth('role:AuthorizedAdd'),
+            show: auth('role:SetMenu'),
             click: (ctx: any) => {
               context!.subUserRef.value.dialog = true;
 							nextTick(() => {
@@ -91,7 +91,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
         //固定右侧
         fixed: 'left',
         width: 120,
-        show: auth('role:AuthorizedDel'),
+        show: auth('role:SetMenu'),
         buttons: {
           view: {
             show: false,
@@ -115,7 +115,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					title: "选择",
 					form: { show: false},
 					column: {
-						show: auth('role:AuthorizedDel'),
+						show: auth('role:SetMenu'),
 						type: "selection",
 						align: "center",
 						width: "55px",

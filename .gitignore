@@ -5,3 +5,5 @@
 .history/
 .vscode/
 web/package-lock.json
+
+*.bat

@@ -77,7 +77,7 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
             actionbar: {
                 buttons: {
                     add: {
-                        show: auth('btn:Create')
+                        show: auth('menu:CreateButton')
                     },
                     batchAdd: {
 						show: true,
@@ -108,10 +108,10 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                     edit: {
                         icon: '',
                         type: 'primary',
-                        show: auth('btn:Update')
+                        show: auth('menu:UpdateButton')
                     },
                     remove: {
-                        show: auth('btn:Delete')
+                        show: auth('menu:DeleteButton')
                     },
                 },
             },
