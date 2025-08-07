@@ -63,6 +63,8 @@ class Users(CoreModel, AbstractUser):
                                   help_text="关联岗位")
     role = models.ManyToManyField(to="Role", blank=True, verbose_name="关联角色", db_constraint=False,
                                   help_text="关联角色")
+    current_role = models.ForeignKey(to=Role, null=True, blank=True, db_constraint=False, on_delete=models.SET_NULL,
+                                     verbose_name="当前登录角色", help_text="当前登录角色", related_name='current_role_set')
     dept = models.ForeignKey(
         to="Dept",
         verbose_name="所属部门",
