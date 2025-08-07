@@ -56,7 +56,7 @@ def recursion_up_fast(instance: Model, parent='parent', key='id') -> list[int]:
     with connection.cursor() as cursor:
         cursor.execute(sql, [getattr(instance, key)])
         data = cursor.fetchall()
-        return [getattr(instance, key), *[i[0] for i in data]]
+        return [i[0] for i in data]
 
 def recursion_up_joint(instance: Model, parent='parent', key='name', joint='/') -> str:
     """向上递归instance所有父级并拼接需要的值，返回完整路径，使用sql优化，速度非常快"""
