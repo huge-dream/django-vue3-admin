@@ -32,7 +32,6 @@ export const useUserInfo = defineStore('userInfo', {
 				},
 			],
 		},
-		isSocketOpen: false
 	}),
 	actions: {
 		async setPwdChangeCount(count: number) {

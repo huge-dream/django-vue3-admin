@@ -1,8 +1,8 @@
-@import './index.scss';
+@use './index.scss' as index;
 
 /* 页面宽度小于768px
 ------------------------------- */
-@media screen and (max-width: $sm) {
+@media screen and (max-width: index.$sm) {
 	.big-data-down-left {
 		width: 100% !important;
 		flex-direction: unset !important;
@@ -51,7 +51,7 @@
 
 /* 页面宽度大于768px小于1200px
 ------------------------------- */
-@media screen and (min-width: $sm) and (max-width: $lg) {
+@media screen and (min-width: index.$sm) and (max-width: index.$lg) {
 	.chart-warp-bottom {
 		.big-data-down-left {
 			width: 50% !important;
@@ -72,7 +72,7 @@
 
 /* 页面宽度小于1200px
 ------------------------------- */
-@media screen and (max-width: $lg) {
+@media screen and (max-width: index.$lg) {
 	.chart-warp-top {
 		.up-left {
 			display: none;

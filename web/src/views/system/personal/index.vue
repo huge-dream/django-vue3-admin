@@ -32,7 +32,7 @@
 										<el-col :xs="24" :sm="24" class="personal-item mb6">
 											<div class="personal-item-label">角色：</div>
 											<div class="personal-item-value">
-												<el-tag v-for="(item, index) in state.personalForm.role_info" :key="index" style="margin-right: 5px;">{{ item.name }}</el-tag>
+												<el-tag v-for="(item, index) in state.personalForm.role_info" :key="index" style="margin-right: 5px">{{ item.name }}</el-tag>
 											</div>
 										</el-col>
 									</el-row>
@@ -84,10 +84,10 @@
 							<el-col :xs="24" :sm="12" :md="8" :lg="6" :xl="4" class="mb20">
 								<el-form-item label="性别">
 									<el-select v-model="state.personalForm.gender" placeholder="请选择性别" clearable class="w100">
-<!--										<el-option label="男" :value="1"></el-option>-->
-<!--										<el-option label="女" :value="0"></el-option>-->
-<!--										<el-option label="保密" :value="2"></el-option>-->
-                    <el-option v-for="(item,index) in genderList" :key="index" :label="item.label" :value="item.value"></el-option>
+										<!--										<el-option label="男" :value="1"></el-option>-->
+										<!--										<el-option label="女" :value="0"></el-option>-->
+										<!--										<el-option label="保密" :value="2"></el-option>-->
+										<el-option v-for="(item, index) in genderList" :key="index" :label="item.label" :value="item.value"></el-option>
 									</el-select>
 								</el-form-item>
 							</el-col>
@@ -181,8 +181,8 @@ import { Session } from '/@/utils/storage';
 import { useRouter } from 'vue-router';
 import { useUserInfo } from '/@/stores/userInfo';
 import { successMessage } from '/@/utils/message';
-import {dictionary} from "/@/utils/dictionary";
-import {Md5} from "ts-md5";
+import { dictionary } from '/@/utils/dictionary';
+import { Md5 } from 'ts-md5';
 const router = useRouter();
 
 // 头像裁剪组件
@@ -237,7 +237,7 @@ const genderList = ref();
 const getUserInfo = function () {
 	api.GetUserInfo({}).then((res: any) => {
 		const { data } = res;
-    genderList.value = dictionary('gender')
+		genderList.value = dictionary('gender');
 		state.personalForm.avatar = data.avatar || '';
 		state.personalForm.username = data.username || '';
 		state.personalForm.name = data.name || '';
@@ -335,10 +335,10 @@ const settingPassword = () => {
 		if (valid) {
 			api.UpdatePassword(userPasswordInfo).then((res: any) => {
 				ElMessage.success('密码修改成功');
-        setTimeout(() => {
-          Session.remove('token');
-          router.push('/login');
-			}, 1000);
+				setTimeout(() => {
+					Session.remove('token');
+					router.push('/login');
+				}, 1000);
 			});
 		} else {
 			// 校验失败
@@ -369,7 +369,7 @@ const uploadImg = (data: any) => {
 </script>
 
 <style scoped lang="scss">
-@import '/@/theme/mixins/index.scss';
+@use '/@/theme/mixins/index.scss' as mixins;
 .personal {
 	.personal-user {
 		height: 130px;
@@ -400,7 +400,7 @@ const uploadImg = (data: any) => {
 			padding: 0 15px;
 			.personal-title {
 				font-size: 18px;
-				@include text-ellipsis(1);
+				@include mixins.text-ellipsis(1);
 			}
 			.personal-item {
 				display: flex;
@@ -408,10 +408,10 @@ const uploadImg = (data: any) => {
 				font-size: 13px;
 				.personal-item-label {
 					color: var(--el-text-color-secondary);
-					@include text-ellipsis(1);
+					@include mixins.text-ellipsis(1);
 				}
 				.personal-item-value {
-					@include text-ellipsis(1);
+					@include mixins.text-ellipsis(1);
 				}
 			}
 		}
@@ -436,7 +436,7 @@ const uploadImg = (data: any) => {
 					padding-bottom: 10px;
 					.personal-info-li-title {
 						display: inline-block;
-						@include text-ellipsis(1);
+						@include mixins.text-ellipsis(1);
 						color: var(--el-text-color-secondary);
 						text-decoration: none;
 					}
@@ -518,7 +518,7 @@ const uploadImg = (data: any) => {
 					}
 					.personal-edit-safe-item-left-value {
 						color: var(--el-text-color-secondary);
-						@include text-ellipsis(1);
+						@include mixins.text-ellipsis(1);
 						margin-right: 15px;
 					}
 				}

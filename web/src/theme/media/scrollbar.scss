@@ -1,8 +1,8 @@
-@import './index.scss';
+@use './index.scss' as index;
 
 /* 页面宽度小于768px
 ------------------------------- */
-@media screen and (max-width: $sm) {
+@media screen and (max-width: index.$sm) {
 	// 滚动条的宽度
 	::-webkit-scrollbar {
 		width: 3px !important;
