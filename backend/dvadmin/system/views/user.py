@@ -90,6 +90,8 @@ class UserCreateSerializer(CustomModelSerializer):
         data = super().save(**kwargs)
         data.dept_belong_id = data.dept_id
         data.save()
+        if not self.validated_data.get('manage_dept', None):
+            data.manage_dept.add(data.dept_id)
         data.post.set(self.initial_data.get("post", []))
         return data
 
@@ -127,6 +129,8 @@ class UserUpdateSerializer(CustomModelSerializer):
         data = super().save(**kwargs)
         data.dept_belong_id = data.dept_id
         data.save()
+        if not self.validated_data.get('manage_dept', None):
+            data.manage_dept.add(data.dept_id)
         data.post.set(self.initial_data.get("post", []))
         return data
 
@@ -426,12 +430,9 @@ class UserViewSet(CustomModelViewSet):
                 queryset = self.filter_queryset(self.get_queryset())
         else:
             queryset = self.filter_queryset(self.get_queryset())
-        # print(queryset.values('id','name','dept__id'))
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True, request=request)
-            # print(serializer.data)
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True, request=request)
-
         return SuccessResponse(data=serializer.data, msg="获取成功")

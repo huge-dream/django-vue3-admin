@@ -15,15 +15,16 @@ import six
 from django.db import models
 from django.db.models import Q, F
 from django.db.models.constants import LOOKUP_SEP
-from django_filters import utils, FilterSet
 from django_filters.constants import ALL_FIELDS
-from django_filters.filters import CharFilter, DateTimeFromToRangeFilter
 from django_filters.rest_framework import DjangoFilterBackend
-from django_filters.utils import get_model_field
+from django_filters.utils import get_model_field, translate_validation, deprecate
+from rest_framework.request import Request
 from rest_framework.filters import BaseFilterBackend
 from django_filters.conf import settings
-from dvadmin.system.models import Dept, ApiWhiteList, RoleMenuButtonPermission, MenuButton
-from dvadmin.utils.models import CoreModel
+
+from dvadmin.system.models import Dept, ApiWhiteList, RoleMenuButtonPermission, MenuButton, Users
+from util.currency import recursion_down_fast
+
 
 class CoreModelFilterBankend(BaseFilterBackend):
     """
@@ -200,6 +201,31 @@ class DataLevelPermissionsFilter(BaseFilterBackend):
         return queryset.filter(dept_belong_id__in=list(set(dept_list)))
 
 
+class DataLevelPermissionsSubFilter(DataLevelPermissionsFilter):
+    """数据级权限过滤的子过滤器，过滤管理部门字段manage_dept"""
+
+    def _extracted_from_filter_queryset_33(self, request:Request, queryset, api, method):
+        u:Users = request.user
+        manage_depts = u.manage_dept.all()
+        if not manage_depts:
+            return queryset
+        dept_list = []
+        for dept in manage_depts:
+            dept_list.extend(recursion_down_fast(dept, 'parent', 'id'))
+        # 自己创建的数据要能看到
+        # 应对归属a管b、c等情况，如果自己创建数据则是a，不显式指定自己的数据就查不到
+        if queryset.model._meta.model_name == 'dept':
+            return queryset.filter(Q(id__in=set(dept_list)) | Q(creator=u))
+        return queryset.filter(Q(dept_belong_id__in=set(dept_list)) |
+                               Q(creator=u))
+
+
+class DataLevelPermissionMargeFilter(DataLevelPermissionsFilter):
+    def _extracted_from_filter_queryset_33(self, request, queryset, api, method):
+        queryset = super()._extracted_from_filter_queryset_33(request, queryset, api, method)
+        return DataLevelPermissionsSubFilter._extracted_from_filter_queryset_33(self, request, queryset, api, method)
+
+
 class CustomDjangoFilterBackend(DjangoFilterBackend):
     lookup_prefixes = {
         "^": "istartswith",
@@ -240,14 +266,14 @@ class CustomDjangoFilterBackend(DjangoFilterBackend):
 
         # TODO: remove assertion in 2.1
         if filterset_class is None and hasattr(view, "filter_class"):
-            utils.deprecate(
+            deprecate(
                 "`%s.filter_class` attribute should be renamed `filterset_class`." % view.__class__.__name__
             )
             filterset_class = getattr(view, "filter_class", None)
 
         # TODO: remove assertion in 2.1
         if filterset_fields is None and hasattr(view, "filter_fields"):
-            utils.deprecate(
+            deprecate(
                 "`%s.filter_fields` attribute should be renamed `filterset_fields`." % view.__class__.__name__
             )
             self.filter_fields = getattr(view, "filter_fields", None)
@@ -427,5 +453,5 @@ class CustomDjangoFilterBackend(DjangoFilterBackend):
                 return queryset
 
         if not filterset.is_valid() and self.raise_exception:
-            raise utils.translate_validation(filterset.errors)
+            raise translate_validation(filterset.errors)
         return filterset.qs

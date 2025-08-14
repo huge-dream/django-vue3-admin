@@ -205,10 +205,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                     },
                 },
                 dept: {
-                    title: '部门',
-                    search: {
-                        disabled: true,
-                    },
+                    title: '所属部门',
                     type: 'dict-tree',
                     dict: dict({
                         isTree: true,
@@ -217,7 +214,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                         label: 'name'
                     }),
                     column: {
-                        minWidth: 200, //最小列宽
+                        minWidth: 300, //最小列宽
                         formatter({ value, row, index }) {
                             return row.dept_name_all
                         }
@@ -241,6 +238,39 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                                 },
                             },
                         },
+                    },
+                },
+                manage_dept: {
+                    title: '管理部门',
+                    type: 'dict-tree',
+                    dict: dict({
+                        isTree: true,
+                        url: '/api/system/dept/all_dept/',
+                        value: 'id',
+                        label: 'name'
+                    }),
+                    column: {
+                        minWidth: 300
+                    },
+                    form: {
+                        value: [],
+                        component: {
+                            filterable: true,
+                            multiple: true,
+                            placeholder: '请选择',
+                            clearable: true,
+                            collapseTags: true,
+                            maxCollapseTags: 2,
+                            collapseTagsTooltip: true,
+                            props: {
+                                checkStrictly: true,
+                                props: {
+                                    value: 'id',
+                                    label: 'name',
+                                },
+                            },
+                        },
+                        helper: '不选则默认为所属部门',
                     },
                 },
                 role: {
@@ -378,6 +408,9 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                     dict: dict({
                         data: dictionary('button_status_bool'),
                     }),
+                    form: {
+                        value: true
+                    }
                 },
                 avatar: {
                     title: '头像',
@@ -392,8 +425,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                 },
                 ...commonCrudConfig({
                     dept_belong_id: {
-                        form: true,
-                        table: true
+                        form: false,
+                        table: false
                     }
                 })
             },
