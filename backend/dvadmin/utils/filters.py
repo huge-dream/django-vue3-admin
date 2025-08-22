@@ -206,18 +206,21 @@ class DataLevelPermissionsSubFilter(DataLevelPermissionsFilter):
 
     def _extracted_from_filter_queryset_33(self, request:Request, queryset, api, method):
         u:Users = request.user
-        manage_depts = u.manage_dept.all()
-        if not manage_depts:
+        if u.is_superuser:
             return queryset
         dept_list = []
-        for dept in manage_depts:
-            dept_list.extend(recursion_down_fast(dept, 'parent', 'id'))
+        # 自己部门 交 管理部门
+        if u.manage_dept.exists(): # 兼容旧数据
+            for dept in u.manage_dept.all():
+                dept_list.extend(recursion_down_fast(dept, 'parent', 'id'))
+        else:
+            dept_list = recursion_down_fast(u.dept, 'parent', 'id')
+        dept_list = set(recursion_down_fast(u.dept)) & set(dept_list)
         # 自己创建的数据要能看到
         # 应对归属a管b、c等情况，如果自己创建数据则是a，不显式指定自己的数据就查不到
         if queryset.model._meta.model_name == 'dept':
-            return queryset.filter(Q(id__in=set(dept_list)) | Q(creator=u))
-        return queryset.filter(Q(dept_belong_id__in=set(dept_list)) |
-                               Q(creator=u))
+            return queryset.filter(Q(id__in=dept_list) | Q(creator=u))
+        return queryset.filter(Q(dept_belong_id__in=dept_list) | Q(creator=u))
 
 
 class DataLevelPermissionMargeFilter(DataLevelPermissionsFilter):
