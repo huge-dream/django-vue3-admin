@@ -14,6 +14,7 @@
  */
 declare type MittType<T = any> = {
 	openSetingsDrawer?: string;
+	scanDataDoRefresh?: string;
 	restoreDefault?: string;
 	setSendColumnsChildren: T;
 	setSendClassicChildren: T;

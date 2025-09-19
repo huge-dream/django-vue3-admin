@@ -1,0 +1,49 @@
+[ {
+        "name": "扫码信息",
+        "icon": "ele-Bell",
+        "sort": 8,
+        "is_link": false,
+        "is_catalog": true,
+        "web_path": "/releaseInfo",
+        "component": "",
+        "component_name": "",
+        "status": true,
+        "cache": true,
+        "visible": true,
+        "parent": null,
+        "children": [
+            {
+                "name": "扫码数据",
+                "icon": "ele-Bell",
+                "sort": 1,
+                "is_link": false,
+                "is_catalog": false,
+                "web_path": "/scanData",
+                "component": "plugins/scanInfo/src/scanData/index",
+                "component_name": "scanData",
+                "status": true,
+                "cache": false,
+                "visible": true,
+                "children": [],
+                "menu_button": [],
+                "menu_field": []
+            },{
+                "name": "异常扫码记录",
+                "icon": "ele-Bell",
+                "sort": 2,
+                "is_link": false,
+                "is_catalog": false,
+                "web_path": "/scanRecord",
+                "component": "plugins/scanInfo/src/scanRecord/index",
+                "component_name": "scanRecord",
+                "status": true,
+                "cache": false,
+                "visible": true,
+                "children": [],
+                "menu_button": [],
+                "menu_field": []
+            }
+        ],
+        "menu_button": [],
+        "menu_field": []
+    }]

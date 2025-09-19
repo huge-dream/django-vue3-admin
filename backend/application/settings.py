@@ -28,7 +28,7 @@ from conf.env import *
 # See https://docs.djangoproject.com/en/3.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure--z8%exyzt7e_%i@1+#1mm=%lb5=^fx_57=1@a+_y7bg5-w%)sm"
+SECRET_KEY = "django-insecure--z8%exyz2sae4e_%i@1+#1mm=%lb5=^fx_57=1@a+_y7bg5-w%)sm"
 # 初始化plugins插件路径到环境变量中
 PLUGINS_PATH = os.path.join(BASE_DIR, "plugins")
 sys.path.insert(0, os.path.join(PLUGINS_PATH))
@@ -408,7 +408,8 @@ SHARED_APPS = []
 # ********** 一键导入插件配置开始 **********
 # 例如:
 # from dvadmin_upgrade_center.settings import *    # 升级中心
-from dvadmin3_celery.settings import *            # celery 异步任务
+from code_info.settings import *            # celery 异步任务
+# from dvadmin3_celery.settings import *            # celery 异步任务
 # from dvadmin_third.settings import *            # 第三方用户管理
 # from dvadmin_ak_sk.settings import *            # 秘钥管理管理
 # from dvadmin_tenants.settings import *            # 租户管理
@@ -416,3 +417,22 @@ from dvadmin3_celery.settings import *            # celery 异步任务
 #from dvadmin_uniapp.settings import *
 # ...
 # ********** 一键导入插件配置结束 **********
+
+
+if locals().get('ENVIRONMENT') != 'local':
+    # 1. 定义统一的迁移文件存放目录（例如：`./all_migrations/`）
+    BASE_MIGRATIONS_DIR = "all_migrations"
+    # 2. 自动生成 MIGRATION_MODULES
+    # 2. 定义需要排除的 App（如 Django 内置 App 或第三方 App）
+    EXCLUDED_APPS = ('django','admin','auth.','contenttypes.','sessions.','psqlextra','rest_framework','drf_yasg',)
+    MIGRATION_MODULES = {}
+    for app in INSTALLED_APPS:
+        if app.startswith(EXCLUDED_APPS):
+            continue
+        # 判断是否存在目录，并在目录下创建一个__init__.py 文件
+        app_migrations_dir = os.path.join(BASE_DIR, BASE_MIGRATIONS_DIR, app.split('.')[-1],  'migrations')
+        if not os.path.exists(app_migrations_dir):
+            os.makedirs(os.path.join(app_migrations_dir))
+            open(os.path.join(BASE_DIR, BASE_MIGRATIONS_DIR, app.split('.')[-1],'migrations', '__init__.py'), 'w').close()
+        MIGRATION_MODULES.update(
+            {app.split('.')[-1]: f"{BASE_MIGRATIONS_DIR}.{app.split('.')[-1]}.migrations"})

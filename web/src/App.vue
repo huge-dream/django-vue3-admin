@@ -5,6 +5,7 @@
 		<LockScreen v-if="themeConfig.isLockScreen" />
 		<Setings ref="setingsRef" v-show="themeConfig.lockScreenTime > 1" />
 		<CloseFull v-if="!themeConfig.isLockScreen" />
+    <Scanned ref="scannedRef" ></Scanned>
 <!--		<Upgrade v-if="getVersion" />-->
 	</el-config-provider>
 </template>
@@ -20,17 +21,22 @@ import other from '/@/utils/other';
 import { Local, Session } from '/@/utils/storage';
 import mittBus from '/@/utils/mitt';
 import setIntroduction from '/@/utils/setIconfont';
+import Scan from './scan';
+const scan = new Scan(200); // 200是扫码枪有效输入间隔毫秒
+let removeScanListener: () => void;
+
 
 // 引入组件
 const LockScreen = defineAsyncComponent(() => import('/@/layout/lockScreen/index.vue'));
 const Setings = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/setings.vue'));
 const CloseFull = defineAsyncComponent(() => import('/@/layout/navBars/breadcrumb/closeFull.vue'));
-const Upgrade = defineAsyncComponent(() => import('/@/layout/upgrade/index.vue'));
+const Scanned = defineAsyncComponent(() => import('/@/layout/Scanned/index.vue'));
 import { ElMessageBox, ElNotification, NotificationHandle } from 'element-plus';
 import { useCore } from '/@/utils/cores';
 // 定义变量内容
 const { messages, locale } = useI18n();
 const setingsRef = ref();
+const scannedRef = ref();
 const route = useRoute();
 const stores = useTagsViewRoutes();
 const storesThemeConfig = useThemeConfig();
@@ -61,8 +67,21 @@ onBeforeMount(() => {
 	// 设置批量第三方 js
 	setIntroduction.jsCdn();
 });
+// 扫码后的 处理
+const handleScan = (code: string) => {
+    console.log('Scanned code:', code);
+    scannedRef.value.isShow = true;
+    scannedRef.value.scanCode = code;
+    scannedRef.value.postData();
+    // 处理扫描后的逻辑
+};
+
 // 页面加载时
 onMounted(() => {
+  // 开始监听扫码枪扫码并设置回调
+  removeScanListener = scan.onScan(handleScan);
+  scan.start();
+
 	nextTick(() => {
 		// 监听布局配'置弹窗点击打开
 		mittBus.on('openSetingsDrawer', () => {
@@ -89,7 +108,13 @@ onMounted(() => {
 });
 // 页面销毁时，关闭监听布局配置/i18n监听
 onUnmounted(() => {
+  // 结束监听
+  scan.stop();
+  // 移除全局事件监听器
+  if (removeScanListener) removeScanListener();
+
 	mittBus.off('openSetingsDrawer', () => {});
+	mittBus.off('scanDataDoRefresh', () => {});
 });
 
 </script>

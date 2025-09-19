@@ -4,7 +4,7 @@
 		<el-scrollbar ref="layoutMainScrollbarRef" class="layout-main-scroll layout-backtop-header-fixed"
 			wrap-class="layout-main-scroll" view-class="layout-main-scroll">
 			<LayoutParentView />
-      <LayoutFooter v-if="isFooter" />
+<!--      <LayoutFooter v-if="isFooter" />-->
 		</el-scrollbar>
 		<el-backtop :target="setBacktopClass" />
 	</el-main>
@@ -20,7 +20,7 @@ import { NextLoading } from '/@/utils/loading';
 
 // 引入组件
 const LayoutParentView = defineAsyncComponent(() => import('/@/layout/routerView/parent.vue'));
-const LayoutFooter = defineAsyncComponent(() => import('/@/layout/footer/index.vue'));
+// const LayoutFooter = defineAsyncComponent(() => import('/@/layout/footer/index.vue'));
 
 // 定义变量内容
 const layoutMainScrollbarRef = ref();

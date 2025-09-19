@@ -204,6 +204,29 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                         },
                     },
                 },
+                description: {
+                    title: '班次',
+                    search: {
+                        show: true,
+                    },
+                    type: 'input',
+                    column: {
+                        minWidth: 100, //最小列宽
+                    },
+                    form: {
+                        rules: [
+                            // 表单校验规则
+                            {
+                                required: true,
+                                message: '班次必填项',
+                            },
+                        ],
+                        component: {
+                            span: 12,
+                            placeholder: '请输入班次',
+                        }
+                    },
+                },
                 dept: {
                     title: '部门',
                     search: {

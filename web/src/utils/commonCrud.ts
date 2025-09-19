@@ -94,28 +94,6 @@ export const commonCrudConfig = (options: CrudOptions = {}) => {
 				helper: '默认不填则为当前创建用户的部门ID',
 			},
 		},
-		description: {
-			title: '备注',
-			search: {
-				show: merged.description.search,
-			},
-			type: 'textarea',
-			column: {
-				width: merged.description.width,
-				show: merged.description.table,
-			},
-			form: {
-				show: merged.description.form,
-				component: {
-					placeholder: '请输入内容',
-					showWordLimit: true,
-					maxlength: '200',
-				},
-			},
-			viewForm: {
-				show: true,
-			},
-		},
 
 		modifier_name: {
 			title: '修改人',
