@@ -93,6 +93,7 @@ ENV/
 *.pyc
 conf/*
 !conf/env.example.py
+!conf/env.py
 media/
 __pypackages__/
 package-lock.json
