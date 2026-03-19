@@ -1,0 +1,4 @@
+FROM node:16.19-alpine
+WORKDIR /
+COPY ./web/package.json .
+RUN yarn install --registry=https://registry.npmmirror.com

@@ -1,0 +1,486 @@
+[
+    {
+        "parent": null,
+        "title": "基础配置",
+        "key": "base",
+        "value": null,
+        "sort": 0,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": null,
+        "placeholder": null,
+        "setting": null,
+        "children": [
+            {
+                "parent": 10,
+                "title": "网页标题",
+                "key": "web_title",
+                "value": "DVAdmin",
+                "sort": 1,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 0,
+                "rule": [],
+                "placeholder": "请输入网站标题",
+                "setting": null,
+                "children": []
+            },
+        {
+                "parent": 10,
+                "title": "网站小图标",
+                "key": "web_favicon",
+                "value": "",
+                "sort": 1,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 0,
+                "rule": [],
+                "placeholder": "请输入网站小图标",
+                "setting": null,
+                "children": []
+            },
+            {
+                "parent": 10,
+                "title": "开启验证码",
+                "key": "captcha_state",
+                "value": true,
+                "sort": 1,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 9,
+                "rule": [
+                    {
+                        "message": "必填项不能为空",
+                        "required": true
+                    }
+                ],
+                "placeholder": "请选择",
+                "setting": null,
+                "children": []
+            },
+            {
+                "parent": 10,
+                "title": "创建用户默认密码",
+                "key": "default_password",
+                "value": "admin123456",
+                "sort": 2,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 0,
+                "rule": [
+                    {
+                        "message": "必填项不能为空",
+                        "required": true
+                    }
+                ],
+                "placeholder": "请输入默认密码",
+                "setting": null,
+                "children": []
+            }
+        ]
+    },
+    {
+        "parent": null,
+        "title": "登录页配置",
+        "key": "login",
+        "value": null,
+        "sort": 1,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": null,
+        "placeholder": null,
+        "setting": null,
+        "children": [
+            {
+                "parent": 1,
+                "title": "网站标题",
+                "key": "site_title",
+                "value": "Dvadmin",
+                "sort": 1,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 0,
+                "rule": [],
+                "placeholder": "请输入网站标题",
+                "setting": null,
+                "children": []
+            },
+            {
+                "parent": 1,
+                "title": "网站名称",
+                "key": "site_name",
+                "value": "企业级后台管理系统",
+                "sort": 1,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 0,
+                "rule": [
+                    {
+                        "message": "必填项不能为空",
+                        "required": true
+                    }
+                ],
+                "placeholder": "请输入网站名称",
+                "setting": null,
+                "children": []
+            },
+            {
+                "parent": 1,
+                "title": "登录网站logo",
+                "key": "site_logo",
+                "value": null,
+                "sort": 2,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 7,
+                "rule": [],
+                "placeholder": "请上传网站logo",
+                "setting": null,
+                "children": []
+            },
+            {
+                "parent": 1,
+                "title": "登录页背景图",
+                "key": "login_background",
+                "value": null,
+                "sort": 3,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 7,
+                "rule": [],
+                "placeholder": "请上传登录背景页",
+                "setting": null,
+                "children": []
+            },
+            {
+                "parent": 1,
+                "title": "版权信息",
+                "key": "copyright",
+                "value": "2021-2024 django-vue-admin.com 版权所有",
+                "sort": 4,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 0,
+                "rule": [
+                    {
+                        "message": "必填项不能为空",
+                        "required": true
+                    }
+                ],
+                "placeholder": "请输入版权信息",
+                "setting": null,
+                "children": []
+            },
+            {
+                "parent": 1,
+                "title": "备案信息",
+                "key": "keep_record",
+                "value": "晋ICP备18005113号-3",
+                "sort": 5,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 0,
+                "rule": [
+                    {
+                        "message": "必填项不能为空",
+                        "required": true
+                    }
+                ],
+                "placeholder": "请输入备案信息",
+                "setting": null,
+                "children": []
+            },
+            {
+                "parent": 1,
+                "title": "帮助链接",
+                "key": "help_url",
+                "value": "https://django-vue-admin.com",
+                "sort": 6,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 0,
+                "rule": "",
+                "placeholder": "请输入帮助信息",
+                "setting": null,
+                "children": []
+            },
+            {
+                "parent": 1,
+                "title": "隐私链接",
+                "key": "privacy_url",
+                "value": "/api/system/clause/privacy.html",
+                "sort": 7,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 0,
+                "rule": [],
+                "placeholder": "请填写隐私链接",
+                "setting": null,
+                "children": []
+            },
+            {
+                "parent": 1,
+                "title": "条款链接",
+                "key": "clause_url",
+                "value": "/api/system/clause/terms_service.html",
+                "sort": 8,
+                "status": true,
+                "data_options": null,
+                "form_item_type": 0,
+                "rule": [],
+                "placeholder": "请输入条款链接",
+                "setting": null,
+                "children": []
+            }
+        ]
+    },
+    {
+    "title": "文件存储配置",
+    "key": "file_storage",
+    "value": null,
+    "sort": 0,
+    "status": true,
+    "data_options": null,
+    "form_item_type": 0,
+    "rule": null,
+    "placeholder": null,
+    "setting": null,
+    "children": [
+      {
+        "title": "存储引擎",
+        "key": "file_engine",
+        "value": "local",
+        "sort": 1,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 4,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请选择存储引擎",
+        "setting": "file_engine",
+        "children": []
+      },
+      {
+        "title": "文件是否备份",
+        "key": "file_backup",
+        "value": false,
+        "sort": 2,
+        "status": true,
+        "data_options": null,
+        "form_item_type": 9,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "启用云存储时,文件是否备份到本地",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "阿里云-AccessKey",
+        "key": "aliyun_access_key",
+        "value": null,
+        "sort": 3,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入AccessKey",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "阿里云-Secret",
+        "key": "aliyun_access_secret",
+        "value": null,
+        "sort": 4,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入Secret",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "阿里云-Endpoint",
+        "key": "aliyun_endpoint",
+        "value": null,
+        "sort": 5,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入Endpoint",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "阿里云-上传路径",
+        "key": "aliyun_path",
+        "value": "/media/",
+        "sort": 5,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入上传路径",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "阿里云-Bucket",
+        "key": "aliyun_bucket",
+        "value": null,
+        "sort": 7,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入Bucket",
+        "setting": null,
+        "children": []
+      },{
+        "title": "阿里云-cdn地址",
+        "key": "aliyun_cdn_url",
+        "value": null,
+        "sort": 7,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入cdn地址",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "腾讯云-SecretId",
+        "key": "tencent_secret_id",
+        "value": null,
+        "sort": 8,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入SecretId",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "腾讯云-SecretKey",
+        "key": "tencent_secret_key",
+        "value": null,
+        "sort": 9,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入SecretKey",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "腾讯云-Region",
+        "key": "tencent_region",
+        "value": null,
+        "sort": 10,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入Region",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "腾讯云-Bucket",
+        "key": "tencent_bucket",
+        "value": null,
+        "sort": 11,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入Bucket",
+        "setting": null,
+        "children": []
+      },
+      {
+        "title": "腾讯云-上传路径",
+        "key": "tencent_path",
+        "value": "/media/",
+        "sort": 12,
+        "status": false,
+        "data_options": null,
+        "form_item_type": 0,
+        "rule": [
+          {
+            "required": false,
+            "message": "必填项不能为空"
+          }
+        ],
+        "placeholder": "请输入上传路径",
+        "setting": null,
+        "children": []
+      }
+    ]
+  }
+]
