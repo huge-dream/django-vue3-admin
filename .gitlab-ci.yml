@@ -1,0 +1,24 @@
+stages:
+  - deploy
+
+deploy-to-server:
+  stage: deploy
+  tags:
+    - pis-deploy-code                     # 使用指定标签的 runner
+  image: alpine:latest                     # 轻量级基础镜像
+  before_script:
+    # 更换 Alpine 镜像源为阿里云（国内加速）
+    - sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+    # 安装 rsync
+    - apk add --no-cache rsync
+    # 确保目标目录存在（若不存在则创建）
+    - mkdir -p /mnt/data/pis/python3/DV3AdminDev
+  script:
+    # 使用 rsync 同步代码：
+    # -a 归档模式（保留权限、时间戳等）
+    # -v 显示详细输出
+    # -z 传输时压缩
+    # --delete 删除目标目录中源目录不存在的文件（保持完全一致）
+    - rsync -avz --delete ./ /mnt/data/pis/python3/DV3AdminDev/
+  rules:
+    - when: manual                         # 手动触发流水线
