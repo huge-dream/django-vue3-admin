@@ -243,6 +243,46 @@ const buildDefaultSections = (procurementCategory?: string) => {
   return sections
 }
 
+const replaceBuiltInFields = (section: any, defaultFields: any[]) => {
+  const customFields = Array.isArray(section?.fields) ? section.fields.filter((field: any) => !field?.builtIn) : []
+  const existingByKey = new Map<string, any>()
+  ;(section?.fields || []).forEach((f: any) => {
+    if (f?.key) existingByKey.set(String(f.key), f)
+  })
+  const mergedDefaults = defaultFields.map((df: any) => {
+    const copy = deepCopy(df)
+    const existing = df?.key ? existingByKey.get(String(df.key)) : null
+    if (existing) {
+      copy.label = existing.label ?? copy.label
+      copy.nameCn = existing.nameCn ?? existing.label ?? copy.label
+      copy.nameEn = existing.nameEn ?? copy.nameEn ?? ''
+      copy.nameVn = existing.nameVn ?? copy.nameVn ?? ''
+      // 内置字段也允许编辑这些业务属性，合并默认字段时必须保留用户修改值
+      if (existing.fixed !== undefined) copy.fixed = existing.fixed
+      if (existing.autoFill !== undefined) copy.autoFill = existing.autoFill
+      if (existing.purchaserRequired !== undefined) copy.purchaserRequired = existing.purchaserRequired
+      if (existing.supplierBehavior !== undefined) copy.supplierBehavior = existing.supplierBehavior
+      if (existing.supplierRequiredCode !== undefined) copy.supplierRequiredCode = existing.supplierRequiredCode
+      if (existing.supplierRequired !== undefined) copy.supplierRequired = existing.supplierRequired
+      if (existing.supplierEditable !== undefined) copy.supplierEditable = existing.supplierEditable
+      if (existing.remark !== undefined) copy.remark = existing.remark
+    } else {
+      copy.nameCn = copy.nameCn ?? copy.label ?? ''
+      copy.nameEn = copy.nameEn ?? ''
+      copy.nameVn = copy.nameVn ?? ''
+    }
+    return copy
+  })
+  section.fields = [...mergedDefaults, ...customFields]
+}
+
+const isBuiltInField = (sectionTitle: string, fieldKey: string, procurementCategory?: string) => {
+  if (!sectionTitle || !fieldKey) return false
+  const defaults = buildDefaultSections(procurementCategory)
+  const section = defaults.find((item) => item.title === sectionTitle)
+  return !!section?.fields?.some((field: any) => field?.key === fieldKey && field?.builtIn)
+}
+
 const titleAliases: Record<string, string> = {
   其它: '其它成本',
   其他: '其它成本',
@@ -290,19 +330,16 @@ const ensureAllSections = (form: any, titlesForEnabled?: string[], procurementCa
     }
   })
   const arr = Array.from(map.values())
-  // Always replace材料成本字段按采购类别
+  const currentCategory = procurementCategory || form?.procurement_category
+  // Always replace内置材料成本字段按采购类别，保留用户新增字段
   const materials = arr.find((s: any) => s?.title === '材料成本')
   if (materials) {
-    if (!Array.isArray(materials.fields) || !materials.fields.length) {
-      materials.fields = deepCopy(getMaterialsFields(procurementCategory || form?.procurement_category))
-    }
+    replaceBuiltInFields(materials, getMaterialsFields(currentCategory))
   }
-  // Only backfill加工成本字段，若已有自定义行不覆盖
+  // Always replace内置加工成本字段按采购类别，保留用户新增字段
   const process = arr.find((s: any) => s?.title === '加工成本')
   if (process) {
-    if (!Array.isArray(process.fields) || !process.fields.length) {
-      process.fields = deepCopy(getProcessFields(procurementCategory || form?.procurement_category))
-    }
+    replaceBuiltInFields(process, getProcessFields(currentCategory))
   }
   if (titlesForEnabled && titlesForEnabled.length) {
     applyEnabledFlags(arr, titlesForEnabled)
@@ -364,7 +401,10 @@ const resolveSectionsForSubmit = (form: any) => {
   const currentSections = normalizeSections(form.sections)
   if (!draftSections.length) return currentSections
   if (!currentSections.length) return draftSections
-  return countSectionFields(currentSections) > countSectionFields(draftSections) ? currentSections : draftSections
+  // 优先使用 latestSectionDraft（SectionBuilder 实时回传的用户编辑），避免 valueResolve 用旧 items 覆盖后提交
+  const draftCount = countSectionFields(draftSections)
+  const currentCount = countSectionFields(currentSections)
+  return draftCount >= currentCount ? draftSections : currentSections
 }
 
 const sectionsToItems = (sectionsRaw: any[], allowTitles?: string[]) => {
@@ -435,7 +475,7 @@ const itemsToSections = (items: any[], head?: any) => {
           ),
           supplierRequired: Number(r.is_computed || 0) === 1 ? false : [1, 2, 5].includes(Number(r.supplier_required || 0)),
           remark: r.remark || '',
-          builtIn: false
+          builtIn: isBuiltInField(title, r.item_no, head?.procurement_category)
         }))
     }
     if (title === '材料成本') sec.supplierCanAddRow = Number(head?.is_can_add_materials || 0) === 1
@@ -716,7 +756,15 @@ export const createCrudOptions = function ({ context }: CreateCrudOptionsProps):
             logPT('valueBuilder', { visibleTitles: form.__visibleTitles, sections: form.sections?.length })
           },
           valueResolve({ form }) {
-            // cost_template 返回的是 items，需要转换为 sections 供 UI 编辑
+            const currentSections = normalizeSections(form.sections)
+            const currentSectionFieldCount = countSectionFields(currentSections)
+            // 若当前已存在可编辑 sections（用户可能已修改），不要再被 form.items 覆盖
+            if (currentSections.length && currentSectionFieldCount > 0) {
+              latestSectionDraft = currentSections
+              logPT('valueResolve', { source: 'sections', sections: currentSections.length, fields: currentSectionFieldCount })
+              return
+            }
+            // 初次回填时（尚未形成 sections），再从 items 转换
             if (Array.isArray(form.items) && form.items.length) {
               const secs = itemsToSections(form.items, form)
               const vis = visibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
@@ -724,12 +772,13 @@ export const createCrudOptions = function ({ context }: CreateCrudOptionsProps):
               form.sections = secs
               form.__visibleTitles = vis
               latestSectionDraft = normalizeSections(secs)
+              logPT('valueResolve', { source: 'items', sections: secs.length, items: form.items.length })
               return
             }
             const ensured = ensureAllSections(form, form.__visibleTitles || [], form.procurement_category)
             form.sections = ensured
             latestSectionDraft = normalizeSections(ensured)
-            logPT('valueResolve', { sections: form.sections?.length })
+            logPT('valueResolve', { source: 'ensured', sections: form.sections?.length })
           }
         },
         update_datetime: {

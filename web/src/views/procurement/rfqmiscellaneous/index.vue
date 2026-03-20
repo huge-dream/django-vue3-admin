@@ -428,16 +428,21 @@ const categoryDict = [
 ]
 
 const statusDict = [
-  { value: 1, label: '草稿' },
-  { value: 2, label: '已确认' },
-  { value: 3, label: '已发布' },
-  { value: 4, label: '询价中' },
-  { value: 5, label: '议价中' },
-  { value: 6, label: '已议价' },
-  { value: 7, label: '价格评审' },
-  { value: 8, label: '作废' },
-  { value: 9, label: '新增(结束)' }
+  { value: 1, label: '开立' },
+  { value: 2, label: '确认' },
+  { value: 3, label: '发布' },
+  { value: 4, label: '报价中' },
+  { value: 5, label: '报价结束' },
+  { value: 6, label: '比议价中' },
+  { value: 7, label: '价格审核' },
+  { value: 8, label: '核价通过(结束)' },
+  { value: 9, label: '落标(结束)' },
+  { value: 0, label: '作废' }
 ]
+
+const STATUS_OPEN = 1
+const STATUS_CONFIRMED = 2
+const STATUS_PUBLISHED = 3
 
 const paymentMethods = [
   { value: 1, label: '月结30天' },
@@ -917,6 +922,10 @@ const currentUserName = computed(
     userStore.userInfos?.nickName ||
     ''
 )
+const getStatusCode = (value: unknown) => Number(value)
+const isOpenStatus = (value: unknown) => getStatusCode(value) === STATUS_OPEN
+const isReadonlyStatus = (value: unknown) => [STATUS_CONFIRMED, STATUS_PUBLISHED].includes(getStatusCode(value))
+const getErrorMessage = (err: any, fallback: string) => err?.msg || err?.message || err?.response?.data?.msg || fallback
 
 const emptyForm = () => ({
   id: null,
@@ -1079,14 +1088,15 @@ const enabledSections = computed(() => allowedSectionsForTemplate(currentTemplat
 const profitTaxSections = computed(() => enabledSections.value.filter((s) => profitTaxNames.includes(s)))
 const primarySections = computed(() => enabledSections.value.filter((s) => !profitTaxNames.includes(s)))
 
-const statusTagType = (s: string) => {
-  if (s === 'draft') return 'info'
-  if (s === 'confirmed') return 'success'
-  if (s === 'published') return 'warning'
-  if (s === 'void') return 'danger'
+const statusTagType = (s: unknown) => {
+  const status = getStatusCode(s)
+  if (status === STATUS_OPEN) return 'info'
+  if (status === STATUS_CONFIRMED) return 'success'
+  if (status === STATUS_PUBLISHED) return 'warning'
+  if (status === 0) return 'danger'
   return 'primary'
 }
-const statusLabel = (s: string) => statusDict.find((i) => i.value === s)?.label || s
+const statusLabel = (s: unknown) => statusDict.find((i) => i.value === getStatusCode(s))?.label || String(s ?? '')
 
 const partNoHiddenSections = new Set(['加工成本', '其它成本', '利润', '税金'])
 const partNoHiddenDisplaySections = new Set(['材料成本', '加工成本', '其它成本', '利润', '税金'])
@@ -1326,7 +1336,11 @@ const openDetail = async (row: any, mode: 'edit' | 'view') => {
     captureQuoteDeadlineOpenBaseDate()
   }
   await Promise.all([ensureTemplatesLoaded(), loadCompanyOptions(), loadPartOptions()])
-  dialog.mode = mode
+  const nextMode = mode === 'edit' && isReadonlyStatus(row?.status) ? 'view' : mode
+  if (mode === 'edit' && nextMode === 'view') {
+    ElMessage.warning('确认状态禁止编辑，已为您切换为查看模式。')
+  }
+  dialog.mode = nextMode
   dialog.currentId = row.id
   skipTemplateWatch.value = true
   // 以详情接口为准，避免列表字段缺失导致子表/字段不同步
@@ -1711,149 +1725,155 @@ watch(
 
 const saveForm = async () => {
   if (isViewMode.value) return
+  if (dialog.mode === 'edit' && !isOpenStatus(form.status)) {
+    ElMessage.error('确认状态不允许编辑，请使用查看模式。')
+    dialog.mode = 'view'
+    return
+  }
   if (!validatePurchaserRequiredFields()) return
   if (!validateQuoteDeadlineAfterOpenDay()) return
   if (!form.buyer && currentUserName.value) {
     form.buyer = currentUserName.value
   }
-  const uploadedAttachments = await prepareAttachmentsForSubmit()
-  form.attachments = uploadedAttachments
-  const partId = form.part_no || ''
+  try {
+    const uploadedAttachments = await prepareAttachmentsForSubmit()
+    form.attachments = uploadedAttachments
+    const partId = form.part_no || ''
 
-  const buildMaterialCosts = () =>
-    costRows.value
-      .filter((r) => r.section === '材料成本')
-      .map((r) => ({
+    const buildMaterialCosts = () =>
+      costRows.value
+        .filter((r) => r.section === '材料成本')
+        .map((r) => ({
+          part_id: partId,
+          material_spec: r.values?.material ?? r.values?.material_spec ?? '',
+          length: r.values?.length ?? '',
+          width: r.values?.width ?? '',
+          height: r.values?.height ?? '',
+          unit_price: r.values?.unitPrice ?? r.values?.unitprice ?? r.values?.unit_price ?? r.values?.price ?? null,
+          qty: r.values?.qty ?? form.purchase_qty ?? null,
+          specific_gravity: r.values?.specificgravity ?? r.values?.specific_gravity ?? '',
+          material_cost: r.values?.material_cost ?? r.values?.materialCost ?? null,
+          remark: r.values?.remark ?? '',
+          option_json: JSON.stringify(r.values || {})
+        }))
+
+    const buildProcessCosts = () =>
+      costRows.value
+        .filter((r) => r.section === '加工成本')
+        .map((r) => ({
+          part_id: partId,
+          process_station: r.values?.process_station ?? '',
+          unit: normalizeUnitCode(r.values?.unit ?? r.values?.process_unit) || null,
+          unit_rate: r.values?.unitrate ?? r.values?.unit_rate ?? null,
+          process_qty: r.values?.processqty ?? r.values?.process_qty ?? '',
+          process_price: r.values?.processprice ?? r.values?.process_price ?? null,
+          remark: r.values?.remark ?? '',
+          option_json: JSON.stringify(r.values || {})
+        }))
+
+    const otherRow = costRows.value.find((r) => r.section === '其它成本')?.values || {}
+    const profitRow = costRows.value.find((r) => r.section === '利润')?.values || {}
+    const taxRow = costRows.value.find((r) => r.section === '税金')?.values || {}
+    const productDetailRow = costRows.value.find((r) => r.section === '产品明细')?.values || {}
+
+    const packagingCost = Number(otherRow.packaging_cost ?? otherRow.packagingCost ?? 0) || 0
+    const transportationCost = Number(otherRow.transportation_cost ?? otherRow.transportationCost ?? 0) || 0
+    const profitRate = Number(profitRow.profitRate ?? profitRow.profit_rate ?? 0) || 0
+    const taxRate = Number(taxRow.taxRate ?? taxRow.tax_rate ?? 0) || 0
+    const targetPrice = Number(form.target_price) || 0
+    const rfqPartId = String((productDetailRow.partNo ?? productDetailRow.part_id ?? partId) || '')
+    const rfqProductName = (productDetailRow.desc ?? productDetailRow.product_name ?? form.part_name) || ''
+    const rfqUnit = (productDetailRow.unit ?? form.part_unit) || ''
+    const rfqQty = Number(productDetailRow.qty ?? productDetailRow.quantity ?? form.purchase_qty) || 0
+    const rfqUnitPrice =
+      Number(productDetailRow.price ?? productDetailRow.unitPrice ?? productDetailRow.unit_price ?? targetPrice) || 0
+
+    const materialTotal = buildMaterialCosts().reduce((sum, r) => sum + (Number(r.material_cost) || 0), 0)
+    const processTotal = buildProcessCosts().reduce((sum, r) => sum + (Number(r.process_price) || 0), 0)
+    const otherTotal = packagingCost + transportationCost
+    const exclTax = materialTotal + processTotal + otherTotal
+    const inclTax = exclTax * (1 + taxRate)
+
+    const payload: any = {
+      inquiry_no: form.inquiry_no || undefined,
+      title: form.title,
+      purchase_type: 2,
+      material_type: undefined,
+      template: form.template_code || String(form.template || ''),
+      is_bom: Number(form.is_bom) || 0,
+      currency: form.currency,
+      company_code: form.plant || undefined,
+      purchase_dept: form.purchase_dept || undefined,
+      buyer: form.buyer,
+      quote_deadline: normalizeQuoteDeadline(form.quote_deadline) || undefined,
+      target_price: targetPrice,
+      lead_time_days: Number(form.lead_time_days) || 0,
+      payment_method: Number(form.payment_method) || 1,
+      status: Number(form.status) || STATUS_OPEN,
+      remark: form.remark,
+      suppliers: (form.vendors || []).map((v: any) => ({
         part_id: partId,
-        material_spec: r.values?.material ?? r.values?.material_spec ?? '',
-        length: r.values?.length ?? '',
-        width: r.values?.width ?? '',
-        height: r.values?.height ?? '',
-        unit_price: r.values?.unitPrice ?? r.values?.unitprice ?? r.values?.unit_price ?? r.values?.price ?? null,
-        qty: r.values?.qty ?? form.purchase_qty ?? null,
-        specific_gravity: r.values?.specificgravity ?? r.values?.specific_gravity ?? '',
-        material_cost: r.values?.material_cost ?? r.values?.materialCost ?? null,
-        remark: r.values?.remark ?? '',
-        option_json: JSON.stringify(r.values || {})
-      }))
-
-  const buildProcessCosts = () =>
-    costRows.value
-      .filter((r) => r.section === '加工成本')
-      .map((r) => ({
-        part_id: partId,
-        process_station: r.values?.process_station ?? '',
-        unit: normalizeUnitCode(r.values?.unit ?? r.values?.process_unit) || null,
-        unit_rate: r.values?.unitrate ?? r.values?.unit_rate ?? null,
-        process_qty: r.values?.processqty ?? r.values?.process_qty ?? '',
-        process_price: r.values?.processprice ?? r.values?.process_price ?? null,
-        remark: r.values?.remark ?? '',
-        option_json: JSON.stringify(r.values || {})
-      }))
-
-  const otherRow = costRows.value.find((r) => r.section === '其它成本')?.values || {}
-  const profitRow = costRows.value.find((r) => r.section === '利润')?.values || {}
-  const taxRow = costRows.value.find((r) => r.section === '税金')?.values || {}
-  const productDetailRow = costRows.value.find((r) => r.section === '产品明细')?.values || {}
-
-  const packagingCost = Number(otherRow.packaging_cost ?? otherRow.packagingCost ?? 0) || 0
-  const transportationCost = Number(otherRow.transportation_cost ?? otherRow.transportationCost ?? 0) || 0
-  const profitRate = Number(profitRow.profitRate ?? profitRow.profit_rate ?? 0) || 0
-  const taxRate = Number(taxRow.taxRate ?? taxRow.tax_rate ?? 0) || 0
-  const targetPrice = Number(form.target_price) || 0
-  const rfqPartId = String((productDetailRow.partNo ?? productDetailRow.part_id ?? partId) || '')
-  const rfqProductName = (productDetailRow.desc ?? productDetailRow.product_name ?? form.part_name) || ''
-  const rfqUnit = (productDetailRow.unit ?? form.part_unit) || ''
-  const rfqQty = Number(productDetailRow.qty ?? productDetailRow.quantity ?? form.purchase_qty) || 0
-  const rfqUnitPrice =
-    Number(productDetailRow.price ?? productDetailRow.unitPrice ?? productDetailRow.unit_price ?? targetPrice) || 0
-
-  const materialTotal = buildMaterialCosts().reduce((sum, r) => sum + (Number(r.material_cost) || 0), 0)
-  const processTotal = buildProcessCosts().reduce((sum, r) => sum + (Number(r.process_price) || 0), 0)
-  const otherTotal = packagingCost + transportationCost
-  const exclTax = materialTotal + processTotal + otherTotal
-  const inclTax = exclTax * (1 + taxRate)
-
-  const payload: any = {
-    // 主表字段（与后端 Inquiry 模型一致）
-    inquiry_no: form.inquiry_no || undefined, // 新增时可不传，让后端自动生成
-    title: form.title,
-    purchase_type: 2,
-    material_type: undefined,
-    template: form.template_code || String(form.template || ''),
-    is_bom: Number(form.is_bom) || 0,
-    currency: form.currency,
-    company_code: form.plant || undefined,
-    purchase_dept: form.purchase_dept || undefined,
-    buyer: form.buyer,
-    quote_deadline: normalizeQuoteDeadline(form.quote_deadline) || undefined,
-    target_price: targetPrice,
-    lead_time_days: Number(form.lead_time_days) || 0,
-    payment_method: Number(form.payment_method) || 1,
-    status: Number(form.status) || 1,
-    remark: form.remark,
-
-    // 关联子表（后端嵌套 upsert）
-    suppliers: (form.vendors || []).map((v: any) => ({
-      part_id: partId,
-      supplier_code: v.supplier_code || v.supplier_id || v.name || '',
-      supplier_name: v.supplier_name || v.name || '',
-      contact_person: v.contact || '',
-      contact_email: v.email || '',
-      contact_phone: v.phone || ''
-    })),
-    attachments: ['drawing', 'tender', 'other'].flatMap((fileType: string) =>
-      (uploadedAttachments?.[fileType] || []).map((f: any) => ({
-        part_id: partId,
-        file_type: attachmentTypeCodeMap[fileType as keyof typeof attachmentTypeCodeMap] || 3,
-        file_name: f.name || f.file_name || '',
-        file_path: f.url || f.file_path || '',
-        upload_user: currentUserName.value || ''
-      }))
-    ),
-    material_costs: buildMaterialCosts(),
-    process_costs: buildProcessCosts(),
-    other_costs: [
-      {
-        part_id: partId,
-        packaging_cost: packagingCost,
-        transportation_cost: transportationCost
-      }
-    ],
-    profit_costs: [
-      {
-        part_id: partId,
-        tax_rate: taxRate,
-        profit_rate: profitRate
-      }
-    ],
-    rfq_items: [
-      {
-        part_id: rfqPartId,
-        product_name: rfqProductName,
-        unit: rfqUnit,
-        qty: rfqQty,
-        is_bom: Number(form.is_bom) || 0,
-        unit_price: rfqUnitPrice,
-        total_material_cost: Number(materialTotal.toFixed(4)),
-        total_processing_cost: Number(processTotal.toFixed(4)),
-        total_other_expense: Number(otherTotal.toFixed(4)),
-        total_opex_amt: 0,
-        profit_rate: profitRate,
-        total_price_excl_tax: Number(exclTax.toFixed(4)),
-        tax_rate: taxRate,
-        total_price_incl_tax: Number(inclTax.toFixed(4)),
-        option_json: JSON.stringify(productDetailRow || {})
-      }
-    ]
+        supplier_code: v.supplier_code || v.supplier_id || v.name || '',
+        supplier_name: v.supplier_name || v.name || '',
+        contact_person: v.contact || '',
+        contact_email: v.email || '',
+        contact_phone: v.phone || ''
+      })),
+      attachments: ['drawing', 'tender', 'other'].flatMap((fileType: string) =>
+        (uploadedAttachments?.[fileType] || []).map((f: any) => ({
+          part_id: partId,
+          file_type: attachmentTypeCodeMap[fileType as keyof typeof attachmentTypeCodeMap] || 3,
+          file_name: f.name || f.file_name || '',
+          file_path: f.url || f.file_path || '',
+          upload_user: currentUserName.value || ''
+        }))
+      ),
+      material_costs: buildMaterialCosts(),
+      process_costs: buildProcessCosts(),
+      other_costs: [
+        {
+          part_id: partId,
+          packaging_cost: packagingCost,
+          transportation_cost: transportationCost
+        }
+      ],
+      profit_costs: [
+        {
+          part_id: partId,
+          tax_rate: taxRate,
+          profit_rate: profitRate
+        }
+      ],
+      rfq_items: [
+        {
+          part_id: rfqPartId,
+          product_name: rfqProductName,
+          unit: rfqUnit,
+          qty: rfqQty,
+          is_bom: Number(form.is_bom) || 0,
+          unit_price: rfqUnitPrice,
+          total_material_cost: Number(materialTotal.toFixed(4)),
+          total_processing_cost: Number(processTotal.toFixed(4)),
+          total_other_expense: Number(otherTotal.toFixed(4)),
+          total_opex_amt: 0,
+          profit_rate: profitRate,
+          total_price_excl_tax: Number(exclTax.toFixed(4)),
+          tax_rate: taxRate,
+          total_price_incl_tax: Number(inclTax.toFixed(4)),
+          option_json: JSON.stringify(productDetailRow || {})
+        }
+      ]
+    }
+    if (dialog.mode === 'create') {
+      await api.AddObj(payload)
+    } else if (dialog.currentId) {
+      await api.UpdateObj({ ...payload, id: dialog.currentId })
+    }
+    dialog.visible = false
+    crudExpose.doRefresh()
+  } catch (err: any) {
+    ElMessage.error(getErrorMessage(err, '保存失败'))
   }
-  if (dialog.mode === 'create') {
-    await api.AddObj(payload)
-  } else if (dialog.currentId) {
-    await api.UpdateObj({ ...payload, id: dialog.currentId })
-  }
-  dialog.visible = false
-  crudExpose.doRefresh()
 }
 
 const { crudOptions } = createCrudOptions({ crudExpose, onAdd: openCreate, onEdit: openEdit, onView: openView })

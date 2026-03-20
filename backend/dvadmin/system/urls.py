@@ -42,9 +42,6 @@ system_url.register(r'download_center', DownloadCenterViewSet)
 
 
 urlpatterns = [
-    # 向后兼容的路由:
-    # basicinfo 应用已移至‘sscadmin.basicinfo‘，但旧版前端仍调用‘/api/system/'
-    path("", include("sscadmin.basicinfo.urls")),
     path('user/export/', UserViewSet.as_view({'post': 'export_data', })),
     path('user/import/', UserViewSet.as_view({'get': 'import_data', 'post': 'import_data'})),
     path('system_config/save_content/', SystemConfigViewSet.as_view({'put': 'save_content'})),
