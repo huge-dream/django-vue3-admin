@@ -1,16 +1,18 @@
-import { dict, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud'
+import { compute, dict, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import * as api from './api'
 
 const statusDict = [
-  { value: 1, label: '草稿' },
-  { value: 2, label: '已确认' },
-  { value: 3, label: '已发布' },
-  { value: 4, label: '询价中' },
-  { value: 5, label: '议价中' },
-  { value: 6, label: '已议价' },
-  { value: 7, label: '价格评审' },
-  { value: 8, label: '作废' },
-  { value: 9, label: '新增(结束)' }
+  { value: 1, label: '开立' },
+  { value: 2, label: '确认' },
+  { value: 3, label: '发布' },
+  { value: 4, label: '报价中' },
+  { value: 5, label: '报价结束' },
+  { value: 6, label: '比议价中' },
+  { value: 7, label: '价格审核' },
+  { value: 8, label: '核价通过(结束)' },
+  { value: 9, label: '落标(结束)' },
+  { value: 0, label: '作废' }
 ]
 
 const paymentMethods = [
@@ -70,9 +72,18 @@ type ExtraHooks = {
   onView?: (row: any) => void
 }
 
+const STATUS_OPEN = 1
+const STATUS_CONFIRMED = 2
+const STATUS_PUBLISHED = 3
+
+const getRowStatus = (row: any) => Number(row?.status)
+const isOpenStatus = (row: any) => getRowStatus(row) === STATUS_OPEN
+const isConfirmedStatus = (row: any) => getRowStatus(row) === STATUS_CONFIRMED
+const canPublishStatus = (row: any) => isConfirmedStatus(row)
+const getErrorMessage = (err: any, fallback: string) => err?.msg || err?.message || err?.response?.data?.msg || fallback
+
 export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit, onView }: Partial<CreateCrudOptionsProps> & ExtraHooks): CreateCrudOptionsRet {
   void context
-  void crudExpose
   return {
     crudOptions: {
       form: {
@@ -92,7 +103,14 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
         // 新版：新增/编辑由 index.vue 自定义弹窗负责（嵌套子表一次提交）
         addRequest: async ({ form }) => api.AddObj(form),
         editRequest: async ({ form, row }) => api.UpdateObj({ ...form, id: row.id }),
-        delRequest: async ({ row }) => api.DelObj(row.id)
+        delRequest: async ({ row }) => {
+          try {
+            return await api.DelObj(row.id)
+          } catch (err: any) {
+            ElMessage.error(getErrorMessage(err, '删除失败'))
+            throw err
+          }
+        }
       },
       table: {
         rowKey: 'id'
@@ -110,10 +128,16 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
       },
       rowHandle: {
         fixed: 'right',
-        width: 380,
+        width: 420,
         buttons: {
           view: { show: false },
           edit: { show: false },
+          remove: {
+            text: '删除',
+            type: 'danger',
+            order: 1,
+            show: compute(({ row }) => isOpenStatus(row))
+          },
           customView: {
             text: '查看',
             type: 'info',
@@ -126,7 +150,8 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
           customEdit: {
             text: '编辑',
             type: 'primary',
-            show: true,
+            order: 1.5,
+            show: compute(({ row }) => isOpenStatus(row)),
             click({ row }) {
               onEdit && onEdit(row)
             }
@@ -135,12 +160,43 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
             text: '确认',
             type: 'success',
             order: 2,
-            show: ((ctx: any) => ctx.row.status !== 2) as any,
-            popConfirm: {
-              title: '确认将状态改为【确认】？',
-              confirm(ctx: any) {
-                const { row } = ctx
-                return api.UpdateObj({ ...row, status: 2 })
+            show: compute(({ row }) => isOpenStatus(row)),
+            async click({ row }) {
+              try {
+                await ElMessageBox.confirm('【确认】状态仅支持查看，不允许编辑或删除；如需修改请点击【还原】', '提示', {
+                  type: 'warning',
+                  confirmButtonText: '确定',
+                  cancelButtonText: '取消'
+                })
+                const res = await api.ConfirmObj(row.id)
+                crudExpose?.doRefresh?.()
+                return res
+              } catch (err: any) {
+                if (err === 'cancel' || err === 'close') return
+                ElMessage.error(getErrorMessage(err, '确认失败'))
+                throw err
+              }
+            }
+          },
+          restore: {
+            text: '还原',
+            type: 'primary',
+            order: 2.5,
+            show: compute(({ row }) => isConfirmedStatus(row)),
+            async click({ row }) {
+              try {
+                await ElMessageBox.confirm('确认将状态还原为【开立】？', '提示', {
+                  type: 'warning',
+                  confirmButtonText: '确定',
+                  cancelButtonText: '取消'
+                })
+                const res = await api.RestoreObj(row.id)
+                crudExpose?.doRefresh?.()
+                return res
+              } catch (err: any) {
+                if (err === 'cancel' || err === 'close') return
+                ElMessage.error(getErrorMessage(err, '还原失败'))
+                throw err
               }
             }
           },
@@ -148,12 +204,21 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
             text: '发布',
             type: 'warning',
             order: 3,
-            show: ((ctx: any) => ctx.row.status !== 3) as any,
-            popConfirm: {
-              title: '确认将状态改为【发布】？',
-              confirm(ctx: any) {
-                const { row } = ctx
-                return api.UpdateObj({ ...row, status: 3 })
+            show: compute(({ row }) => canPublishStatus(row)),
+            async click({ row }) {
+              try {
+                await ElMessageBox.confirm('确认将状态改为【发布】？', '提示', {
+                  type: 'warning',
+                  confirmButtonText: '确定',
+                  cancelButtonText: '取消'
+                })
+                const res = await api.PublishObj(row.id)
+                crudExpose?.doRefresh?.()
+                return res
+              } catch (err: any) {
+                if (err === 'cancel' || err === 'close') return
+                ElMessage.error(getErrorMessage(err, '发布失败'))
+                throw err
               }
             }
           }
@@ -232,7 +297,7 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
           title: '状态',
           type: 'dict-select',
           dict: dict({ data: statusDict }),
-          column: { width: 120 }
+          column: { width: 140 }
         },
         remark: {
           title: '备注',

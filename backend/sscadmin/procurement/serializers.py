@@ -434,15 +434,19 @@ class CostEstimateTemplateHeadSerializer(CustomModelSerializer):
                 is_computed_raw = item.get("isComputed", item.get("autoFill", 0))
             is_computed = to_int(is_computed_raw, 0)
             purchaser_required = normalize_purchaser_required(item.get("purchaser_required", 0), is_computed=is_computed)
+            # 兼容 item_name_en/vn 多种键名，确保编辑时用户修改的国际化名称能正确写入
+            item_name_cn = (item.get("item_name_cn") or item.get("itemNameCn") or "").strip() or ""
+            item_name_en = (item.get("item_name_en") or item.get("itemNameEn") or "").strip() or None
+            item_name_vn = (item.get("item_name_vn") or item.get("itemNameVn") or "").strip() or None
             bulk.append(
                 CostEstimateTemplateBody(
                     template_no=head,
                     cost_category=item.get("cost_category", ""),
                     item_order=item.get("item_order", idx),
                     item_no=item.get("item_no", str(idx)),
-                    item_name_cn=item.get("item_name_cn", ""),
-                    item_name_en=item.get("item_name_en", ""),
-                    item_name_vn=item.get("item_name_vn", ""),
+                    item_name_cn=item_name_cn,
+                    item_name_en=item_name_en,
+                    item_name_vn=item_name_vn,
                     is_fixed=int(item.get("is_fixed", item.get("item_category", 0)) or 0),
                     is_computed=is_computed,
                     purchaser_required=purchaser_required,
@@ -997,6 +1001,12 @@ class InquirySerializer(CustomModelSerializer):
         
         if not validated_data.get("inquiry_no"):
             validated_data["inquiry_no"] = self._generate_code()
+        # 询价单创建后默认进入“开立”，状态流转仅允许通过专用动作接口处理
+        validated_data["status"] = 1
+        validated_data.pop("confirm_user", None)
+        validated_data.pop("confirm_time", None)
+        validated_data.pop("release_user", None)
+        validated_data.pop("release_time", None)
         validated_data["create_user"] = current_user or validated_data.get("create_user")
         validated_data["update_user"] = current_user or validated_data.get("update_user")
         validated_data["update_time"] = current_time
@@ -1030,6 +1040,12 @@ class InquirySerializer(CustomModelSerializer):
         
         # 更新时不修改inquiry_no
         validated_data.pop("inquiry_no", None)
+        # 状态流转和对应审计字段仅允许通过专用动作接口处理
+        validated_data.pop("status", None)
+        validated_data.pop("confirm_user", None)
+        validated_data.pop("confirm_time", None)
+        validated_data.pop("release_user", None)
+        validated_data.pop("release_time", None)
         validated_data["update_user"] = current_user or validated_data.get("update_user")
         validated_data["update_time"] = current_time
         inquiry = super().update(instance, validated_data)

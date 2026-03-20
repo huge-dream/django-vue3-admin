@@ -1,7 +1,7 @@
 <template>
 	<div class="layout-footer pb5 pt2">
 		<div class="layout-footer-warp">
-			<div>❤️ Powered by tiantianxiangshang Copyright © 巨梦·DVAmin团队 ❤️</div>
+			<div></div>
 		</div>
 	</div>
 </template>

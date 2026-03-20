@@ -12,7 +12,7 @@ from application.settings import BASE_DIR
 
 # 使用sqlserver时，改为此配置
 DATABASE_ENGINE = "mssql"
-DATABASE_NAME = 'PISDB' # sqlserver 时使用
+DATABASE_NAME = 'pisdb'
 
 # 数据库地址 改为自己数据库地址
 DATABASE_HOST = '192.168.80.29'
@@ -31,9 +31,9 @@ TABLE_PREFIX = "pis_"  # Procurement Inquiry System
 REDIS_DB = 1
 CELERY_BROKER_DB = 3
 REDIS_PASSWORD = 'DVADMIN3'
-REDIS_HOST = 'localhost'
+REDIS_HOST = '177.10.0.15'
 # REDIS_URL = f'redis://:{REDIS_PASSWORD or ""}@{REDIS_HOST}:6379'
-REDIS_URL = f'redis://:ec77f72d@{REDIS_HOST}:6379'
+REDIS_URL = f'redis://{REDIS_HOST}:6379'
 # ================================================= #
 # ****************** 功能 启停  ******************* #
 # ================================================= #

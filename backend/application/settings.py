@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "dvadmin.system",
     "sscadmin.procurement",
     "sscadmin.basicinfo",
+    "sscadmin.supplier",
 ]
 
 MIDDLEWARE = [

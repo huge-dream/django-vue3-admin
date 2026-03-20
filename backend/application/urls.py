@@ -103,6 +103,7 @@ urlpatterns = (
             ),
             path("api/procurement/", include("sscadmin.procurement.urls")),
             path("api/basicinfo/", include("sscadmin.basicinfo.urls")),
+            path("api/supplier/", include("sscadmin.supplier.urls")),
             path("api/system/", include("dvadmin.system.urls")),
             path("api/login/", LoginView.as_view(), name="token_obtain_pair"),
             path("api/logout/", LogoutView.as_view(), name="token_obtain_pair"),
