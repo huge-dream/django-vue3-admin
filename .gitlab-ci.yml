@@ -12,11 +12,11 @@ deploy-to-server:
     # 安装 rsync
     - apk add --no-cache rsync
     # 确保目标目录存在（若不存在则创建，用于后续判断和备份逻辑的基础）
-    - mkdir -p /mnt/data/pis/python3/DV3Admin
+    - mkdir -p /mnt/data/pis/python3/DV3AdminDev
   script:
     # --- 新增：备份逻辑 ---
     # 定义变量
-    - TARGET_DIR="/mnt/data/pis/python3/DV3Admin"
+    - TARGET_DIR="/mnt/data/pis/python3/DV3AdminDev"
     - BACKUP_DATE=$(date +%Y%m%d)
     - BACKUP_DIR="${TARGET_DIR}_bak_${BACKUP_DATE}"
     
