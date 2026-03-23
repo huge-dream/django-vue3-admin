@@ -1,0 +1,2050 @@
+<template>
+  <fs-page>
+    <fs-crud ref="crudRef" v-bind="crudBinding" />
+
+    <el-dialog v-model="dialog.visible" :title="dialogTitle" width="1200px">
+      <div class="dialog-body">
+        <div class="status-bar">
+          <span>状态：</span>
+          <el-tag :type="statusTagType(form.status)">{{ statusLabel(form.status) }}</el-tag>
+        </div>
+
+        <el-tabs v-model="activeTab" type="card" class="tabs-fill">
+        <el-tab-pane label="基础信息" name="base">
+          <el-form :model="form" :disabled="isViewMode" label-width="120px" class="grid-form">
+             <el-form-item label="交易厂区">
+                  <el-select
+                    v-model="form.plant"
+                    placeholder="选择交易厂区"
+                    :loading="companyLoading"
+                    filterable
+                    clearable
+                    @change="handlePlantChange"
+                  >
+                    <el-option v-for="c in companyOptions" :key="c.value" :label="c.label" :value="c.value" />
+                  </el-select>
+                </el-form-item>
+            <el-form-item label="询价单号">
+              <el-input v-model="form.inquiry_no" placeholder="保存后自动生成" disabled />
+            </el-form-item>
+            <el-form-item label="询价单名称" required>
+              <el-input v-model="form.title" />
+            </el-form-item>
+            <el-form-item label="询价模版" required>
+              <el-select
+                v-model="form.template"
+                placeholder="选择模版"
+                :loading="templateLoading"
+                filterable
+              >
+                <el-option v-for="tpl in templateOptions" :key="tpl.value" :label="tpl.label" :value="tpl.value" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="采购件料号">
+              <el-select
+                v-model="form.part_no"
+                placeholder="选择采购件料号"
+                :loading="partLoading"
+                filterable
+                clearable
+                @change="handlePartChange"
+              >
+                <el-option
+                  v-for="p in partOptions"
+                  :key="p.value"
+                  :label="p.label"
+                  :value="p.value"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="采购件名称">
+              <el-input v-model="form.part_name" />
+            </el-form-item>           
+            <el-form-item label="产品类别" required>
+              <el-select v-model="form.product_category" placeholder="根据模版自动带出" disabled>
+                <el-option v-for="c in categoryDict" :key="c.value" :label="c.label" :value="c.value" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="报价截止时" required>
+              <div class="quote-deadline-input">
+                <el-date-picker
+                  v-model="quoteDeadlineDate"
+                  type="date"
+                  value-format="YYYY-MM-DD"
+                  placeholder="选择日期"
+                  :disabled-date="isQuoteDeadlineDateDisabled"
+                  style="width: 100%"
+                />
+                <el-select v-model="quoteDeadlineHour" placeholder="小时" :disabled="!quoteDeadlineDate" style="width: 120px">
+                  <el-option v-for="hour in quoteDeadlineHourOptions" :key="hour" :label="`${hour}:00`" :value="hour" />
+                </el-select>
+              </div>
+            </el-form-item>
+            <el-form-item label="是否成本结构">
+              <el-switch
+                v-model="form.is_bom"
+                :active-value="1"
+                :inactive-value="0"
+                active-text="是"
+                inactive-text="否"
+                disabled
+              />
+            </el-form-item>
+            <el-form-item label="采购部门">
+              <el-input v-model="form.purchase_dept" placeholder="当前登录用户所属部门" disabled />
+            </el-form-item>
+            <el-form-item label="采购人员" required>
+              <el-input v-model="form.buyer" />
+            </el-form-item>
+            <el-form-item label="采购数量">
+              <el-input-number v-model="form.purchase_qty" :min="1" :precision="2" controls-position="right" />
+            </el-form-item>            
+            <el-form-item label="交易币别">
+              <el-select
+                v-model="form.currency"
+                placeholder="根据厂区自动带出"
+                :loading="currencyLoading"
+                filterable
+                clearable
+              >
+                <el-option
+                  v-for="c in currencyOptions"
+                  :key="c.value"
+                  :label="c.label"
+                  :value="c.value"
+                />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="目标价格">
+              <el-input-number v-model="form.target_price" :min="0" :precision="2" controls-position="right" />
+            </el-form-item>
+            <el-form-item label="交货周期(天)">
+              <el-input-number v-model="form.lead_time_days" :min="0" :precision="0" controls-position="right" />
+            </el-form-item>
+            <el-form-item label="付款方式" class="span2">
+              <el-select v-model="form.payment_method" placeholder="选择付款方式">
+                <el-option v-for="p in paymentMethods" :key="p.value" :label="p.label" :value="p.value" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="备注" class="span3">
+              <el-input v-model="form.remark" type="textarea" :rows="3" placeholder="补充备注" />
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+
+        <el-tab-pane label="成本结构" name="cost">
+          <div class="cost-header mb8">
+            <span>根据模板加载成本结构，字段随模板变化</span>
+            <el-button v-if="!isViewMode" size="small" @click="loadCostItemsFromTemplate(currentTemplate, true)">重新加载模板</el-button>
+          </div>
+          <div class="cost-groups">
+            <div v-for="section in primarySections" :key="section" class="cost-group">
+              <div class="cost-group-header">
+                <div class="cost-section-title">{{ section }}</div>
+                <el-button
+                  v-if="!isViewMode && sectionAddConfig[section]"
+                  size="small"
+                  type="primary"
+                  @click="addCostRow(section)"
+                >新增一行</el-button>
+              </div>
+              <el-table :data="(groupedCostRows[section] || [])" border size="small" class="mb12">
+                <el-table-column
+                  v-for="col in sectionColumns[section] || []"
+                  :key="col.key"
+                  :prop="col.key"
+                  :label="col.label"
+                >
+                  <template #default="{ row }">
+                    <el-select
+                      v-if="section === '材料成本' && col.key === 'material'"
+                      v-model="row.values[col.key]"
+                      placeholder="选择材质"
+                      :loading="materialLoading"
+                      :disabled="isCostFieldReadonly(section, col.key)"
+                      filterable
+                      clearable
+                      @change="(val: string) => handleMaterialSelect(row, val)"
+                    >
+                      <el-option
+                        v-for="m in materialOptions"
+                        :key="m.value"
+                        :label="m.label"
+                        :value="m.value"
+                      />
+                    </el-select>
+                    <el-select
+                      v-else-if="section === '加工成本' && col.key === 'process_station'"
+                      v-model="row.values[col.key]"
+                      placeholder="选择加工工站"
+                      :loading="stationLoading"
+                      :disabled="isCostFieldReadonly(section, col.key)"
+                      filterable
+                      clearable
+                      @change="(val: string) => handleStationSelect(row, val)"
+                    >
+                      <el-option
+                        v-for="s in stationOptions"
+                        :key="s.value"
+                        :label="s.label"
+                        :value="s.value"
+                      />
+                    </el-select>
+                    <el-select
+                      v-else-if="section === '加工成本' && processUnitKeys.includes(col.key)"
+                      v-model="row.values[col.key]"
+                      placeholder="选择单位"
+                      :loading="unitLoading"
+                      :disabled="isCostFieldReadonly(section, col.key)"
+                      filterable
+                      clearable
+                    >
+                      <el-option v-for="u in unitOptions" :key="u.value" :label="u.label" :value="u.value" />
+                    </el-select>
+                    <el-input
+                      v-else-if="section === '加工成本' && processRateKeys.includes(col.key)"
+                      v-model="row.values[col.key]"
+                      :placeholder="col.label"
+                      disabled
+                    />
+                    <el-input
+                      v-else-if="section === '加工成本' && processFeeKeys.includes(col.key)"
+                      v-model="row.values[col.key]"
+                      :placeholder="col.label"
+                      disabled
+                    />
+                    <el-input
+                      v-else-if="section === '加工成本'"
+                      v-model="row.values[col.key]"
+                      :placeholder="col.label"
+                      :disabled="isCostFieldReadonly(section, col.key)"
+                      @input="() => updateProcessCalc(row)"
+                    />
+                    <el-input
+                      v-else-if="section === '材料成本' && col.key === 'specificgravity'"
+                      v-model="row.values[col.key]"
+                      :placeholder="col.label"
+                      :disabled="isCostFieldReadonly(section, col.key)"
+                      @input="() => updateMaterialCalc(row)"
+                    />
+                    <el-input
+                      v-else-if="section === '材料成本' && weightKeys.includes(col.key)"
+                      v-model="row.values[col.key]"
+                      :placeholder="col.label"
+                      disabled
+                    />
+                    <el-input
+                      v-else-if="section === '材料成本' && materialFeeKeys.includes(col.key)"
+                      v-model="row.values[col.key]"
+                      :placeholder="col.label"
+                      disabled
+                    />
+                    <el-input
+                      v-else-if="section === '材料成本'"
+                      v-model="row.values[col.key]"
+                      :placeholder="col.label"
+                      :disabled="isCostFieldReadonly(section, col.key)"
+                      @input="() => updateMaterialCalc(row)"
+                    />
+                    <el-input
+                      v-else
+                      v-model="row.values[col.key]"
+                      :placeholder="col.label"
+                      :disabled="isCostFieldReadonly(section, col.key)"
+                    />
+                  </template>
+                </el-table-column>
+                <el-table-column v-if="!isViewMode && sectionAddConfig[section]" label="操作" width="100">
+                  <template #default="{ row }">
+                    <el-button link type="danger" size="small" @click="removeCostRow(row)">移除</el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+              <el-empty v-if="!(groupedCostRows[section] || []).length" description="暂无数据" />
+            </div>
+
+            <div class="cost-row-pair">
+              <div v-for="section in profitTaxSections" :key="section" class="cost-group">
+                <div class="cost-group-header">
+                  <div class="cost-section-title">{{ section }}</div>
+                </div>
+                <el-table :data="(groupedCostRows[section] || [])" border size="small" class="mb12">
+                  <el-table-column
+                    v-for="col in sectionColumns[section] || []"
+                    :key="col.key"
+                    :prop="col.key"
+                    :label="col.label"
+                  >
+                    <template #default="{ row }">
+                      <el-input
+                        v-model="row.values[col.key]"
+                        :placeholder="col.label"
+                        :disabled="isCostFieldReadonly(section, col.key)"
+                      />
+                    </template>
+                  </el-table-column>
+                </el-table>
+                <el-empty v-if="!(groupedCostRows[section] || []).length" description="暂无数据" />
+              </div>
+            </div>
+          </div>
+        </el-tab-pane>
+
+        <el-tab-pane label="供应商名单" name="vendors">
+          <div class="table-actions mb8">
+            <el-button v-if="!isViewMode" type="primary" size="small" @click="addVendorRow">新增一行</el-button>
+          </div>
+          <el-table :data="form.vendors" border size="small" class="mb8">
+            <el-table-column prop="name" label="供应商">
+              <template #default="{ row }">
+                <el-select
+                  v-model="row.name"
+                  placeholder="选择供应商"
+                  :loading="supplierLoading"
+                  :disabled="isViewMode"
+                  filterable
+                  clearable
+                  @change="(val: string) => handleVendorSelect(row, val)"
+                >
+                  <el-option
+                    v-for="s in supplierOptions"
+                    :key="s.value"
+                    :label="s.label"
+                    :value="s.value"
+                  />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column prop="contact" label="联系人">
+              <template #default="{ row }">
+                <el-input v-model="row.contact" placeholder="联系人" :disabled="isViewMode" />
+              </template>
+            </el-table-column>
+            <el-table-column prop="email" label="邮箱">
+              <template #default="{ row }">
+                <el-input v-model="row.email" placeholder="邮箱" :disabled="isViewMode" />
+              </template>
+            </el-table-column>
+            <el-table-column v-if="!isViewMode" label="操作" width="120">
+              <template #default="{ row }">
+                <el-button link type="danger" size="small" @click="removeVendor(row)">移除</el-button>
+              </template>
+            </el-table-column>
+          </el-table>
+        </el-tab-pane>
+
+        <el-tab-pane label="附件" name="attachments">
+          <div class="attach-grid">
+            <div class="attach-block">
+              <div class="attach-title">产品图纸</div>
+              <el-upload
+                action="#"
+                :auto-upload="false"
+                multiple
+                list-type="text"
+                :disabled="isViewMode"
+                :file-list="form.attachments.drawing"
+                :on-change="(file, list) => onAttachmentChange('drawing', list)"
+                :on-remove="(file, list) => onAttachmentChange('drawing', list)"
+              >
+                <el-button v-if="!isViewMode" size="small" type="primary">上传图纸</el-button>
+              </el-upload>
+            </div>
+            <div class="attach-block">
+              <div class="attach-title">招标文件</div>
+              <el-upload
+                action="#"
+                :auto-upload="false"
+                multiple
+                list-type="text"
+                :disabled="isViewMode"
+                :file-list="form.attachments.tender"
+                :on-change="(file, list) => onAttachmentChange('tender', list)"
+                :on-remove="(file, list) => onAttachmentChange('tender', list)"
+              >
+                <el-button v-if="!isViewMode" size="small" type="primary">上传文件</el-button>
+              </el-upload>
+            </div>
+            <div class="attach-block">
+              <div class="attach-title">其它文件</div>
+              <el-upload
+                action="#"
+                :auto-upload="false"
+                multiple
+                list-type="text"
+                :disabled="isViewMode"
+                :file-list="form.attachments.other"
+                :on-change="(file, list) => onAttachmentChange('other', list)"
+                :on-remove="(file, list) => onAttachmentChange('other', list)"
+              >
+                <el-button v-if="!isViewMode" size="small" type="primary">上传文件</el-button>
+              </el-upload>
+            </div>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
+      </div>
+
+      <template #footer>
+        <el-button @click="dialog.visible = false">{{ isViewMode ? '关闭' : '取消' }}</el-button>
+        <el-button v-if="!isViewMode" type="primary" @click="saveForm">保存</el-button>
+      </template>
+    </el-dialog>
+  </fs-page>
+</template>
+
+<script setup lang="ts" name="InquiryManagement">
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useCrud, useExpose } from '@fast-crud/fast-crud'
+import { ElMessage } from 'element-plus'
+import { createCrudOptions, normalizeDict } from './crud'
+import * as api from './api'
+import * as costTemplateApi from '../pricetemplate/api'
+import { GetCompanies, GetList as GetCurrencies } from '../../basicinfo/currency/api'
+import { GetList as GetParts } from '../misc-part/api'
+import { GetList as GetMaterials } from '../misc-material/api'
+import { GetList as GetSuppliers } from '../../basicinfo/supplier/api'
+import { GetList as GetStations } from '../misc-station/api'
+import { GetList as GetUnits } from '../../basicinfo/unit/api'
+import { useUserInfo } from '/@/stores/userInfo'
+
+const crudRef = ref()
+const crudBinding = ref()
+const { crudExpose } = useExpose({ crudRef, crudBinding })
+
+const categoryDict = [
+  { value: 'tooling', label: '模治具' },
+  { value: 'stamping', label: '冲压' },
+  { value: 'injection', label: '注塑' },
+  { value: 'equipment', label: '设备' },
+  { value: 'plastic', label: '塑胶件' },
+  { value: 'default', label: '通用' }
+]
+
+const statusDict = [
+  { value: 1, label: '开立' },
+  { value: 2, label: '确认' },
+  { value: 3, label: '发布' },
+  { value: 4, label: '报价中' },
+  { value: 5, label: '报价结束' },
+  { value: 6, label: '比议价中' },
+  { value: 7, label: '价格审核' },
+  { value: 8, label: '核价通过(结束)' },
+  { value: 9, label: '落标(结束)' },
+  { value: 0, label: '作废' }
+]
+
+const STATUS_OPEN = 1
+const STATUS_CONFIRMED = 2
+const STATUS_PUBLISHED = 3
+
+const paymentMethods = [
+  { value: 1, label: '月结30天' },
+  { value: 2, label: '月结60天' },
+  { value: 3, label: '不到付款' },
+  { value: 4, label: '预付30%' },
+  { value: 5, label: '预付50%' },
+  { value: 6, label: '余款至生产' },
+  { value: 7, label: '价格审核' },
+  { value: 8, label: '价格结算(运费)' },
+  { value: 9, label: '新建(结束)' }
+]
+const companyOptions = ref<{ value: string; label: string }[]>([])
+const companyLoading = ref(false)
+const currencyOptions = ref<{ value: string; label: string }[]>([])
+const currencyLoading = ref(false)
+const partOptions = ref<{ value: string; label: string; name?: string; unit?: string }[]>([])
+const partLoading = ref(false)
+const materialOptions = ref<{ value: string; label: string; density?: number; price?: number }[]>([])
+const materialLoading = ref(false)
+const supplierOptions = ref<{
+  value: string
+  label: string
+  supplier_code?: string
+  supplier_name?: string
+  contact?: string
+  email?: string
+}[]>([])
+const supplierLoading = ref(false)
+const stationOptions = ref<{ value: string; label: string; rate?: number; unit?: string }[]>([])
+const stationLoading = ref(false)
+const unitOptions = ref<{ value: string; label: string; name?: string }[]>([])
+const unitLoading = ref(false)
+const costEnabledSections = ['材料成本', '加工成本', '其它成本', '利润', '税金']
+const costDisabledSections = ['产品明细', '利润', '税金']
+const profitTaxNames = ['利润', '税金']
+const priceKeys = ['unitPrice', 'unitprice', 'price', 'unit_price']
+const materialCalcKeys = ['length', 'width', 'height', 'specificgravity', 'unitPrice', 'unitprice', 'qty', 'quantity', 'num', 'count']
+const weightKeys = ['weight', '重量']
+const materialFeeKeys = ['material_fee', 'materialFee', 'material_cost', 'materialCost', 'material_amount', 'materialAmount', '材料费用']
+const processUnitKeys = ['unit', 'process_unit', '单位']
+const processRateKeys = ['unitrate', 'rate', 'process_rate', 'fee_rate']
+const processQtyKeys = ['process_qty', 'processqty', 'qty', 'quantity', 'num', 'count']
+const processFeeKeys = ['processprice', 'process_cost', '加工费', 'fee']
+const taxRateKeys = ['taxRate', 'tax_rate', 'tax', 'taxrate', 'tax_ratio', 'taxratio', 'rate', '税率']
+const supplierFactoryKeys = ['factory', 'plant', 'company_code', 'company', 'factory_code', 'factorycode', 'plant_code']
+const supplierBehaviorCodeMap: Record<string, number> = {
+  prefill_locked: 1,
+  prefill_editable: 2,
+  hidden_required: 3,
+  hidden_optional: 4,
+  required: 5,
+  optional: 6
+}
+const attachmentTypeCodeMap = {
+  drawing: 1,
+  tender: 2,
+  other: 3
+} as const
+const attachmentTypeKeyMap: Record<string, keyof typeof attachmentTypeCodeMap> = {
+  '1': 'drawing',
+  '2': 'tender',
+  '3': 'other',
+  drawing: 'drawing',
+  '产品图纸': 'drawing',
+  tender: 'tender',
+  '招标文件': 'tender',
+  other: 'other',
+  '其它文件': 'other',
+  '其他文件': 'other'
+}
+
+const templates = ref<any[]>([])
+const templateLoading = ref(false)
+const templatesLoaded = ref(false)
+
+const templateOptions = computed(() =>
+  templates.value.map((t: any) => ({
+    value: t.template_no,
+    label: `${t.template_name || '模板'}${t.template_no ? `（${t.template_no}）` : ''}`
+  }))
+)
+
+const normalizeUnitCode = (value?: string | null) => {
+  const text = String(value ?? '').trim()
+  if (!text) return ''
+  const matched = unitOptions.value.find((u) => u.value === text || u.label === text || u.name === text)
+  return matched?.value || text
+}
+
+const normalizeSupplierRequiredCode = (field: any) => {
+  const raw = field?.supplier_required ?? field?.supplierRequiredCode ?? field?.supplier_behavior ?? field?.supplierBehavior
+  const code = Number(raw)
+  if (Number.isInteger(code) && code >= 0 && code <= 6) return code
+  if (typeof raw === 'string' && raw in supplierBehaviorCodeMap) return supplierBehaviorCodeMap[raw]
+  return 0
+}
+
+const loadCompanyOptions = async () => {
+  companyLoading.value = true
+  try {
+    const res = await GetCompanies({ page: 1, page_size: 500, pageSize: 500 })
+    const list =
+      res?.data?.data?.results ||
+      res?.data?.results ||
+      res?.data?.list ||
+      res?.data ||
+      res?.results ||
+      res?.list ||
+      []
+    companyOptions.value = (Array.isArray(list) ? list : []).map((c: any) => ({
+      value: c.company_code,
+      label: c.company_short_name || c.company_code || c.company_name || '厂区'
+    }))
+  } catch (e) {
+    console.warn('加载交易厂区失败', e)
+    companyOptions.value = []
+  } finally {
+    companyLoading.value = false
+  }
+}
+
+const extractTaxRate = (obj: any) => {
+  const keys = ['taxRate', 'tax_rate', 'tax', 'taxrate', 'tax_ratio', 'taxratio', 'rate']
+  for (const k of keys) {
+    if (obj && obj[k] !== undefined && obj[k] !== null && obj[k] !== '') {
+      const n = Number(obj[k])
+      return Number.isFinite(n) ? n : obj[k]
+    }
+  }
+  return undefined
+}
+
+const loadCurrencyOptions = async (factory?: string) => {
+  if (!factory) {
+    currencyOptions.value = []
+    return
+  }
+  currencyLoading.value = true
+  try {
+    const res = await GetCurrencies({ page: 1, page_size: 50, pageSize: 50, factory })
+    const list =
+      res?.data?.data?.results ||
+      res?.data?.results ||
+      res?.data?.list ||
+      res?.data ||
+      res?.results ||
+      res?.list ||
+      []
+    currencyOptions.value = (Array.isArray(list) ? list : []).map((c: any) => ({
+      value: c.currencycode || c.currency_code || c.code || c.currency,
+      label: c.currencyname || c.currency_name || c.currencycode || c.code || '币别',
+      taxRate: extractTaxRate(c)
+    }))
+  } catch (e) {
+    console.warn('加载币别失败', e)
+    currencyOptions.value = []
+  } finally {
+    currencyLoading.value = false
+  }
+}
+
+const loadPartOptions = async () => {
+  partLoading.value = true
+  try {
+    const res = await GetParts({ page: 1, page_size: 500, pageSize: 500 })
+    const list =
+      res?.data?.data?.results ||
+      res?.data?.results ||
+      res?.data?.list ||
+      res?.data ||
+      res?.results ||
+      res?.list ||
+      []
+    partOptions.value = (Array.isArray(list) ? list : []).map((p: any) => ({
+      value: p.partid || p.part_no || p.partid_code || p.code,
+      label: `${p.partid || p.part_no || p.code || ''}${p.partid_name ? ` - ${p.partid_name}` : ''}`.trim(),
+      name: p.partid_name || p.part_name || p.name,
+      unit: p.unit || p.uom || ''
+    }))
+  } catch (e) {
+    console.warn('加载料号失败', e)
+    partOptions.value = []
+  } finally {
+    partLoading.value = false
+  }
+}
+
+const loadMaterialOptions = async (factory?: string) => {
+  materialLoading.value = true
+  try {
+    const params: any = { page: 1, page_size: 300, pageSize: 300 }
+    if (factory) params.factory = factory
+    const res = await GetMaterials(params)
+    const list =
+      res?.data?.data?.results ||
+      res?.data?.results ||
+      res?.data?.list ||
+      res?.data ||
+      res?.results ||
+      res?.list ||
+      []
+    materialOptions.value = (Array.isArray(list) ? list : []).map((m: any) => ({
+      value: m.materialtype || m.material || m.name,
+      label: m.materialtype || m.material || m.name,
+      density: m.density || m.specificgravity,
+      price: m.price
+    }))
+  } catch (e) {
+    console.warn('加载材质信息失败', e)
+    materialOptions.value = []
+  } finally {
+    materialLoading.value = false
+  }
+}
+
+const loadStationOptions = async (factory?: string) => {
+  stationLoading.value = true
+  try {
+    const params: any = { page: 1, page_size: 500, pageSize: 500 }
+    if (factory) params.factory = factory
+    const res = await GetStations(params)
+    const list =
+      res?.data?.data?.results ||
+      res?.data?.results ||
+      res?.data?.list ||
+      res?.data ||
+      res?.results ||
+      res?.list ||
+      []
+    stationOptions.value = (Array.isArray(list) ? list : []).map((s: any) => ({
+      value: s.stationcode || s.station_code || s.stationname || s.name,
+      label: `${s.stationname || s.name || s.stationcode || ''}${s.stationcode ? `（${s.stationcode}）` : ''}`,
+      rate: s.rate,
+      unit: normalizeUnitCode(s.unit || s.process_unit || s.uom || s.station_unit)
+    }))
+  } catch (e) {
+    console.warn('加载加工工站失败', e)
+    stationOptions.value = []
+  } finally {
+    stationLoading.value = false
+  }
+}
+
+const loadUnitOptions = async (factory?: string) => {
+  unitLoading.value = true
+  try {
+    const params: any = { page: 1, page_size: 500, pageSize: 500 }
+    if (factory) params.factory = factory
+    const res = await GetUnits(params)
+    const list =
+      res?.data?.data?.results ||
+      res?.data?.results ||
+      res?.data?.list ||
+      res?.data ||
+      res?.results ||
+      res?.list ||
+      []
+    unitOptions.value = (Array.isArray(list) ? list : []).map((u: any) => {
+      const code = String(u.unitcode || u.unit_code || u.unit || u.code || '').trim()
+      const name = String(u.unitname || u.unit_name || '').trim()
+      const value = code || name
+      return {
+        value,
+        label: value,
+        name
+      }
+    })
+  } catch (e) {
+    console.warn('加载计量单位失败', e)
+    unitOptions.value = []
+  } finally {
+    unitLoading.value = false
+  }
+}
+
+const loadSupplierOptions = async (factory?: string) => {
+  supplierLoading.value = true
+  try {
+    const params: any = { page: 1, page_size: 500, pageSize: 500 }
+    if (factory) params.factory = factory
+    const res = await GetSuppliers(params)
+    const list =
+      res?.data?.data?.results ||
+      res?.data?.results ||
+      res?.data?.list ||
+      res?.data ||
+      res?.results ||
+      res?.list ||
+      []
+    const filtered = (Array.isArray(list) ? list : []).filter((s: any) => {
+      if (!factory) return true
+      return supplierFactoryKeys.some((k) => (s?.[k] || '') === factory)
+    })
+    supplierOptions.value = filtered.map((s: any) => ({
+      value: s.supplier_id || s.supplier_code || s.supplier_name,
+      label: `${s.supplier_short_name || s.supplier_name || s.supplier_id || '供应商'}${s.supplier_id ? `（${s.supplier_id}）` : ''}`,
+      supplier_code: s.supplier_id || s.supplier_code,
+      supplier_name: s.supplier_name || s.supplier_short_name,
+      contact: s.contact_person || s.contact || s.linkman,
+      email: s.contact_email || s.email,
+      factory: supplierFactoryKeys.map((k) => s?.[k]).find((v) => v)
+    }))
+  } catch (e) {
+    console.warn('加载供应商失败', e)
+    supplierOptions.value = []
+  } finally {
+    supplierLoading.value = false
+  }
+}
+
+const normalizeSections = (sections: any) => {
+  if (typeof sections === 'string') {
+    try {
+      const parsed = JSON.parse(sections)
+      return Array.isArray(parsed) ? parsed : []
+    } catch (e) {
+      console.warn('模版 sections 解析失败', e)
+      return []
+    }
+  }
+  return Array.isArray(sections) ? sections : []
+}
+
+const parseOptionJson = (value: unknown, label: string) => {
+  try {
+    return normalizeDict(value, label)
+  } catch (e) {
+    console.warn(`${label} 解析失败`, e)
+    return {}
+  }
+}
+
+const hasTemplateSections = (tpl: any) => {
+  const sections = normalizeSections(tpl?.sections)
+  return Array.isArray(sections) && sections.length > 0
+}
+
+const costCategoryToTitle: Record<string, string> = {
+  '1': '材料成本',
+  '2': '加工成本',
+  '3': '其它成本',
+  '4': '管销研费用',
+  '5': '利润',
+  '6': '税金',
+  '7': '产品明细'
+}
+
+const buildSectionsFromCostTemplate = (head: any) => {
+  const items = Array.isArray(head?.items) ? head.items : []
+  if (!items.length) return []
+  const group = new Map<string, any[]>()
+  items.forEach((it: any) => {
+    const cat = String(it.cost_category ?? '')
+    const title = costCategoryToTitle[cat] || '其它成本'
+    if (!group.has(title)) group.set(title, [])
+    group.get(title)!.push(it)
+  })
+  const order = ['产品明细', '材料成本', '加工成本', '其它成本', '管销研费用', '利润', '税金']
+  return order
+    .filter((t) => group.has(t))
+    .map((title) => {
+      const rows = (group.get(title) || []).slice().sort((a: any, b: any) => (a.item_order || 0) - (b.item_order || 0))
+      return {
+        id: title,
+        title,
+        enabled: true,
+        // supplierCanAddRow:
+          // title === '材料成本'
+            // ? Number(head?.is_can_add_materials || 0) === 1
+            // : title === '加工成本'
+            //   ? Number(head?.is_can_add_process || 0) === 1
+            //   : false,
+        fields: rows.map((r: any) => ({
+          key: r.item_no || '',
+          label: r.item_name_cn || r.item_no || '',
+          autoFill: Number(r.is_computed || 0) === 1,
+          purchaserRequired: Number(r.purchaser_required || 0) === 1,
+          supplierRequiredCode: normalizeSupplierRequiredCode(r)
+        }))
+      }
+    })
+}
+
+const fetchTemplateDetailIfNeeded = async (tpl: any) => {
+  if (!tpl) return tpl
+  if (hasTemplateSections(tpl)) return tpl
+  if (!tpl?.id) return tpl
+  try {
+    const res = await costTemplateApi.GetObj(tpl.id)
+    const head = res?.data?.data || res?.data || res
+    if (head && typeof head === 'object') {
+      const sections = buildSectionsFromCostTemplate(head)
+      const merged = { ...tpl, ...head, sections }
+      const idx = templates.value.findIndex((t: any) => t.id === tpl.id)
+      if (idx >= 0) templates.value[idx] = merged
+      return merged
+    }
+  } catch (e) {
+    console.warn('加载成本结构模板详情失败', e)
+  }
+  return tpl
+}
+
+const allowedSectionsForTemplate = (tpl: any) => {
+  const base = tpl && String(tpl.is_bom || 'Y') === 'Y' ? costEnabledSections : costDisabledSections
+  const tplSections = normalizeSections(tpl?.sections)
+  const templateSections = tplSections
+    .filter((s: any) => s?.enabled !== false)
+    .map((s: any) => s.title || s.name || '')
+    .filter(Boolean)
+  const allowed = templateSections.length ? base.filter((t) => templateSections.includes(t)) : base
+  return allowed.length ? allowed : base
+}
+
+const buildSectionAddConfig = (tpl: any) => {
+  const allowed = allowedSectionsForTemplate(tpl)
+  const map: Record<string, boolean> = {}
+  const sections = normalizeSections(tpl?.sections)
+  sections.forEach((s: any) => {
+    const title = s.title || s.name || ''
+    if (title && allowed.includes(title)) {
+      // map[title] = title === '其它成本' ? false : !!s.supplierCanAddRow
+      // `supplierCanAddRow` 来源于模板的供应商报价配置，不应用于采购端询价单编辑页。
+      map[title] = title === '材料成本' || title === '加工成本'
+    }
+  })
+  // 业务要求：其它成本不允许新增行
+  if (allowed.includes('其它成本')) {
+    map['其它成本'] = false
+  }
+  return map
+}
+
+const buildRowsFromTemplate = (tpl: any) => {
+  const allowed = allowedSectionsForTemplate(tpl)
+  const rows: CostRow[] = []
+  const sections = normalizeSections(tpl?.sections)
+  allowed.forEach((title: string, idx: number) => {
+    const sec = sections.find((s: any) => (s.title || s.name || '') === title) || {}
+    const values: Record<string, any> = {}
+    if (Array.isArray(sec.fields)) {
+      sec.fields.forEach((f: any) => {
+        values[f.key] = f.default ?? ''
+      })
+    }
+    rows.push({ id: `tpl-${sec.id || title}-${idx}-${Date.now()}`, section: title, field: `tpl-${sec.id || title}-${idx}`, values })
+  })
+  if (!rows.length) {
+    return costDisabledSections.map((title, idx) => ({ id: `def-${idx}-${Date.now()}`, section: title, field: `def-${idx}`, values: {} }))
+  }
+  return rows
+}
+
+type CostFieldColumn = { key: string; label: string; autoFill?: boolean; purchaserRequired?: boolean; supplierRequiredCode?: number }
+type CostRow = { id: string; section: string; field: string; values: Record<string, any> }
+
+const costRows = ref<CostRow[]>([])
+const sectionAddConfig = ref<Record<string, boolean>>({})
+
+const dialog = reactive({ visible: false, mode: 'create' as 'create' | 'edit' | 'view', currentId: null as number | null })
+const isViewMode = computed(() => dialog.mode === 'view')
+const dialogTitle = computed(() => {
+  if (dialog.mode === 'create') return '新增询价单'
+  if (dialog.mode === 'view') return '查看询价单'
+  return '编辑询价单'
+})
+const activeTab = ref('base')
+const skipTemplateWatch = ref(false)
+let handlingPlantChange = false
+const userStore = useUserInfo()
+/** 与主表 `purchase_dept` CharField(max_length=20) 一致 */
+const PURCHASE_DEPT_MAX_LEN = 20
+const clipPurchaseDept = (raw: unknown) => {
+  const s = String(raw ?? '').trim()
+  if (!s) return ''
+  return s.length > PURCHASE_DEPT_MAX_LEN ? s.slice(0, PURCHASE_DEPT_MAX_LEN) : s
+}
+const loginPurchaseDept = () => clipPurchaseDept(userStore.userInfos?.dept_info?.dept_name)
+const currentUserName = computed(
+  () =>
+    userStore.userInfos?.name ||
+    userStore.userInfos?.username ||
+    userStore.userInfos?.email ||
+    userStore.userInfos?.nickName ||
+    ''
+)
+const getStatusCode = (value: unknown) => Number(value)
+const isOpenStatus = (value: unknown) => getStatusCode(value) === STATUS_OPEN
+const isReadonlyStatus = (value: unknown) => [STATUS_CONFIRMED, STATUS_PUBLISHED].includes(getStatusCode(value))
+const getErrorMessage = (err: any, fallback: string) => err?.msg || err?.message || err?.response?.data?.msg || fallback
+
+const emptyForm = () => ({
+  id: null,
+  inquiry_no: '',
+  title: '',
+  // UI展示字段（后端不存）
+  product_category: '',
+  template: '',
+  template_code: '',
+  purchase_dept: '',
+  is_bom: 0,
+  part_no: '',
+  part_name: '',
+  part_unit: '',
+  quote_deadline: '',
+  purchase_qty: 0,
+  buyer: '',
+  currency: 'CNY',
+  plant: '',
+  target_price: 0,
+  lead_time_days: 0,
+  payment_method: 1,
+  status: 1,
+  remark: '',
+  vendors: [] as any[],
+  attachments: { drawing: [], tender: [], other: [] as any[] }
+})
+
+const form = reactive(emptyForm())
+
+const toNumberOrZero = (val: any) => {
+  if (val === null || val === undefined || val === '') return 0
+  const n = Number(val)
+  return Number.isFinite(n) ? n : 0
+}
+
+const padTwoDigits = (value: number) => String(value).padStart(2, '0')
+
+const formatQuoteDeadlineValue = (value: Date) =>
+  `${value.getFullYear()}-${padTwoDigits(value.getMonth() + 1)}-${padTwoDigits(value.getDate())} ${padTwoDigits(value.getHours())}:00:00`
+
+const normalizeQuoteDeadline = (value: unknown) => {
+  if (!value) return ''
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? '' : formatQuoteDeadlineValue(value)
+  }
+  if (typeof value === 'string') {
+    const text = value.trim()
+    if (!text) return ''
+    const parsed = new Date(text.includes('T') ? text : text.replace(' ', 'T'))
+    if (!Number.isNaN(parsed.getTime())) {
+      return formatQuoteDeadlineValue(parsed)
+    }
+    const matched = text.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}))?/)
+    if (matched) {
+      return `${matched[1]} ${matched[2] || '00'}:00:00`
+    }
+  }
+  return ''
+}
+
+const quoteDeadlineHourOptions = Array.from({ length: 24 }, (_, index) => padTwoDigits(index))
+const quoteDeadlineOpenBaseDate = ref<Date | null>(null)
+
+const getDayStart = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate())
+
+const parseQuoteDeadlineDate = (value: unknown) => {
+  const normalized = normalizeQuoteDeadline(value)
+  if (!normalized) return null
+  const parsed = new Date(normalized.replace(' ', 'T'))
+  return Number.isNaN(parsed.getTime()) ? null : parsed
+}
+
+const captureQuoteDeadlineOpenBaseDate = () => {
+  quoteDeadlineOpenBaseDate.value = getDayStart(new Date())
+}
+
+const isQuoteDeadlineDateDisabled = (date: Date) => {
+  if (!quoteDeadlineOpenBaseDate.value) return false
+  return getDayStart(date).getTime() <= quoteDeadlineOpenBaseDate.value.getTime()
+}
+
+const validateQuoteDeadlineAfterOpenDay = () => {
+  const selectedDate = parseQuoteDeadlineDate(form.quote_deadline)
+  if (!selectedDate) {
+    ElMessage.error('请选择报价截止时')
+    activeTab.value = 'base'
+    return false
+  }
+  if (quoteDeadlineOpenBaseDate.value && getDayStart(selectedDate).getTime() <= quoteDeadlineOpenBaseDate.value.getTime()) {
+    ElMessage.error('报价截止时只能选择大于打开创建/编辑当天的日期')
+    activeTab.value = 'base'
+    return false
+  }
+  return true
+}
+
+const quoteDeadlineDate = computed({
+  get: () => {
+    const normalized = normalizeQuoteDeadline(form.quote_deadline)
+    return normalized ? normalized.slice(0, 10) : ''
+  },
+  set: (value: string) => {
+    if (!value) {
+      form.quote_deadline = ''
+      return
+    }
+    const currentHour = quoteDeadlineHour.value || '23'
+    form.quote_deadline = `${value} ${currentHour}:00:00`
+  }
+})
+
+const quoteDeadlineHour = computed({
+  get: () => {
+    const normalized = normalizeQuoteDeadline(form.quote_deadline)
+    return normalized ? normalized.slice(11, 13) : '23'
+  },
+  set: (value: string) => {
+    const date = quoteDeadlineDate.value
+    if (!date) {
+      form.quote_deadline = ''
+      return
+    }
+    form.quote_deadline = `${date} ${value || '00'}:00:00`
+  }
+})
+
+const currentTemplate = computed(() => templates.value.find((t: any) => t.template_no === form.template))
+const templateSectionMap = computed(() => {
+  const map = new Map<string, any>()
+  const sections = normalizeSections(currentTemplate.value?.sections)
+  sections.forEach((s: any) => {
+    const title = s.title || s.name || ''
+    if (title) map.set(title, s)
+  })
+  return map
+})
+const templateFieldMetaMap = computed(() => {
+  const map = new Map<string, Map<string, { autoFill: boolean; purchaserRequired: boolean; supplierRequiredCode: number }>>()
+  const sections = normalizeSections(currentTemplate.value?.sections)
+  sections.forEach((section: any) => {
+    const title = section.title || section.name || ''
+    if (!title) return
+    const fieldMap = new Map<string, { autoFill: boolean; purchaserRequired: boolean; supplierRequiredCode: number }>()
+    ;(section.fields || []).forEach((field: any) => {
+      if (!field?.key) return
+      fieldMap.set(field.key, {
+        autoFill: Number(field.is_computed ?? field.isComputed ?? field.autoFill ?? 0) === 1 || field.autoFill === true,
+        purchaserRequired:
+          Number(field.purchaser_required ?? field.purchaserRequired ?? 0) === 1 || field.purchaserRequired === true,
+        supplierRequiredCode: normalizeSupplierRequiredCode(field)
+      })
+    })
+    map.set(title, fieldMap)
+  })
+  return map
+})
+
+const enabledSections = computed(() => allowedSectionsForTemplate(currentTemplate.value))
+const profitTaxSections = computed(() => enabledSections.value.filter((s) => profitTaxNames.includes(s)))
+const primarySections = computed(() => enabledSections.value.filter((s) => !profitTaxNames.includes(s)))
+
+const statusTagType = (s: unknown) => {
+  const status = getStatusCode(s)
+  if (status === STATUS_OPEN) return 'info'
+  if (status === STATUS_CONFIRMED) return 'success'
+  if (status === STATUS_PUBLISHED) return 'warning'
+  if (status === 0) return 'danger'
+  return 'primary'
+}
+const statusLabel = (s: unknown) => statusDict.find((i) => i.value === getStatusCode(s))?.label || String(s ?? '')
+
+const partNoHiddenSections = new Set(['加工成本', '其它成本', '利润', '税金'])
+const partNoHiddenDisplaySections = new Set(['材料成本', '加工成本', '其它成本', '利润', '税金'])
+
+// 询价单号由后端生成（InquirySerializer._generate_code），前端不再本地生成
+
+const setCurrencyFromOptions = () => {
+  const has = currencyOptions.value.find((c) => c.value === form.currency)
+  if (!has && currencyOptions.value.length) {
+    form.currency = currencyOptions.value[0].value
+  }
+  if (!currencyOptions.value.length) {
+    form.currency = ''
+  }
+}
+
+const applyTaxRateFromCurrency = () => {
+  const currency = currencyOptions.value.find((c) => c.value === form.currency)
+  if (!currency) return
+  const tax = currency.taxRate
+  if (tax === undefined) return
+  costRows.value
+    .filter((r) => r.section === '税金')
+    .forEach((r) => {
+      if (!r.values) r.values = {}
+      const key = pickKey(r.values, taxRateKeys, 'taxRate')
+      r.values[key] = tax
+    })
+}
+
+const applyTemplateMeta = (tpl: any) => {
+  if (!tpl) return
+  form.is_bom = String(tpl.is_bom || 'Y') === 'Y' ? 1 : 0
+  form.template_code = tpl.template_no || form.template_code
+}
+
+const handlePlantChange = async (val?: string) => {
+  if (handlingPlantChange) return
+  handlingPlantChange = true
+  try {
+    if (val !== undefined && val !== form.plant) {
+      form.plant = val || ''
+    } else if (!val) {
+      form.plant = ''
+    }
+    await Promise.all([
+      loadCurrencyOptions(form.plant),
+      loadMaterialOptions(form.plant),
+      loadStationOptions(form.plant),
+      loadUnitOptions(form.plant),
+      loadSupplierOptions(form.plant)
+    ])
+    if (form.plant) {
+      setCurrencyFromOptions()
+      applyTaxRateFromCurrency()
+    } else {
+      form.currency = ''
+    }
+  } finally {
+    handlingPlantChange = false
+  }
+}
+
+const applyPartNoToCostRows = (partNo?: string) => {
+  if (!partNo) return
+  costRows.value.forEach((r) => {
+    if (partNoHiddenSections.has(r.section)) {
+      r.values = { ...r.values, partNo }
+    }
+  })
+}
+
+const handlePartChange = (val?: string) => {
+  const current = partOptions.value.find((p) => p.value === val)
+  form.part_no = val || ''
+  if (current?.name) {
+    form.part_name = current.name
+  }
+  form.part_unit = current?.unit || ''
+  applyPartNoToCostRows(val)
+}
+
+const toNumber = (v: any) => {
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
+/** 提交材料行数量：空则 null；是否必填由成本模板 purchaser_required 与前端校验共同约束，不默认用采购数量填充。 */
+const normalizeMaterialQtyForSubmit = (v: any) => {
+  if (v === '' || v === null || v === undefined) return null
+  const n = Number(v)
+  if (!Number.isFinite(n)) return null
+  return Math.trunc(n)
+}
+
+const pickKey = (values: Record<string, any>, candidates: string[], fallback: string) => {
+  for (const k of candidates) {
+    if (k in values) return k
+  }
+  return fallback
+}
+
+const isTemplateComputedField = (section: string, key: string) => {
+  return templateFieldMetaMap.value.get(section)?.get(key)?.autoFill === true
+}
+
+const isCostFieldReadonly = (section: string, key: string) => {
+  return isViewMode.value || isTemplateComputedField(section, key)
+}
+
+const isEmptyRequiredValue = (value: any) => value === null || value === undefined || value === ''
+
+const validatePurchaserRequiredFields = () => {
+  for (const section of enabledSections.value) {
+    const requiredColumns = (sectionColumns.value[section] || []).filter((col) => col.purchaserRequired)
+    if (!requiredColumns.length) continue
+    const rows = groupedCostRows.value[section] || []
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+      const row = rows[rowIndex]
+      for (const col of requiredColumns) {
+        if (isEmptyRequiredValue(row?.values?.[col.key])) {
+          activeTab.value = 'cost'
+          ElMessage.error(`${section} 第${rowIndex + 1}行【${col.label}】为采购必填项`)
+          return false
+        }
+      }
+    }
+  }
+  return true
+}
+
+const updateMaterialCalc = (row: CostRow) => {
+  if (row.section !== '材料成本') return
+  if (!row.values) row.values = {}
+  const v = row.values
+  const length = toNumber(v.length)
+  const width = toNumber(v.width)
+  const height = toNumber(v.height)
+  const sg = toNumber(v.specificgravity)
+  const qty = toNumber(v.qty ?? v.quantity ?? v.num ?? v.count ?? form.purchase_qty)
+  const unitPrice = toNumber(v.unitPrice ?? v.unitprice ?? v.price ?? v.unit_price)
+  const weightKey = pickKey(v, weightKeys, 'weight')
+  const feeKey = pickKey(v, materialFeeKeys, 'material_cost')
+  const weight = length * width * height * sg * qty
+  v[weightKey] = Number(weight.toFixed(4))
+  const materialFee = v[weightKey] * unitPrice
+  v[feeKey] = Number(materialFee.toFixed(4))
+}
+
+const handleMaterialSelect = (row: CostRow, value?: string) => {
+  if (!row.values) row.values = {}
+  row.values.material = value || ''
+  const material = materialOptions.value.find((m) => m.value === value)
+  if (material) {
+    if (material.density !== undefined) {
+      row.values.specificgravity = material.density
+    }
+    if (material.price !== undefined) {
+      const priceKey = pickKey(row.values, priceKeys, 'unitPrice')
+      row.values[priceKey] = material.price
+    }
+  }
+  updateMaterialCalc(row)
+}
+
+const updateProcessCalc = (row: CostRow) => {
+  if (row.section !== '加工成本') return
+  if (!row.values) row.values = {}
+  const v = row.values
+  const rateKey = pickKey(v, processRateKeys, 'unitrate')
+  const rate = toNumber(v[rateKey])
+  const qtyKey = pickKey(v, processQtyKeys, 'processqty')
+  const qty = toNumber(v[qtyKey])
+  const feeKey = pickKey(v, processFeeKeys, 'processprice')
+  v[feeKey] = Number((rate * qty).toFixed(4))
+}
+
+const handleVendorSelect = (row: any, value?: string) => {
+  row.name = value || ''
+  const supplier = supplierOptions.value.find((s) => s.value === value)
+  if (supplier) {
+    row.supplier_id = value || ''
+    row.supplier_code = supplier.supplier_code || value || ''
+    row.supplier_name = supplier.supplier_name || supplier.label || ''
+    if (supplier.contact) {
+      row.contact = supplier.contact
+    }
+    if (supplier.email) {
+      row.email = supplier.email
+    }
+  }
+}
+
+const handleStationSelect = (row: CostRow, value?: string) => {
+  if (!row.values) row.values = {}
+  row.values.process_station = value || ''
+  const station = stationOptions.value.find((s) => s.value === value)
+  if (station && station.rate !== undefined) {
+    const rateKey = pickKey(row.values, processRateKeys, 'unitrate')
+    row.values[rateKey] = station.rate
+  }
+  if (station && station.unit) {
+    const unitKey = pickKey(row.values, processUnitKeys, 'unit')
+    row.values[unitKey] = normalizeUnitCode(station.unit)
+  }
+  updateProcessCalc(row)
+}
+
+const resetForm = () => {
+  Object.assign(form, emptyForm())
+  costRows.value = []
+  sectionAddConfig.value = {}
+  activeTab.value = 'base'
+}
+
+const openCreate = async () => {
+  captureQuoteDeadlineOpenBaseDate()
+  await Promise.all([ensureTemplatesLoaded(), loadCompanyOptions(), loadPartOptions()])
+  dialog.mode = 'create'
+  dialog.currentId = null
+  resetForm()
+  if (currentUserName.value) {
+    form.buyer = currentUserName.value
+  }
+  form.purchase_dept = loginPurchaseDept()
+  if (companyOptions.value.length && !form.plant) {
+    form.plant = companyOptions.value[0].value
+  }
+  if (form.plant) {
+    await handlePlantChange(form.plant)
+  }
+  if (templates.value.length) {
+    skipTemplateWatch.value = true
+    const tpl = templates.value[0]
+    form.template = tpl.template_no
+    applyTemplateMeta(tpl)
+    await loadCostItemsFromTemplate(tpl, true)
+  } else {
+    await loadCostItemsFromTemplate(null, true)
+  }
+  dialog.visible = true
+}
+
+const openDetail = async (row: any, mode: 'edit' | 'view') => {
+  if (mode === 'edit') {
+    captureQuoteDeadlineOpenBaseDate()
+  }
+  await Promise.all([ensureTemplatesLoaded(), loadCompanyOptions(), loadPartOptions()])
+  const nextMode = mode === 'edit' && isReadonlyStatus(row?.status) ? 'view' : mode
+  if (mode === 'edit' && nextMode === 'view') {
+    ElMessage.warning('确认状态禁止编辑，已为您切换为查看模式。')
+  }
+  dialog.mode = nextMode
+  dialog.currentId = row.id
+  skipTemplateWatch.value = true
+  // 以详情接口为准，避免列表字段缺失导致子表/字段不同步
+  let detail = row
+  try {
+    const res = await api.GetObj(row.id)
+    detail = unwrapResponseData(res) || row
+  } catch (e) {
+    detail = row
+  }
+  const rfqItem = Array.isArray(detail?.rfq_items) && detail.rfq_items.length ? detail.rfq_items[0] : null
+  const mappedDetail = {
+    ...detail,
+    plant: detail?.plant || detail?.company_code || '',
+    template: detail?.template_code || detail?.template || '',
+    template_code: detail?.template_code || detail?.template || '',
+    part_no: detail?.part_no || rfqItem?.part_id || '',
+    part_name: detail?.part_name || rfqItem?.product_name || '',
+    part_unit: detail?.part_unit || rfqItem?.unit || '',
+    quote_deadline: normalizeQuoteDeadline(detail?.quote_deadline),
+    purchase_qty: detail?.purchase_qty ?? rfqItem?.qty ?? 0,
+    target_price: detail?.target_price ?? detail?.inquiry_price ?? rfqItem?.unit_price ?? 0
+  }
+  Object.assign(form, emptyForm(), mappedDetail)
+  ;['purchase_qty', 'target_price', 'lead_time_days'].forEach((k) => {
+    ;(form as any)[k] = toNumberOrZero((form as any)[k])
+  })
+  let tpl =
+    templates.value.find((t: any) => t.template_no === form.template) ||
+    templates.value.find((t: any) => t.template_no === row.template || t.template_no === row.template_code)
+  if (tpl) {
+    tpl = await fetchTemplateDetailIfNeeded(tpl)
+    form.template = tpl.template_no
+    applyTemplateMeta(tpl)
+  }
+  await handlePlantChange(form.plant)
+  // 编辑态仅以后端真实子表回填，不再兼容旧 cost_items 大字段
+  const buildCostRowsFromDetail = (detailObj: any) => {
+    const rows: CostRow[] = []
+    const partId = detailObj?.rfq_items?.[0]?.part_id || detailObj?.part_no || detailObj?.part_id || ''
+    if (Array.isArray(detailObj?.rfq_items) && detailObj.rfq_items.length) {
+      const rfq = detailObj.rfq_items[0]
+      const values: any = parseOptionJson(rfq.option_json, '产品明细扩展字段')
+      const qty = rfq.qty ?? ''
+      const unitPrice = rfq.unit_price ?? ''
+      values.partNo = rfq.part_id ?? partId
+      values.desc = rfq.product_name ?? ''
+      values.unit = rfq.unit ?? ''
+      values.qty = qty
+      values.price = unitPrice
+      values.amount =
+        qty !== '' && unitPrice !== '' ? Number((Number(qty) * Number(unitPrice)).toFixed(4)) : values.amount ?? ''
+      rows.push({
+        id: `prd-0-${Date.now()}`,
+        section: '产品明细',
+        field: 'prd-0',
+        values,
+      })
+    }
+    ;(detailObj?.material_costs || []).forEach((m: any, idx: number) => {
+      const values: any = parseOptionJson(m.option_json, '材料成本扩展字段')
+      values.material = m.material_spec ?? ''
+      values.length = m.length ?? ''
+      values.width = m.width ?? ''
+      values.height = m.height ?? ''
+      values.specificgravity = m.specific_gravity ?? ''
+      values.qty = m.qty ?? ''
+      values.unitPrice = m.unit_price ?? ''
+      values.material_cost = m.material_cost ?? ''
+      const row = { id: `mat-${idx}-${Date.now()}`, section: '材料成本', field: `mat-${idx}`, values: { ...values, partNo: partId } }
+      updateMaterialCalc(row)
+      rows.push(row)
+    })
+    ;(detailObj?.process_costs || []).forEach((p: any, idx: number) => {
+      const values: any = parseOptionJson(p.option_json, '加工成本扩展字段')
+      values.process_station = p.process_station ?? ''
+      values.unit = normalizeUnitCode(p.unit)
+      values.unitrate = p.unit_rate ?? ''
+      values.processqty = p.process_qty ?? ''
+      values.processprice = p.process_price ?? ''
+      const row = { id: `prc-${idx}-${Date.now()}`, section: '加工成本', field: `prc-${idx}`, values: { ...values, partNo: partId } }
+      updateProcessCalc(row)
+      rows.push(row)
+    })
+    if (Array.isArray(detailObj?.other_costs) && detailObj.other_costs.length) {
+      const o = detailObj.other_costs[0]
+      rows.push({
+        id: `oth-0-${Date.now()}`,
+        section: '其它成本',
+        field: 'oth-0',
+        values: { packaging_cost: o.packaging_cost ?? '', transportation_cost: o.transportation_cost ?? '', partNo: partId }
+      })
+    }
+    if (Array.isArray(detailObj?.profit_costs) && detailObj.profit_costs.length) {
+      const pr = detailObj.profit_costs[0]
+      rows.push({
+        id: `pft-0-${Date.now()}`,
+        section: '利润',
+        field: 'pft-0',
+        values: { profitRate: pr.profit_rate ?? '', partNo: partId }
+      })
+      rows.push({
+        id: `tax-0-${Date.now()}`,
+        section: '税金',
+        field: 'tax-0',
+        values: { taxRate: pr.tax_rate ?? '', partNo: partId }
+      })
+    }
+    return rows
+  }
+
+  const detailCostRows = buildCostRowsFromDetail(detail)
+  costRows.value = detailCostRows
+  applyTaxRateFromCurrency()
+  sectionAddConfig.value = buildSectionAddConfig(tpl)
+  // vendors/attachments：仅用新版子表回填
+  form.vendors = Array.isArray(detail?.suppliers)
+    ? detail.suppliers.map((s: any, idx: number) => ({
+      id: s.id || `v-${idx}-${Date.now()}`,
+      name: s.supplier_name || '',
+      supplier_id: s.supplier_code || '',
+      supplier_code: s.supplier_code || '',
+      supplier_name: s.supplier_name || '',
+      contact: s.contact_person || '',
+      email: s.contact_email || '',
+      phone: s.contact_phone || ''
+    }))
+    : []
+  const next = { drawing: [], tender: [], other: [] as any[] }
+  if (Array.isArray(detail?.attachments)) {
+    detail.attachments.forEach((a: any) => {
+      const type = attachmentTypeKeyMap[String(a.file_type ?? '3')] || 'other'
+      if (!next[type as keyof typeof next]) return
+      ;(next as any)[type].push({ name: a.file_name, url: a.file_path, status: 'ready' })
+    })
+  }
+  form.attachments = next
+  applyPartNoToCostRows(form.part_no)
+  activeTab.value = 'base'
+  dialog.visible = true
+}
+
+const openEdit = (row: any) => openDetail(row, 'edit')
+const openView = (row: any) => openDetail(row, 'view')
+
+const removeVendor = (row: any) => {
+  form.vendors = form.vendors.filter((v: any) => v !== row)
+}
+
+const addVendorRow = () => {
+  form.vendors.push({
+    id: Date.now(),
+    name: '',
+    supplier_id: '',
+    supplier_code: '',
+    supplier_name: '',
+    contact: '',
+    email: ''
+  })
+}
+
+const addCostRow = (section: string) => {
+  const newId = `r-${Date.now()}`
+  costRows.value.push({ id: newId, section, field: newId, values: {} })
+}
+
+const removeCostRow = (row: CostRow) => {
+  costRows.value = costRows.value.filter((r) => r !== row)
+}
+
+const onAttachmentChange = (type: 'drawing' | 'tender' | 'other', list: any[]) => {
+  form.attachments[type] = list.map((item: any) => ({
+    uid: item.uid,
+    name: item.name,
+    url: item.url || item.response?.url || '',
+    raw: item.raw,
+    status: item.status || 'ready'
+  }))
+}
+
+const unwrapResponseData = (res: any) => res?.data?.data ?? res?.data ?? res
+
+const uploadAttachmentFile = async (fileItem: any) => {
+  if (fileItem?.url || fileItem?.file_path) {
+    return {
+      ...fileItem,
+      url: fileItem.url || fileItem.file_path,
+      file_path: fileItem.file_path || fileItem.url,
+      status: 'ready'
+    }
+  }
+  const rawFile = fileItem?.raw
+  if (!rawFile) {
+    return {
+      ...fileItem,
+      url: '',
+      file_path: '',
+      status: fileItem?.status || 'ready'
+    }
+  }
+  const formData = new FormData()
+  formData.append('file', rawFile)
+  formData.append('upload_method', '1')
+  const res = await api.UploadFile(formData)
+  const uploaded = unwrapResponseData(res) || {}
+  const filePath = uploaded.url || uploaded.file_url || ''
+  return {
+    ...fileItem,
+    name: fileItem?.name || uploaded.name || rawFile.name || '',
+    url: filePath,
+    file_path: filePath,
+    status: 'ready'
+  }
+}
+
+const prepareAttachmentsForSubmit = async () => {
+  const types: Array<'drawing' | 'tender' | 'other'> = ['drawing', 'tender', 'other']
+  const entries = await Promise.all(
+    types.map(async (type) => {
+      const uploadedList = await Promise.all((form.attachments?.[type] || []).map((item: any) => uploadAttachmentFile(item)))
+      return [type, uploadedList]
+    })
+  )
+  return Object.fromEntries(entries) as typeof form.attachments
+}
+
+const loadCostItemsFromTemplate = async (tpl: any, force = false) => {
+  const resolved = await fetchTemplateDetailIfNeeded(tpl)
+  const rows = buildRowsFromTemplate(resolved)
+  if (force || !costRows.value.length) {
+    costRows.value = rows
+  }
+  sectionAddConfig.value = buildSectionAddConfig(resolved)
+  applyPartNoToCostRows(form.part_no)
+  applyTaxRateFromCurrency()
+}
+
+const sectionColumns = computed<Record<string, CostFieldColumn[]>>(() => {
+  const res: Record<string, CostFieldColumn[]> = {}
+  enabledSections.value.forEach((section) => {
+    const map = new Map<string, CostFieldColumn>()
+    const tplSec = templateSectionMap.value.get(section)
+    if (tplSec && Array.isArray(tplSec.fields)) {
+      tplSec.fields.forEach((f: any) => {
+        if (f.key) {
+          if (section === '加工成本' && f.key === 'process_fee') return
+          if (partNoHiddenDisplaySections.has(section) && f.key === 'partNo') return
+          map.set(f.key, {
+            key: f.key,
+            label: f.label || f.key,
+            autoFill: Number(f.is_computed ?? f.isComputed ?? f.autoFill ?? 0) === 1 || f.autoFill === true,
+            purchaserRequired:
+              Number(f.purchaser_required ?? f.purchaserRequired ?? 0) === 1 || f.purchaserRequired === true,
+            supplierRequiredCode: normalizeSupplierRequiredCode(f)
+          })
+        }
+      })
+    }
+    costRows.value
+      .filter((row) => row.section === section)
+      .forEach((row) => {
+        Object.keys(row.values || {}).forEach((k) => {
+          if (section === '加工成本' && k === 'process_fee') return
+          if (partNoHiddenDisplaySections.has(section) && k === 'partNo') return
+          if (!map.has(k)) {
+            map.set(k, {
+              key: k,
+              label: k,
+              autoFill: isTemplateComputedField(section, k),
+              purchaserRequired: templateFieldMetaMap.value.get(section)?.get(k)?.purchaserRequired === true
+            })
+          }
+        })
+      })
+    res[section] = Array.from(map.values())
+  })
+  return res
+})
+
+const groupedCostRows = computed<Record<string, CostRow[]>>(() => {
+  const map: Record<string, CostRow[]> = {}
+  enabledSections.value.forEach((s) => {
+    map[s] = []
+  })
+  costRows.value.forEach((r) => {
+    const sec = r.section || '未分组'
+    if (!enabledSections.value.includes(sec)) return
+    if (!map[sec]) map[sec] = []
+    map[sec].push(r)
+  })
+  return map
+})
+
+const fetchTemplates = async () => {
+  templateLoading.value = true
+  try {
+    const res = await costTemplateApi.GetList({ procurement_category: '2', acti: 'Y', page: 1, pageSize: 200, page_size: 200 })
+    const list =
+      res?.data?.results ||
+      res?.data?.data ||
+      res?.data?.list ||
+      res?.results ||
+      res?.list ||
+      res?.data ||
+      []
+    templates.value = Array.isArray(list) ? list : []
+    templatesLoaded.value = true
+  } catch (e) {
+    console.warn('加载询价模版失败', e)
+    templates.value = []
+    templatesLoaded.value = true
+  } finally {
+    templateLoading.value = false
+  }
+}
+
+const ensureTemplatesLoaded = async () => {
+  if (!templatesLoaded.value) {
+    await fetchTemplates()
+  }
+}
+
+watch(
+  unitOptions,
+  (options) => {
+    if (!options.length) return
+    stationOptions.value = stationOptions.value.map((station) => ({
+      ...station,
+      unit: normalizeUnitCode(station.unit)
+    }))
+    costRows.value.forEach((row) => {
+      if (row.section !== '加工成本' || !row.values) return
+      const unitKey = pickKey(row.values, processUnitKeys, 'unit')
+      row.values[unitKey] = normalizeUnitCode(row.values[unitKey])
+    })
+  },
+  { deep: true }
+)
+
+watch(
+  () => form.template,
+  async (val, oldVal) => {
+    if (skipTemplateWatch.value) {
+      skipTemplateWatch.value = false
+      return
+    }
+    if (val && val !== oldVal) {
+      let tpl = templates.value.find((t: any) => t.template_no === val)
+      if (tpl) {
+        tpl = await fetchTemplateDetailIfNeeded(tpl)
+      }
+      if (tpl) {
+        applyTemplateMeta(tpl)
+      }
+      await loadCostItemsFromTemplate(tpl, true)
+    }
+  }
+)
+
+watch(
+  () => form.currency,
+  () => {
+    applyTaxRateFromCurrency()
+  }
+)
+
+watch(
+  () => form.plant,
+  (val, oldVal) => {
+    if (val !== oldVal) {
+      handlePlantChange(val)
+    }
+  }
+)
+
+watch(
+  () => form.part_no,
+  (val) => {
+    applyPartNoToCostRows(val)
+  }
+)
+
+const saveForm = async () => {
+  if (isViewMode.value) return
+  if (dialog.mode === 'edit' && !isOpenStatus(form.status)) {
+    ElMessage.error('确认状态不允许编辑，请使用查看模式。')
+    dialog.mode = 'view'
+    return
+  }
+  if (!validatePurchaserRequiredFields()) return
+  if (!validateQuoteDeadlineAfterOpenDay()) return
+  if (!form.buyer && currentUserName.value) {
+    form.buyer = currentUserName.value
+  }
+  if (dialog.mode === 'create') {
+    form.purchase_dept = loginPurchaseDept()
+  }
+  try {
+    const uploadedAttachments = await prepareAttachmentsForSubmit()
+    form.attachments = uploadedAttachments
+    const partId = form.part_no || ''
+
+    const buildMaterialCosts = () =>
+      costRows.value
+        .filter((r) => r.section === '材料成本')
+        .map((r) => ({
+          part_id: partId,
+          material_spec: r.values?.material ?? r.values?.material_spec ?? '',
+          length: r.values?.length ?? '',
+          width: r.values?.width ?? '',
+          height: r.values?.height ?? '',
+          unit_price: r.values?.unitPrice ?? r.values?.unitprice ?? r.values?.unit_price ?? r.values?.price ?? null,
+          qty: normalizeMaterialQtyForSubmit(
+            r.values?.qty ?? r.values?.quantity ?? r.values?.num ?? r.values?.count
+          ),
+          specific_gravity: r.values?.specificgravity ?? r.values?.specific_gravity ?? '',
+          material_cost: r.values?.material_cost ?? r.values?.materialCost ?? null,
+          remark: r.values?.remark ?? '',
+          option_json: JSON.stringify(r.values || {})
+        }))
+
+    const buildProcessCosts = () =>
+      costRows.value
+        .filter((r) => r.section === '加工成本')
+        .map((r) => ({
+          part_id: partId,
+          process_station: r.values?.process_station ?? '',
+          unit: normalizeUnitCode(r.values?.unit ?? r.values?.process_unit) || null,
+          unit_rate: r.values?.unitrate ?? r.values?.unit_rate ?? null,
+          process_qty: r.values?.processqty ?? r.values?.process_qty ?? '',
+          process_price: r.values?.processprice ?? r.values?.process_price ?? null,
+          remark: r.values?.remark ?? '',
+          option_json: JSON.stringify(r.values || {})
+        }))
+
+    const otherRow = costRows.value.find((r) => r.section === '其它成本')?.values || {}
+    const profitRow = costRows.value.find((r) => r.section === '利润')?.values || {}
+    const taxRow = costRows.value.find((r) => r.section === '税金')?.values || {}
+    const productDetailRow = costRows.value.find((r) => r.section === '产品明细')?.values || {}
+
+    const packagingCost = Number(otherRow.packaging_cost ?? otherRow.packagingCost ?? 0) || 0
+    const transportationCost = Number(otherRow.transportation_cost ?? otherRow.transportationCost ?? 0) || 0
+    const profitRate = Number(profitRow.profitRate ?? profitRow.profit_rate ?? 0) || 0
+    const taxRate = Number(taxRow.taxRate ?? taxRow.tax_rate ?? 0) || 0
+    const targetPrice = Number(form.target_price) || 0
+    const rfqPartId = String((productDetailRow.partNo ?? productDetailRow.part_id ?? partId) || '')
+    const rfqProductName = (productDetailRow.desc ?? productDetailRow.product_name ?? form.part_name) || ''
+    const rfqUnit = (productDetailRow.unit ?? form.part_unit) || ''
+    const rfqQty = Number(productDetailRow.qty ?? productDetailRow.quantity ?? form.purchase_qty) || 0
+    const rfqUnitPrice =
+      Number(productDetailRow.price ?? productDetailRow.unitPrice ?? productDetailRow.unit_price ?? targetPrice) || 0
+
+    const materialTotal = buildMaterialCosts().reduce((sum, r) => sum + (Number(r.material_cost) || 0), 0)
+    const processTotal = buildProcessCosts().reduce((sum, r) => sum + (Number(r.process_price) || 0), 0)
+    const otherTotal = packagingCost + transportationCost
+    const exclTax = materialTotal + processTotal + otherTotal
+    const inclTax = exclTax * (1 + taxRate)
+
+    const payload: any = {
+      inquiry_no: form.inquiry_no || undefined,
+      title: form.title,
+      purchase_type: 2,
+      material_type: undefined,
+      template: form.template_code || String(form.template || ''),
+      is_bom: Number(form.is_bom) || 0,
+      currency: form.currency,
+      company_code: form.plant || undefined,
+      purchase_dept: clipPurchaseDept(form.purchase_dept) || undefined,
+      buyer: form.buyer,
+      quote_deadline: normalizeQuoteDeadline(form.quote_deadline) || undefined,
+      target_price: targetPrice,
+      lead_time_days: Number(form.lead_time_days) || 0,
+      payment_method: Number(form.payment_method) || 1,
+      status: Number(form.status) || STATUS_OPEN,
+      remark: form.remark,
+      suppliers: (form.vendors || []).map((v: any) => ({
+        part_id: partId,
+        supplier_code: v.supplier_code || v.supplier_id || v.name || '',
+        supplier_name: v.supplier_name || v.name || '',
+        contact_person: v.contact || '',
+        contact_email: v.email || '',
+        contact_phone: v.phone || ''
+      })),
+      attachments: ['drawing', 'tender', 'other'].flatMap((fileType: string) =>
+        (uploadedAttachments?.[fileType] || []).map((f: any) => ({
+          part_id: partId,
+          file_type: attachmentTypeCodeMap[fileType as keyof typeof attachmentTypeCodeMap] || 3,
+          file_name: f.name || f.file_name || '',
+          file_path: f.url || f.file_path || '',
+          upload_user: currentUserName.value || ''
+        }))
+      ),
+      material_costs: buildMaterialCosts(),
+      process_costs: buildProcessCosts(),
+      other_costs: [
+        {
+          part_id: partId,
+          packaging_cost: packagingCost,
+          transportation_cost: transportationCost
+        }
+      ],
+      profit_costs: [
+        {
+          part_id: partId,
+          tax_rate: taxRate,
+          profit_rate: profitRate
+        }
+      ],
+      rfq_items: [
+        {
+          part_id: rfqPartId,
+          product_name: rfqProductName,
+          unit: rfqUnit,
+          qty: rfqQty,
+          is_bom: Number(form.is_bom) || 0,
+          unit_price: rfqUnitPrice,
+          total_material_cost: Number(materialTotal.toFixed(4)),
+          total_processing_cost: Number(processTotal.toFixed(4)),
+          total_other_expense: Number(otherTotal.toFixed(4)),
+          total_opex_amt: 0,
+          profit_rate: profitRate,
+          total_price_excl_tax: Number(exclTax.toFixed(4)),
+          tax_rate: taxRate,
+          total_price_incl_tax: Number(inclTax.toFixed(4)),
+          option_json: JSON.stringify(productDetailRow || {})
+        }
+      ]
+    }
+    if (dialog.mode === 'create') {
+      await api.AddObj(payload)
+    } else if (dialog.currentId) {
+      await api.UpdateObj({ ...payload, id: dialog.currentId })
+    }
+    dialog.visible = false
+    crudExpose.doRefresh()
+  } catch (err: any) {
+    ElMessage.error(getErrorMessage(err, '保存失败'))
+  }
+}
+
+const { crudOptions } = createCrudOptions({ crudExpose, onAdd: openCreate, onEdit: openEdit, onView: openView })
+
+useCrud({ crudExpose, crudOptions })
+
+onMounted(() => {
+  fetchTemplates()
+  Promise.all([loadCompanyOptions(), loadPartOptions(), loadMaterialOptions(), loadSupplierOptions(), loadStationOptions(), loadUnitOptions()]).then(() => {
+    if (companyOptions.value.length && !form.plant) {
+      form.plant = companyOptions.value[0].value
+      handlePlantChange(form.plant)
+    }
+  })
+  crudExpose.doRefresh()
+})
+</script>
+
+<style scoped>
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 4px 12px;
+}
+.title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.sub {
+  margin: 4px 0 0;
+  color: #6b7280;
+  font-size: 13px;
+}
+.actions {
+  display: flex;
+  gap: 8px;
+}
+.grid-form {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+.grid-form :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+.grid-form .span2 {
+  grid-column: span 2;
+}
+.grid-form .span3 {
+  grid-column: span 3;
+}
+.grid-form .span4 {
+  grid-column: span 4;
+}
+.quote-deadline-input {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+.quote-deadline-input > :deep(*) {
+  min-width: 0;
+}
+.dialog-body {
+  min-height: 520px;
+  display: flex;
+  flex-direction: column;
+}
+.tabs-fill {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.tabs-fill :deep(.el-tabs__content) {
+  flex: 1;
+}
+.tabs-fill :deep(.el-tab-pane) {
+  min-height: 360px;
+}
+.attach-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.attach-block {
+  padding: 12px;
+  border: 1px dashed #d5d7de;
+  border-radius: 6px;
+  background: #fafafa;
+}
+.attach-title {
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: #374151;
+}
+.cost-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  color: #4b5563;
+}
+.cost-groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cost-group {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px;
+  background: #fff;
+}
+.cost-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.cost-row-pair {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 12px;
+}
+.cost-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.cost-section {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 12px;
+  background: #fff;
+}
+.cost-section-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #111827;
+}
+.cost-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px;
+}
+.cost-card {
+  border-color: #eef2ff;
+}
+.cost-field {
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #1f2937;
+}
+.cost-desc {
+  --el-descriptions-border-color: #e5e7eb;
+}
+</style>

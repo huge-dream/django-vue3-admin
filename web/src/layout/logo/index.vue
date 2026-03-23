@@ -1,7 +1,7 @@
 <template>
 	<div class="layout-logo" v-if="setShowLogo" @click="onThemeConfigChange">
 		<img :src="siteLogo" class="layout-logo-medium-img" />
-		<span style="font-size: x-large; ">{{ getSystemConfig['login.site_title'] || themeConfig.globalTitle }}</span>
+		<span style="font-size: x-large; ">{{ siteBrandTitle }}</span>
 	</div>
 	<div class="layout-logo-size" v-else @click="onThemeConfigChange">
 		<img :src="siteLogo" class="layout-logo-size-img" />
@@ -12,12 +12,16 @@
 import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useThemeConfig } from '/@/stores/themeConfig';
+import { SITE_BRAND_TITLE } from '/@/config/brand';
 import logoMini from '/@/assets/logo-mini.svg';
 import { SystemConfigStore } from "/@/stores/systemConfig";
 import _ from "lodash-es";
 // 定义变量内容
 const storesThemeConfig = useThemeConfig();
 const { themeConfig } = storeToRefs(storesThemeConfig);
+
+// 与 themeConfig 本地缓存无关，始终使用品牌常量
+const siteBrandTitle = SITE_BRAND_TITLE;
 
 // 设置 logo 的显示。classic 经典布局默认显示 logo
 const setShowLogo = computed(() => {

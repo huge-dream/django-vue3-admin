@@ -4,7 +4,7 @@
 			<div class="login-left-logo">
 				<img :src="siteLogo" />
 				<div class="login-left-logo-text">
-					<span>{{ getSystemConfig['login.site_title'] || getThemeConfig.globalViceTitle }}</span>
+					<span>{{ siteBrandTitle }}</span>
 				</div>
 			</div>
 		</div>
@@ -66,6 +66,7 @@
 import {defineAsyncComponent, onMounted, reactive, computed, watch} from 'vue';
 import { storeToRefs } from 'pinia';
 import { useThemeConfig } from '/@/stores/themeConfig';
+import { SITE_BRAND_TITLE } from '/@/config/brand';
 import { NextLoading } from '/@/utils/loading';
 import logoMini from '/@/assets/logo-mini.svg';
 import loginMain from '/@/assets/login-main.svg';
@@ -103,6 +104,8 @@ watch(()=>userInfos.value.pwd_change_count,(val)=>{
   }
 },{deep:true,immediate:true})
 
+
+const siteBrandTitle = SITE_BRAND_TITLE;
 
 // 获取布局配置信息
 const getThemeConfig = computed(() => {

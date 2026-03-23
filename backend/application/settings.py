@@ -60,9 +60,9 @@ INSTALLED_APPS = [
     "captcha",
     "channels",
     "dvadmin.system",
-    "sscadmin.procurement",
-    "sscadmin.basicinfo",
-    "sscadmin.supplier",
+    "apps.pisadmin.miscprocurement",
+    "apps.pisadmin.basicinfo",
+    "apps.pissupplier",
 ]
 
 MIDDLEWARE = [
