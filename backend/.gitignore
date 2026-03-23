@@ -88,8 +88,6 @@ ENV/
 .idea/
 *.db
 .DS_Store
-**/migrations/*.py
-!**/migrations/__init__.py
 *.pyc
 conf/*
 !conf/env.example.py
