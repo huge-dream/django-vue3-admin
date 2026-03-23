@@ -4,7 +4,7 @@ stages:
 deploy-to-server:
   stage: deploy
   tags:
-    - pis-deploy-code-test                     # 使用指定标签的 runner
+    - pis-deploy-code-test                 # 使用指定标签的 runner
   image: alpine:latest                     # 轻量级基础镜像
   before_script:
     # 更换 Alpine 镜像源为阿里云（国内加速）
