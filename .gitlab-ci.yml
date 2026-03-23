@@ -31,18 +31,8 @@ deploy-to-server:
       fi
 
     # --- 新增：代码同步逻辑（排除特定文件） ---
-    # 使用 rsync 同步代码：
-    # -a 归档模式
-    # -v 显示详细输出
-    # -z 传输时压缩
-    # --delete 删除目标目录中源目录不存在的文件
-    # --exclude 排除 Git 相关文件
-    - rsync -avz --delete \
-      --exclude='.git/' \
-      --exclude='.gitignore' \
-      --exclude='.gitattributes' \
-      --exclude='.gitlab-ci.yml' \
-      ./ "$TARGET_DIR/"
+    # 修复：将多行合并为一行，避免反斜杠被当作文件名处理
+    - rsync -avz --delete --exclude='.git/' --exclude='.gitignore' --exclude='.gitattributes' --exclude='.gitlab-ci.yml' ./ "$TARGET_DIR/"
 
     - echo "代码部署成功"
   rules:
