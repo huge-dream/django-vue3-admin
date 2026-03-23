@@ -1,1 +1,0 @@
-测试CI是否删除 migrations 文件夹中的文件
