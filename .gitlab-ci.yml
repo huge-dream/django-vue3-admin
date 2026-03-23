@@ -4,21 +4,69 @@ stages:
 deploy-to-server:
   stage: deploy
   tags:
-    - pis-deploy-code                     # 使用指定标签的 runner
+    - pis-deploy-code-test                     # 使用指定标签的 runner
   image: alpine:latest                     # 轻量级基础镜像
   before_script:
     # 更换 Alpine 镜像源为阿里云（国内加速）
     - sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
-    # 安装 rsync
-    - apk add --no-cache rsync
+    # 安装 rsync 和 bash (为了使用更复杂的脚本逻辑)
+    - apk add --no-cache rsync bash
     # 确保目标目录存在（若不存在则创建）
-    - mkdir -p /mnt/data/pis/python3/DV3Admin
+    - mkdir -p /mnt/data/pis/python3/DV3AdminDev
+  
   script:
-    # 使用 rsync 同步代码：
-    # -a 归档模式（保留权限、时间戳等）
-    # -v 显示详细输出
-    # -z 传输时压缩
-    # --delete 删除目标目录中源目录不存在的文件（保持完全一致）
-    - rsync -avz --delete ./ /mnt/data/pis/python3/DV3Admin/
+    # 定义目标路径变量
+    - TARGET_DIR="/mnt/data/pis/python3/DV3AdminDev"
+    - BACKUP_DIR="/tmp/migrations_backup_$$"
+
+    # 步骤 1: 备份目标目录下所有的 migrations/*.py 文件
+    # 逻辑：查找 $TARGET_DIR 下所有路径中包含 /backend/ 且随后包含 /migrations/*.py 的文件
+    # 将其复制到临时备份目录，保持原有目录结构，以便恢复
+    - |
+      mkdir -p "$BACKUP_DIR"
+      echo "开始备份 migrations 文件..."
+      # 使用 find 查找所有匹配的文件，并使用相对路径复制到备份目录
+      cd "$TARGET_DIR"
+      # 查找路径模式：任意目录/backend/任意目录/migrations/任意.py文件
+      # 注意：find 的 -path 匹配的是整个路径片段
+      find . -path "*/backend/*/migrations/*.py" -type f | while read file; do
+        # 创建对应的备份目录结构
+        dest_dir="$BACKUP_DIR/$(dirname "$file")"
+        mkdir -p "$dest_dir"
+        # 复制文件
+        cp "$file" "$dest_dir/"
+        echo "备份: $file"
+      done
+      cd - > /dev/null
+
+    # 步骤 2: 执行 rsync 同步
+    # --exclude 规则说明：
+    # .git/          : 排除 .git 目录及其内容
+    # .gitignore     : 排除根目录及子目录下的 .gitignore 文件
+    # .gitattributes : 排除 .gitattributes 文件
+    # .gitlab-ci.yml : 排除 CI 配置文件
+    - |
+      echo "开始同步代码..."
+      rsync -avz --delete \
+        --exclude='.git/' \
+        --exclude='.gitignore' \
+        --exclude='.gitattributes' \
+        --exclude='.gitlab-ci.yml' \
+        ./ "$TARGET_DIR/"
+
+    # 步骤 3: 恢复被误删的 migrations 文件
+    # 将备份目录中的文件拷回目标目录
+    - |
+      echo "恢复 migrations 文件..."
+      if [ -d "$BACKUP_DIR" ] && [ "$(ls -A $BACKUP_DIR)" ]; then
+        cp -r "$BACKUP_DIR"/* "$TARGET_DIR/"
+        echo "恢复完成。"
+      else
+        echo "未找到需要恢复的 migrations 文件或备份目录为空。"
+      fi
+    
+    # 清理临时备份
+    - rm -rf "$BACKUP_DIR"
+
   rules:
     - when: manual                         # 手动触发流水线
