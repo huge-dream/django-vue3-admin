@@ -4,8 +4,5 @@
 
 .history/
 .vscode/
-web/package-lock.json
-web/node_modules
-web/dist
 
 *.bat
