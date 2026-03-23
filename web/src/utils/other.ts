@@ -43,7 +43,7 @@ export function useTitle() {
 			webTitle = setTagsViewNameI18n(router.currentRoute.value);
 		}
 		// document.title = `${webTitle} - ${globalTitle}` || "DVAdmin";
-		document.title = `${webTitle}`;
+		document.title = `PIS`;
 	});
 }
 

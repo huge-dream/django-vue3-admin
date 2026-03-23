@@ -101,7 +101,7 @@ class MenuButtonViewSet(CustomModelViewSet):
             {'menu': menu_obj.id, 'name': '详情', 'value': f'{menu_obj.component_name}:Retrieve', 'api': f'/api/{menu_obj.component_name}/{{id}}/', 'method': 0},
             {'menu': menu_obj.id, 'name': '复制', 'value': f'{menu_obj.component_name}:Copy', 'api': f'/api/{menu_obj.component_name}/', 'method': 1},
             {'menu': menu_obj.id, 'name': '导入', 'value': f'{menu_obj.component_name}:Import', 'api': f'/api/{menu_obj.component_name}/import_data/', 'method': 1},
-            {'menu': menu_obj.id, 'name': '导出', 'value': f'{menu_obj.component_name}:Export', 'api': f'/api{menu_obj.component_name}/export_data/', 'method': 1},]
+            {'menu': menu_obj.id, 'name': '导出', 'value': f'{menu_obj.component_name}:Export', 'api': f'/api/{menu_obj.component_name}/export_data/', 'method': 1},]
         serializer = self.get_serializer(data=result_list, many=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()

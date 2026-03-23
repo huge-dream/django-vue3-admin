@@ -16,6 +16,7 @@ import { useI18n } from 'vue-i18n';
 import { storeToRefs } from 'pinia';
 import { useTagsViewRoutes } from '/@/stores/tagsViewRoutes';
 import { useThemeConfig } from '/@/stores/themeConfig';
+import { SITE_BRAND_TITLE } from '/@/config/brand';
 import other from '/@/utils/other';
 import { Local, Session } from '/@/utils/storage';
 import mittBus from '/@/utils/mitt';
@@ -79,7 +80,15 @@ onMounted(() => {
         return
     }
 		if (Local.get('themeConfig')) {
-			storesThemeConfig.setThemeConfig({ themeConfig: Local.get('themeConfig') });
+			const cached = Local.get('themeConfig') as Record<string, unknown>;
+			// 布局配置会整份写入 localStorage，会覆盖 globalTitle；品牌名固定为 SITE_BRAND_TITLE
+			storesThemeConfig.setThemeConfig({
+				themeConfig: {
+					...cached,
+					globalTitle: SITE_BRAND_TITLE,
+					globalViceTitle: SITE_BRAND_TITLE,
+				} as typeof storesThemeConfig.themeConfig,
+			});
 			document.documentElement.style.cssText = Local.get('themeConfigStyle');
 		}
 		// 获取缓存中的全屏配置
