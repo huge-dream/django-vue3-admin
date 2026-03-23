@@ -14,35 +14,20 @@ deploy-to-server:
     # 确保目标目录存在（若不存在则创建，用于后续判断和备份逻辑的基础）
     - mkdir -p /mnt/data/pis/python3/DV3AdminDev
   script:
-    # --- 新增：备份逻辑 (优化版) ---
+    # --- 新增：备份逻辑 ---
     # 定义变量
     - TARGET_DIR="/mnt/data/pis/python3/DV3AdminDev"
     - BACKUP_DATE=$(date +%Y%m%d)
     - BACKUP_DIR="${TARGET_DIR}_bak_${BACKUP_DATE}"
     
     # 检查目标目录是否为空或是否存在有效文件，若存在则进行备份
-    # 优化点：
-    # 1. 使用 { ... } 将所有相关命令包裹在一个 - 条目中，确保在同一个 shell 会话执行。
-    # 2. 在执行 mv 前，先 cd / 退出目标目录，避免 "Resource busy" 错误。
-    # 3. 增加错误检查，如果备份失败则退出脚本，防止数据覆盖。
-    - |
-      if [ -d "$TARGET_DIR" ] && [ "$(ls -A "$TARGET_DIR")" ]; then
-        echo "检测到现有文件，开始备份至路径 $BACKUP_DIR"
-        
-        # 退出目标目录，防止 "Resource busy"
-        cd /
-        
-        # 执行移动操作
-        if ! mv "$TARGET_DIR" "$BACKUP_DIR"; then
-          echo "错误：备份失败，无法移动目录。终止部署以防止数据丢失。"
-          exit 1
-        fi
-        
-        # 重新创建空的目标目录
-        mkdir -p "$TARGET_DIR"
-        echo "备份成功完成。"
+    # 使用 ls -A 检查目录下是否有非隐藏文件或所有文件（包括隐藏），如果有内容则备份
+    - if [ -d "$TARGET_DIR" ] && [ "$(ls -A $TARGET_DIR)" ]; then
+        echo "备份文件至路径 $BACKUP_DIR";
+        cp -a "$TARGET_DIR" "$BACKUP_DIR";
+        mkdir -p "$TARGET_DIR";
       else
-        echo "目标目录为空或不存在，跳过备份步骤。"
+        echo "没有文件需要部署或文件夹为空";
       fi
 
     # --- 新增：代码同步逻辑（排除特定文件） ---
