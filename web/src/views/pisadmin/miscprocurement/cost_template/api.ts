@@ -1,5 +1,5 @@
 import { request } from '/@/utils/service'
-import { PageQuery, AddReq, DelReq, EditReq, InfoReq } from '@fast-crud/fast-crud'
+import { PageQuery, AddReq, EditReq, InfoReq } from '@fast-crud/fast-crud'
 
 // 成本结构模板（独立表）：t_CostEstimate_Template_Head/Body
 export const apiPrefix = '/api/pisadmin/miscprocurement/cost_template/'
@@ -35,9 +35,20 @@ export function UpdateObj(obj: EditReq) {
   })
 }
 
-export function DelObj(id: DelReq) {
+/** 未确认 → 已确认：POST /cost_template/{id}/confirm/ */
+export function ConfirmObj(id: string | number) {
   return request({
-    url: apiPrefix + id + '/',
-    method: 'delete'
+    url: `${apiPrefix}${id}/confirm/`,
+    method: 'post',
+    data: {}
+  })
+}
+
+/** 已确认模板派生新版本：POST /cost_template/{sourceId}/new_version/（同模板编号，服务端 version=max+1） */
+export function NewVersionFromSource(sourceId: string | number, data: Record<string, unknown>) {
+  return request({
+    url: `${apiPrefix}${sourceId}/new_version/`,
+    method: 'post',
+    data
   })
 }

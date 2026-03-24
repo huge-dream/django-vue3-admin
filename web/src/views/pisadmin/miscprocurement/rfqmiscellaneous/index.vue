@@ -397,14 +397,14 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useCrud, useExpose } from '@fast-crud/fast-crud'
 import { ElMessage } from 'element-plus'
-import { createCrudOptions, normalizeDict } from './crud'
+import { createCrudOptions, normalizeDict, formatCostTemplateVersionTwoDigits } from './crud'
 import * as api from './api'
-import * as costTemplateApi from '../pricetemplate/api'
+import * as costTemplateApi from '../cost_template/api'
 import { GetCompanies, GetList as GetCurrencies } from '../../basicinfo/currency/api'
-import { GetList as GetParts } from '../misc-part/api'
-import { GetList as GetMaterials } from '../misc-material/api'
+import { GetList as GetParts } from '../misc_parts/api'
+import { GetList as GetMaterials } from '../misc_materials/api'
 import { GetList as GetSuppliers } from '../../basicinfo/supplier/api'
-import { GetList as GetStations } from '../misc-station/api'
+import { GetList as GetStations } from '../misc_stations/api'
 import { GetList as GetUnits } from '../../basicinfo/unit/api'
 import { useUserInfo } from '/@/stores/userInfo'
 
@@ -514,10 +514,22 @@ const templateLoading = ref(false)
 const templatesLoaded = ref(false)
 
 const templateOptions = computed(() =>
-  templates.value.map((t: any) => ({
-    value: t.template_no,
-    label: `${t.template_name || '模板'}${t.template_no ? `（${t.template_no}）` : ''}`
-  }))
+  templates.value.map((t: any) => {
+    const name = t.template_name || '模板'
+    const no = t.template_no || ''
+    const v =
+      t.version != null && t.version !== ''
+        ? formatCostTemplateVersionTwoDigits(t.version)
+        : ''
+    const label = no
+      ? v
+        ? `${name}（${no} · V${v}）`
+        : `${name}（${no}）`
+      : v
+        ? `${name}（V${v}）`
+        : name
+    return { value: t.template_no, label }
+  })
 )
 
 const normalizeUnitCode = (value?: string | null) => {
@@ -1648,7 +1660,14 @@ const groupedCostRows = computed<Record<string, CostRow[]>>(() => {
 const fetchTemplates = async () => {
   templateLoading.value = true
   try {
-    const res = await costTemplateApi.GetList({ procurement_category: '2', acti: 'Y', page: 1, pageSize: 200, page_size: 200 })
+    const res = await costTemplateApi.GetList({
+      procurement_category: '2',
+      acti: 'Y',
+      status: 1,
+      page: 1,
+      pageSize: 200,
+      page_size: 200
+    })
     const list =
       res?.data?.results ||
       res?.data?.data ||

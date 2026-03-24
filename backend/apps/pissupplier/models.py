@@ -33,6 +33,7 @@ class QuotationMaster(models.Model):
     contact_phone = models.CharField( max_length=20, null=True, blank=True, verbose_name="联系人电话" )
     contact_email = models.CharField( max_length=20, null=True, blank=True, verbose_name="联系人邮件" )
     quote_deadline = models.CharField( max_length=20, null=True, blank=True, verbose_name="报价截止时间" )
+    validity_days = models.IntegerField( null=True, blank=True, verbose_name="有效天数" )
     delivery_days = models.IntegerField( null=True, blank=True, verbose_name="交货周期" )
     payment_method = models.IntegerField( choices=PAYMENT_METHOD_CHOICES, null=True, blank=True, verbose_name="付款方式" )
     status = models.IntegerField(
@@ -169,9 +170,9 @@ class QuotationProcess(models.Model):
         blank=True,
         verbose_name="加工工站",
     )
-    unit = models.DecimalField(
-        max_digits=12,
-        decimal_places=4,
+    # 单位为文本（如 PCS/小时/cm），与 miscprocurement.InquiryProcessCost 一致
+    unit = models.CharField(
+        max_length=20,
         db_column="Unit",
         null=True,
         blank=True,

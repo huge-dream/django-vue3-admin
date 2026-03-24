@@ -1,4 +1,5 @@
-import { dict, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud'
+import { compute, dict, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import * as api from './api'
 import SectionBuilder from './SectionBuilder.vue'
 
@@ -266,6 +267,7 @@ const replaceBuiltInFields = (section: any, defaultFields: any[]) => {
       if (existing.supplierRequired !== undefined) copy.supplierRequired = existing.supplierRequired
       if (existing.supplierEditable !== undefined) copy.supplierEditable = existing.supplierEditable
       if (existing.remark !== undefined) copy.remark = existing.remark
+      if (existing.version !== undefined) copy.version = existing.version
     } else {
       copy.nameCn = copy.nameCn ?? copy.label ?? ''
       copy.nameEn = copy.nameEn ?? ''
@@ -396,6 +398,12 @@ let latestSectionDraft: any[] = []
 const countSectionFields = (sections: any[]) =>
   normalizeSections(sections).reduce((total, section: any) => total + (Array.isArray(section?.fields) ? section.fields.length : 0), 0)
 
+const parseHeadVersion = (form: any) => {
+  if (form?.version == null || form.version === '') return 1
+  const n = Number(form.version)
+  return Number.isFinite(n) ? n : 1
+}
+
 const resolveSectionsForSubmit = (form: any) => {
   const draftSections = normalizeSections(latestSectionDraft)
   const currentSections = normalizeSections(form.sections)
@@ -407,7 +415,7 @@ const resolveSectionsForSubmit = (form: any) => {
   return draftCount >= currentCount ? draftSections : currentSections
 }
 
-const sectionsToItems = (sectionsRaw: any[], allowTitles?: string[]) => {
+const sectionsToItems = (sectionsRaw: any[], allowTitles?: string[], headVersion?: number | null) => {
   const sections = normalizeSections(sectionsRaw)
   const allowList =
     Array.isArray(allowTitles) && allowTitles.length
@@ -417,6 +425,14 @@ const sectionsToItems = (sectionsRaw: any[], allowTitles?: string[]) => {
         : []
   const items: any[] = []
   let order = 1
+  const resolveBodyVersion = (f: any) => {
+    const raw = f?.version
+    if (raw !== undefined && raw !== null && raw !== '') {
+      const n = Number(raw)
+      return Number.isFinite(n) ? n : headVersion ?? undefined
+    }
+    return headVersion ?? undefined
+  }
   sections
     .filter((s: any) => s && s.enabled !== false)
     .filter((s: any) => !allowList.length || allowList.includes(s.title || s.name || ''))
@@ -424,6 +440,7 @@ const sectionsToItems = (sectionsRaw: any[], allowTitles?: string[]) => {
       const title = sec.title || sec.name || ''
       const cost_category = titleToCostCategory[title] || '1'
       ;(sec.fields || []).forEach((f: any) => {
+        const rowVersion = resolveBodyVersion(f)
         items.push({
           cost_category,
           item_order: order++,
@@ -435,7 +452,8 @@ const sectionsToItems = (sectionsRaw: any[], allowTitles?: string[]) => {
           is_computed: f.autoFill ? 1 : 0,
           purchaser_required: f.autoFill ? 0 : f.purchaserRequired ? 1 : 0,
           supplier_required: getSupplierRequiredCode(f),
-          remark: f.remark || ''
+          remark: f.remark || '',
+          ...(rowVersion !== undefined ? { version: rowVersion } : {})
         })
       })
     })
@@ -443,8 +461,24 @@ const sectionsToItems = (sectionsRaw: any[], allowTitles?: string[]) => {
 }
 
 const itemsToSections = (items: any[], head?: any) => {
+  // 新版本弹窗里 form.version 为「下一版」预览值，但 items 仍来自上一版；过滤必须用明细实际所属版本
+  const headVerRaw = head?.__itemsSourceVersion ?? head?.version
+  const headVer =
+    headVerRaw != null && headVerRaw !== ''
+      ? Number(headVerRaw)
+      : null
+  const filteredItems =
+    headVer != null && Number.isFinite(headVer)
+      ? (items || []).filter((it: any) => {
+          const rowVer =
+            it?.version != null && it?.version !== ''
+              ? Number(it.version)
+              : headVer
+          return rowVer === headVer
+        })
+      : items || []
   const grouped = new Map<string, any[]>()
-  ;(items || []).forEach((it: any) => {
+  filteredItems.forEach((it: any) => {
     const title = costCategoryToTitle[String(it.cost_category ?? '')] || '其它成本'
     if (!grouped.has(title)) grouped.set(title, [])
     grouped.get(title)!.push(it)
@@ -465,6 +499,7 @@ const itemsToSections = (items: any[], head?: any) => {
           nameCn: r.item_name_cn,
           nameEn: r.item_name_en,
           nameVn: r.item_name_vn,
+          version: r.version != null && r.version !== '' ? Number(r.version) : undefined,
           fixed: Number(r.is_fixed ?? r.item_category ?? 0) === 1,
           autoFill: Number(r.is_computed || 0) === 1,
           purchaserRequired: Number(r.is_computed || 0) === 1 ? false : Number(r.purchaser_required || 0) === 1,
@@ -486,7 +521,28 @@ const itemsToSections = (items: any[], head?: any) => {
   return defaults
 }
 
-export const createCrudOptions = function ({ context }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+const templateStatusUnconfirmed = (row: any) => Number(row?.status) === 0
+const templateStatusConfirmed = (row: any) => Number(row?.status) === 1
+
+/** 提交用载荷（不含业务分流字段）；初始添加与「新版本」共用结构，后者走独立 API。 */
+const buildCostTemplateSubmitPayload = (form: any) => {
+  const sections = resolveSectionsForSubmit(form)
+  const allowTitles = visibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
+  const headVersion = parseHeadVersion(form)
+  return {
+    template_name: form.template_name,
+    procurement_category: form.procurement_category,
+    is_bom: form.is_bom || 'Y',
+    acti: form.acti || 'Y',
+    template_desc: form.template_desc || '',
+    version: headVersion,
+    is_can_add_materials: Number(sections.find((s: any) => s?.title === '材料成本')?.supplierCanAddRow) ? 1 : 0,
+    is_can_add_process: Number(sections.find((s: any) => s?.title === '加工成本')?.supplierCanAddRow) ? 1 : 0,
+    items: sectionsToItems(sections, allowTitles, headVersion)
+  }
+}
+
+export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
   return {
     crudOptions: {
       form: {
@@ -501,7 +557,7 @@ export const createCrudOptions = function ({ context }: CreateCrudOptionsProps):
           type: 'tab',
           base: {
             label: '基础信息',
-            columns: ['template_name', 'procurement_category', 'template_desc']
+            columns: ['template_name', 'procurement_category', 'version', 'template_desc']
           },
           controls: {
             label: '启用设置',
@@ -514,9 +570,22 @@ export const createCrudOptions = function ({ context }: CreateCrudOptionsProps):
         },
         async onOpened(ctx: any) {
           if (ctx.mode === 'add') {
+            // 新版本：由 openAdd 预填完整 sections/items；勿 refreshSectionsIfNeeded（会再走 replaceBuiltInFields，且易与预填冲突）
+            if (ctx.form?.__newVersionSourceId != null && ctx.form.__newVersionSourceId !== '') {
+              const vis = visibleTitles(ctx.form.procurement_category, (ctx.form.is_bom || 'Y') === 'Y')
+              ctx.form.__visibleTitles = vis
+              if (Array.isArray(ctx.form.sections)) {
+                ;(ctx.form.sections as any).__visibleTitles = vis
+              }
+              latestSectionDraft = normalizeSections(ctx.form.sections)
+              return
+            }
             ctx.form.procurement_category = '2'
             ctx.form.is_bom = 'Y'
             ctx.form.acti = 'Y'
+            if (ctx.form.version == null || ctx.form.version === '') {
+              ctx.form.version = 1
+            }
             refreshSectionsIfNeeded(ctx.form)
             latestSectionDraft = normalizeSections(ctx.form.sections)
             return
@@ -546,18 +615,10 @@ export const createCrudOptions = function ({ context }: CreateCrudOptionsProps):
       request: {
         pageRequest: async (query) => api.GetList(query),
         addRequest: async ({ form }) => {
-          const sections = resolveSectionsForSubmit(form)
-          const allowTitles = visibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
-          const payload: any = {
-            template_no: form.template_no || undefined,
-            template_name: form.template_name,
-            procurement_category: form.procurement_category,
-            is_bom: form.is_bom || 'Y',
-            acti: form.acti || 'Y',
-            template_desc: form.template_desc || '',
-            is_can_add_materials: Number(sections.find((s: any) => s?.title === '材料成本')?.supplierCanAddRow) ? 1 : 0,
-            is_can_add_process: Number(sections.find((s: any) => s?.title === '加工成本')?.supplierCanAddRow) ? 1 : 0,
-            items: sectionsToItems(sections, allowTitles)
+          const payload = buildCostTemplateSubmitPayload(form)
+          const src = form.__newVersionSourceId
+          if (src != null && src !== '') {
+            return api.NewVersionFromSource(src, payload)
           }
           const categoryStats = payload.items.reduce((acc: Record<string, number>, item: any) => {
             const key = String(item.cost_category || '')
@@ -569,24 +630,20 @@ export const createCrudOptions = function ({ context }: CreateCrudOptionsProps):
             item_no: item.item_no,
             is_computed: item.is_computed
           }))
-          console.log('[CostTemplate] add payload.items stats', { total: payload.items?.length || 0, categories: categoryStats, allowTitles })
+          console.log('[CostTemplate] add payload.items stats', { total: payload.items?.length || 0, categories: categoryStats })
           console.log('[CostTemplate] add payload.items computed', computedStats)
-          return api.AddObj(payload)
+          return api.AddObj({
+            ...payload,
+            template_no: form.template_no || undefined
+          })
         },
         editRequest: async ({ form, row }) => {
-          const sections = resolveSectionsForSubmit(form)
-          const allowTitles = visibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
+          const base = buildCostTemplateSubmitPayload(form)
           const payload: any = {
+            ...base,
             id: row.id,
             template_no: form.template_no || row.template_no,
-            template_name: form.template_name,
-            procurement_category: form.procurement_category,
-            is_bom: form.is_bom || 'Y',
-            acti: form.acti || 'Y',
-            template_desc: form.template_desc || '',
-            is_can_add_materials: Number(sections.find((s: any) => s?.title === '材料成本')?.supplierCanAddRow) ? 1 : 0,
-            is_can_add_process: Number(sections.find((s: any) => s?.title === '加工成本')?.supplierCanAddRow) ? 1 : 0,
-            items: sectionsToItems(sections, allowTitles)
+            status: form.status != null && form.status !== '' ? Number(form.status) : undefined
           }
           const categoryStats = payload.items.reduce((acc: Record<string, number>, item: any) => {
             const key = String(item.cost_category || '')
@@ -598,11 +655,10 @@ export const createCrudOptions = function ({ context }: CreateCrudOptionsProps):
             item_no: item.item_no,
             is_computed: item.is_computed
           }))
-          console.log('[CostTemplate] edit payload.items stats', { total: payload.items?.length || 0, categories: categoryStats, allowTitles })
+          console.log('[CostTemplate] edit payload.items stats', { total: payload.items?.length || 0, categories: categoryStats })
           console.log('[CostTemplate] edit payload.items computed', computedStats)
           return api.UpdateObj(payload)
-        },
-        delRequest: async ({ row }) => api.DelObj(row.id)
+        }
       },
       table: {
         rowKey: 'id'
@@ -614,10 +670,95 @@ export const createCrudOptions = function ({ context }: CreateCrudOptionsProps):
       },
       rowHandle: {
         fixed: 'right',
-        minWidth: 220,
+        minWidth: 320,
         buttons: {
           view: {
             show: true
+          },
+          edit: {
+            show: compute(({ row }) => templateStatusUnconfirmed(row))
+          },
+          remove: {
+            show: false
+          },
+          confirm: {
+            text: '确认',
+            title: '确认',
+            type: 'success',
+            order: 4,
+            show: compute(({ row }) => templateStatusUnconfirmed(row)),
+            async click({ row }: { row: any }) {
+              try {
+                await ElMessageBox.confirm('确认将模板设为「已确认」状态？', '确认', {
+                  type: 'warning',
+                  confirmButtonText: '确定',
+                  cancelButtonText: '取消'
+                })
+                const cres: any = await api.ConfirmObj(row.id)
+                const okMsg = cres?.data?.msg || cres?.msg || '确认成功'
+                ElMessage.success(okMsg)
+                crudExpose?.doRefresh?.()
+              } catch (e: any) {
+                if (e === 'cancel' || e === 'close') return
+                const msg = e?.response?.data?.msg || e?.message || '确认失败'
+                ElMessage.error(msg)
+              }
+            }
+          },
+          newVersion: {
+            text: '新版本',
+            title: '新版本',
+            type: 'primary',
+            order: 5,
+            show: compute(({ row }) => templateStatusConfirmed(row)),
+            async click({ row }: { row: any }) {
+              try {
+                const res: any = await api.GetObj(row.id)
+                const detail = res?.data?.data || res?.data || res
+                if (!detail || typeof detail !== 'object') {
+                  ElMessage.error('加载模板详情失败')
+                  return
+                }
+                const nextV = Number(detail.version) + 1
+                const sourceVer = Number(detail.version) || 1
+                const rawItems = Array.isArray(detail.items) ? detail.items : []
+                const itemsStripped = rawItems.map((it: any) => {
+                  if (!it || typeof it !== 'object') return it
+                  const { id: _id, ...rest } = it
+                  return rest
+                })
+                // 必须用源模板版本过滤明细；勿把 version 设为 nextV，否则 itemsToSections 会筛掉全部旧版行
+                const headForSections = { ...detail, __itemsSourceVersion: sourceVer }
+                const secs = itemsToSections(itemsStripped, headForSections)
+                const vis = visibleTitles(detail.procurement_category, (detail.is_bom || 'Y') === 'Y')
+                ;(secs as any).__visibleTitles = vis
+                await crudExpose?.openAdd?.(
+                  {
+                    row: {
+                      __newVersionSourceId: row.id,
+                      __itemsSourceVersion: sourceVer,
+                      template_no: detail.template_no,
+                      template_name: detail.template_name,
+                      procurement_category: detail.procurement_category,
+                      is_bom: detail.is_bom || 'Y',
+                      acti: detail.acti || 'Y',
+                      template_desc: detail.template_desc || '',
+                      version: nextV,
+                      status: 0,
+                      is_can_add_materials: detail.is_can_add_materials,
+                      is_can_add_process: detail.is_can_add_process,
+                      sections: secs,
+                      __visibleTitles: vis,
+                      items: itemsStripped
+                    }
+                  },
+                  { title: '新版本' }
+                )
+              } catch (e: any) {
+                const msg = e?.response?.data?.msg || e?.message || '打开新版本失败'
+                ElMessage.error(msg)
+              }
+            }
           }
         }
       },
@@ -705,6 +846,34 @@ export const createCrudOptions = function ({ context }: CreateCrudOptionsProps):
             component: { props: { rows: 2 } }
           }
         },
+        version: {
+          title: '版本号',
+          type: 'number',
+          column: { width: 100 },
+          form: {
+            show: true,
+            col: { span: 12 },
+            value: 1,
+            component: { props: { min: 1, step: 1, controlsPosition: 'right' } },
+            viewForm: { component: { disabled: true } }
+          }
+        },
+        status: {
+          title: '状态',
+          type: 'dict-select',
+          dict: dict({
+            data: [
+              { value: '0', label: '未确认' },
+              { value: '1', label: '已确认' }
+            ]
+          }),
+          search: {
+            show: true,
+            component: { props: { clearable: true, placeholder: '状态' } }
+          },
+          form: { show: false },
+          column: { width: 100 }
+        },
         sections: {
           title: '',
           type: 'text',
@@ -781,7 +950,7 @@ export const createCrudOptions = function ({ context }: CreateCrudOptionsProps):
             logPT('valueResolve', { source: 'ensured', sections: form.sections?.length })
           }
         },
-        update_datetime: {
+        update_time: {
           title: '更新时间',
           type: 'datetime',
           form: { show: false },

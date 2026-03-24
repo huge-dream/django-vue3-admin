@@ -27,12 +27,12 @@
 
         <el-table :data="sec.fields" border size="small" class="mb8">
           <el-table-column type="index" width="50" />
-          <el-table-column label="字段Key" min-width="180">
+          <el-table-column label="字段Key" min-width="100">
             <template #default="{ row }">
               <el-input v-model="row.key" :disabled="row.builtIn || isReadonly" size="small" placeholder="唯一键" />
             </template>
           </el-table-column>
-          <el-table-column label="固定值否" width="120" align="center">
+          <el-table-column label="固定值否" width="100" align="center">
             <template #default="{ row }">
               <el-switch v-model="row.fixed" :disabled="row.builtIn || isReadonly" />
             </template>
@@ -79,15 +79,18 @@
               <el-input v-model="row.remark" size="small" placeholder="备注说明" :disabled="isReadonly" />
             </template>
           </el-table-column>
-          <el-table-column v-if="!isReadonly" label="操作" width="90" fixed="right">
+          <el-table-column label="移除" width="80" align="center" fixed="right">
             <template #default="{ row }">
               <el-button
-                link
+                v-if="!isReadonly && !row.builtIn"
                 type="danger"
+                link
                 size="small"
-                :disabled="row.builtIn || isReadonly"
-                @click="removeField(sec.__id, row.__id)"
-              >删除</el-button>
+                @click="removeField(sec, row)"
+              >
+                移除
+              </el-button>
+              <span v-else class="remove-col-placeholder">—</span>
             </template>
           </el-table-column>
         </el-table>
@@ -98,7 +101,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, ref, useAttrs, watch } from 'vue'
+import { computed, nextTick, reactive, ref, useAttrs, watch } from 'vue'
 
 type SupplierBehavior =
   | ''
@@ -126,6 +129,8 @@ type FieldRow = {
   supplierBehavior: SupplierBehavior
   remark?: string
   builtIn?: boolean
+  /** 明细行版本；未填时提交端按主表版本写入 */
+  version?: number | null
 }
 
 type SectionRow = {
@@ -280,18 +285,14 @@ const makeSyncKey = (list: SectionRow[]) =>
   )
 
 let lastSyncKey = ''
+/** 本组件 emit 后父级会回写 modelValue；跳过等量次数的 props 同步，避免每次按键都 syncFromProps 整表重建 */
+let pendingParentEchoSkips = 0
 
 const visibleSections = computed(() => {
   const allowList = visibleAllowList.value
-  const out = allowList.length
+  return allowList.length
     ? localSections.filter((s) => allowList.includes(s.title))
     : localSections.filter((s) => s.enabled !== false)
-  console.log('[SectionBuilder] visibleSections', {
-    allowList,
-    titles: localSections.map((s) => s.title),
-    showing: out.map((s) => s.title)
-  })
-  return out
 })
 
 const active = ref('')
@@ -325,7 +326,8 @@ const toFieldRow = (raw: any): FieldRow => {
     supplierRequiredCode: Number(raw?.supplier_required ?? raw?.supplierRequiredCode ?? 0) || 0,
     supplierBehavior: supplierBehaviorFromRaw(raw, !!raw?.purchaserRequired),
     remark: raw?.remark || '',
-    builtIn
+    builtIn,
+    version: raw?.version != null && raw?.version !== '' ? Number(raw.version) : undefined
   }
   syncComputedFieldState(row)
   return row
@@ -365,17 +367,23 @@ const syncFromProps = (val: any) => {
   if (!active.value || !visibleSections.value.find((s) => s.__id === active.value)) {
     active.value = firstVisible || localSections[0]?.__id || ''
   }
-  console.log('[SectionBuilder] syncFromProps', { incoming: incoming.length, fallback: fallback.length, active: active.value })
   syncing = false
 }
 
 watch(
   () => props.modelValue,
-  (val) => syncFromProps(val),
+  (val) => {
+    if (pendingParentEchoSkips > 0) {
+      pendingParentEchoSkips -= 1
+      return
+    }
+    syncFromProps(val)
+  },
   { immediate: true, deep: true }
 )
 
-const emitChange = () => {
+const flushEmitChange = () => {
+  pendingParentEchoSkips += 1
   const allowList = visibleAllowList.value
   const clean = localSections.map((s) => ({
     id: s.id,
@@ -405,12 +413,23 @@ const emitChange = () => {
         f.supplierBehavior === 'hidden_optional',
       supplierBehavior: f.autoFill ? '' : f.supplierBehavior,
       remark: f.remark,
-      builtIn: f.builtIn
+      builtIn: f.builtIn,
+      ...(f.version != null ? { version: Number(f.version) } : {})
     }))
   }))
   ;(clean as any).__visibleTitles = allowList
   props.onDraftChange && props.onDraftChange(clean)
   emit('update:modelValue', clean)
+}
+
+let emitChangeQueued = false
+const emitChange = () => {
+  if (emitChangeQueued) return
+  emitChangeQueued = true
+  nextTick(() => {
+    emitChangeQueued = false
+    flushEmitChange()
+  })
 }
 
 const addSection = () => {
@@ -424,7 +443,14 @@ const addSection = () => {
     fields: []
   })
   active.value = id
-  emitChange()
+}
+
+const removeField = (section: SectionRow, row: FieldRow) => {
+  if (isReadonly.value || row.builtIn) return
+  const sec = localSections.find((s) => s.__id === section.__id)
+  if (!sec) return
+  const idx = sec.fields.findIndex((f) => f.__id === row.__id)
+  if (idx >= 0) sec.fields.splice(idx, 1)
 }
 
 const addField = (sectionId: string) => {
@@ -446,14 +472,6 @@ const addField = (sectionId: string) => {
     remark: '',
     builtIn: false
   })
-  emitChange()
-}
-
-const removeField = (sectionId: string, fieldId: string) => {
-  const sec = localSections.find((s) => s.__id === sectionId)
-  if (!sec) return
-  sec.fields = sec.fields.filter((f) => f.__id !== fieldId || f.builtIn)
-  emitChange()
 }
 
 const onPurchaserRequiredChange = (row: FieldRow) => {
@@ -474,15 +492,14 @@ const onPurchaserRequiredChange = (row: FieldRow) => {
 const onAutoFillChange = (row: FieldRow) => {
   row.autoFill = !!row.autoFill
   syncComputedFieldState(row)
-  emitChange()
 }
 
 watch(
   () => localSections,
   () => {
-    if (!syncing) emitChange()
+    if (!syncing && !isReadonly.value) emitChange()
   },
-  { deep: true, flush: 'sync' }
+  { deep: true, flush: 'post' }
 )
 </script>
 
@@ -513,6 +530,10 @@ watch(
 .w-220 { width: 220px; }
 .w-full { width: 100%; }
 .mb8 { margin-bottom: 8px; }
+.remove-col-placeholder {
+  color: var(--el-text-color-placeholder);
+  font-size: 12px;
+}
 .tab-label { color: #6b7280; }
 .tab-label--on { color: #16a34a; font-weight: 600; }
 :global(.fc-section-item > .el-form-item__label) { display: none !important; }

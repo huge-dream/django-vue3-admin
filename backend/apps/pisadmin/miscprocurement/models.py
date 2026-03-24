@@ -64,38 +64,15 @@ class MiscProcMaterial(CoreModel):
         return self.partid or self.partid_name
 
 
-class PriceTemplate(CoreModel):
-    PROCUREMENT_CHOICES = (
-        ("strategic", "strategic"),
-        ("misc", "misc"),
-    )
-    CATEGORY_CHOICES = (
-        ("tooling", "tooling"),
-        ("stamping", "stamping"),
-        ("injection", "injection"),
-    )
-
-    code = models.CharField(max_length=32, unique=True, db_index=True, verbose_name="模板编号")
-    name = models.CharField(max_length=128, verbose_name="模板名称")
-    procurement_category = models.CharField(max_length=32, choices=PROCUREMENT_CHOICES, db_index=True, verbose_name="采购类别")
-    category = models.CharField(max_length=32, choices=CATEGORY_CHOICES, db_index=True, verbose_name="产品类别")
-    remark = models.TextField(null=True, blank=True, verbose_name="备注")
-    active = models.BooleanField(default=True, verbose_name="是否有效")
-    enable_cost_structure = models.BooleanField(default=True, verbose_name="启用成本结构")
-    # `sections` 字段已弃用：成本结构改为写入独立的成本模板主/明细表
-
-    class Meta:
-        db_table = table_prefix + "proc_price_template"
-        verbose_name = "价格模板"
-        verbose_name_plural = verbose_name
-        ordering = ("-update_datetime", "-id")
-
-    def __str__(self) -> str:  # pragma: no cover - simple repr
-        return self.name
-
-
 class CostEstimateTemplateHead(models.Model):
-    template_no = models.CharField(max_length=20, unique=True, db_column="TemplateNo", verbose_name="模板编号")
+    """成本估算模板主表；确认某一版本时，同 template_no 下更低版本的主表行由接口批量改为作废(2)。"""
+    STATUS_CHOICES = (
+        (0, "未确认"),
+        (1, "已确认"),
+        (2, "作废"),
+    )
+
+    template_no = models.CharField(max_length=20, db_index=True, db_column="TemplateNo", verbose_name="模板编号")
     template_name = models.CharField(max_length=50, db_column="TemplateName", verbose_name="模板名称")
     procurement_category = models.CharField(max_length=4, db_column="ProcurementCategory", verbose_name="采购类别：1-策采；2-杂采")
     is_bom = models.CharField(max_length=4, db_column="IsBom", verbose_name="启用BOM否")
@@ -108,15 +85,34 @@ class CostEstimateTemplateHead(models.Model):
     create_time = models.DateTimeField(db_column="CreateTime", null=True, blank=True, verbose_name="创建时间")
     update_user = models.CharField(max_length=20, db_column="UpdateUser", null=True, blank=True, verbose_name="最后更新人")
     update_time = models.DateTimeField(db_column="UpdateTime", null=True, blank=True, verbose_name="最后更新时间")
+    version = models.IntegerField(db_column="Version", default=1, verbose_name="版本号")
+    status = models.IntegerField(db_column="Status", default=0, verbose_name="状态", choices=STATUS_CHOICES)
 
     class Meta:
         db_table = "t_CostEstimate_Template_Head"
         verbose_name = "成本估算模板主表"
         verbose_name_plural = verbose_name
         ordering = ("-update_time", "-id")
+        indexes = [
+            models.Index(fields=["template_no", "version"], name="idx_cost_template_head_no_ver"),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=("template_no", "version"),
+                name="uq_cost_template_head_no_ver",
+            ),
+        ]
 
     def __str__(self) -> str:  # pragma: no cover - simple repr
         return self.template_name
+
+    @property
+    def items(self):
+        """明细表按 (template_no, version) 与当前主表行对齐（非 ORM 反向关联）。"""
+        return CostEstimateTemplateBody.objects.filter(
+            template_no=self.template_no,
+            version=self.version,
+        ).order_by("item_order", "id")
 
 
 class CostEstimateTemplateBody(models.Model):
@@ -140,14 +136,8 @@ class CostEstimateTemplateBody(models.Model):
         (6, "可空"),
     )
 
-    template_no = models.ForeignKey(
-        CostEstimateTemplateHead,
-        to_field="template_no",
-        db_column="TemplateNo",
-        on_delete=models.CASCADE,
-        related_name="items",
-        verbose_name="模板编号",
-    )
+    # 与主表通过 (template_no, version) 逻辑关联；主表上该组合唯一（见 CostEstimateTemplateHead.Meta.constraints）
+    template_no = models.CharField(max_length=20, db_column="TemplateNo", verbose_name="模板编号")
     cost_category = models.CharField(max_length=4, choices=COST_CATEGORY_CHOICES, db_column="CostCategory", verbose_name="成本类别")
     item_order = models.IntegerField(db_column="ItemOrder", verbose_name="排序序号")
     item_no = models.CharField(max_length=100, db_column="ItemNo", verbose_name="项次编号")
@@ -163,12 +153,16 @@ class CostEstimateTemplateBody(models.Model):
     create_time = models.DateTimeField(db_column="CreateTime", null=True, blank=True, verbose_name="创建时间")
     update_user = models.CharField(max_length=20, db_column="UpdateUser", null=True, blank=True, verbose_name="最后更新人")
     update_time = models.DateTimeField(db_column="UpdateTime", null=True, blank=True, verbose_name="最后更新时间")
+    version = models.IntegerField(db_column="Version", default=1, verbose_name="版本号")
 
     class Meta:
         db_table = "t_CostEstimate_Template_Body"
         verbose_name = "成本估算模板明细"
         verbose_name_plural = verbose_name
         ordering = ("item_order", "id")
+        indexes = [
+            models.Index(fields=["template_no", "version"], name="idx_cost_template_body_no_ver"),
+        ]
 
     def __str__(self) -> str:  # pragma: no cover - simple repr
         return self.item_no

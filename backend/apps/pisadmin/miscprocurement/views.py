@@ -20,7 +20,6 @@ from .models import (
     MiscProcurementMaterialInfo,
     MiscProcurementStationInfo,
     MiscProcMaterial,
-    PriceTemplate,
     Inquiry,
     InquirySupplier,
     InquiryAttachment,
@@ -39,7 +38,6 @@ from .serializers import (
     MiscStationCreateUpdateSerializer,
     MiscPartSerializer,
     MiscPartCreateUpdateSerializer,
-    PriceTemplateSerializer,
     InquirySerializer,
     InquirySupplierSerializer,
     InquiryAttachmentSerializer,
@@ -49,6 +47,8 @@ from .serializers import (
     InquiryProfitCostSerializer,
     InquiryRfqItemSerializer,
     CostEstimateTemplateHeadSerializer,
+    CostEstimateTemplateNewVersionSerializer,
+    create_cost_template_new_version,
 )
 
 
@@ -79,42 +79,126 @@ class MiscPartViewSet(CustomModelViewSet):
     ordering = ["-create_datetime"]
 
 
-class PriceTemplateViewSet(CustomModelViewSet):
-    queryset = PriceTemplate.objects.all()
-    serializer_class = PriceTemplateSerializer
-    filter_fields = ("code", "name", "procurement_category", "category", "active", "enable_cost_structure")
-    search_fields = ("code", "name", "remark")
-    ordering = ("-update_datetime",)
-
-    def perform_create(self, serializer):
-        serializer.save()
-
-    def perform_update(self, serializer):
-        serializer.save()
-
-    def perform_destroy(self, instance):
-        """
-        删除价格模板时，同步删除对应的成本结构模板主/明细表数据。
-        关联键：CostEstimateTemplateHead.template_no == PriceTemplate.code
-        """
-        template_no = getattr(instance, "code", None)
-        if template_no:
-            CostEstimateTemplateHead.objects.filter(template_no=template_no).delete()
-        instance.delete()
-
-
 class CostEstimateTemplateViewSet(CustomModelViewSet):
+    """成本估算模板主表；status：0 未确认 / 1 已确认 / 2 作废（列表默认不含作废）。"""
+
     queryset = CostEstimateTemplateHead.objects.all()
     serializer_class = CostEstimateTemplateHeadSerializer
-    filter_fields = ("template_no", "template_name", "procurement_category", "is_bom", "acti")
+    filter_fields = ("template_no", "template_name", "procurement_category", "is_bom", "acti", "version", "status")
     search_fields = ("template_no", "template_name", "template_desc")
     ordering = ("-update_time", "-id")
 
+    # 与 models.CostEstimateTemplateHead.STATUS_CHOICES 中「作废」取值一致
+    TEMPLATE_STATUS_VOID = 2
+    TEMPLATE_STATUS_DRAFT = 0
+    TEMPLATE_STATUS_CONFIRMED = 1
+
+    @staticmethod
+    def _head_status_value(instance) -> int:
+        # status 为 0（未确认）时不能使用 (value or -1)，否则 0 会被当成 falsy 变成 -1
+        v = getattr(instance, "status", None)
+        if v is None:
+            return -1
+        try:
+            return int(v)
+        except (TypeError, ValueError):
+            return -1
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return qs.exclude(status=self.TEMPLATE_STATUS_VOID)
+
     def perform_create(self, serializer):
         serializer.save()
 
     def perform_update(self, serializer):
         serializer.save()
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        st = self._head_status_value(instance)
+        if st == self.TEMPLATE_STATUS_VOID:
+            return ErrorResponse(msg="模板已作废，不可修改")
+        if st == self.TEMPLATE_STATUS_CONFIRMED:
+            return ErrorResponse(msg="已确认模板不可修改")
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        st = self._head_status_value(instance)
+        if st == self.TEMPLATE_STATUS_VOID:
+            return ErrorResponse(msg="模板已作废，不可修改")
+        if st == self.TEMPLATE_STATUS_CONFIRMED:
+            return ErrorResponse(msg="已确认模板不可修改")
+        return super().partial_update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        return ErrorResponse(msg="成本模板不允许删除")
+
+    @action(methods=['delete'], detail=False)
+    def multiple_delete(self, request, *args, **kwargs):
+        return ErrorResponse(msg="成本模板不允许删除")
+
+    @action(methods=['post'], detail=True)
+    def confirm(self, request, *args, **kwargs):
+        """未确认(0) → 已确认(1)。同模板编号下 version 低于当前行的非作废主表行一律改为作废(2)。"""
+        instance = self.get_object()
+        cur = self._head_status_value(instance)
+        if cur == self.TEMPLATE_STATUS_VOID:
+            return ErrorResponse(msg="作废模板不可确认")
+        if cur != self.TEMPLATE_STATUS_DRAFT:
+            return ErrorResponse(msg="仅未确认状态的模板可确认")
+        now = timezone.now()
+        username = getattr(getattr(request, "user", None), "username", None) or ""
+        uname = str(username)[:20] if username else ""
+
+        with transaction.atomic():
+            qs_old = CostEstimateTemplateHead.objects.filter(
+                template_no=instance.template_no,
+                version__lt=instance.version,
+            ).exclude(status=self.TEMPLATE_STATUS_VOID)
+            voided_count = qs_old.count()
+            upd = {"status": self.TEMPLATE_STATUS_VOID, "update_time": now}
+            if uname:
+                upd["update_user"] = uname
+            qs_old.update(**upd)
+
+            instance.status = self.TEMPLATE_STATUS_CONFIRMED
+            instance.update_time = now
+            if uname:
+                instance.update_user = uname
+            instance.save(update_fields=["status", "update_time", "update_user"])
+
+        serializer = self.get_serializer(instance)
+        msg = "确认成功，已作废旧版本" if voided_count else "确认成功"
+        return DetailResponse(data=serializer.data, msg=msg)
+
+    @action(methods=["post"], detail=True, url_path="new_version")
+    def new_version(self, request, *args, **kwargs):
+        """已确认模板派生新版本：同 template_no，version=max+1，status=0；请求体校验见 CostEstimateTemplateNewVersionSerializer。"""
+        source = self.get_object()
+        if self._head_status_value(source) != self.TEMPLATE_STATUS_CONFIRMED:
+            return ErrorResponse(msg="仅已确认模板可创建新版本")
+        sz = CostEstimateTemplateNewVersionSerializer(data=request.data, context={"request": request})
+        if not sz.is_valid():
+            return ErrorResponse(msg="参数校验失败", data=sz.errors)
+        try:
+            head = create_cost_template_new_version(source, sz.validated_data, request)
+        except serializers.ValidationError as e:
+            detail = getattr(e, "detail", None)
+            if isinstance(detail, dict):
+                first_msg = None
+                for v in detail.values():
+                    if isinstance(v, list) and v:
+                        first_msg = str(v[0])
+                        break
+                    if isinstance(v, str) and v.strip():
+                        first_msg = v.strip()
+                        break
+                return ErrorResponse(msg=first_msg or "创建新版本失败", data=detail)
+            return ErrorResponse(msg=str(detail or e))
+        out = CostEstimateTemplateHeadSerializer(head, context={"request": request})
+        return DetailResponse(data=out.data, msg="新版本创建成功")
 
 
 class InquiryViewSet(CustomModelViewSet):
@@ -275,9 +359,19 @@ class InquiryViewSet(CustomModelViewSet):
         if not template_no:
             return {}
 
+        # 与 pissupplier.build_cost_template_sections_for_quotation 一致：仅已确认主表，避免草稿/作废版本与供应商端展示脱节
+        head = (
+            CostEstimateTemplateHead.objects.filter(template_no=str(template_no).strip(), status=1)
+            .order_by("-version", "-id")
+            .first()
+        )
+        if not head:
+            return {}
+
         prefill_fields = {}
         queryset = CostEstimateTemplateBody.objects.filter(
-            template_no_id=template_no,
+            template_no=head.template_no,
+            version=head.version,
         ).filter(Q(is_computed=1) | Q(supplier_required__in=(1, 2))).values(
             "cost_category", "item_no", "item_name_cn"
         )
@@ -344,14 +438,23 @@ class InquiryViewSet(CustomModelViewSet):
                 g["supplier_name"] = self._clip(g.get("supplier_code") or "", 20)
         return groups
 
+    def _ensure_inquiry_has_supplier_groups(self, inquiry: Inquiry, *, empty_message: str):
+        """
+        仅在「确认」时调用：供应商子表经 `_group_inquiry_suppliers` 汇总后须非空。
+        「发布」仅允许在已确认后进行，不再重复校验名单（与业务约定一致）。
+        """
+        groups = self._group_inquiry_suppliers(inquiry)
+        if not groups:
+            raise serializers.ValidationError(empty_message)
+        return groups
+
     def _create_supplier_quotations(self, inquiry: Inquiry):
         """
         询价单发布：按供应商子表汇总结果，为每个供应商创建一张 `QuotationMaster`（及子表明细），
         主表 `supplier_code`、`supplier_name` 与联系人信息与 `InquirySupplier` 对应数据一致（见 `_group_inquiry_suppliers`）。
+        名单是否在空已在确认环节校验，此处不再校验。
         """
         supplier_groups = self._group_inquiry_suppliers(inquiry)
-        if not supplier_groups:
-            raise serializers.ValidationError("请先维护询价单供应商名单，再执行发布")
 
         QuotationMaster.objects.filter(inquiry_no=inquiry.inquiry_no).delete()
 
@@ -479,11 +582,11 @@ class InquiryViewSet(CustomModelViewSet):
 
             for row in inquiry_items:
                 if row.part_id in part_ids:
-                    product_name_src = self._pick_prefill_value(
-                        prefill_fields, "7", "product_name", row.product_name, empty_default=""
-                    )
-                    unit_src = self._pick_prefill_value(prefill_fields, "7", "unit", row.unit, empty_default="")
-                    qty_src = self._pick_prefill_value(prefill_fields, "7", "qty", row.qty, empty_default=0)
+                    # 上阶物料核心字段与询价 `InquiryRfqItem` 一致，发布时始终带入报价单（不依赖模板 prefill 是否勾选「产品明细」列）
+                    product_name_src = row.product_name
+                    unit_src = row.unit
+                    qty_src = row.qty
+                    unit_price_src = row.unit_price
                     item_bulk.append(
                         QuotationItem(
                             quotation_no=quotation,
@@ -492,7 +595,7 @@ class InquiryViewSet(CustomModelViewSet):
                             unit=self._clip(unit_src or "", 10),
                             qty=int(qty_src) if qty_src is not None else 0,
                             is_bom=row.is_bom or 0,
-                            unit_price=self._pick_prefill_value(prefill_fields, "7", "unit_price", row.unit_price),
+                            unit_price=unit_price_src,
                             product_cost=self._pick_prefill_value(prefill_fields, "7", "product_cost", None),
                             total_material_cost=self._pick_prefill_value(prefill_fields, "7", "total_material_cost", row.total_material_cost),
                             total_processing_cost=self._pick_prefill_value(prefill_fields, "7", "total_processing_cost", row.total_processing_cost),
@@ -563,6 +666,17 @@ class InquiryViewSet(CustomModelViewSet):
         instance = self.get_object()
         if int(instance.status or self.STATUS_OPEN) != self.STATUS_OPEN:
             return ErrorResponse(msg="只有“开立”状态的询价单才能确认")
+        try:
+            self._ensure_inquiry_has_supplier_groups(
+                instance, empty_message="请先维护询价单供应商名单后再确认"
+            )
+        except serializers.ValidationError as exc:
+            detail = getattr(exc, "detail", None)
+            if isinstance(detail, (list, tuple)) and detail:
+                msg = str(detail[0])
+            else:
+                msg = str(detail or exc)
+            return ErrorResponse(msg=msg)
         current_user = self._get_request_username() or None
         current_time = timezone.now()
         return self._save_status(

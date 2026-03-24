@@ -82,6 +82,21 @@ const isConfirmedStatus = (row: any) => getRowStatus(row) === STATUS_CONFIRMED
 const canPublishStatus = (row: any) => isConfirmedStatus(row)
 const getErrorMessage = (err: any, fallback: string) => err?.msg || err?.message || err?.response?.data?.msg || fallback
 
+/** 列表行含 `suppliers` 时可先做提示；未返回嵌套时交由接口校验 */
+const rowHasSuppliersList = (row: any): boolean | null => {
+  const list = row?.suppliers
+  if (!Array.isArray(list)) return null
+  return list.length > 0
+}
+
+/** 成本模板版本号两位展示（与 pricetemplate 一致） */
+export const formatCostTemplateVersionTwoDigits = (v: unknown) => {
+  if (v == null || v === '') return '00'
+  const n = Number(v)
+  if (!Number.isFinite(n)) return String(v)
+  return String(Math.trunc(n)).padStart(2, '0')
+}
+
 export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit, onView }: Partial<CreateCrudOptionsProps> & ExtraHooks): CreateCrudOptionsRet {
   void context
   return {
@@ -163,6 +178,11 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
             show: compute(({ row }) => isOpenStatus(row)),
             async click({ row }) {
               try {
+                const supplierOk = rowHasSuppliersList(row)
+                if (supplierOk === false) {
+                  ElMessage.warning('请先维护询价单供应商名单后再确认')
+                  return
+                }
                 await ElMessageBox.confirm('【确认】状态仅支持查看，不允许编辑或删除；如需修改请点击【还原】', '提示', {
                   type: 'warning',
                   confirmButtonText: '确定',
@@ -250,7 +270,17 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
         template: {
           title: '询价模版',
           type: 'input',
-          column: { minWidth: 140, showOverflowTooltip: true }
+          column: {
+            minWidth: 180,
+            showOverflowTooltip: true,
+            formatter: ({ row, value }: { row: any; value: unknown }) => {
+              const code = String(value ?? row?.template ?? row?.template_code ?? '').trim()
+              const verRaw = row?.template_version ?? row?.templateVersion ?? row?.cost_template_version
+              if (!code) return ''
+              if (verRaw != null && verRaw !== '') return `${code}（V${formatCostTemplateVersionTwoDigits(verRaw)}）`
+              return code
+            }
+          }
         },
         quote_deadline: {
           title: '报价截止时',
