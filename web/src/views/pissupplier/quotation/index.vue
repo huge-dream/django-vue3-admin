@@ -33,7 +33,7 @@
             <el-descriptions-item label="询价模板">{{ templateLabel(current.template) }}</el-descriptions-item>
             <el-descriptions-item label="交易币别">{{ current.currency }}</el-descriptions-item>
             <el-descriptions-item label="报价截止日">{{ current.quoteDeadline }}</el-descriptions-item>
-            <el-descriptions-item label="询价状态">{{ current.inquiryStatus }}</el-descriptions-item>
+            <el-descriptions-item label="询价状态">{{ formatMiscInquiryStatus(current) }}</el-descriptions-item>
           </el-descriptions>
 
           <el-divider content-position="left">报价基础信息</el-divider>
@@ -239,7 +239,7 @@
 import { onMounted, ref } from 'vue'
 import { Flag } from '@element-plus/icons-vue'
 import { compute, dict, useCrud, useExpose } from '@fast-crud/fast-crud'
-import { useQuoteCrud, formatAwardBidStatus } from './crud'
+import { useQuoteCrud, formatAwardBidStatus, formatMiscInquiryStatus } from './crud'
 
 /** 查询区：按主表 is_awarded 筛选（与后端字段一致） */
 const isAwardedOptions = [

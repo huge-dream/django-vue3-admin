@@ -4,7 +4,6 @@ from .views import (
     MiscMaterialViewSet,
     MiscStationViewSet,
     MiscPartViewSet,
-    PriceTemplateViewSet,
     InquiryViewSet,
     InquirySupplierViewSet,
     InquiryAttachmentViewSet,
@@ -20,7 +19,6 @@ router = routers.SimpleRouter()
 router.register(r'misc_materials', MiscMaterialViewSet)
 router.register(r'misc_stations', MiscStationViewSet)
 router.register(r'misc_parts', MiscPartViewSet)
-router.register(r'price_template', PriceTemplateViewSet)
 router.register(r'inquiry', InquiryViewSet)
 router.register(r'inquiry_supplier', InquirySupplierViewSet)
 router.register(r'inquiry_attachment', InquiryAttachmentViewSet)

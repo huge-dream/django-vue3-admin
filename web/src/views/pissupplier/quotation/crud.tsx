@@ -2,11 +2,10 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as api from './api'
 import * as inquiryApi from '../../pisadmin/miscprocurement/rfqmiscellaneous/api'
-import { GetList as GetCostTemplateList } from '../../pisadmin/miscprocurement/pricetemplate/api'
-import { fetchPriceTemplates } from '/@/api/miscprocurement/priceTemplate'
-import { GetList as GetMaterials } from '../../pisadmin/miscprocurement/misc-material/api'
-import { GetList as GetMiscParts } from '../../pisadmin/miscprocurement/misc-part/api'
-import { GetList as GetStations } from '../../pisadmin/miscprocurement/misc-station/api'
+import { GetList as GetCostTemplateList } from '../../pisadmin/miscprocurement/cost_template/api'
+import { GetList as GetMaterials } from '../../pisadmin/miscprocurement/misc_materials/api'
+import { GetList as GetMiscParts } from '../../pisadmin/miscprocurement/misc_parts/api'
+import { GetList as GetStations } from '../../pisadmin/miscprocurement/misc_stations/api'
 import { GetList as GetUnits } from '../../pisadmin/basicinfo/unit/api'
 
 /** 与 loadQuotes / openQuote 等处解析列表响应一致 */
@@ -121,6 +120,43 @@ export function formatAwardBidStatus(row: {
     return { mode: 'text', text: '未中标' }
   }
   return { mode: 'text', text: '—' }
+}
+
+/** 与 `miscprocurement.Inquiry.STATUS_CHOICES` 一致 */
+const MISC_INQUIRY_STATUS_LABELS: Record<number, string> = {
+  1: '开立',
+  2: '确认',
+  3: '发布',
+  4: '报价中',
+  5: '报价结束',
+  6: '比议价中',
+  7: '价格审核',
+  8: '核价通过(结束)',
+  9: '落标(结束)',
+  0: '作废'
+}
+
+/** 弹窗/列表：询价状态由数字转为文案；已是文案则原样返回 */
+export function formatMiscInquiryStatus(row: {
+  inquiryStatus?: string
+  inquiryStatusCode?: number | string | null
+}): string {
+  const codeRaw = row.inquiryStatusCode
+  if (codeRaw !== undefined && codeRaw !== null && codeRaw !== '') {
+    const n = Number(codeRaw)
+    if (Number.isFinite(n) && MISC_INQUIRY_STATUS_LABELS[n] != null) {
+      return MISC_INQUIRY_STATUS_LABELS[n]
+    }
+  }
+  const s = row.inquiryStatus == null ? '' : String(row.inquiryStatus).trim()
+  if (s === '') return ''
+  if (/^\d+$/.test(s)) {
+    const n = Number(s)
+    if (Number.isFinite(n) && MISC_INQUIRY_STATUS_LABELS[n] != null) {
+      return MISC_INQUIRY_STATUS_LABELS[n]
+    }
+  }
+  return s
 }
 
 const paymentMapFrontToBackend: Record<string, number> = {
@@ -257,6 +293,52 @@ const TEMPLATE_KEY_TO_UI_KEYS: Record<string, Record<string, string[]>> = {
 }
 
 const normTplKey = (k: string) => String(k || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+
+/** 固定列 key 集合（用于判断模板字段是否已映射到内置列，避免重复） */
+const fixedQuotationSectionKeys = (section: string) =>
+  new Set((FIXED_QUOTATION_SECTION_COLUMNS[section] || []).map((c) => c.key))
+
+/**
+ * 在固定报价列基础上，仅按成本模板 `template_sections` 追加「扩展」列（如自定义 item_no），不展开整段 JSON。
+ * 仅处理材料/加工（与 option_json 扩展落库一致）；内置字段若已映射到固定列则跳过。
+ */
+const mergeQuotationSectionColumns = (section: string, templateSections: any): QuotationCostColumn[] => {
+  const base = [...(FIXED_QUOTATION_SECTION_COLUMNS[section] || [])]
+  if (section !== '材料成本' && section !== '加工成本') return base
+
+  const tpl = normalizeSections(templateSections).find(
+    (s: any) => (s.title || s.name || s.section || '') === section
+  )
+  const fixedKeys = fixedQuotationSectionKeys(section)
+  const keyMap = TEMPLATE_KEY_TO_UI_KEYS[section] || {}
+  const seen = new Set(base.map((c) => c.key))
+  const extras: QuotationCostColumn[] = []
+
+  for (const f of tpl?.fields || []) {
+    const rawKey = String(f?.key || '').trim()
+    if (!rawKey) continue
+    const nk = normTplKey(rawKey)
+    if (nk === 'partid' || rawKey === 'part_id') continue
+
+    const uiKeys: string[] = keyMap[nk] || keyMap[String(f.key).toLowerCase()] || [rawKey]
+    const mapsToFixed = uiKeys.some((k) => fixedKeys.has(k))
+    if (mapsToFixed) continue
+    if (fixedKeys.has(rawKey)) continue
+    if (seen.has(rawKey)) continue
+    seen.add(rawKey)
+    const label = String(f.label || f.nameCn || f.name || rawKey).trim() || rawKey
+    extras.push({ key: rawKey, label })
+  }
+
+  if (!extras.length) return base
+  const remarkIdx = base.findIndex((c) => c.key === 'remark')
+  if (remarkIdx >= 0) {
+    const remarkCol = base[remarkIdx]
+    const head = base.filter((c) => c.key !== 'remark')
+    return [...head, ...extras, remarkCol]
+  }
+  return [...base, ...extras]
+}
 
 const labelFallbacks: Record<string, string> = {
   material: '材质',
@@ -424,7 +506,7 @@ const buildRowsFromTemplate = (sections: any, enableCostStructure = true): CostR
   const allowed = allowedSectionsForTemplate(sections, enableCostStructure)
   const rows: CostRow[] = []
   allowed.forEach((title: string, idx: number) => {
-    const cols = FIXED_QUOTATION_SECTION_COLUMNS[title]
+    const cols = mergeQuotationSectionColumns(title, sections)
     const values: Record<string, any> = {}
     const labels: Record<string, string> = {}
     ;(cols || []).forEach((c) => {
@@ -454,6 +536,14 @@ const costItemsToRows = (items: CostItem[] = [], sections: any, enableCostStruct
       values[a.key || ''] = a.value ?? ''
       if (a.key) labels[a.key] = a.label || a.key
     })
+    if (item.section === '材料成本' || item.section === '加工成本') {
+      mergeQuotationSectionColumns(item.section, sections).forEach((c) => {
+        if (!(c.key in values)) {
+          values[c.key] = ''
+          if (!labels[c.key]) labels[c.key] = c.label
+        }
+      })
+    }
     const partId = (values.part_id || values.partId || '') as string
     rows.push({
       id: `${baseId}-0`,
@@ -496,7 +586,7 @@ const buildCostItemsFromTemplateSections = (sections: any, enableCostStructure =
   const allowed = allowedSectionsForTemplate(sections, enableCostStructure)
   return allowed
     .map((title: string) => {
-      const cols = FIXED_QUOTATION_SECTION_COLUMNS[title]
+      const cols = mergeQuotationSectionColumns(title, sections)
       if (!cols?.length) return null
       return {
         id: crypto.randomUUID(),
@@ -663,6 +753,13 @@ const numOrUndef = (v: any) => {
   return Number.isFinite(n) ? n : undefined
 }
 
+/** 加工成本等单位字段：文本（与 QuotationProcess.unit CharField 一致） */
+const strOrNullSlice = (v: any, maxLen: number) => {
+  if (v === '' || v === undefined || v === null) return null
+  const s = String(v).trim()
+  return s ? s.slice(0, maxLen) : null
+}
+
 /** 将当前表格行写回后端 QuotationMasterCreateUpdateSerializer 期望的嵌套字段 */
 const costRowsToNestedPayload = (rows: CostRow[]) => {
   const material_costs: any[] = []
@@ -737,7 +834,7 @@ const costRowsToNestedPayload = (rows: CostRow[]) => {
       process_costs.push({
         part_id: partId,
         process_station: v.processStation != null ? String(v.processStation).slice(0, 20) : v.process_station != null ? String(v.process_station).slice(0, 20) : null,
-        unit: numOrUndef(v.processUnit ?? v.unit),
+        unit: strOrNullSlice(v.processUnit ?? v.unit, 20),
         unit_rate: numOrUndef(v.processRate ?? v.unit_rate ?? v.rate),
         process_qty: v.processMeasure != null ? String(v.processMeasure) : v.process_qty != null ? String(v.process_qty) : null,
         process_price: numOrUndef(v.processFee ?? v.process_price),
@@ -900,13 +997,14 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     return out
   })
 
-  /** 列固定为报价单子表结构，不合并模板/行键，避免重复列 */
+  /** 固定列 + 模板定义的扩展列（仅材料/加工，与 option_json 一致）；锁格规则仍来自 template_sections */
   const sectionColumns = computed<Record<string, CostFieldColumn[]>>(() => {
     const res: Record<string, CostFieldColumn[]> = {}
+    const tpl = current.templateSections
     enabledSections.value.forEach((section) => {
-      const base = FIXED_QUOTATION_SECTION_COLUMNS[section] || []
+      const merged = mergeQuotationSectionColumns(section, tpl)
       const locks = templateUiLockBySection.value.get(section) || new Map()
-      res[section] = base.map((col) => {
+      res[section] = merged.map((col) => {
         const meta = locks.get(col.key)
         return {
           ...col,
@@ -994,7 +1092,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   /** 杂采料号 MiscProcMaterial：partid → 物料说明、单位，回填 rfq_items */
   const miscPartByPartId = ref<Record<string, { partid_name: string; unit: string }>>({})
 
-  /** `CostEstimateTemplateHead.template_no` / `PriceTemplate.code` -> 模板名称 */
+  /** `CostEstimateTemplateHead.template_no` -> 模板名称 */
   const templateNameByCode = ref<Record<string, string>>({})
   let templateNameLookupDone = false
 
@@ -1002,21 +1100,11 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     if (templateNameLookupDone) return
     templateNameLookupDone = true
     try {
-      const [costRes, priceRes] = await Promise.all([
-        GetCostTemplateList({ page: 1, page_size: 500, pageSize: 500 } as any),
-        fetchPriceTemplates({ page: 1, page_size: 500, pageSize: 500 })
-      ])
+      const costRes = await GetCostTemplateList({ page: 1, page_size: 500, pageSize: 500 } as any)
       const merge: Record<string, string> = {}
       for (const row of extractPagedList(costRes)) {
         const no = row.template_no
         if (no) merge[String(no).trim()] = trim(row.template_name) || String(no)
-      }
-      for (const row of extractPagedList(priceRes)) {
-        const c = row.code
-        if (c) {
-          const k = String(c).trim()
-          if (!merge[k]) merge[k] = trim(row.name) || k
-        }
       }
       templateNameByCode.value = merge
     } catch (e) {
@@ -1065,11 +1153,12 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       if (invSt !== undefined && invSt !== null && invSt !== '') {
         q.inquiryStatusCode = Number(invSt)
       }
+      q.inquiryStatus = formatMiscInquiryStatus(q)
     }
   }
 
   const mapBackendQuote = (item: any): Quote => {
-    return {
+    const quote: Quote = {
       id: String(item.id ?? item.autoid ?? item.quotation_no ?? crypto.randomUUID()),
       quoteNo: item.quotation_no || item.quoteNo || '',
       inquiryCode: item.inquiry_no || item.inquiryCode || '',
@@ -1103,8 +1192,8 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
         contact: item.contact_person || item.contact || '',
         phone: item.contact_phone || item.phone || '',
         email: item.contact_email || item.email || '',
-        validityDays: item.validity_days || item.validityDays || '',
-        leadTimeDays: item.delivery_days || item.leadTimeDays || '',
+        validityDays: item.validity_days ?? item.validityDays ?? '',
+        leadTimeDays: item.delivery_days ?? item.leadTimeDays ?? '',
         paymentTerm: normalizePayment(item.payment_method)
       },
       costItems: hasQuotationNestedCosts(item)
@@ -1129,6 +1218,8 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       enableCostStructure:
         item.enable_cost_structure ?? item.enableCostStructure ?? item.is_bom ?? item.isBom ?? item.template?.enable_cost_structure ?? true
     }
+    quote.inquiryStatus = formatMiscInquiryStatus(quote)
+    return quote
   }
 
   const loadMaterialOptions = async () => {
@@ -1323,14 +1414,30 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     return map
   })
 
-  const quoteSummaryRows = computed<SummaryRow[]>(() => {
+  /**
+   * 与报价合计表一致，用于写入 QuotationItem（上阶物料明细）汇总字段。
+   * 字段语义与 InquiryRfqItem / 后端模型一致：profit_rate、tax_rate 存金额非百分数。
+   */
+  const quoteRollupForRfq = computed(() => {
     const sections = enabledSections.value
-    const amt = (s: string) => sectionAmountMap.value[s] ?? 0
-    const costSum = costSubtotalSectionNames.filter((s) => sections.includes(s)).reduce((sum, s) => sum + amt(s), 0)
+    const map = sectionAmountMap.value
+    const amt = (s: string) => map[s] ?? 0
+    const material = amt('材料成本')
+    const processing = amt('加工成本')
+    const other = amt('其它成本') + amt('其他成本')
+    const opex = amt('管销研费用')
+    const costSum = costSubtotalSectionNames.filter((s) => sections.includes(s)).reduce((sum, s) => sum + amt(String(s)), 0)
     const profitAmt = sections.includes('利润') ? amt('利润') : 0
     const taxAmt = sections.includes('税金') ? amt('税金') : 0
     const preTax = costSum + profitAmt
     const postTax = preTax + taxAmt
+    return { material, processing, other, opex, costSum, profitAmt, taxAmt, preTax, postTax }
+  })
+
+  const quoteSummaryRows = computed<SummaryRow[]>(() => {
+    const sections = enabledSections.value
+    const amt = (s: string) => sectionAmountMap.value[s] ?? 0
+    const { costSum, profitAmt, taxAmt, preTax, postTax } = quoteRollupForRfq.value
 
     const rows: SummaryRow[] = []
     let addedCostTotal = false
@@ -1513,6 +1620,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
         quoteData.templateSections = rawDetail.template_sections
       }
 
+      quoteData.inquiryStatus = formatMiscInquiryStatus(quoteData)
       fillCurrent(quoteData, effectiveRows)
       dialog.visible = true
     } finally {
@@ -1644,7 +1752,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   }
 
   const addCostRow = (section: string) => {
-    const cols = FIXED_QUOTATION_SECTION_COLUMNS[section] || []
+    const cols = mergeQuotationSectionColumns(section, current.templateSections)
     const values: Record<string, any> = {}
     const labels: Record<string, string> = {}
     cols.forEach((c) => {
@@ -1761,6 +1869,48 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     })
   }
 
+  const round4 = (n: number) => Number(n.toFixed(4))
+
+  /** 将报价合计写入 BOM 行（is_bom=1）；无 BOM 时写入第一行，与单产品上阶明细场景一致 */
+  const applyRfqItemsWithQuoteRollup = (items: any[]) => {
+    const base = applyRfqItemsForPayload(items)
+    if (!base.length) return base
+    const r = quoteRollupForRfq.value
+    const isBomLine = (it: any) => {
+      const v = it.is_bom ?? it.IsBom
+      return v === 1 || v === '1' || v === true
+    }
+    const targetIdxs = base.map((it, i) => i).filter((i) => isBomLine(base[i]))
+    const idxs = targetIdxs.length ? targetIdxs : [0]
+    const totals = {
+      total_material_cost: round4(r.material),
+      total_processing_cost: round4(r.processing),
+      total_other_expense: round4(r.other),
+      total_opex_amt: round4(r.opex),
+      profit_rate: round4(r.profitAmt),
+      tax_rate: round4(r.taxAmt),
+      total_price_excl_tax: round4(r.preTax),
+      total_price_incl_tax: round4(r.postTax)
+    }
+    for (const i of idxs) {
+      const it = base[i]
+      Object.assign(it, totals)
+      const qty = Number(it.qty ?? 0)
+      if (qty > 0 && r.postTax > 0) {
+        it.unit_price = round4(r.postTax / qty)
+      }
+      it.product_cost = round4(r.postTax)
+    }
+    return base
+  }
+
+  /** 可选整数：空不提交；0 合法（勿用 `|| undefined` 误丢 0） */
+  const optionalIntForPayload = (v: string | number | null | undefined) => {
+    if (v === '' || v == null) return undefined
+    const n = typeof v === 'number' ? v : Number(String(v).trim())
+    return Number.isFinite(n) ? n : undefined
+  }
+
   /** 弹窗保存：与后端约定不提交 status / quotetime（由列表「提交报价」接口写入） */
   const buildSavePayload = (q: Quote) => {
     const nested = costRowsToNestedPayload(costRows.value)
@@ -1776,21 +1926,18 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       nested.other_costs = fillPart(nested.other_costs)
       nested.profit_costs = fillPart(nested.profit_costs)
     }
+    // 仅提交 QuotationMaster / 嵌套子表存在的字段（询价标题、模板、币别等由询价主表维护，不在报价主表模型上）
     const payload: any = {
       quotation_no: q.quoteNo || undefined,
       inquiry_no: q.inquiryCode || undefined,
-      inquiry_name: q.inquiryTitle || undefined,
-      template: q.template || undefined,
-      currency: q.currency || undefined,
       quote_deadline: q.quoteDeadline || undefined,
-      quote_amount: q.quoteAmount || undefined,
       supplier_code: q.supplierCode || undefined,
       supplier_name: q.supplierName || undefined,
       contact_person: q.base.contact || undefined,
       contact_phone: q.base.phone || undefined,
       contact_email: q.base.email || undefined,
-      validity_days: q.base.validityDays || undefined,
-      delivery_days: q.base.leadTimeDays || undefined,
+      validity_days: optionalIntForPayload(q.base.validityDays),
+      delivery_days: optionalIntForPayload(q.base.leadTimeDays),
       payment_method: paymentMapFrontToBackend[q.base.paymentTerm] || undefined,
       /** 与 QuotationMasterCreateUpdateSerializer 一致，写入 material_costs 等子表 */
       material_costs: nested.material_costs,
@@ -1801,7 +1948,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       remark: q.remark || ''
     }
     if (Array.isArray(q.rfqItems) && q.rfqItems.length) {
-      payload.rfq_items = applyRfqItemsForPayload(q.rfqItems)
+      payload.rfq_items = applyRfqItemsWithQuoteRollup(q.rfqItems)
     }
     return payload
   }
