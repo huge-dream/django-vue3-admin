@@ -5,20 +5,35 @@ deploy-to-server:
   stage: deploy
   tags:
     - pis-deploy-code                     # 使用指定标签的 runner
-  image: alpine:latest                     # 轻量级基础镜像
+  image: alpine:latest                    # 轻量级基础镜像
   before_script:
     # 更换 Alpine 镜像源为阿里云（国内加速）
     - sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
     # 安装 rsync
     - apk add --no-cache rsync
-    # 确保目标目录存在（若不存在则创建）
+    # 确保目标目录存在（若不存在则创建，用于后续判断和备份逻辑的基础）
     - mkdir -p /mnt/data/pis/python3/DV3Admin
   script:
-    # 使用 rsync 同步代码：
-    # -a 归档模式（保留权限、时间戳等）
-    # -v 显示详细输出
-    # -z 传输时压缩
-    # --delete 删除目标目录中源目录不存在的文件（保持完全一致）
-    - rsync -avz --delete ./ /mnt/data/pis/python3/DV3Admin/
+    # --- 新增：备份逻辑 ---
+    # 定义变量
+    - TARGET_DIR="/mnt/data/pis/python3/DV3Admin"
+    - BACKUP_DATE=$(date +%Y%m%d)
+    - BACKUP_DIR="${TARGET_DIR}_bak_${BACKUP_DATE}"
+    
+    # 检查目标目录是否为空或是否存在有效文件，若存在则进行备份
+    # 使用 ls -A 检查目录下是否有非隐藏文件或所有文件（包括隐藏），如果有内容则备份
+    - if [ -d "$TARGET_DIR" ] && [ "$(ls -A $TARGET_DIR)" ]; then
+        echo "备份文件至路径 $BACKUP_DIR";
+        cp -a "$TARGET_DIR" "$BACKUP_DIR";
+        mkdir -p "$TARGET_DIR";
+      else
+        echo "没有文件需要部署或文件夹为空";
+      fi
+
+    # --- 新增：代码同步逻辑（排除特定文件） ---
+    # 修复：将多行合并为一行，避免反斜杠被当作文件名处理
+    - rsync -avz --delete --exclude='.git/' --exclude='.gitignore' --exclude='.gitattributes' --exclude='.gitlab-ci.yml' ./ "$TARGET_DIR/"
+
+    - echo "代码部署成功"
   rules:
     - when: manual                         # 手动触发流水线
