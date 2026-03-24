@@ -30,6 +30,10 @@
   purchaser_required: 采购人是否必填（1=是, 0=否）
   supplier_required: 供应商操作（0-6）
   remark: 字段备注
+
+说明：独立成本模板在 PIS 中「新版本」派生使用 serializers.create_cost_template_new_version（同 template_no、
+version 递增；若提交明细与源版本规范化后一致则拒绝创建）；确认新版本时由 CostEstimateTemplateViewSet.confirm
+将同编号更低版本主表行置为作废(2)。本模块将前端 sections 展开后写入 `CostEstimateTemplateBody`。
 """
 
 from typing import Dict, List, Optional, Tuple
@@ -281,9 +285,13 @@ class CostTemplateBuilder:
             create_time = timezone.now()
         
         # 批量创建 body 记录
+        head_ver = getattr(template_head, "version", None)
+        if head_ver is None:
+            head_ver = 1
         bulk_objects = [
             CostEstimateTemplateBody(
-                template_no=template_head,
+                template_no=template_head.template_no,
+                version=head_ver,
                 create_user=create_user,
                 create_time=create_time,
                 update_user=create_user,

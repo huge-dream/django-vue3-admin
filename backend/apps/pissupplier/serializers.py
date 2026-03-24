@@ -5,7 +5,11 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from dvadmin.utils.serializers import CustomModelSerializer
-from apps.pisadmin.miscprocurement.models import CostEstimateTemplateHead, Inquiry
+from apps.pisadmin.miscprocurement.models import (
+    CostEstimateTemplateBody,
+    CostEstimateTemplateHead,
+    Inquiry,
+)
 from apps.pissupplier.models import (
     QuotationMaster,
     QuotationAttachment,
@@ -96,13 +100,17 @@ def build_cost_template_sections_for_quotation(template_no: str):
     if not template_no:
         return []
     head = (
-        CostEstimateTemplateHead.objects.filter(template_no=str(template_no).strip())
-        .prefetch_related("items")
+        CostEstimateTemplateHead.objects.filter(template_no=str(template_no).strip(), status=1)
+        .order_by("-version", "-id")
         .first()
     )
     if not head:
         return []
-    items = list(head.items.all().order_by("item_order", "id"))
+    items = list(
+        CostEstimateTemplateBody.objects.filter(template_no=head.template_no, version=head.version).order_by(
+            "item_order", "id"
+        )
+    )
     group = {}
     for it in items:
         cat = str(it.cost_category or "")
@@ -372,6 +380,7 @@ class QuotationMasterCreateUpdateSerializer(BusinessAuditSerializer):
     contact_phone = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
     contact_email = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
     quote_deadline = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
+    validity_days = serializers.IntegerField(required=False, allow_null=True)
     delivery_days = serializers.IntegerField(required=False, allow_null=True)
     payment_method = serializers.IntegerField(required=False, allow_null=True)
     status = serializers.IntegerField(required=False, allow_null=True)
@@ -390,7 +399,8 @@ class QuotationMasterCreateUpdateSerializer(BusinessAuditSerializer):
     class Meta:
         model = QuotationMaster
         fields = "__all__"
-        read_only_fields = ["autoid"]
+        # 创建人/创建时间仅发布生成或首次创建时由服务端写入；禁止 PUT 用详情回传覆盖
+        read_only_fields = ["autoid", "createuser", "creattime"]
 
     def _apply_business_audit(self, validated_data, *, is_create):
         validated_data = super()._apply_business_audit(validated_data, is_create=is_create)
