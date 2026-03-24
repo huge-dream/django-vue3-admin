@@ -30,10 +30,9 @@ TABLE_PREFIX = "pis_"  # Procurement Inquiry System
 # ================================================= #
 REDIS_DB = 1
 CELERY_BROKER_DB = 3
-REDIS_PASSWORD = 'DVADMIN3'
+REDIS_PASSWORD = 'redis_5pGXn2'
 REDIS_HOST = '177.10.0.15'
-# REDIS_URL = f'redis://:{REDIS_PASSWORD or ""}@{REDIS_HOST}:6379'
-REDIS_URL = f'redis://{REDIS_HOST}:6379'
+REDIS_URL = f'redis://:{REDIS_PASSWORD or ""}@{REDIS_HOST}:6379'
 # ================================================= #
 # ****************** 功能 启停  ******************* #
 # ================================================= #
