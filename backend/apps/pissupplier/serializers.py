@@ -9,6 +9,7 @@ from apps.pisadmin.miscprocurement.models import (
     CostEstimateTemplateBody,
     CostEstimateTemplateHead,
     Inquiry,
+    InquiryAttachment,
 )
 from apps.pissupplier.models import (
     QuotationMaster,
@@ -322,6 +323,45 @@ class NestedQuotationItemSerializer(QuotationItemSerializer):
         validators = []
 
 
+_INQUIRY_ATTACHMENT_TYPE_LABELS = {1: "产品图纸", 2: "招标文件", 3: "其它文件"}
+
+
+class SupplierInquiryAttachmentSerializer(serializers.ModelSerializer):
+    """供应商报价详情：询价单附件（`pis_proc_inquiry_attachment`），只读。"""
+
+    file_type_label = serializers.SerializerMethodField()
+
+    def get_file_type_label(self, obj):
+        ft = getattr(obj, "file_type", None)
+        try:
+            ft = int(ft)
+        except (TypeError, ValueError):
+            ft = 3
+        return _INQUIRY_ATTACHMENT_TYPE_LABELS.get(ft, "其它文件")
+
+    class Meta:
+        model = InquiryAttachment
+        fields = [
+            "id",
+            "part_id",
+            "file_type",
+            "file_type_label",
+            "file_name",
+            "file_path",
+            "upload_time",
+            "upload_user",
+        ]
+        read_only_fields = [
+            "id",
+            "part_id",
+            "file_type",
+            "file_name",
+            "file_path",
+            "upload_time",
+            "upload_user",
+        ]
+
+
 class QuotationMasterSerializer(BusinessAuditSerializer):
     """杂采报价单主表序列化器"""
 
@@ -331,6 +371,7 @@ class QuotationMasterSerializer(BusinessAuditSerializer):
         allow_null=True,
     )
     template_sections = serializers.SerializerMethodField(read_only=True)
+    inquiry_attachments = serializers.SerializerMethodField(read_only=True)
     attachments = QuotationAttachmentSerializer(many=True, required=False)
     material_costs = QuotationMaterialSerializer(many=True, required=False)
     process_costs = NestedQuotationProcessSerializer(many=True, required=False)
@@ -356,6 +397,19 @@ class QuotationMasterSerializer(BusinessAuditSerializer):
         if not inq or not inq.template:
             return []
         return build_cost_template_sections_for_quotation(inq.template)
+
+    def get_inquiry_attachments(self, obj):
+        """详情接口返回询价单附件；列表不查，避免 N+1。"""
+        if self.context.get("view_action") != "retrieve":
+            return []
+        inquiry_no = getattr(obj, "inquiry_no", None)
+        if not inquiry_no:
+            return []
+        qs = (
+            InquiryAttachment.objects.filter(inquiry_no=inquiry_no)
+            .order_by("file_type", "-upload_time", "id")
+        )
+        return SupplierInquiryAttachmentSerializer(qs, many=True).data
 
     class Meta:
         model = QuotationMaster

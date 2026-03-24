@@ -6,6 +6,7 @@ from rest_framework import serializers
 
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
 from dvadmin.utils.viewset import CustomModelViewSet
+from apps.pisadmin.basicinfo.system_no_allocate import DEFAULT_SYSTEM_NO_COMPANY_CODE, allocate_system_numbers
 from apps.pissupplier.models import (
     QuotationMaster,
     QuotationAttachment,
@@ -321,31 +322,22 @@ class InquiryViewSet(CustomModelViewSet):
         serializer = self.get_serializer(instance)
         return DetailResponse(data=serializer.data, msg="状态更新成功")
 
-    def _generate_quotation_numbers(self, count: int):
+    def _generate_quotation_numbers(self, count: int, inquiry: Inquiry):
+        """
+        杂采报价单号：复用 `SystemNoRule`（rule_code=miscQTS），与询价单 miscRFS 同源取号逻辑。
+        company_code 优先询价单字段，否则「通用」厂区。
+        """
         if count <= 0:
             return []
-
-        date_part = timezone.now().strftime("%y%m%d")
-        base = f"QFS{date_part}"
-        last = (
-            QuotationMaster.objects.select_for_update()
-            .filter(quotation_no__startswith=base)
-            .order_by("-quotation_no")
-            .first()
+        company_code = (getattr(inquiry, "company_code", None) or "").strip() or DEFAULT_SYSTEM_NO_COMPANY_CODE
+        username = self._get_request_username() or None
+        return allocate_system_numbers(
+            company_code,
+            "miscQTS",
+            count,
+            username=username,
+            now=timezone.now(),
         )
-        if last and last.quotation_no and len(last.quotation_no) >= len(base) + 5:
-            try:
-                start_seq = int(last.quotation_no[-5:]) + 1
-            except ValueError:
-                start_seq = 1
-        else:
-            start_seq = 1
-
-        end_seq = start_seq + count - 1
-        if end_seq > 99999:
-            raise serializers.ValidationError("当日报价单编号已达上限，请联系管理员")
-
-        return [f"{base}{seq:05d}" for seq in range(start_seq, end_seq + 1)]
 
     def _get_template_prefill_fields(self, template_no):
         """
@@ -458,7 +450,7 @@ class InquiryViewSet(CustomModelViewSet):
 
         QuotationMaster.objects.filter(inquiry_no=inquiry.inquiry_no).delete()
 
-        quotation_numbers = self._generate_quotation_numbers(len(supplier_groups))
+        quotation_numbers = self._generate_quotation_numbers(len(supplier_groups), inquiry)
         prefill_fields = self._get_template_prefill_fields(getattr(inquiry, "template", None))
         current_user = self._clip(
             self._get_request_username() or getattr(inquiry, "release_user", None),

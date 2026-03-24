@@ -19,190 +19,133 @@
     </fs-crud>
 
     <el-dialog v-model="dialog.visible" width="1080px" :title="dialogTitle">
-      <div class="status-bar">
-        <span>报价状态：</span>
-        <el-tag :type="statusTagType(current.status)">{{ statusLabel(current.status) }}</el-tag>
-      </div>
+      <div class="quote-dialog-scroll">
+        <div class="status-bar">
+          <span>报价状态：</span>
+          <el-tag :type="statusTagType(current.status)">{{ statusLabel(current.status) }}</el-tag>
+        </div>
 
-      <el-tabs v-model="activeTab" type="card" class="tabs-fill">
-        <el-tab-pane label="基础信息" name="base">
-          <el-divider content-position="left">关联询价信息</el-divider>
-          <el-descriptions :column="3" border size="small" class="mb8">
-            <el-descriptions-item label="询价单号">{{ current.inquiryCode }}</el-descriptions-item>
-            <el-descriptions-item label="询价单名称">{{ current.inquiryTitle }}</el-descriptions-item>
-            <el-descriptions-item label="询价模板">{{ templateLabel(current.template) }}</el-descriptions-item>
-            <el-descriptions-item label="交易币别">{{ current.currency }}</el-descriptions-item>
-            <el-descriptions-item label="报价截止日">{{ current.quoteDeadline }}</el-descriptions-item>
-            <el-descriptions-item label="询价状态">{{ formatMiscInquiryStatus(current) }}</el-descriptions-item>
-          </el-descriptions>
-
-          <el-divider content-position="left">报价基础信息</el-divider>
-          <el-form :model="current.base" label-width="120px" class="grid-form">
-            <el-form-item label="联系人">
-              <el-input v-model="current.base.contact" :disabled="isReadOnly" />
-            </el-form-item>
-            <el-form-item label="联系电话">
-              <el-input v-model="current.base.phone" :disabled="isReadOnly" />
-            </el-form-item>
-            <el-form-item label="联系邮箱">
-              <el-input v-model="current.base.email" :disabled="isReadOnly" />
-            </el-form-item>
-            <el-form-item label="报价有效期(天)">
-              <el-input v-model="current.base.validityDays" type="number" :disabled="isReadOnly" />
-            </el-form-item>
-            <el-form-item label="交货周期(天)">
-              <el-input v-model="current.base.leadTimeDays" type="number" :disabled="isReadOnly" />
-            </el-form-item>
-            <el-form-item label="付款方式">
-              <el-select v-model="current.base.paymentTerm" placeholder="选择付款方式" :disabled="isReadOnly">
-                <el-option label="T/T 30%预付，70%出货前" value="tt_30_70" />
-                <el-option label="月结30天" value="net30" />
-                <el-option label="月结45天" value="net45" />
-                <el-option label="全额预付" value="prepaid" />
-              </el-select>
-            </el-form-item>
-          </el-form>
-
-          <el-divider content-position="left">报价合计</el-divider>
-          <div class="quote-summary">
-            <el-table
-              :data="quoteSummaryRows"
-              border
-              size="small"
-              class="quote-summary__table"
-              :row-class-name="quoteSummaryRowClassName"
-            >
-              <el-table-column prop="section" label="组成" min-width="140" />
-              <el-table-column label="金额">
-                <template #default="{ row }">
-                  {{ formatMoney(row.amount) }}
-                </template>
-              </el-table-column>
-            </el-table>
-            <div class="quote-summary__total">
-              <div class="quote-summary__label">最终报价</div>
-              <div class="quote-summary__value">{{ formatMoney(quoteTotal) }}</div>
-            </div>
-          </div>
-
-          <el-divider content-position="left">报价附件与说明</el-divider>
-          <div class="attach-row">
-            <el-upload
-              action="#"
-              :auto-upload="false"
-              :file-list="current.attachments"
-              :disabled="isReadOnly"
-              list-type="text"
-              drag
-            >
-              <i class="el-icon-upload" />
-              <div class="el-upload__text">拖拽或点击上传 (PDF/DOC/JPG/PNG)</div>
-            </el-upload>
-            <el-input v-model="current.remark" type="textarea" :rows="4" placeholder="补充报价说明" :disabled="isReadOnly" />
-          </div>
-        </el-tab-pane>
-
-        <el-tab-pane label="成本结构" name="cost">
-          <div class="cost-header mb8">
-            <span></span>
-            <el-button size="small" @click="loadCostRowsFromTemplate(current.templateSections, true)" :disabled="isReadOnly">清空已填内容</el-button>
-          </div>
-          <div class="cost-groups">
-            <div v-for="section in primarySections" :key="section" class="cost-group">
-              <div class="cost-group-header">
-                <div class="cost-section-title">{{ section }}</div>
-                <!-- 显隐由 sectionAddConfig 控制：材料/加工对应模板 is_can_add_materials / is_can_add_process（详情 template_sections[].supplierCanAddRow） -->
-                <el-button
-                  size="small"
-                  type="primary"
-                  @click="addCostRow(section)"
-                  v-if="sectionAddConfig[section] && !isReadOnly"
-                >新增一行</el-button>
+        <el-tabs v-model="activeTab" type="card" class="tabs-fill quote-dialog-tabs">
+          <el-tab-pane label="询价单信息" name="inquiry">
+            <el-descriptions :column="2" border size="small" class="mb8">
+              <el-descriptions-item label="询价单号">{{ current.inquiryCode }}</el-descriptions-item>
+              <el-descriptions-item label="询价单名称">{{ current.inquiryTitle }}</el-descriptions-item>
+              <el-descriptions-item label="询价模板">{{ templateLabel(current.template) }}</el-descriptions-item>
+              <el-descriptions-item label="交易币别">{{ current.currency }}</el-descriptions-item>
+              <el-descriptions-item label="报价截止日">{{ current.quoteDeadline }}</el-descriptions-item>
+              <el-descriptions-item label="询价状态">{{ formatMiscInquiryStatus(current) }}</el-descriptions-item>
+            </el-descriptions>
+            <el-divider content-position="left">询价附件</el-divider>
+            <div class="inquiry-attachments">
+              <div v-for="group in inquiryAttachmentGroups" :key="group.fileType" class="inquiry-attachments__block">
+                <div class="inquiry-attachments__type">{{ group.label }}</div>
+                <div class="inquiry-attachments__links">
+                  <el-link
+                    v-for="(file, idx) in group.items"
+                    :key="`${group.fileType}-${file.id ?? idx}-${file.file_name}`"
+                    type="primary"
+                    :href="inquiryAttachmentHref(file)"
+                    class="inquiry-attachments__link"
+                    @click.prevent
+                  >
+                    {{ file.file_name || '（未命名）' }}
+                  </el-link>
+                </div>
               </div>
+              <div v-if="!inquiryAttachmentGroups.length" class="inquiry-attachments__empty">暂无询价附件</div>
+            </div>
+          </el-tab-pane>
+
+          <el-tab-pane label="报价基础信息" name="base">
+            <el-form :model="current.base" label-width="120px" class="grid-form">
+              <el-form-item label="联系人">
+                <el-input v-model="current.base.contact" :disabled="isReadOnly" />
+              </el-form-item>
+              <el-form-item label="联系电话">
+                <el-input v-model="current.base.phone" :disabled="isReadOnly" />
+              </el-form-item>
+              <el-form-item label="联系邮箱">
+                <el-input v-model="current.base.email" :disabled="isReadOnly" />
+              </el-form-item>
+              <el-form-item label="报价有效期(天)">
+                <el-input v-model="current.base.validityDays" type="number" :disabled="isReadOnly" />
+              </el-form-item>
+              <el-form-item label="交货周期(天)">
+                <el-input v-model="current.base.leadTimeDays" type="number" :disabled="isReadOnly" />
+              </el-form-item>
+              <el-form-item label="付款方式">
+                <el-select v-model="current.base.paymentTerm" placeholder="选择付款方式" :disabled="isReadOnly">
+                  <el-option label="T/T 30%预付，70%出货前" value="tt_30_70" />
+                  <el-option label="月结30天" value="net30" />
+                  <el-option label="月结45天" value="net45" />
+                  <el-option label="全额预付" value="prepaid" />
+                </el-select>
+              </el-form-item>
+            </el-form>
+
+            <el-divider content-position="left">报价合计</el-divider>
+            <div class="quote-summary">
               <el-table
-                :data="(groupedCostRows[section] || [])"
+                :data="quoteSummaryRows"
                 border
                 size="small"
-                :class="section === '其它成本' ? 'compact-cost-table' : ''"
-                class="mb12"
+                class="quote-summary__table"
+                :row-class-name="quoteSummaryRowClassName"
               >
-                <el-table-column
-                  v-for="col in sectionColumns[section] || []"
-                  :key="col.key"
-                  :prop="col.key"
-                  :label="col.label"
-                >
+                <el-table-column prop="section" label="组成" min-width="140" />
+                <el-table-column label="金额">
                   <template #default="{ row }">
-                    <el-select
-                      v-if="section === '材料成本' && col.key === 'material'"
-                      v-model="row.values[col.key]"
-                      placeholder="选择材质"
-                      :loading="materialLoading"
-                      filterable
-                      clearable
-                      :disabled="isCostCellDisabled(section, col.key)"
-                      @change="(val: string) => handleMaterialSelect(row, val)"
-                    >
-                      <el-option
-                        v-for="m in materialOptions"
-                        :key="m.value"
-                        :label="m.label"
-                        :value="m.value"
-                      />
-                    </el-select>
-                    <el-select
-                      v-else-if="section === '加工成本' && (col.key === 'process_station' || col.key === 'processStation')"
-                      v-model="row.values[col.key]"
-                      placeholder="选择加工工站"
-                      :loading="stationLoading"
-                      filterable
-                      clearable
-                      :disabled="isCostCellDisabled(section, col.key)"
-                      @change="(val: string) => handleStationSelect(row, val)"
-                    >
-                      <el-option
-                        v-for="s in stationOptions"
-                        :key="s.value"
-                        :label="s.label"
-                        :value="s.value"
-                      />
-                    </el-select>
-                    <el-input
-                      v-else-if="section === '加工成本'"
-                      v-model="row.values[col.key]"
-                      :placeholder="col.label"
-                      @input="() => updateProcessCalc(row)"
-                      :disabled="isCostCellDisabled(section, col.key)"
-                    />
-                    <el-input
-                      v-else-if="section === '材料成本'"
-                      v-model="row.values[col.key]"
-                      :placeholder="col.label"
-                      @input="() => updateMaterialCalc(row)"
-                      :disabled="isCostCellDisabled(section, col.key)"
-                    />
-                    <el-input
-                      v-else
-                      v-model="row.values[col.key]"
-                      :placeholder="col.label"
-                      :disabled="isCostCellDisabled(section, col.key)"
-                    />
-                  </template>
-                </el-table-column>
-                <el-table-column v-if="sectionAddConfig[section] && !isReadOnly" label="操作" width="100">
-                  <template #default="{ row }">
-                    <el-button link type="danger" size="small" @click="removeCostRow(row.id)">移除</el-button>
+                    {{ formatMoney(row.amount) }}
                   </template>
                 </el-table-column>
               </el-table>
+              <div class="quote-summary__total">
+                <div class="quote-summary__label">最终报价</div>
+                <div class="quote-summary__value">{{ formatMoney(quoteTotal) }}</div>
+              </div>
             </div>
 
-            <div class="cost-row-pair">
-              <div v-for="section in profitTaxSections" :key="section" class="cost-group">
+            <el-divider content-position="left">报价附件与说明</el-divider>
+            <div class="attach-row">
+              <el-upload
+                action="#"
+                :auto-upload="false"
+                :file-list="current.attachments"
+                :disabled="isReadOnly"
+                list-type="text"
+                drag
+              >
+                <i class="el-icon-upload" />
+                <div class="el-upload__text">拖拽或点击上传 (PDF/DOC/JPG/PNG)</div>
+              </el-upload>
+              <el-input v-model="current.remark" type="textarea" :rows="4" placeholder="补充报价说明" :disabled="isReadOnly" />
+            </div>
+          </el-tab-pane>
+
+          <el-tab-pane label="成本结构" name="cost">
+            <div class="cost-header mb8">
+              <span></span>
+              <el-button size="small" @click="loadCostRowsFromTemplate(current.templateSections, true)" :disabled="isReadOnly">清空已填内容</el-button>
+            </div>
+            <div class="cost-groups">
+              <div v-for="section in primarySections" :key="section" class="cost-group">
                 <div class="cost-group-header">
                   <div class="cost-section-title">{{ section }}</div>
+                  <!-- 显隐由 sectionAddConfig 控制：材料/加工对应模板 is_can_add_materials / is_can_add_process（详情 template_sections[].supplierCanAddRow） -->
+                  <el-button
+                    size="small"
+                    type="primary"
+                    @click="addCostRow(section)"
+                    v-if="sectionAddConfig[section] && !isReadOnly"
+                  >新增一行</el-button>
                 </div>
-                <el-table :data="(groupedCostRows[section] || [])" border size="small" class="mb12">
+                <el-table
+                  :data="(groupedCostRows[section] || [])"
+                  border
+                  size="small"
+                  :class="section === '其它成本' ? 'compact-cost-table' : ''"
+                  class="mb12"
+                >
                   <el-table-column
                     v-for="col in sectionColumns[section] || []"
                     :key="col.key"
@@ -210,20 +153,98 @@
                     :label="col.label"
                   >
                     <template #default="{ row }">
+                      <el-select
+                        v-if="section === '材料成本' && col.key === 'material'"
+                        v-model="row.values[col.key]"
+                        placeholder="选择材质"
+                        :loading="materialLoading"
+                        filterable
+                        clearable
+                        :disabled="isCostCellDisabled(section, col.key)"
+                        @change="(val: string) => handleMaterialSelect(row, val)"
+                      >
+                        <el-option
+                          v-for="m in materialOptions"
+                          :key="m.value"
+                          :label="m.label"
+                          :value="m.value"
+                        />
+                      </el-select>
+                      <el-select
+                        v-else-if="section === '加工成本' && (col.key === 'process_station' || col.key === 'processStation')"
+                        v-model="row.values[col.key]"
+                        placeholder="选择加工工站"
+                        :loading="stationLoading"
+                        filterable
+                        clearable
+                        :disabled="isCostCellDisabled(section, col.key)"
+                        @change="(val: string) => handleStationSelect(row, val)"
+                      >
+                        <el-option
+                          v-for="s in stationOptions"
+                          :key="s.value"
+                          :label="s.label"
+                          :value="s.value"
+                        />
+                      </el-select>
                       <el-input
+                        v-else-if="section === '加工成本'"
+                        v-model="row.values[col.key]"
+                        :placeholder="col.label"
+                        @input="() => updateProcessCalc(row)"
+                        :disabled="isCostCellDisabled(section, col.key)"
+                      />
+                      <el-input
+                        v-else-if="section === '材料成本'"
+                        v-model="row.values[col.key]"
+                        :placeholder="col.label"
+                        @input="() => updateMaterialCalc(row)"
+                        :disabled="isCostCellDisabled(section, col.key)"
+                      />
+                      <el-input
+                        v-else
                         v-model="row.values[col.key]"
                         :placeholder="col.label"
                         :disabled="isCostCellDisabled(section, col.key)"
                       />
                     </template>
                   </el-table-column>
+                  <el-table-column v-if="sectionAddConfig[section] && !isReadOnly" label="操作" width="100">
+                    <template #default="{ row }">
+                      <el-button link type="danger" size="small" @click="removeCostRow(row.id)">移除</el-button>
+                    </template>
+                  </el-table-column>
                 </el-table>
               </div>
-            </div>
-          </div>
-        </el-tab-pane>
 
-      </el-tabs>
+              <div class="cost-row-pair">
+                <div v-for="section in profitTaxSections" :key="section" class="cost-group">
+                  <div class="cost-group-header">
+                    <div class="cost-section-title">{{ section }}</div>
+                  </div>
+                  <el-table :data="(groupedCostRows[section] || [])" border size="small" class="mb12">
+                    <el-table-column
+                      v-for="col in sectionColumns[section] || []"
+                      :key="col.key"
+                      :prop="col.key"
+                      :label="col.label"
+                    >
+                      <template #default="{ row }">
+                        <el-input
+                          v-model="row.values[col.key]"
+                          :placeholder="col.label"
+                          :disabled="isCostCellDisabled(section, col.key)"
+                        />
+                      </template>
+                    </el-table-column>
+                  </el-table>
+                </div>
+              </div>
+            </div>
+          </el-tab-pane>
+
+        </el-tabs>
+      </div>
 
       <template #footer>
         <el-button @click="dialog.visible = false">关闭</el-button>
@@ -236,10 +257,26 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { Flag } from '@element-plus/icons-vue'
 import { compute, dict, useCrud, useExpose } from '@fast-crud/fast-crud'
-import { useQuoteCrud, formatAwardBidStatus, formatMiscInquiryStatus } from './crud'
+import { useQuoteCrud, formatAwardBidStatus, formatMiscInquiryStatus, type InquiryAttachmentRow } from './crud'
+
+const INQUIRY_FILE_TYPE_ORDER = [1, 2, 3] as const
+const INQUIRY_FILE_TYPE_LABELS: Record<number, string> = {
+  1: '产品图纸',
+  2: '招标文件',
+  3: '其它文件'
+}
+
+const normalizeInquiryFileType = (raw: unknown): 1 | 2 | 3 => {
+  const n = Number(raw)
+  if (n === 1 || n === 2 || n === 3) return n
+  return 3
+}
+
+/** 占位链接，后续在此组装下载/预览 URL */
+const inquiryAttachmentHref = (_file: InquiryAttachmentRow) => '#'
 
 /** 查询区：按主表 is_awarded 筛选（与后端字段一致） */
 const isAwardedOptions = [
@@ -301,6 +338,25 @@ const {
   saveQuote,
   submitQuotationFromRow
 } = useQuoteCrud({ onChange: () => crudExpose?.doRefresh?.() })
+
+const inquiryAttachmentGroups = computed(() => {
+  const list = (current.inquiryAttachments || []) as InquiryAttachmentRow[]
+  if (!list.length) return [] as { fileType: number; label: string; items: InquiryAttachmentRow[] }[]
+  const byType = new Map<number, InquiryAttachmentRow[]>()
+  for (const row of list) {
+    const t = normalizeInquiryFileType(row.file_type)
+    if (!byType.has(t)) byType.set(t, [])
+    byType.get(t)!.push(row)
+  }
+  return INQUIRY_FILE_TYPE_ORDER.filter((t) => (byType.get(t)?.length ?? 0) > 0).map((t) => {
+    const items = byType.get(t)!
+    return {
+      fileType: t,
+      label: items[0]?.file_type_label || INQUIRY_FILE_TYPE_LABELS[t],
+      items
+    }
+  })
+})
 
 const quoteSummaryRowClassName = ({ row }: { row: { isSubtotal?: boolean } }) =>
   row?.isSubtotal ? 'quote-summary__subtotal' : ''
@@ -513,6 +569,44 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
 }
+/* 弹窗内单独滚动，便于报价状态 + 页签标题 sticky */
+.quote-dialog-scroll {
+  max-height: min(72vh, calc(100vh - 200px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  margin: -8px -4px 0 0;
+  padding: 0 4px 4px 0;
+}
+.inquiry-attachments {
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--el-fill-color-blank);
+}
+.inquiry-attachments__block + .inquiry-attachments__block {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+}
+.inquiry-attachments__type {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.inquiry-attachments__links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.inquiry-attachments__link {
+  font-size: 13px;
+}
+.inquiry-attachments__empty {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
 .status-bar {
   display: flex;
   align-items: center;
@@ -522,6 +616,30 @@ onMounted(() => {
   border-radius: 8px;
   padding: 8px 12px;
   margin-bottom: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+}
+.quote-dialog-tabs.tabs-fill {
+  display: flex;
+  flex-direction: column;
+}
+.quote-dialog-tabs.tabs-fill :deep(.el-tabs__content) {
+  flex: 1;
+}
+.quote-dialog-tabs.tabs-fill :deep(.el-tab-pane) {
+  min-height: 0;
+}
+.quote-dialog-tabs :deep(.el-tabs__header) {
+  position: sticky;
+  /* 紧贴在报价状态条下方（状态条高度 + 下边距） */
+  top: var(--quote-dialog-sticky-tabs-top, 52px);
+  z-index: 11;
+  margin: 0;
+  background: var(--el-bg-color, #fff);
+  padding-bottom: 6px;
+  box-shadow: 0 1px 0 var(--el-border-color-lighter);
 }
 .grid-form {
   display: grid;

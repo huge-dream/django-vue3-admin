@@ -57,7 +57,10 @@ type Quote = {
     paymentTerm: string
   }
   costItems: CostItem[]
+  /** 报价方上传的附件（`pis_sup_quotation_attachment`） */
   attachments: any[]
+  /** 询价单关联附件（`pis_proc_inquiry_attachment`），详情接口 `inquiry_attachments` */
+  inquiryAttachments: InquiryAttachmentRow[]
   remark: string
   createdAt: string
   templateSections?: any
@@ -67,6 +70,17 @@ type Quote = {
 }
 
 type SummaryRow = { section: string; amount: number; isSubtotal?: boolean }
+
+export type InquiryAttachmentRow = {
+  id?: number | string
+  part_id?: string
+  file_type?: number
+  file_type_label?: string
+  file_name?: string
+  file_path?: string
+  upload_time?: string
+  upload_user?: string
+}
 
 const statusOptions = [
   { label: '未报价', value: 'pending' },
@@ -922,6 +936,7 @@ function blankQuote(): Quote {
     base: { contact: '', phone: '', email: '', validityDays: '', leadTimeDays: '', paymentTerm: '' },
     costItems: [],
     attachments: [],
+    inquiryAttachments: [],
     remark: '',
     createdAt: '',
     templateSections: [],
@@ -1207,6 +1222,11 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
             ),
       rfqItems: Array.isArray(item.rfq_items) ? item.rfq_items : [],
       attachments: Array.isArray(item.attachments) ? item.attachments : [],
+      inquiryAttachments: Array.isArray(item.inquiry_attachments)
+        ? item.inquiry_attachments
+        : Array.isArray(item.inquiryAttachments)
+          ? item.inquiryAttachments
+          : [],
       remark: item.remark || '',
       createdAt: item.creattime || item.creat_time || item.create_time || item.createTime || item.createdAt || '',
       templateSections:
