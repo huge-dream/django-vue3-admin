@@ -417,13 +417,13 @@ const crudOptions = {
         click: ({ row }: any) => viewQuote(row)
       },
       quoteNow: {
-        text: '编辑报价',
+        text: '编辑',
         type: 'primary',
         show: compute(({ row }) => isPendingQuotation(row)),
         click: ({ row }: any) => openQuote(row)
       },
       editQuote: {
-        text: '提交报价',
+        text: '提交',
         type: 'warning',
         show: compute(({ row }) => isPendingQuotation(row)),
         click: ({ row }: any) => submitQuotationFromRow(row)

@@ -461,7 +461,7 @@ const sectionsToItems = (sectionsRaw: any[], allowTitles?: string[], headVersion
 }
 
 const itemsToSections = (items: any[], head?: any) => {
-  // 新版本弹窗里 form.version 为「下一版」预览值，但 items 仍来自上一版；过滤必须用明细实际所属版本
+  // 版本变更弹窗里 form.version 为「下一版」预览值，但 items 仍来自上一版；过滤必须用明细实际所属版本
   const headVerRaw = head?.__itemsSourceVersion ?? head?.version
   const headVer =
     headVerRaw != null && headVerRaw !== ''
@@ -524,7 +524,7 @@ const itemsToSections = (items: any[], head?: any) => {
 const templateStatusUnconfirmed = (row: any) => Number(row?.status) === 0
 const templateStatusConfirmed = (row: any) => Number(row?.status) === 1
 
-/** 提交用载荷（不含业务分流字段）；初始添加与「新版本」共用结构，后者走独立 API。 */
+/** 提交用载荷（不含业务分流字段）；初始添加与「版本变更」共用结构，后者走独立 API。 */
 const buildCostTemplateSubmitPayload = (form: any) => {
   const sections = resolveSectionsForSubmit(form)
   const allowTitles = visibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
@@ -570,7 +570,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
         },
         async onOpened(ctx: any) {
           if (ctx.mode === 'add') {
-            // 新版本：由 openAdd 预填完整 sections/items；勿 refreshSectionsIfNeeded（会再走 replaceBuiltInFields，且易与预填冲突）
+            // 版本变更：由 openAdd 预填完整 sections/items；勿 refreshSectionsIfNeeded（会再走 replaceBuiltInFields，且易与预填冲突）
             if (ctx.form?.__newVersionSourceId != null && ctx.form.__newVersionSourceId !== '') {
               const vis = visibleTitles(ctx.form.procurement_category, (ctx.form.is_bom || 'Y') === 'Y')
               ctx.form.__visibleTitles = vis
@@ -706,8 +706,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
             }
           },
           newVersion: {
-            text: '新版本',
-            title: '新版本',
+            text: '版本变更',
+            title: '版本变更',
             type: 'primary',
             order: 5,
             show: compute(({ row }) => templateStatusConfirmed(row)),
@@ -752,10 +752,10 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                       items: itemsStripped
                     }
                   },
-                  { title: '新版本' }
+                  { title: '版本变更' }
                 )
               } catch (e: any) {
-                const msg = e?.response?.data?.msg || e?.message || '打开新版本失败'
+                const msg = e?.response?.data?.msg || e?.message || '版本变更失败'
                 ElMessage.error(msg)
               }
             }

@@ -1,0 +1,244 @@
+import os
+import tempfile
+import urllib.parse
+import urllib.request
+from typing import Tuple, Dict, Any, List
+from rest_framework import serializers
+from rest_framework.decorators import action
+
+from django.conf import settings
+from django.core.mail import EmailMessage, get_connection
+from dvadmin.utils.serializers import CustomModelSerializer
+from dvadmin.utils.viewset import CustomModelViewSet
+from apps.pisadmin.basicinfo.models import EmailNotice
+
+
+def _collect_attachment_paths(raw_list: List[Any]) -> List[str]:
+    paths: List[str] = []
+    if not isinstance(raw_list, list):
+        return paths
+    for item in raw_list:
+        if isinstance(item, str):
+            if item:
+                paths.append(item)
+            continue
+        if isinstance(item, dict):
+            candidate = item.get("file_path") or item.get("path") or item.get("filepath")
+            url = item.get("url")
+            if candidate:
+                paths.append(candidate)
+            elif url and isinstance(url, str) and url.startswith("http"):
+                # download remote file to temp location
+                try:
+                    parsed = urllib.parse.urlparse(url)
+                    filename = os.path.basename(parsed.path) or "attachment"
+                    fd, temp_path = tempfile.mkstemp(prefix="mail_att_", suffix=os.path.splitext(filename)[1])
+                    os.close(fd)
+                    urllib.request.urlretrieve(url, temp_path)
+                    paths.append(temp_path)
+                except Exception:
+                    # skip silently; caller can still send email without this attachment
+                    continue
+    return paths
+
+
+def send_email_notice(notice) -> Tuple[bool, Dict[str, Any]]:
+    """Send an email based on EmailNotice instance.
+
+    Returns (success, details)
+    """
+
+    # 无认证中继（如内网 25 端口）允许 EMAIL_HOST_USER / EMAIL_HOST_PASSWORD 为空；Django SMTP 仅在两者均有值时 login
+    host = (getattr(settings, "EMAIL_HOST", None) or "").strip()
+    port_raw = getattr(settings, "EMAIL_PORT", None)
+    if not host:
+        return False, {"error": "邮件配置不完整：未配置 SMTP 主机 EMAIL_HOST"}
+    try:
+        port = int(port_raw)
+    except (TypeError, ValueError):
+        return False, {"error": "邮件配置不完整：EMAIL_PORT 无效"}
+    if not (1 <= port <= 65535):
+        return False, {"error": "邮件配置不完整：EMAIL_PORT 无效"}
+
+    to_list = notice.to_emails or []
+    cc_list = notice.cc_emails or []
+    bcc_list = notice.bcc_emails or []
+    if not to_list:
+        return False, {"error": "收件人为空"}
+
+    use_ssl = getattr(settings, "EMAIL_USE_SSL", False)
+    use_tls = getattr(settings, "EMAIL_USE_TLS", False)
+    from_email = (getattr(settings, "EMAIL_FROM", None) or "").strip() or (
+        (getattr(settings, "EMAIL_HOST_USER", None) or "").strip()
+    )
+    if not from_email:
+        return False, {"error": "邮件配置不完整：请配置 EMAIL_FROM 或 EMAIL_HOST_USER 作为发件人"}
+
+    try:
+        connection = get_connection(
+            fail_silently=False,
+            host=host,
+            port=port,
+            use_ssl=use_ssl,
+            use_tls=use_tls,
+            timeout=20,
+        )
+
+        msg = EmailMessage(
+            subject=notice.subject or "",
+            body=notice.body or "",
+            from_email=from_email,
+            to=to_list,
+            cc=cc_list,
+            bcc=bcc_list,
+            connection=connection,
+        )
+
+        payload = notice.payload or {}
+        is_html = bool(payload.get("is_html") or payload.get("is_body_html"))
+        if is_html:
+            msg.content_subtype = "html"
+
+        temp_files: List[str] = []
+        try:
+            paths = _collect_attachment_paths(notice.attachments)
+            for path in paths:
+                if not path:
+                    continue
+                try:
+                    msg.attach_file(path)
+                except Exception:
+                    # 如果文件不可用，忽略该附件继续
+                    continue
+                if path.startswith(tempfile.gettempdir()):
+                    temp_files.append(path)
+            msg.send(fail_silently=False)
+        finally:
+            for f in temp_files:
+                try:
+                    os.remove(f)
+                except Exception:
+                    pass
+
+        return True, {"message": "sent"}
+    except Exception as exc:
+        return False, {"error": str(exc)}
+
+
+class EmailNoticeSerializer(CustomModelSerializer):
+    to_emails = serializers.JSONField(required=False)
+    cc_emails = serializers.JSONField(required=False)
+    bcc_emails = serializers.JSONField(required=False)
+    attachments = serializers.JSONField(required=False)
+    payload = serializers.JSONField(required=False)
+    response = serializers.JSONField(required=False)
+
+    class Meta:
+        model = EmailNotice
+        fields = "__all__"
+        read_only_fields = ["id", "create_datetime", "update_datetime", "creator", "modifier"]
+
+    def _ensure_list(self, value, field_name):
+        if value is None:
+            return []
+        if isinstance(value, str):
+            try:
+                import json
+
+                parsed = json.loads(value)
+                if isinstance(parsed, list):
+                    return parsed
+            except Exception:
+                pass
+            raise serializers.ValidationError(f"{field_name} must be a list")
+        if not isinstance(value, list):
+            raise serializers.ValidationError(f"{field_name} must be a list")
+        return value
+
+    def _ensure_dict(self, value, field_name):
+        if value is None:
+            return {}
+        if isinstance(value, str):
+            try:
+                import json
+
+                parsed = json.loads(value)
+                if isinstance(parsed, dict):
+                    return parsed
+            except Exception:
+                pass
+            raise serializers.ValidationError(f"{field_name} must be a dict")
+        if not isinstance(value, dict):
+            raise serializers.ValidationError(f"{field_name} must be a dict")
+        return value
+
+    def validate_to_emails(self, value):
+        return self._ensure_list(value, "to_emails")
+
+    def validate_cc_emails(self, value):
+        return self._ensure_list(value, "cc_emails")
+
+    def validate_bcc_emails(self, value):
+        return self._ensure_list(value, "bcc_emails")
+
+    def validate_attachments(self, value):
+        return self._ensure_list(value, "attachments")
+
+    def validate_payload(self, value):
+        return self._ensure_dict(value, "payload")
+
+    def validate_response(self, value):
+        return self._ensure_dict(value, "response")
+
+
+class EmailNoticeViewSet(CustomModelViewSet):
+    queryset = EmailNotice.objects.all()
+    serializer_class = EmailNoticeSerializer
+    filter_fields = ("subject", "status", "biz_type", "biz_id")
+    search_fields = ("subject", "biz_type", "biz_id", "last_error", "message_id")
+    ordering_fields = ("sent_at", "update_datetime", "create_datetime")
+    ordering = ("-sent_at", "-update_datetime")
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        params = getattr(self, "request", None)
+        if not params:
+            return qs
+
+        raw_range = self.request.query_params.getlist("sent_at") or []
+        if not raw_range:
+            raw_value = self.request.query_params.get("sent_at")
+            if raw_value:
+                raw_range = raw_value.split(",") if "," in raw_value else raw_value.split("|")
+
+        if len(raw_range) >= 2:
+            start = parse_datetime(raw_range[0].strip())
+            end = parse_datetime(raw_range[1].strip())
+            if start and end:
+                qs = qs.filter(sent_at__range=(start, end))
+
+        return qs
+
+    @action(detail=True, methods=["post"], url_path="resend")
+    def resend(self, request, pk=None):
+        notice = self.get_object()
+
+        # update retry count and mark sending
+        notice.retry_count = (notice.retry_count or 0) + 1
+        notice.status = "sending"
+        notice.save(update_fields=["retry_count", "status", "update_datetime"])
+
+        success, detail = send_email_notice(notice)
+
+        notice.response = detail
+        if success:
+            notice.status = "success"
+            notice.sent_at = timezone.now()
+            notice.last_error = None
+        else:
+            notice.status = "failed"
+            notice.last_error = detail.get("error") if isinstance(detail, dict) else str(detail)
+
+        notice.save(update_fields=["status", "sent_at", "response", "last_error", "update_datetime"])
+
+        return Response({"success": success, "detail": detail})
