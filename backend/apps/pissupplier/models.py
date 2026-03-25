@@ -15,8 +15,9 @@ class QuotationMaster(models.Model):
 
     STATUS_CHOICES = (
         (1, "待报价"),
-        (2, "已报价"),
-        (3, "已过期"),
+        (2, "报价中"),
+        (3, "已报价"),
+        (4, "已过期"),
     )
 
     AWARD_STATUS_CHOICES = (
@@ -76,8 +77,8 @@ class QuotationAttachment(models.Model):
         verbose_name="报价单单号",
     )
     part_id = models.CharField(max_length=50, db_column="Partid", verbose_name="产品料号")
-    file_name = models.CharField(max_length=20, db_column="file_name", verbose_name="文件名称")
-    file_path = models.CharField(max_length=20, db_column="file_path", null=True, blank=True, verbose_name="文件路径")
+    file_name = models.CharField(max_length=100, db_column="file_name", verbose_name="文件名称")
+    file_path = models.CharField(max_length=200, db_column="file_path", null=True, blank=True, verbose_name="文件路径")
     uploadtime = models.CharField(max_length=20, null=True, blank=True, verbose_name="上传时间")
     uploaduser = models.CharField(max_length=20, null=True, blank=True, verbose_name="上传人员")
 
@@ -132,6 +133,14 @@ class QuotationMaterial(models.Model):
         null=True,
         blank=True,
         verbose_name="材料费用",
+    )
+    weight = models.DecimalField(
+        max_digits=12,
+        decimal_places=4,
+        db_column="Weight",
+        null=True,
+        blank=True,
+        verbose_name="重量",
     )
     remark = models.CharField(max_length=100, db_column="remark", null=True, blank=True, verbose_name="备注")
     option_json = models.TextField(db_column="OptionJson", null=True, blank=True, verbose_name="可选扩展信息")

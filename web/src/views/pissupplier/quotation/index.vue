@@ -18,11 +18,14 @@
       </template>
     </fs-crud>
 
-    <el-dialog v-model="dialog.visible" width="1080px" :title="dialogTitle">
-      <div class="quote-dialog-scroll">
-        <div class="status-bar">
-          <span>报价状态：</span>
-          <el-tag :type="statusTagType(current.status)">{{ statusLabel(current.status) }}</el-tag>
+    <el-dialog v-model="dialog.visible" width="1080px" :title="dialogTitle" class="quote-dialog-el">
+      <div class="quote-dialog-scroll" :style="{ '--quote-sticky-status-h': `${quoteStickyStatusHeightPx}px` }">
+        <!-- 整块粘性顶栏：间距放在壳子内，避免 margin 在 sticky 外形成透明缝导致滚动内容透出 -->
+        <div ref="quoteStickyStatusShellRef" class="quote-dialog-sticky-status">
+          <div class="status-bar">
+            <span>报价状态：</span>
+            <el-tag :type="statusTagType(current.status)">{{ statusLabel(current.status) }}</el-tag>
+          </div>
         </div>
 
         <el-tabs v-model="activeTab" type="card" class="tabs-fill quote-dialog-tabs">
@@ -40,16 +43,21 @@
               <div v-for="group in inquiryAttachmentGroups" :key="group.fileType" class="inquiry-attachments__block">
                 <div class="inquiry-attachments__type">{{ group.label }}</div>
                 <div class="inquiry-attachments__links">
-                  <el-link
-                    v-for="(file, idx) in group.items"
-                    :key="`${group.fileType}-${file.id ?? idx}-${file.file_name}`"
-                    type="primary"
-                    :href="inquiryAttachmentHref(file)"
-                    class="inquiry-attachments__link"
-                    @click.prevent
-                  >
-                    {{ file.file_name || '（未命名）' }}
-                  </el-link>
+                  <template v-for="(file, idx) in group.items" :key="`${group.fileType}-${file.id ?? idx}-${file.file_name}`">
+                    <el-link
+                      v-if="inquiryAttachmentHref(file) !== '#'"
+                      type="primary"
+                      :href="inquiryAttachmentHref(file)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inquiry-attachments__link"
+                    >
+                      {{ file.file_name || '（未命名）' }}
+                    </el-link>
+                    <span v-else class="inquiry-attachments__link inquiry-attachments__link--text">
+                      {{ file.file_name || '（未命名）' }}
+                    </span>
+                  </template>
                 </div>
               </div>
               <div v-if="!inquiryAttachmentGroups.length" class="inquiry-attachments__empty">暂无询价附件</div>
@@ -100,6 +108,8 @@
                 </el-table-column>
               </el-table>
               <div class="quote-summary__total">
+                <div class="quote-summary__label">未税价</div>
+                <div class="quote-summary__value quote-summary__value--pretax">{{ formatMoney(quoteAmountPreTax) }}</div>
                 <div class="quote-summary__label">最终报价</div>
                 <div class="quote-summary__value">{{ formatMoney(quoteTotal) }}</div>
               </div>
@@ -110,11 +120,39 @@
               <el-upload
                 action="#"
                 :auto-upload="false"
-                :file-list="current.attachments"
-                :disabled="isReadOnly"
+                multiple
                 list-type="text"
                 drag
+                :disabled="isReadOnly"
+                :file-list="current.attachments"
+                :on-change="onQuotationAttachmentListChange"
+                :on-remove="onQuotationAttachmentListChange"
               >
+                <template #file="{ file }">
+                  <div class="quotation-upload-file">
+                    <el-link
+                      v-if="quotationAttachmentHref(file) !== '#'"
+                      type="primary"
+                      :href="quotationAttachmentHref(file)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="quotation-upload-file__link"
+                    >
+                      {{ file.name }}
+                    </el-link>
+                    <span v-else class="quotation-upload-file__name">{{ file.name }}</span>
+                    <el-button
+                      v-if="!isReadOnly"
+                      link
+                      type="danger"
+                      size="small"
+                      class="quotation-upload-file__rm"
+                      @click="removeQuotationAttachment(file)"
+                    >
+                      删除
+                    </el-button>
+                  </div>
+                </template>
                 <i class="el-icon-upload" />
                 <div class="el-upload__text">拖拽或点击上传 (PDF/DOC/JPG/PNG)</div>
               </el-upload>
@@ -248,7 +286,7 @@
 
       <template #footer>
         <el-button @click="dialog.visible = false">关闭</el-button>
-        <template v-if="!isReadOnly && isPendingQuotation(current)">
+        <template v-if="!isReadOnly && isQuotationEditable(current)">
           <el-button type="primary" @click="saveQuote">保存</el-button>
         </template>
       </template>
@@ -257,9 +295,10 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Flag } from '@element-plus/icons-vue'
 import { compute, dict, useCrud, useExpose } from '@fast-crud/fast-crud'
+import { getBaseURL } from '/@/utils/baseUrl'
 import { useQuoteCrud, formatAwardBidStatus, formatMiscInquiryStatus, type InquiryAttachmentRow } from './crud'
 
 const INQUIRY_FILE_TYPE_ORDER = [1, 2, 3] as const
@@ -275,8 +314,11 @@ const normalizeInquiryFileType = (raw: unknown): 1 | 2 | 3 => {
   return 3
 }
 
-/** 占位链接，后续在此组装下载/预览 URL */
-const inquiryAttachmentHref = (_file: InquiryAttachmentRow) => '#'
+const inquiryAttachmentHref = (file: InquiryAttachmentRow) => {
+  const p = String(file.file_path ?? '').trim()
+  if (!p) return '#'
+  return getBaseURL(p)
+}
 
 /** 查询区：按主表 is_awarded 筛选（与后端字段一致） */
 const isAwardedOptions = [
@@ -304,6 +346,8 @@ const {
   filteredQuotes,
   loadQuotes,
   isPendingQuotation,
+  isQuotedQuotation,
+  isQuotationEditable,
   viewQuote,
   openQuote,
   dialog,
@@ -321,6 +365,7 @@ const {
   profitTaxSections,
   loadCostRowsFromTemplate,
   quoteSummaryRows,
+  quoteAmountPreTax,
   quoteTotal,
   addCostRow,
   removeCostRow,
@@ -338,6 +383,24 @@ const {
   saveQuote,
   submitQuotationFromRow
 } = useQuoteCrud({ onChange: () => crudExpose?.doRefresh?.() })
+
+const onQuotationAttachmentListChange = (_file: unknown, fileList: any[]) => {
+  current.attachments = fileList
+}
+
+/** 报价附件：与 `buildQuotationAttachmentsForSave` 取路径逻辑一致 */
+const quotationAttachmentHref = (file: any) => {
+  const p = String(
+    file?.url ?? file?.file_path ?? file?.response?.data?.url ?? file?.response?.url ?? ''
+  ).trim()
+  if (!p) return '#'
+  return getBaseURL(p)
+}
+
+const removeQuotationAttachment = (file: any) => {
+  const uid = file?.uid
+  current.attachments = (current.attachments || []).filter((f: any) => f.uid !== uid)
+}
 
 const inquiryAttachmentGroups = computed(() => {
   const list = (current.inquiryAttachments || []) as InquiryAttachmentRow[]
@@ -358,10 +421,57 @@ const inquiryAttachmentGroups = computed(() => {
   })
 })
 
-const quoteSummaryRowClassName = ({ row }: { row: { isSubtotal?: boolean } }) =>
-  row?.isSubtotal ? 'quote-summary__subtotal' : ''
+const quoteSummaryRowClassName = ({ row }: { row: { isSubtotal?: boolean; section?: string } }) => {
+  if (!row?.isSubtotal) return ''
+  const s = String(row.section || '')
+  if (s === '税后总计') return 'quote-summary__subtotal quote-summary__subtotal--posttax'
+  if (s === '税前合计') return 'quote-summary__subtotal quote-summary__subtotal--pretax'
+  if (s === '成本合计') return 'quote-summary__subtotal quote-summary__subtotal--cost'
+  return 'quote-summary__subtotal'
+}
 
 const activeTab = ref('base')
+
+const quoteStickyStatusShellRef = ref<HTMLElement | null>(null)
+/** 与页签头部 `top` 对齐：状态条壳实际高度（ResizeObserver 更新） */
+const quoteStickyStatusHeightPx = ref(52)
+let quoteStickyStatusRo: ResizeObserver | null = null
+
+function measureQuoteStickyStatusShell() {
+  nextTick(() => {
+    const el = quoteStickyStatusShellRef.value
+    if (!el) return
+    const h = Math.ceil(el.getBoundingClientRect().height)
+    if (h > 0) quoteStickyStatusHeightPx.value = h
+  })
+}
+
+watch(
+  () => dialog.visible,
+  async (vis) => {
+    if (!vis) {
+      quoteStickyStatusRo?.disconnect()
+      return
+    }
+    await nextTick()
+    measureQuoteStickyStatusShell()
+    const shell = quoteStickyStatusShellRef.value
+    if (shell && typeof ResizeObserver !== 'undefined') {
+      quoteStickyStatusRo?.disconnect()
+      quoteStickyStatusRo = new ResizeObserver(() => measureQuoteStickyStatusShell())
+      quoteStickyStatusRo.observe(shell)
+    }
+  }
+)
+
+watch(activeTab, () => {
+  if (dialog.visible) measureQuoteStickyStatusShell()
+})
+
+onUnmounted(() => {
+  quoteStickyStatusRo?.disconnect()
+  quoteStickyStatusRo = null
+})
 
 const syncFilters = (form: any = {}) => {
   filters.status = form.status || ''
@@ -417,16 +527,18 @@ const crudOptions = {
         click: ({ row }: any) => viewQuote(row)
       },
       quoteNow: {
-        text: '编辑',
-        type: 'primary',
-        show: compute(({ row }) => isPendingQuotation(row)),
-        click: ({ row }: any) => openQuote(row)
+        text: '报价',
+        type: compute(({ row }) => (isPendingQuotation(row) ? 'primary' : 'info')),
+        show: true,
+        click: ({ row }: any) => openQuote(row),
+        disabled: compute(({ row }) => !isPendingQuotation(row))
       },
       editQuote: {
         text: '提交',
-        type: 'warning',
-        show: compute(({ row }) => isPendingQuotation(row)),
-        click: ({ row }: any) => submitQuotationFromRow(row)
+        type: compute(({ row }) => (isQuotedQuotation(row) ? 'warning' : 'info')),
+        show: true,
+        click: ({ row }: any) => submitQuotationFromRow(row),
+        disabled: compute(({ row }) => !isQuotedQuotation(row))
       },
     }
   },
@@ -569,13 +681,28 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
 }
-/* 弹窗内单独滚动，便于报价状态 + 页签标题 sticky */
+/* 弹窗内单独滚动；顶栏粘性区域用不透明背景盖住下方滚动内容 */
+.quote-dialog-el :deep(.el-dialog__body) {
+  padding-top: 12px;
+  padding-bottom: 8px;
+}
 .quote-dialog-scroll {
   max-height: min(72vh, calc(100vh - 200px));
   overflow-x: hidden;
   overflow-y: auto;
-  margin: -8px -4px 0 0;
-  padding: 0 4px 4px 0;
+  margin: 0;
+  padding: 0 0 12px 0;
+  background: var(--el-bg-color, #fff);
+  isolation: isolate;
+}
+.quote-dialog-sticky-status {
+  position: sticky;
+  top: 0;
+  z-index: 22;
+  margin: 0 0 0 0;
+  padding: 0 0 10px 0;
+  background: var(--el-bg-color, #fff);
+  background-clip: padding-box;
 }
 .inquiry-attachments {
   border: 1px solid var(--el-border-color-lighter);
@@ -611,15 +738,12 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  background: #f8fafc;
-  border: 1px solid #e5e7eb;
+  background: var(--el-fill-color-light, #f5f7fa);
+  border: 1px solid var(--el-border-color-lighter);
   border-radius: 8px;
-  padding: 8px 12px;
-  margin-bottom: 8px;
-  position: sticky;
-  top: 0;
-  z-index: 12;
-  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+  padding: 10px 12px;
+  margin: 0;
+  box-shadow: none;
 }
 .quote-dialog-tabs.tabs-fill {
   display: flex;
@@ -627,19 +751,27 @@ onMounted(() => {
 }
 .quote-dialog-tabs.tabs-fill :deep(.el-tabs__content) {
   flex: 1;
+  position: relative;
+  z-index: 1;
+  padding-top: 4px;
 }
 .quote-dialog-tabs.tabs-fill :deep(.el-tab-pane) {
   min-height: 0;
 }
 .quote-dialog-tabs :deep(.el-tabs__header) {
   position: sticky;
-  /* 紧贴在报价状态条下方（状态条高度 + 下边距） */
-  top: var(--quote-dialog-sticky-tabs-top, 52px);
-  z-index: 11;
+  /* 与上方 `.quote-dialog-sticky-status` 实测高度对齐，避免夹缝 */
+  top: var(--quote-sticky-status-h, 52px);
+  z-index: 21;
   margin: 0;
+  padding: 0 0 10px 0;
   background: var(--el-bg-color, #fff);
-  padding-bottom: 6px;
-  box-shadow: 0 1px 0 var(--el-border-color-lighter);
+  background-clip: padding-box;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  box-shadow: 0 6px 10px -4px rgba(15, 23, 42, 0.08);
+}
+.quote-dialog-tabs :deep(.el-tabs__nav-wrap::after) {
+  display: none;
 }
 .grid-form {
   display: grid;
@@ -671,14 +803,35 @@ onMounted(() => {
   font-weight: 700;
   color: #0f172a;
 }
+.quote-summary__value--pretax {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e3a5f;
+}
 .quote-summary__table {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   overflow: hidden;
 }
+/* 报价合计：小计行用分色高亮（替代浅灰） */
 .quote-summary__table :deep(tr.quote-summary__subtotal td) {
-  font-weight: 600;
-  background-color: var(--el-fill-color-light);
+  font-weight: 700;
+}
+.quote-summary__table :deep(tr.quote-summary__subtotal--cost td) {
+  background: linear-gradient(90deg, #ffedd5 0%, #fff7ed 55%, #fff 100%) !important;
+  color: #9a3412;
+  border-color: #fdba74 !important;
+}
+.quote-summary__table :deep(tr.quote-summary__subtotal--pretax td) {
+  background: linear-gradient(90deg, #bfdbfe 0%, #dbeafe 55%, #eff6ff 100%) !important;
+  color: #1e40af;
+  border-color: #93c5fd !important;
+}
+.quote-summary__table :deep(tr.quote-summary__subtotal--posttax td) {
+  background: linear-gradient(90deg, #6ee7b7 0%, #a7f3d0 45%, #d1fae5 100%) !important;
+  color: #065f46;
+  font-weight: 800;
+  border-color: #34d399 !important;
 }
 .cost-header {
   display: flex;
@@ -726,6 +879,20 @@ onMounted(() => {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   align-items: start;
+}
+.quotation-upload-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 4px;
+}
+.quotation-upload-file__name {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.quotation-upload-file__link {
+  font-size: 13px;
 }
 .w-260 {
   width: 260px;

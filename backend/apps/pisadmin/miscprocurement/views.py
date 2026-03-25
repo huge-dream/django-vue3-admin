@@ -16,7 +16,6 @@ from apps.pisadmin.basicinfo.views.email_utils import send_email_notice
 
 from apps.pissupplier.models import (
     QuotationMaster,
-    QuotationAttachment,
     QuotationMaterial,
     QuotationProcess,
     QuotationOther,
@@ -114,6 +113,19 @@ class CostEstimateTemplateViewSet(CustomModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        # 仅列表默认隐藏作废；retrieve/update 等需能按 id 加载作废行（否则筛选作废后无法查看详情）
+        if getattr(self, "action", None) != "list":
+            return qs
+        params = getattr(self.request, "query_params", getattr(self.request, "GET", {}))
+        status_raw = params.get("status")
+        # 列表默认不展示作废；查询区显式选「状态=作废」时传 status=2，不过滤以便列出作废行
+        if status_raw is not None and str(status_raw).strip() != "":
+            try:
+                st = int(status_raw)
+            except (TypeError, ValueError):
+                return qs.exclude(status=self.TEMPLATE_STATUS_VOID)
+            if st == self.TEMPLATE_STATUS_VOID:
+                return qs
         return qs.exclude(status=self.TEMPLATE_STATUS_VOID)
 
     def perform_create(self, serializer):
@@ -220,7 +232,7 @@ class InquiryViewSet(CustomModelViewSet):
         "rfq_items",
     )
     serializer_class = InquirySerializer
-    filter_fields = ("inquiry_no", "title", "purchase_type", "template", "status", "buyer")
+    filter_fields = ("inquiry_no", "title", "purchase_type", "template", "template_version", "status", "buyer")
     search_fields = ("inquiry_no", "title", "material_type", "buyer", "remark")
     ordering = ("-update_datetime",)
 
@@ -238,6 +250,7 @@ class InquiryViewSet(CustomModelViewSet):
             "qty": "qty",
             "unitprice": "unit_price",
             "materialcost": "material_cost",
+            "weight": "weight",
             "remark": "remark",
         },
         "2": {
@@ -346,24 +359,32 @@ class InquiryViewSet(CustomModelViewSet):
             now=timezone.now(),
         )
 
-    def _get_template_prefill_fields(self, template_no):
+    def _get_template_prefill_fields(self, template_no, template_version=None):
         """
-        根据询价单关联的成本模板（Inquiry.template = CostEstimateTemplateHead.template_no），
+        根据询价单关联的成本模板（Inquiry.template = template_no，Inquiry.template_version = 主表 version），
         找出「发布生成报价单时」允许从询价单带入到报价子表的字段名集合。
 
         满足以下任一条件时，对应映射字段进入集合（从询价单带入报价子表），否则为空值（见 _pick_prefill_value）：
         - is_computed == 1（系统自动计算/带出）
         - supplier_required == 1（带出不可修改）或 2（带出可修改）
+
+        template_version 为空时兼容旧数据：取该编号下「已确认」主表的最高 version。
         """
         if not template_no:
             return {}
 
-        # 与 pissupplier.build_cost_template_sections_for_quotation 一致：仅已确认主表，避免草稿/作废版本与供应商端展示脱节
-        head = (
-            CostEstimateTemplateHead.objects.filter(template_no=str(template_no).strip(), status=1)
-            .order_by("-version", "-id")
-            .first()
-        )
+        tn = str(template_no).strip()
+        base_qs = CostEstimateTemplateHead.objects.filter(template_no=tn, status=1)
+        head = None
+        if template_version is not None and template_version != "":
+            try:
+                ver = int(template_version)
+            except (TypeError, ValueError):
+                ver = None
+            if ver is not None:
+                head = base_qs.filter(version=ver).first()
+        if head is None:
+            head = base_qs.order_by("-version", "-id").first()
         if not head:
             return {}
 
@@ -468,7 +489,10 @@ class InquiryViewSet(CustomModelViewSet):
         QuotationMaster.objects.filter(inquiry_no=inquiry.inquiry_no).delete()
 
         quotation_numbers = self._generate_quotation_numbers(len(supplier_groups), inquiry)
-        prefill_fields = self._get_template_prefill_fields(getattr(inquiry, "template", None))
+        prefill_fields = self._get_template_prefill_fields(
+            getattr(inquiry, "template", None),
+            getattr(inquiry, "template_version", None),
+        )
         current_user = self._clip(
             self._get_request_username() or getattr(inquiry, "release_user", None),
             20,
@@ -476,14 +500,12 @@ class InquiryViewSet(CustomModelViewSet):
         current_time = timezone.now()
         quote_deadline = inquiry.quote_deadline.strftime("%Y-%m-%d %H:%M:%S") if inquiry.quote_deadline else None
 
-        inquiry_attachments = list(inquiry.attachments.all())
         inquiry_materials = list(inquiry.material_costs.all())
         inquiry_processes = list(inquiry.process_costs.all())
         inquiry_others = list(inquiry.other_costs.all())
         inquiry_profits = list(inquiry.profit_costs.all())
         inquiry_items = list(inquiry.rfq_items.all())
 
-        attachment_bulk = []
         material_bulk = []
         process_bulk = []
         other_bulk = []
@@ -511,19 +533,6 @@ class InquiryViewSet(CustomModelViewSet):
             )
             part_ids = supplier["part_ids"]
 
-            for row in inquiry_attachments:
-                if row.part_id in part_ids:
-                    attachment_bulk.append(
-                        QuotationAttachment(
-                            quotation_no=quotation,
-                            part_id=row.part_id,
-                            file_name=self._clip(row.file_name, 20),
-                            file_path=self._clip(row.file_path, 20) or None,
-                            uploadtime=None,
-                            uploaduser=None,
-                        )
-                    )
-
             for row in inquiry_materials:
                 if row.part_id in part_ids:
                     material_spec_src = self._pick_prefill_value(
@@ -543,6 +552,7 @@ class InquiryViewSet(CustomModelViewSet):
                                 prefill_fields, "1", "specific_gravity", row.specific_gravity
                             ),
                             material_cost=self._pick_prefill_value(prefill_fields, "1", "material_cost", row.material_cost),
+                            weight=self._pick_prefill_value(prefill_fields, "1", "weight", row.weight),
                             remark=self._pick_prefill_value(prefill_fields, "1", "remark", row.remark),
                             option_json=row.option_json if prefill_fields.get("1") else None,
                         )
@@ -619,8 +629,6 @@ class InquiryViewSet(CustomModelViewSet):
                         )
                     )
 
-        if attachment_bulk:
-            QuotationAttachment.objects.bulk_create(attachment_bulk)
         if material_bulk:
             QuotationMaterial.objects.bulk_create(material_bulk)
         if process_bulk:

@@ -307,7 +307,7 @@
                   @change="(val: string) => handleVendorSelect(row, val)"
                 >
                   <el-option
-                    v-for="s in supplierOptions"
+                    v-for="s in supplierOptionsForVendorRow(row)"
                     :key="s.value"
                     :label="s.label"
                     :value="s.value"
@@ -397,7 +397,12 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useCrud, useExpose } from '@fast-crud/fast-crud'
 import { ElMessage } from 'element-plus'
-import { createCrudOptions, normalizeDict, formatCostTemplateVersionTwoDigits } from './crud'
+import {
+  createCrudOptions,
+  normalizeDict,
+  formatCostTemplateVersionTwoDigits,
+  formatRfqApiErrorMessage
+} from './crud'
 import * as api from './api'
 import * as costTemplateApi from '../cost_template/api'
 import { GetCompanies, GetList as GetCurrencies } from '../../basicinfo/currency/api'
@@ -411,6 +416,9 @@ import { useUserInfo } from '/@/stores/userInfo'
 const crudRef = ref()
 const crudBinding = ref()
 const { crudExpose } = useExpose({ crudRef, crudBinding })
+
+/** 列表勾选的询价单行，供后续「多询价单比价」等功能使用 */
+const selectedInquiryRows = ref<any[]>([])
 
 const categoryDict = [
   { value: 'tooling', label: '模治具' },
@@ -939,7 +947,7 @@ const currentUserName = computed(
 const getStatusCode = (value: unknown) => Number(value)
 const isOpenStatus = (value: unknown) => getStatusCode(value) === STATUS_OPEN
 const isReadonlyStatus = (value: unknown) => [STATUS_CONFIRMED, STATUS_PUBLISHED].includes(getStatusCode(value))
-const getErrorMessage = (err: any, fallback: string) => err?.msg || err?.message || err?.response?.data?.msg || fallback
+const getErrorMessage = formatRfqApiErrorMessage
 
 const emptyForm = () => ({
   id: null,
@@ -1288,6 +1296,27 @@ const updateProcessCalc = (row: CostRow) => {
   v[feeKey] = Number((rate * qty).toFixed(4))
 }
 
+/** 与下拉 option.value、v-model(row.name) 一致，用于去重 */
+const vendorRowSelectKey = (row: any) =>
+  String(row?.name ?? row?.supplier_id ?? row?.supplier_code ?? '').trim()
+
+/** 其它行已选中的供应商不再出现在本行下拉中（避免重复违反唯一约束） */
+const supplierOptionsForVendorRow = (row: any) => {
+  const taken = new Set<string>()
+  for (const v of form.vendors || []) {
+    if (v === row) continue
+    const k = vendorRowSelectKey(v)
+    if (k) taken.add(k)
+  }
+  const self = vendorRowSelectKey(row)
+  return supplierOptions.value.filter((s) => {
+    const k = String(s.value ?? '').trim()
+    if (!k) return false
+    if (self && k === self) return true
+    return !taken.has(k)
+  })
+}
+
 const handleVendorSelect = (row: any, value?: string) => {
   row.name = value || ''
   const supplier = supplierOptions.value.find((s) => s.value === value)
@@ -1432,6 +1461,7 @@ const openDetail = async (row: any, mode: 'edit' | 'view') => {
       values.specificgravity = m.specific_gravity ?? ''
       values.qty = m.qty ?? ''
       values.unitPrice = m.unit_price ?? ''
+      values.weight = m.weight ?? ''
       values.material_cost = m.material_cost ?? ''
       const row = { id: `mat-${idx}-${Date.now()}`, section: '材料成本', field: `mat-${idx}`, values: { ...values, partNo: partId } }
       updateMaterialCalc(row)
@@ -1768,6 +1798,16 @@ const saveForm = async () => {
   if (dialog.mode === 'create') {
     form.purchase_dept = loginPurchaseDept()
   }
+  const seenVendorKeys = new Set<string>()
+  for (const v of form.vendors || []) {
+    const k = vendorRowSelectKey(v)
+    if (!k) continue
+    if (seenVendorKeys.has(k)) {
+      ElMessage.warning('供应商名单中存在重复供应商，请删除重复行或更换供应商后再保存')
+      return
+    }
+    seenVendorKeys.add(k)
+  }
   try {
     const uploadedAttachments = await prepareAttachmentsForSubmit()
     form.attachments = uploadedAttachments
@@ -1788,6 +1828,12 @@ const saveForm = async () => {
           ),
           specific_gravity: r.values?.specificgravity ?? r.values?.specific_gravity ?? '',
           material_cost: r.values?.material_cost ?? r.values?.materialCost ?? null,
+          weight: (() => {
+            const w = r.values?.weight ?? r.values?.Weight
+            if (w === '' || w === null || w === undefined) return null
+            const n = Number(w)
+            return Number.isFinite(n) ? n : null
+          })(),
           remark: r.values?.remark ?? '',
           option_json: JSON.stringify(r.values || {})
         }))
@@ -1911,7 +1957,15 @@ const saveForm = async () => {
   }
 }
 
-const { crudOptions } = createCrudOptions({ crudExpose, onAdd: openCreate, onEdit: openEdit, onView: openView })
+const { crudOptions } = createCrudOptions({
+  crudExpose,
+  onAdd: openCreate,
+  onEdit: openEdit,
+  onView: openView,
+  onTableSelectionChange: (rows) => {
+    selectedInquiryRows.value = rows || []
+  }
+})
 
 useCrud({ crudExpose, crudOptions })
 
