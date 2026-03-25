@@ -6,7 +6,14 @@ from rest_framework import serializers
 
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
 from dvadmin.utils.viewset import CustomModelViewSet
-from apps.pisadmin.basicinfo.system_no_allocate import DEFAULT_SYSTEM_NO_COMPANY_CODE, allocate_system_numbers
+from apps.pisadmin.basicinfo.models import Company, EmailNotice, SystemNoRule
+from apps.pisadmin.basicinfo.views.email_template import (
+    TEMPLATE_RFS_PUBLISH,
+    build_context_rfs_publish,
+    render_email,
+)
+from apps.pisadmin.basicinfo.views.email_utils import send_email_notice
+
 from apps.pissupplier.models import (
     QuotationMaster,
     QuotationAttachment,
@@ -329,9 +336,9 @@ class InquiryViewSet(CustomModelViewSet):
         """
         if count <= 0:
             return []
-        company_code = (getattr(inquiry, "company_code", None) or "").strip() or DEFAULT_SYSTEM_NO_COMPANY_CODE
+        company_code = (getattr(inquiry, "company_code", None) or "").strip() or SystemNoRule.DEFAULT_SYSTEM_NO_COMPANY_CODE
         username = self._get_request_username() or None
-        return allocate_system_numbers(
+        return SystemNoRule.allocate_system_numbers(
             company_code,
             "miscQTS",
             count,
@@ -385,6 +392,16 @@ class InquiryViewSet(CustomModelViewSet):
         if field_name in category_fields:
             return source_value
         return empty_default
+
+    @staticmethod
+    def _resolve_purchaser_company_name(inquiry: Inquiry) -> str:
+        code = (getattr(inquiry, "company_code", None) or "").strip()
+        if code:
+            row = Company.objects.filter(company_code=code).only("company_name", "company_short_name").first()
+            if row:
+                return (row.company_name or row.company_short_name or code).strip()
+            return code
+        return ""
 
     def _group_inquiry_suppliers(self, inquiry: Inquiry):
         """
@@ -703,7 +720,8 @@ class InquiryViewSet(CustomModelViewSet):
         current_time = timezone.now()
         try:
             with transaction.atomic():
-                self._create_supplier_quotations(instance)
+                self._create_supplier_quotations(instance)  # 发布询价单时按供应商关联表，逐个创建对应的报价单
+                self._notify_vendors_on_publish(instance)  # 与子表汇总结果一致，逐供应商发送发布邮件
                 return self._save_status(
                     instance,
                     status=self.STATUS_PUBLISHED,
@@ -719,6 +737,73 @@ class InquiryViewSet(CustomModelViewSet):
             else:
                 msg = str(detail or exc)
             return ErrorResponse(msg=msg)
+
+    def _notify_vendors_on_publish(self, inquiry: Inquiry):
+        """
+        按询价单供应商子表汇总（与 `_create_supplier_quotations` 相同的 `_group_inquiry_suppliers`），
+        每个供应商分组一封邮件，避免同一供应商多行子表重复发送。
+        """
+        supplier_groups = self._group_inquiry_suppliers(inquiry)
+        if not supplier_groups:
+            return
+
+        purchaser_company_name = self._resolve_purchaser_company_name(inquiry)
+
+        for vendor in supplier_groups:
+            if not isinstance(vendor, dict):
+                continue
+
+            supplier_name = (vendor.get("supplier_name") or "").strip()
+            email = (vendor.get("contact_email") or "").strip()
+            to_list = [email] if email else []
+
+            ctx = build_context_rfs_publish(
+                inquiry,
+                vendor,
+                purchaser_company_name=purchaser_company_name,
+            )
+            subject, body = render_email(TEMPLATE_RFS_PUBLISH, ctx)
+
+            notice = EmailNotice.objects.create(
+                subject=subject,
+                body=body,
+                to_emails=to_list,
+                cc_emails=[],
+                bcc_emails=[],
+                attachments=[],
+                biz_type="inquiry",
+                biz_id=inquiry.inquiry_no,
+                status="pending",
+                payload={
+                    "template_key": TEMPLATE_RFS_PUBLISH,
+                    "is_html": True,
+                    "inquiry_no": inquiry.inquiry_no,
+                    "inquiry_title": inquiry.title,
+                    "quote_deadline": ctx.get("deadline_time"),
+                    "supplier_name": supplier_name,
+                },
+            )
+
+            if not to_list:
+                notice.status = "failed"
+                notice.last_error = "缺少供应商邮箱"
+                notice.save(update_fields=["status", "last_error", "update_datetime"])
+                continue
+
+            notice.status = "sending"
+            notice.save(update_fields=["status", "update_datetime"])
+
+            success, detail = send_email_notice(notice)
+            notice.response = detail or {}
+            if success:
+                notice.status = "success"
+                notice.sent_at = timezone.now()
+                notice.last_error = None
+            else:
+                notice.status = "failed"
+                notice.last_error = detail.get("error") if isinstance(detail, dict) else str(detail)
+
+            notice.save(update_fields=["status", "sent_at", "response", "last_error", "update_datetime"])
 
 
 class InquirySupplierViewSet(CustomModelViewSet):

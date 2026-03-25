@@ -21,7 +21,7 @@ from .models import (
     CostEstimateTemplateBody,
 )
 from apps.pisadmin.basicinfo.models import Unit
-from apps.pisadmin.basicinfo.system_no_allocate import DEFAULT_SYSTEM_NO_COMPANY_CODE, allocate_system_number
+from apps.pisadmin.basicinfo.models import SystemNoRule
 from dvadmin.utils.serializers import CustomModelSerializer
 
 
@@ -889,11 +889,11 @@ class InquirySerializer(CustomModelSerializer):
     def _generate_code(self, validated_data: dict) -> str:
         """
         按 `SystemNoRule` 取号：rule_code=miscRFS，company_code 取表单或默认「通用」厂区。
-        组装见 `allocate_system_number`（prefix + factory_code + sequence_date + 流水）。
+        组装见 `SystemNoRule.allocate_system_number`（prefix + factory_code + sequence_date + 流水）。
         """
-        company_code = (validated_data.get("company_code") or "").strip() or DEFAULT_SYSTEM_NO_COMPANY_CODE
+        company_code = (validated_data.get("company_code") or "").strip() or SystemNoRule.DEFAULT_SYSTEM_NO_COMPANY_CODE
         username = get_request_username(self) or None
-        return allocate_system_number(company_code, "miscRFS", username=username)
+        return SystemNoRule.allocate_system_number(company_code, "miscRFS", username=username)
 
     def _upsert_suppliers(self, inquiry: Inquiry, suppliers):
         """更新或创建供应商信息"""

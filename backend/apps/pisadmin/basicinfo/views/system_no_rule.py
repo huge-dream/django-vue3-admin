@@ -5,7 +5,6 @@ from rest_framework.response import Response
 from django.utils import timezone
 
 from apps.pisadmin.basicinfo.models import SystemNoRule
-from apps.pisadmin.basicinfo.system_no_allocate import allocate_system_number, format_sequence_date
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
 
@@ -60,7 +59,7 @@ class SystemNoRuleCreateUpdateSerializer(CustomModelSerializer):
         for k in _SEQUENCE_FIELDS_FROM_CLIENT_FORBIDDEN:
             validated_data.pop(k, None)
         rc = validated_data["reset_cycle"]
-        validated_data["sequence_date"] = format_sequence_date(rc)
+        validated_data["sequence_date"] = SystemNoRule.format_sequence_date(rc)
         validated_data["prev_sequence"] = 0
         validated_data["current_sequence"] = 1
         return super().create(validated_data)
@@ -70,7 +69,7 @@ class SystemNoRuleCreateUpdateSerializer(CustomModelSerializer):
             validated_data.pop(k, None)
         new_cycle = validated_data.get("reset_cycle")
         if new_cycle is not None and new_cycle != instance.reset_cycle:
-            validated_data["sequence_date"] = format_sequence_date(new_cycle)
+            validated_data["sequence_date"] = SystemNoRule.format_sequence_date(new_cycle)
             validated_data["prev_sequence"] = 0
             validated_data["current_sequence"] = 1
         return super().update(instance, validated_data)
@@ -88,7 +87,7 @@ class SystemNoRuleViewSet(CustomModelViewSet):
 
     @action(methods=["post"], detail=False, url_path="generate_code")
     def generate_code(self, request):
-        """生成单据号，含并发锁保证流水唯一（与 `allocate_system_number` 同源逻辑）"""
+        """生成单据号，含并发锁保证流水唯一（与 `SystemNoRule.allocate_system_number` 同源逻辑）"""
 
         company_code = request.data.get("company_code")
         rule_code = request.data.get("rule_code")
@@ -97,7 +96,7 @@ class SystemNoRuleViewSet(CustomModelViewSet):
 
         username = getattr(request.user, "username", None) or getattr(request.user, "name", None)
         try:
-            code = allocate_system_number(
+            code = SystemNoRule.allocate_system_number(
                 company_code,
                 rule_code,
                 username=username,

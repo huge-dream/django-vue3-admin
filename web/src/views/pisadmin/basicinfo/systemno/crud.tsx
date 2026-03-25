@@ -19,7 +19,10 @@ const ruleCodeDict = [
   { value: 'miscRFS', label: 'miscRFS （杂采询价单）' }
 ]
 
-/** 交易厂区「通用」：非公司主数据，仅存于编号规则下拉；与 unique(company_code, rule_code) 兼容 */
+/**
+ * 交易厂区「通用」：非公司主数据，仅存于编号规则下拉；与 unique(company_code, rule_code) 兼容。
+ * 取值须与后端 `SystemNoRule.DEFAULT_SYSTEM_NO_COMPANY_CODE`（`apps.pisadmin.basicinfo.models`）一致。
+ */
 export const SYSTEMNO_GENERAL_COMPANY_CODE = 'GENERAL'
 
 const generalCompanyOption = () => ({

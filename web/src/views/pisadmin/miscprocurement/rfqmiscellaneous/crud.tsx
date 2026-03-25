@@ -183,7 +183,7 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
                   ElMessage.warning('请先维护询价单供应商名单后再确认')
                   return
                 }
-                await ElMessageBox.confirm('【确认】状态仅支持查看，不允许编辑或删除；如需修改请点击【还原】', '提示', {
+                await ElMessageBox.confirm('确认后，该询价单将锁定并不可再编辑。如需修改，后续需执行【还原】操作', '提示', {
                   type: 'warning',
                   confirmButtonText: '确定',
                   cancelButtonText: '取消'
