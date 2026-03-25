@@ -87,3 +87,59 @@ class Company(CoreModel):
 
     def __str__(self):
         return self.company_name or self.company_code
+
+
+class SystemNoRule(CoreModel):
+    """单据编号规则；业务取号请用 `system_no_allocate.allocate_system_number`。"""
+
+    RESET_CYCLE_CHOICES = (
+        ("yy", "YY"),
+        ("yyyy", "YYYY"),
+        ("yymm", "YYMM"),
+        ("yyyymm", "YYYYMM"),
+        ("yymmdd", "YYMMDD"),
+        ("yyyymmdd", "YYYYMMDD"),
+    )
+
+    RULE_CODE_CHOICES = (
+        ("miscQTS", "杂采报价单"),
+        ("miscRFS", "杂采询价单"),
+    )
+
+    company_code = models.CharField(max_length=20, verbose_name="交易厂区", help_text="交易厂区(公司)")
+    rule_code = models.CharField(max_length=50, choices=RULE_CODE_CHOICES, verbose_name="生成单据标识号", help_text="标识一组单号规则")
+    reset_cycle = models.CharField(max_length=16, choices=RESET_CYCLE_CHOICES, verbose_name="流水码重置类别", help_text="重置粒度")
+    prefix = models.CharField(max_length=20, verbose_name="单据头", help_text="单据开头固定字符", null=True, blank=True)
+    factory_code = models.CharField(max_length=20, verbose_name="厂区区分码", help_text="厂区区分码", null=True, blank=True)
+    seq_length = models.IntegerField(verbose_name="流水码长度", help_text="流水码长度", default=4)
+    createuser = models.CharField(max_length=50, verbose_name="单据创建人", help_text="单据创建人", null=True, blank=True)
+    updateuser = models.CharField(max_length=50, verbose_name="单据修改人", help_text="单据修改人", null=True, blank=True)
+    sequence_date = models.CharField(
+        max_length=12,
+        verbose_name="流水日期",
+        help_text="与 reset_cycle 对应的日期段（如 yymmdd→260324）；新建/改重置类别时由服务端写入",
+        null=True,
+        blank=True,
+    )
+    prev_sequence = models.IntegerField(
+        verbose_name="上一流水码",
+        help_text="上一笔已成功发放的流水号；未发过为 0，与「下一流水码」相差 1",
+        default=0,
+    )
+    current_sequence = models.IntegerField(
+        verbose_name="下一流水码",
+        help_text="下一笔待发流水号；新建/重置周期后为 1，每次取号成功后 +1",
+        default=1,
+    )
+    last_generate_user = models.CharField(max_length=50, verbose_name="单据最后产生人", help_text="最后产生人", null=True, blank=True)
+    last_generate_time = models.DateTimeField(verbose_name="单据最后产生时间", help_text="最后产生时间", null=True, blank=True)
+
+    class Meta:
+        db_table = table_prefix + "system_no_rules"
+        verbose_name = "系统单号规则"
+        verbose_name_plural = verbose_name
+        ordering = ("-create_datetime",)
+        unique_together = ("company_code", "rule_code")
+
+    def __str__(self):
+        return f"{self.rule_code}@{self.company_code}"

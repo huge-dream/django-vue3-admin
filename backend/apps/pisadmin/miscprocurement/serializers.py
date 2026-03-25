@@ -21,6 +21,7 @@ from .models import (
     CostEstimateTemplateBody,
 )
 from apps.pisadmin.basicinfo.models import Unit
+from apps.pisadmin.basicinfo.system_no_allocate import DEFAULT_SYSTEM_NO_COMPANY_CODE, allocate_system_number
 from dvadmin.utils.serializers import CustomModelSerializer
 
 
@@ -640,6 +641,8 @@ class NestedInquirySupplierSerializer(InquirySupplierSerializer):
 
 
 class InquiryAttachmentSerializer(serializers.ModelSerializer):
+    """采购端询价单附件读写；供应商端只读见 `apps.pissupplier.serializers.QuotationMasterSerializer.inquiry_attachments`。"""
+
     file_type = serializers.CharField()
 
     def validate_file_type(self, value):
@@ -883,30 +886,14 @@ class InquirySerializer(CustomModelSerializer):
         ]
         extra_kwargs = {"inquiry_no": {"required": False, "allow_blank": True, "allow_null": True}}
 
-    def _generate_code(self) -> str:
+    def _generate_code(self, validated_data: dict) -> str:
         """
-        自动生成唯一的询价单号
-        格式: RFS + YYMMDD + 5位序号 (e.g., RFS26031700001)
+        按 `SystemNoRule` 取号：rule_code=miscRFS，company_code 取表单或默认「通用」厂区。
+        组装见 `allocate_system_number`（prefix + factory_code + sequence_date + 流水）。
         """
-        date_part = timezone.now().strftime("%y%m%d")
-        base = f"RFS{date_part}"
-        with transaction.atomic():
-            last = (
-                Inquiry.objects.select_for_update()
-                .filter(inquiry_no__startswith=base)
-                .order_by("-inquiry_no")
-                .first()
-            )
-            if last and last.inquiry_no and len(last.inquiry_no) >= len(base) + 5:
-                try:
-                    seq = int(last.inquiry_no[-5:]) + 1
-                except ValueError:
-                    seq = 1
-            else:
-                seq = 1
-            if seq > 99999:
-                raise serializers.ValidationError("当日编号已达上限，请联系管理员")
-            return f"{base}{seq:05d}"
+        company_code = (validated_data.get("company_code") or "").strip() or DEFAULT_SYSTEM_NO_COMPANY_CODE
+        username = get_request_username(self) or None
+        return allocate_system_number(company_code, "miscRFS", username=username)
 
     def _upsert_suppliers(self, inquiry: Inquiry, suppliers):
         """更新或创建供应商信息"""
@@ -1132,7 +1119,7 @@ class InquirySerializer(CustomModelSerializer):
         current_time = timezone.now()
         
         if not validated_data.get("inquiry_no"):
-            validated_data["inquiry_no"] = self._generate_code()
+            validated_data["inquiry_no"] = self._generate_code(validated_data)
         # 询价单创建后默认进入“开立”，状态流转仅允许通过专用动作接口处理
         validated_data["status"] = 1
         validated_data.pop("confirm_user", None)
