@@ -14,7 +14,7 @@ const extractPagedList = (res: any): any[] => {
   return Array.isArray(raw) ? raw : []
 }
 
-export type QuoteStatus = 'pending' | 'quoted' | 'expired'
+export type QuoteStatus = 'pending' | 'quoted' | 'completed' | 'expired'
 type CostAttr = { key: string; label: string; value: string | number; type?: string }
 type CostTemplateItem = { section: string; attrs: CostAttr[]; span?: 'wide'; allowAdd?: boolean }
 type CostItem = { id: string; section: string; span?: 'wide'; attrs: CostAttr[]; field?: string }
@@ -82,31 +82,126 @@ export type InquiryAttachmentRow = {
   upload_user?: string
 }
 
+/** 与 `pis_proc_inquiry_attachment` / 询价单 `attachments` 嵌套结构一致（勿用报价单 `attachments`） */
+const INQUIRY_FILE_TYPE_LABELS: Record<number, string> = {
+  1: '产品图纸',
+  2: '招标文件',
+  3: '其它文件'
+}
+
+export function mapInquiryAttachmentsFromInquiryApi(rows: any[] | null | undefined): InquiryAttachmentRow[] {
+  if (!Array.isArray(rows) || !rows.length) return []
+  return rows.map((r) => {
+    const ft = Number(r.file_type)
+    const t = ft === 1 || ft === 2 || ft === 3 ? ft : 3
+    return {
+      id: r.id,
+      part_id: r.part_id,
+      file_type: t,
+      file_type_label: r.file_type_label || INQUIRY_FILE_TYPE_LABELS[t],
+      file_name: r.file_name,
+      file_path: r.file_path,
+      upload_time: r.upload_time,
+      upload_user: r.upload_user
+    }
+  })
+}
+
+/** el-upload 的 file-list → 后端 `QuotationAttachment` 行 */
+function buildQuotationAttachmentsForSave(files: any[] | null | undefined, defaultPartId: string): any[] {
+  if (!Array.isArray(files) || !files.length) return []
+  const pid = String(defaultPartId || '').trim()
+  const out: any[] = []
+  for (const f of files) {
+    const name = String(f?.name ?? f?.file_name ?? '').trim()
+    const path = String(
+      f?.url ?? f?.file_path ?? f?.response?.url ?? f?.response?.data?.url ?? f?.response?.data?.file ?? ''
+    ).trim()
+    if (!name && !path) continue
+    out.push({
+      part_id: String(f?.part_id ?? f?.partId ?? pid).trim() || pid,
+      file_name: name,
+      file_path: path || null
+    })
+  }
+  return out
+}
+
+const unwrapUploadResponse = (res: any) => res?.data?.data ?? res?.data ?? res
+
+/**
+ * 新选文件仅有 `raw`，须先走 `/api/system/file/` 上传拿到路径（与询价单附件保存一致）。
+ */
+async function uploadQuotationAttachmentFile(fileItem: any) {
+  const existing = String(fileItem?.url ?? fileItem?.file_path ?? '').trim()
+  if (existing) {
+    return {
+      ...fileItem,
+      url: existing,
+      file_path: existing,
+      status: 'success'
+    }
+  }
+  const rawFile = fileItem?.raw
+  if (!rawFile) {
+    return { ...fileItem, url: '', file_path: '', status: fileItem?.status || 'ready' }
+  }
+  const formData = new FormData()
+  formData.append('file', rawFile)
+  formData.append('upload_method', '1')
+  const res = await inquiryApi.UploadFile(formData)
+  const uploaded = unwrapUploadResponse(res) || {}
+  const filePath = String(uploaded.url || uploaded.file_url || '').trim()
+  return {
+    ...fileItem,
+    name: fileItem?.name || uploaded.name || rawFile.name || '',
+    url: filePath,
+    file_path: filePath,
+    status: 'success'
+  }
+}
+
+/** 详情嵌套 `attachments`（file_name/file_path）→ el-upload `file-list` */
+function normalizeQuotationAttachmentsForUpload(rows: any[] | null | undefined): any[] {
+  if (!Array.isArray(rows) || !rows.length) return []
+  return rows.map((r, i) => ({
+    uid: r.uid ?? (r.autoid != null ? `a-${r.autoid}` : `ex-${i}`),
+    name: r.name ?? r.file_name ?? '',
+    url: r.url ?? r.file_path ?? '',
+    part_id: r.part_id,
+    status: r.status ?? 'success'
+  }))
+}
+
 const statusOptions = [
-  { label: '未报价', value: 'pending' },
-  { label: '已报价', value: 'quoted' },
+  { label: '待报价', value: 'pending' },
+  { label: '报价中', value: 'quoted' },
+  { label: '已报价', value: 'completed' },
   { label: '已过期', value: 'expired' }
 ]
 
 const statusMapBackendToFront: Record<number, QuoteStatus> = {
   1: 'pending',
   2: 'quoted',
-  3: 'expired'
+  3: 'completed',
+  4: 'expired'
 }
 
 const statusMapFrontToBackend: Record<QuoteStatus, number> = {
   pending: 1,
   quoted: 2,
-  expired: 3
+  completed: 3,
+  expired: 4
 }
 
 /**
  * 列表「中标状态」列：is_awarded + 报价 status + 询价 status
  * - is_awarded==1 → 文案「中标」+ 旗帜图标（由模板渲染）
- * - is_awarded==0 且 status==1 → 未报价
- * - is_awarded==0 且 status==2 且询价 status!=9 → 评标中
- * - is_awarded==0 且 status==2 且询价 status==9 → 未中标
- * - status==3 → 空
+ * - is_awarded==0 且 status==1 → 待报价
+ * - is_awarded==0 且 status==2 → 报价中
+ * - is_awarded==0 且 status==3 且询价 status!=9 → 评标中
+ * - is_awarded==0 且 status==3 且询价 status==9 → 未中标
+ * - status==4 → 空
  */
 export function formatAwardBidStatus(row: {
   isAwarded?: number | string
@@ -125,10 +220,11 @@ export function formatAwardBidStatus(row: {
   const inqRaw = row.inquiryStatusCode
   const inqNum = inqRaw === undefined || inqRaw === null || inqRaw === '' ? NaN : Number(inqRaw)
 
-  if (sc === 3) return { mode: 'text', text: '' }
+  if (sc === 4) return { mode: 'text', text: '' }
   if (ia === 1) return { mode: 'flag', text: '中标' }
-  if (ia === 0 && sc === 1) return { mode: 'text', text: '未报价' }
-  if (ia === 0 && sc === 2) {
+  if (ia === 0 && sc === 1) return { mode: 'text', text: '待报价' }
+  if (ia === 0 && sc === 2) return { mode: 'text', text: '报价中' }
+  if (ia === 0 && sc === 3) {
     if (!Number.isFinite(inqNum)) return { mode: 'text', text: '评标中' }
     if (inqNum !== 9) return { mode: 'text', text: '评标中' }
     return { mode: 'text', text: '未中标' }
@@ -224,6 +320,7 @@ export const FIXED_QUOTATION_SECTION_COLUMNS: Record<string, QuotationCostColumn
     { key: 'height', label: '高' },
     { key: 'specificgravity', label: '比重' },
     { key: 'qty', label: '数量' },
+    { key: 'weight', label: '重量' },
     { key: 'unitPrice', label: '单价' },
     { key: 'material_fee', label: '材料费用' },
     { key: 'remark', label: '备注' }
@@ -689,6 +786,7 @@ const costItemsFromQuotationApi = (item: any): CostItem[] => {
       { key: 'height', label: '高', value: m.height ?? '' },
       { key: 'specificgravity', label: '比重', value: m.specific_gravity ?? '' },
       { key: 'qty', label: '数量', value: m.qty ?? '' },
+      { key: 'weight', label: '重量', value: m.weight ?? '' },
       { key: 'unitPrice', label: '单价', value: m.unit_price ?? '' },
       { key: 'material_fee', label: '材料费用', value: m.material_cost ?? '' },
       { key: 'remark', label: '备注', value: m.remark ?? '' }
@@ -837,6 +935,7 @@ const costRowsToNestedPayload = (rows: CostRow[]) => {
               ? String(v.specific_gravity).slice(0, 10)
               : null,
         material_cost: numOrUndef(v.material_fee ?? v.material_cost),
+        weight: numOrUndef(v.weight),
         remark: v.remark ? String(v.remark).slice(0, 100) : null,
         option_json: Object.keys(extra).length ? JSON.stringify(extra) : null
       })
@@ -910,9 +1009,27 @@ const otherCostPackagingKeys = ['packageFee', 'packaging_cost', 'packagingCost',
 const otherCostTransportKeys = ['transportFee', 'transportation_cost', 'transportationCost', 'transport_fee', '运输费']
 
 const formatMoney = (v: number | string) => {
+  if (v === '' || v === null || v === undefined) return '-'
   const n = typeof v === 'string' ? Number(v) : v
   if (!Number.isFinite(n)) return '-'
   return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+/** 主表无报价金额字段时，由上阶物料明细含税总价汇总 */
+const totalInclTaxFromRfqItems = (rfqItems: unknown): number | '' => {
+  if (!Array.isArray(rfqItems) || !rfqItems.length) return ''
+  let sum = 0
+  let any = false
+  for (const r of rfqItems) {
+    const raw = (r as any)?.total_price_incl_tax ?? (r as any)?.totalPriceInclTax
+    if (raw === null || raw === undefined || raw === '') continue
+    const n = Number(raw)
+    if (Number.isFinite(n)) {
+      sum += n
+      any = true
+    }
+  }
+  return any ? sum : ''
 }
 
 function blankQuote(): Quote {
@@ -1073,8 +1190,24 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   })
 
   const normalizeStatus = (s: any): QuoteStatus => {
+    if (s === null || s === undefined || s === '') return 'pending'
     if (typeof s === 'number') return statusMapBackendToFront[s] || 'pending'
-    return (s as QuoteStatus) || 'pending'
+
+    // 兼容后端返回 "1" / "2" 这种字符串数字
+    const str = String(s).trim()
+    if (/^\d+$/.test(str)) return statusMapBackendToFront[Number(str)] || 'pending'
+
+    // 已是前端枚举值
+    if (str === 'pending' || str === 'quoted' || str === 'completed' || str === 'expired') return str as QuoteStatus
+
+    // 兼容后端/历史数据直接返回中文文案的情况
+    const labelToStatus: Record<string, QuoteStatus> = {
+      待报价: 'pending',
+      报价中: 'quoted',
+      已报价: 'completed',
+      已过期: 'expired'
+    }
+    return labelToStatus[str] || 'pending'
   }
 
   const normalizePayment = (p: any) => {
@@ -1190,7 +1323,11 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       template: item.template || item.template_code || '',
       currency: item.currency || 'CNY',
       quoteDeadline: item.quote_deadline || item.quoteDeadline || '',
-      quoteAmount: item.quote_amount || item.quoteAmount || '',
+      quoteAmount:
+        item.quote_amount ??
+        item.quoteAmount ??
+        totalInclTaxFromRfqItems(item.rfq_items) ??
+        '',
       quoteTime: item.quotetime || item.quoteTime || '',
       status: normalizeStatus(item.status),
       statusCode: (() => {
@@ -1221,7 +1358,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
               (item.enable_cost_structure ?? item.is_bom ?? item.isBom ?? item.template?.enable_cost_structure) !== false
             ),
       rfqItems: Array.isArray(item.rfq_items) ? item.rfq_items : [],
-      attachments: Array.isArray(item.attachments) ? item.attachments : [],
+      attachments: normalizeQuotationAttachmentsForUpload(item.attachments),
       inquiryAttachments: Array.isArray(item.inquiry_attachments)
         ? item.inquiry_attachments
         : Array.isArray(item.inquiryAttachments)
@@ -1492,7 +1629,10 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     return rows
   })
 
-  /** 各成本段金额之和（不含小计行，避免重复累计） */
+  /** 与表格「税前合计」一致：成本合计 + 利润（未税） */
+  const quoteAmountPreTax = computed(() => quoteRollupForRfq.value.preTax)
+
+  /** 各启用成本段 map 金额之和（一般等于 postTax；保留供兼容） */
   const quoteTotal = computed(() =>
     enabledSections.value.reduce((sum, section) => sum + (sectionAmountMap.value[section] ?? 0), 0)
   )
@@ -1547,6 +1687,10 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       let quoteData: Quote = { ...row }
       let rawDetail: any = null
       if (row.id) {
+        // 点击「报价」后先进入报价中(2)，以便后续保存/编辑仍可通过后端校验
+        if (isPendingQuotation(row)) {
+          await api.quoteOfficial(row.id)
+        }
         try {
           const detailRes = await api.getDetail(row.id)
           rawDetail = unwrapQuotationDetail(detailRes)
@@ -1584,10 +1728,11 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
             quoteData.currency = inquiry.currency || quoteData.currency
             quoteData.quoteDeadline = inquiry.quote_deadline || quoteData.quoteDeadline
             quoteData.inquiryStatus = inquiry.status || inquiry.inquiry_status || quoteData.inquiryStatus
-            const inqSt = inquiry.status ?? inquiry.inquiry_status
-            if (inqSt !== undefined && inqSt !== null && inqSt !== '') {
-              quoteData.inquiryStatusCode = Number(inqSt)
-            }
+            // const inqSt = inquiry.status ?? inquiry.inquiry_status
+            // if (inqSt !== undefined && inqSt !== null && inqSt !== '') {
+            //   quoteData.inquiryStatusCode = Number(inqSt)
+            // }
+            quoteData.inquiryStatusCode = 2
             inquirySections = inquiry.sections || inquiry.template_sections || inquiry.template?.sections || quoteData.templateSections
             if (Array.isArray(inquirySections) && inquirySections.length) {
               quoteData.templateSections = inquirySections
@@ -1640,8 +1785,21 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
         quoteData.templateSections = rawDetail.template_sections
       }
 
+      // 询价附件必须以询价单子表为准（`Inquiry.attachments`），勿用报价单 `attachments` 回显
+      if (inquiry?.attachments?.length) {
+        quoteData.inquiryAttachments = mapInquiryAttachmentsFromInquiryApi(inquiry.attachments)
+      } else if (rawDetail?.inquiry_attachments?.length) {
+        quoteData.inquiryAttachments = mapInquiryAttachmentsFromInquiryApi(rawDetail.inquiry_attachments)
+      }
+
       quoteData.inquiryStatus = formatMiscInquiryStatus(quoteData)
       fillCurrent(quoteData, effectiveRows)
+
+      // 让列表行立即反映「报价(2)」状态，保证表格里的「提交」按钮可用
+      if (quoteData?.id) {
+        const idx = quotes.value.findIndex((q) => q.id === quoteData.id)
+        if (idx >= 0) quotes.value.splice(idx, 1, quoteData)
+      }
       dialog.visible = true
     } finally {
       loading.value = false
@@ -1652,22 +1810,43 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     dialog.mode = 'view'
     dialog.quoteId = row.id
     dialog.visible = true
-    fillCurrent(row)
+    loading.value = true
     ;(async () => {
       try {
-        if (!row.id) return
         await ensureTemplateNameLookup()
-        const detailRes = await api.getDetail(row.id)
-        const data = unwrapQuotationDetail(detailRes)
-        if (data) {
-          const mapped = mapBackendQuote(data)
-          await enrichQuotesWithInquiryData([mapped])
-          if (!mapped.supplierCode && row.supplierCode) mapped.supplierCode = row.supplierCode
-          if (!mapped.supplierName && row.supplierName) mapped.supplierName = row.supplierName
-          fillCurrent(mapped)
+        let merged: Quote = { ...row }
+        if (row.id) {
+          const detailRes = await api.getDetail(row.id)
+          const data = unwrapQuotationDetail(detailRes)
+          if (data) merged = mapBackendQuote(data)
         }
+        await enrichQuotesWithInquiryData([merged])
+        if (!merged.supplierCode && row.supplierCode) merged.supplierCode = row.supplierCode
+        if (!merged.supplierName && row.supplierName) merged.supplierName = row.supplierName
+        try {
+          const code = (merged.inquiryCode || '').trim()
+          if (code) {
+            const res = await inquiryApi.GetList({
+              inquiry_no: code,
+              page: 1,
+              page_size: 1,
+              pageSize: 1
+            })
+            const list = extractPagedList(res)
+            const inv = list[0]
+            if (inv?.attachments?.length) {
+              merged.inquiryAttachments = mapInquiryAttachmentsFromInquiryApi(inv.attachments)
+            }
+          }
+        } catch (e) {
+          console.warn('加载询价附件失败', e)
+        }
+        fillCurrent(merged)
       } catch (e) {
         console.warn('加载报价详情失败', e)
+        fillCurrent(row)
+      } finally {
+        loading.value = false
       }
     })()
   }
@@ -1788,8 +1967,8 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   }
 
   function saveQuote() {
-    if (dialog.quoteId && !isPendingQuotation(current)) {
-      ElMessage.warning('仅未报价状态可保存')
+    if (dialog.quoteId && !isQuotationEditable(current)) {
+      ElMessage.warning('仅未报价/报价中状态可保存')
       return
     }
     const c = (current.base.contact || '').trim()
@@ -1802,12 +1981,27 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     ;(async () => {
       current.costItems = costItemsForCurrent.value
       current.quoteAmount = formatMoney(quoteTotal.value)
-      const payload = buildSavePayload({ ...current, costItems: costItemsForCurrent.value })
       loading.value = true
       try {
+        const uploadedList = await Promise.all((current.attachments || []).map(uploadQuotationAttachmentFile))
+        for (const f of uploadedList) {
+          const path = String(f?.url ?? f?.file_path ?? '').trim()
+          const name = String(f?.name ?? f?.file_name ?? '').trim()
+          if (!name && !path) continue
+          if (!path) {
+            if (f?.raw) {
+              ElMessage.error(`附件上传失败：${name || '未命名文件'}，请检查网络后重试`)
+              return
+            }
+            ElMessage.error(`附件「${name || '未命名'}」缺少存储路径，请删除后重新上传`)
+            return
+          }
+        }
+        current.attachments = uploadedList
+        const payload = buildSavePayload({ ...current, costItems: costItemsForCurrent.value })
         let res: any
         if (dialog.quoteId) {
-          res = await api.submit(dialog.quoteId, payload)
+          res = await api.update(dialog.quoteId, payload)
         } else {
           res = await api.create(payload)
         }
@@ -1830,8 +2024,8 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   }
 
   function submitQuotationFromRow(row: Quote) {
-    if (!isPendingQuotation(row)) {
-      ElMessage.warning('仅未报价状态可提交报价')
+    if (!isQuotedQuotation(row)) {
+      ElMessage.warning('仅报价中状态可提交报价')
       return
     }
     const c = (row.base?.contact || '').trim()
@@ -1946,6 +2140,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       nested.other_costs = fillPart(nested.other_costs)
       nested.profit_costs = fillPart(nested.profit_costs)
     }
+    const attachmentRows = buildQuotationAttachmentsForSave(q.attachments, defaultPartId)
     // 仅提交 QuotationMaster / 嵌套子表存在的字段（询价标题、模板、币别等由询价主表维护，不在报价主表模型上）
     const payload: any = {
       quotation_no: q.quoteNo || undefined,
@@ -1964,7 +2159,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       process_costs: nested.process_costs,
       other_costs: nested.other_costs,
       profit_costs: nested.profit_costs,
-      attachments: q.attachments || [],
+      attachments: attachmentRows,
       remark: q.remark || ''
     }
     if (Array.isArray(q.rfqItems) && q.rfqItems.length) {
@@ -1977,10 +2172,23 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   function isPendingQuotation(q: Quote | Record<string, any>) {
     const row = q as any
     const fromCode = Number(row.statusCode)
-    if (Number.isFinite(fromCode)) return fromCode === 1
+    if (Number.isFinite(fromCode)) return fromCode === 1 || fromCode === 2
     const fromRaw = Number(row.status)
-    if (Number.isFinite(fromRaw)) return fromRaw === 1
+    if (Number.isFinite(fromRaw)) return fromRaw === 1 || fromRaw === 2
     return row.status === 'pending'
+  }
+
+  function isQuotedQuotation(q: Quote | Record<string, any>) {
+    const row = q as any
+    const fromCode = Number(row.statusCode)
+    if (Number.isFinite(fromCode)) return fromCode === 2
+    const fromRaw = Number(row.status)
+    if (Number.isFinite(fromRaw)) return fromRaw === 2
+    return row.status === 'quoted'
+  }
+
+  function isQuotationEditable(q: Quote | Record<string, any>) {
+    return isPendingQuotation(q) || isQuotedQuotation(q)
   }
 
   const templateLabel = (t: string) => {
@@ -1991,8 +2199,19 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     const legacy: Record<string, string> = { tooling: '模治具', equipment: '设备', plastic: '塑胶件' }
     return legacy[key] || key
   }
-  const statusLabel = (s: QuoteStatus) => ({ pending: '未报价', quoted: '已报价', expired: '已过期' }[s] || s)
-  const statusTagType = (s: QuoteStatus) => ({ pending: 'warning', quoted: 'success', expired: 'info' }[s] || 'info')
+  const statusLabel = (s: QuoteStatus) => ({
+    pending: '待报价',
+    quoted: '报价中',
+    completed: '已报价',
+    expired: '已过期'
+  }[s] || s)
+
+  const statusTagType = (s: QuoteStatus) => ({
+    pending: 'warning',
+    quoted: 'primary',
+    completed: 'success',
+    expired: 'info'
+  }[s] || 'info')
 
   return {
     filters,
@@ -2001,6 +2220,8 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     filteredQuotes,
     loadQuotes,
     isPendingQuotation,
+    isQuotedQuotation,
+    isQuotationEditable,
     viewQuote,
     openQuote,
     dialog,
@@ -2018,6 +2239,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     profitTaxSections,
     loadCostRowsFromTemplate,
     quoteSummaryRows,
+    quoteAmountPreTax,
     quoteTotal,
     addCostRow,
     removeCostRow,

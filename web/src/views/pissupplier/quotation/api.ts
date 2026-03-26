@@ -41,8 +41,13 @@ export const getDetail = (id: string | number) => request({ url: `${baseUrl}${id
 export const create = (data: any) => request({ url: baseUrl, method: 'post', data })
 export const update = (id: string | number, data: any) => request({ url: `${baseUrl}${id}/`, method: 'put', data })
 
-export const submit = (id: string | number, data: any) => request({ url: `${baseUrl}${id}/`, method: 'put', data })
+/** @deprecated 与 `update` 相同；保存报价请使用 `update` */
+export const submit = (id: string | number, data: any) => update(id, data)
 
-/** 正式提交报价：写入 quotetime、status=2 */
+/** 进入报价中：写入 quotetime、status=2 */
+export const quoteOfficial = (id: string | number) =>
+  request({ url: `${baseUrl}${id}/quote/`, method: 'post', data: {} })
+
+/** 正式提交报价：写入 quotetime、status=3 */
 export const submitOfficial = (id: string | number) =>
   request({ url: `${baseUrl}${id}/submit/`, method: 'post', data: {} })

@@ -1,4 +1,6 @@
 import json
+from decimal import Decimal
+from typing import Optional
 
 from django.db import models, transaction
 from django.utils import timezone
@@ -93,18 +95,27 @@ _COST_CATEGORY_TO_TITLE = {
 _COST_SECTION_ORDER = ("产品明细", "材料成本", "加工成本", "其它成本", "管销研费用", "利润", "税金")
 
 
-def build_cost_template_sections_for_quotation(template_no: str):
+def build_cost_template_sections_for_quotation(template_no: str, template_version: Optional[int] = None):
     """
     将 `CostEstimateTemplateBody` 扁平行展开为前端 `sections[]`（含 fields[].is_computed / supplier_required）。
-    使用询价单 `Inquiry.template` 作为 template_no。
+    使用询价单 `Inquiry.template` 作为 template_no，`Inquiry.template_version` 锁定主表 version。
+
+    template_version 为 None 时兼容旧数据：取该编号下已确认主表的最高 version。
     """
     if not template_no:
         return []
-    head = (
-        CostEstimateTemplateHead.objects.filter(template_no=str(template_no).strip(), status=1)
-        .order_by("-version", "-id")
-        .first()
-    )
+    tn = str(template_no).strip()
+    base_qs = CostEstimateTemplateHead.objects.filter(template_no=tn, status=1)
+    head = None
+    if template_version is not None and template_version != "":
+        try:
+            ver = int(template_version)
+        except (TypeError, ValueError):
+            ver = None
+        if ver is not None:
+            head = base_qs.filter(version=ver).first()
+    if head is None:
+        head = base_qs.order_by("-version", "-id").first()
     if not head:
         return []
     items = list(
@@ -210,6 +221,7 @@ class QuotationMaterialSerializer(serializers.ModelSerializer):
             "qty",
             "specific_gravity",
             "material_cost",
+            "weight",
             "remark",
             "option_json",
         ]
@@ -370,6 +382,8 @@ class QuotationMasterSerializer(BusinessAuditSerializer):
         required=False,
         allow_null=True,
     )
+    # 列表/详情展示：上阶物料明细 total_price_incl_tax 之和（主表无报价金额列）
+    quote_amount = serializers.SerializerMethodField(read_only=True)
     template_sections = serializers.SerializerMethodField(read_only=True)
     inquiry_attachments = serializers.SerializerMethodField(read_only=True)
     attachments = QuotationAttachmentSerializer(many=True, required=False)
@@ -384,6 +398,16 @@ class QuotationMasterSerializer(BusinessAuditSerializer):
     audit_update_user_field = "quoteuser"
     audit_update_time_field = "quotetime"
 
+    def get_quote_amount(self, obj):
+        total = Decimal("0")
+        has_value = False
+        for row in obj.rfq_items.all():
+            v = getattr(row, "total_price_incl_tax", None)
+            if v is not None:
+                total += v
+                has_value = True
+        return total if has_value else None
+
     def get_template_sections(self, obj):
         """列表接口不展开，避免 N+1；详情(retrieve)返回与询价成本模板一致的 sections。"""
         if self.context.get("quotation_skip_template_sections"):
@@ -393,10 +417,13 @@ class QuotationMasterSerializer(BusinessAuditSerializer):
         inquiry_no = getattr(obj, "inquiry_no", None)
         if not inquiry_no:
             return []
-        inq = Inquiry.objects.filter(inquiry_no=inquiry_no).only("template").first()
+        inq = Inquiry.objects.filter(inquiry_no=inquiry_no).only("template", "template_version").first()
         if not inq or not inq.template:
             return []
-        return build_cost_template_sections_for_quotation(inq.template)
+        return build_cost_template_sections_for_quotation(
+            inq.template,
+            getattr(inq, "template_version", None),
+        )
 
     def get_inquiry_attachments(self, obj):
         """详情接口返回询价单附件；列表不查，避免 N+1。"""
@@ -495,18 +522,28 @@ class QuotationMasterCreateUpdateSerializer(BusinessAuditSerializer):
         bulk = []
         username = self.get_request_username()
         now_text = timezone.now().strftime(self.audit_datetime_format)
+        fn_max = QuotationAttachment._meta.get_field("file_name").max_length
+        fp_max = QuotationAttachment._meta.get_field("file_path").max_length
+        part_max = QuotationAttachment._meta.get_field("part_id").max_length
         for row in attachments:
+            fn = (row.get("file_name") or "").strip()
+            fp = row.get("file_path")
+            fp = (fp or "").strip() if fp is not None else ""
+            pid = (row.get("part_id") or "").strip()
+            if not fn and not fp:
+                continue
             bulk.append(
                 QuotationAttachment(
                     quotation_no=quotation,
-                    part_id=row.get("part_id", ""),
-                    file_name=row.get("file_name", ""),
-                    file_path=row.get("file_path"),
+                    part_id=pid[:part_max],
+                    file_name=fn[:fn_max],
+                    file_path=(fp[:fp_max] if fp else None) or None,
                     uploadtime=row.get("uploadtime") or now_text,
                     uploaduser=row.get("uploaduser") or username or None,
                 )
             )
-        QuotationAttachment.objects.bulk_create(bulk)
+        if bulk:
+            QuotationAttachment.objects.bulk_create(bulk)
 
     def _upsert_material_costs(self, quotation, material_costs):
         QuotationMaterial.objects.filter(quotation_no=quotation).delete()
@@ -526,6 +563,7 @@ class QuotationMasterCreateUpdateSerializer(BusinessAuditSerializer):
                     qty=row.get("qty"),
                     specific_gravity=row.get("specific_gravity"),
                     material_cost=row.get("material_cost"),
+                    weight=row.get("weight"),
                     remark=row.get("remark"),
                     option_json=normalize_option_json(row.get("option_json")),
                 )

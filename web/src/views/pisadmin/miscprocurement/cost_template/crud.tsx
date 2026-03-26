@@ -409,10 +409,8 @@ const resolveSectionsForSubmit = (form: any) => {
   const currentSections = normalizeSections(form.sections)
   if (!draftSections.length) return currentSections
   if (!currentSections.length) return draftSections
-  // 优先使用 latestSectionDraft（SectionBuilder 实时回传的用户编辑），避免 valueResolve 用旧 items 覆盖后提交
-  const draftCount = countSectionFields(draftSections)
-  const currentCount = countSectionFields(currentSections)
-  return draftCount >= currentCount ? draftSections : currentSections
+  // 与「字段数比较选 form/draft」相比：行数相同仅改 key、或同段内重复 key 时，draft 才正确；一律以 SectionBuilder 回传的 latestSectionDraft 为准。
+  return draftSections
 }
 
 const sectionsToItems = (sectionsRaw: any[], allowTitles?: string[], headVersion?: number | null) => {
@@ -525,6 +523,80 @@ const templateStatusUnconfirmed = (row: any) => Number(row?.status) === 0
 const templateStatusConfirmed = (row: any) => Number(row?.status) === 1
 
 /** 提交用载荷（不含业务分流字段）；初始添加与「版本变更」共用结构，后者走独立 API。 */
+/**
+ * 同一成本分段内字段 Key（item_no）不可重复；与 SectionBuilder 中「加工成本」等同一段多行同 key 的场景一致。
+ * 同时扫描 latestSectionDraft 与 form.sections，避免仅一份数据源时漏检。
+ */
+const validateDuplicateFieldKeys = (
+  form: any
+): { ok: true } | { ok: false; message: string } => {
+  const allowTitles = visibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
+  const scan = (sectionsRaw: any): string[] => {
+    const msgs: string[] = []
+    for (const sec of normalizeSections(sectionsRaw)) {
+      if (!sec || sec.enabled === false) continue
+      const title = sec.title || sec.name || ''
+      if (allowTitles.length && !allowTitles.includes(title)) continue
+      const keys: string[] = []
+      for (const f of sec.fields || []) {
+        const k = String(f?.key ?? '').trim()
+        if (!k) continue
+        keys.push(k)
+      }
+      const cnt = new Map<string, number>()
+      for (const k of keys) cnt.set(k, (cnt.get(k) || 0) + 1)
+      const dups = [...cnt.entries()].filter(([, c]) => c > 1).map(([k]) => k)
+      if (dups.length) msgs.push(`「${title}」内字段 Key 重复：${dups.join('、')}`)
+    }
+    return msgs
+  }
+  const merged = new Set<string>([...scan(latestSectionDraft), ...scan(form?.sections)])
+  const parts = [...merged].filter(Boolean)
+  if (parts.length) {
+    return { ok: false, message: `${parts.join('；')}，请修改后再保存` }
+  }
+  return { ok: true }
+}
+
+/** 与 sectionsToItems 一致：中文名取自 nameCn / label，任一为空则后端 item_name_cn 校验失败 */
+const fieldDisplayNameCn = (f: any) => String(f?.nameCn ?? f?.label ?? '').trim()
+
+const validateItemNamesCn = (form: any): { ok: true } | { ok: false; message: string } => {
+  const sections = normalizeSections(resolveSectionsForSubmit(form))
+  const allowTitles = visibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
+  const msgs: string[] = []
+  for (const sec of sections) {
+    if (!sec || sec.enabled === false) continue
+    const title = sec.title || sec.name || ''
+    if (allowTitles.length && !allowTitles.includes(title)) continue
+    const badKeys: string[] = []
+    for (const f of sec.fields || []) {
+      if (!fieldDisplayNameCn(f)) {
+        const k = String(f?.key ?? '').trim()
+        badKeys.push(k || '（未填 Key）')
+      }
+    }
+    if (badKeys.length) msgs.push(`「${title}」字段中文名未填写（字段 Key：${badKeys.join('、')}）`)
+  }
+  if (msgs.length) {
+    return { ok: false, message: `${msgs.join('；')}，请补全后再保存` }
+  }
+  return { ok: true }
+}
+
+/** 新建 / 编辑 / 版本变更 提交前共用 */
+const validateCostTemplateBeforeSubmit = (form: any): { ok: true } | { ok: false; message: string } => {
+  const issues: string[] = []
+  const dup = validateDuplicateFieldKeys(form)
+  if (!dup.ok) issues.push(dup.message.replace(/，请修改后再保存$/, ''))
+  const cn = validateItemNamesCn(form)
+  if (!cn.ok) issues.push(cn.message.replace(/，请补全后再保存$/, ''))
+  if (issues.length) {
+    return { ok: false, message: `${issues.join('；')}，请修改后再保存` }
+  }
+  return { ok: true }
+}
+
 const buildCostTemplateSubmitPayload = (form: any) => {
   const sections = resolveSectionsForSubmit(form)
   const allowTitles = visibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
@@ -615,6 +687,11 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       request: {
         pageRequest: async (query) => api.GetList(query),
         addRequest: async ({ form }) => {
+          const pre = validateCostTemplateBeforeSubmit(form)
+          if (!pre.ok) {
+            ElMessage.error(pre.message)
+            return Promise.reject(new Error(pre.message))
+          }
           const payload = buildCostTemplateSubmitPayload(form)
           const src = form.__newVersionSourceId
           if (src != null && src !== '') {
@@ -638,6 +715,11 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           })
         },
         editRequest: async ({ form, row }) => {
+          const pre = validateCostTemplateBeforeSubmit(form)
+          if (!pre.ok) {
+            ElMessage.error(pre.message)
+            return Promise.reject(new Error(pre.message))
+          }
           const base = buildCostTemplateSubmitPayload(form)
           const payload: any = {
             ...base,
@@ -864,12 +946,13 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           dict: dict({
             data: [
               { value: '0', label: '未确认' },
-              { value: '1', label: '已确认' }
+              { value: '1', label: '已确认' },
+              { value: '2', label: '作废' }
             ]
           }),
           search: {
             show: true,
-            component: { props: { clearable: true, placeholder: '状态' } }
+            component: { props: { clearable: true, placeholder: '状态（默认不含作废）' } }
           },
           form: { show: false },
           column: { width: 100 }

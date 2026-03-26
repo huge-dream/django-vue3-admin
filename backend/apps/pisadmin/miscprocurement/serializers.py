@@ -641,7 +641,7 @@ class NestedInquirySupplierSerializer(InquirySupplierSerializer):
 
 
 class InquiryAttachmentSerializer(serializers.ModelSerializer):
-    """采购端询价单附件读写；供应商端只读见 `apps.pissupplier.serializers.QuotationMasterSerializer.inquiry_attachments`。"""
+    """采购端询价单附件读写；供应商在报价详情中通过 `QuotationMasterSerializer.inquiry_attachments` 只读查看。发布时不复制到报价单附件子表。"""
 
     file_type = serializers.CharField()
 
@@ -689,6 +689,7 @@ class InquiryMaterialCostSerializer(serializers.ModelSerializer):
             "qty",
             "specific_gravity",
             "material_cost",
+            "weight",
             "remark",
             "option_json",
             "create_time",
@@ -987,6 +988,7 @@ class InquirySerializer(CustomModelSerializer):
                     qty=row.get("qty"),
                     specific_gravity=row.get("specific_gravity"),
                     material_cost=row.get("material_cost"),
+                    weight=row.get("weight"),
                     remark=row.get("remark"),
                     option_json=self._normalize_material_option_json(row),
                     create_user=row.get("create_user") or current_user or None,
