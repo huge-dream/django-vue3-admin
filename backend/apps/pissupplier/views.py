@@ -1,9 +1,13 @@
+from typing import Optional
+
+from django.db import transaction
 from django.utils import timezone
 from rest_framework.decorators import action
 
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from dvadmin.utils.viewset import CustomModelViewSet
 
+from apps.pisadmin.miscprocurement.models import Inquiry
 from apps.pissupplier.models import (
     QuotationMaster,
     QuotationAttachment,
@@ -64,28 +68,56 @@ class QuotationMasterViewSet(CustomModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.status not in (1, 2):
-            return ErrorResponse(msg="仅未报价/报价中状态可保存报价内容")
+        # if instance.status not in (1, 2):
+        #     return ErrorResponse(msg="仅未报价/报价中状态可保存报价内容")
+        # 含已报价(3)：采购端比价窗口可回写中标/议价等（仍不可改 status/quotetime，由序列化器剥离）
+        if instance.status not in (1, 2, 3):
+            return ErrorResponse(msg="当前报价单状态不允许保存")
         return super().update(request, *args, **kwargs)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.status not in (1, 2):
-            return ErrorResponse(msg="仅未报价/报价中状态可保存报价内容")
+        # if instance.status not in (1, 2):
+        #     return ErrorResponse(msg="仅未报价/报价中状态可保存报价内容")
+        if instance.status not in (1, 2, 3):
+            return ErrorResponse(msg="当前报价单状态不允许保存")
         return super().partial_update(request, *args, **kwargs)
+
+    @staticmethod
+    def _sync_inquiry_when_quotation_quoting(inquiry_no: str, *, actor_username: Optional[str] = None):
+        """
+        任意报价单进入「报价中」(status=2) 时，若询价单仍为「发布」(3)，同步为「报价中」(4)。
+        已进入报价中(4) 的询价单无需再改；不回退报价结束及之后状态。
+        """
+        inq_no = (inquiry_no or "").strip()
+        if not inq_no:
+            return
+        inq = Inquiry.objects.filter(inquiry_no=inq_no, status=3).first()
+        if not inq:
+            return
+        now = timezone.now()
+        update_user = (str(actor_username).strip()[:20] if actor_username else None) or None
+        inq.status = 4
+        inq.update_time = now
+        inq.update_datetime = now
+        if update_user:
+            inq.update_user = update_user
+        inq.save(update_fields=["status", "update_time", "update_user", "update_datetime"])
 
     @action(methods=["post"], detail=True, url_path="quote")
     def quote(self, request, pk=None):
         """进入报价中：写入当前时间为报价时间，状态为报价中(2)。仅未报价(status=1)可报价。"""
         instance = self.get_object()
-        if instance.status != 1:
+        if instance.status not in (1, 2):
             return ErrorResponse(msg="仅未报价状态可进入报价中")
         instance.status = 2
         instance.quotetime = timezone.now()
         username = getattr(getattr(request, "user", None), "username", None)
         if username:
             instance.quoteuser = username
-        instance.save(update_fields=["status", "quotetime", "quoteuser"])
+        with transaction.atomic():
+            instance.save(update_fields=["status", "quotetime", "quoteuser"])
+            self._sync_inquiry_when_quotation_quoting(instance.inquiry_no, actor_username=username)
         serializer = self.get_serializer(instance)
         return DetailResponse(data=serializer.data, msg="报价中状态更新成功")
 
