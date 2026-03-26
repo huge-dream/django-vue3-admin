@@ -39,7 +39,7 @@
           </el-table-column>
           <el-table-column label="字段中文名" min-width="140">
             <template #default="{ row }">
-              <el-input v-model="row.nameCn" size="small" placeholder="中文名" :disabled="isReadonly" />
+              <el-input v-model="row.nameCn" size="small" placeholder="必填" :disabled="isReadonly" />
             </template>
           </el-table-column>
           <el-table-column label="字段英文名" min-width="140">

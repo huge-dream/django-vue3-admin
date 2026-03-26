@@ -20,6 +20,49 @@ from dvadmin.utils.json_response import ErrorResponse
 logger = logging.getLogger(__name__)
 
 
+def _format_drf_detail(detail):
+    """
+    将 DRF ValidationError.detail 转为可读字符串。
+    避免嵌套列表（如 items 多行明细）在简单拼接时只剩「items:{}」等无效提示。
+    """
+    if detail is None:
+        return ""
+    if isinstance(detail, dict):
+        if not detail:
+            return ""
+        parts = []
+        for k, v in detail.items():
+            if isinstance(v, (list, tuple)):
+                subs = []
+                for item in v:
+                    if isinstance(item, dict):
+                        inner = _format_drf_detail(item)
+                        if inner:
+                            subs.append(inner)
+                    else:
+                        subs.append(str(item))
+                if subs:
+                    parts.append("%s: %s" % (k, "；".join(subs)))
+            elif isinstance(v, dict):
+                inner = _format_drf_detail(v)
+                if inner:
+                    parts.append("%s: %s" % (k, inner))
+            else:
+                parts.append("%s: %s" % (k, v))
+        return "；".join(parts)
+    if isinstance(detail, (list, tuple)):
+        subs = []
+        for item in detail:
+            if isinstance(item, dict):
+                inner = _format_drf_detail(item)
+                if inner:
+                    subs.append(inner)
+            else:
+                subs.append(str(item))
+        return "；".join(subs)
+    return str(detail)
+
+
 class CustomAuthenticationFailed(NotAuthenticated):
     # 设置 status_code 属性为 400
     status_code = 400
@@ -53,11 +96,13 @@ def CustomExceptionHandler(ex, context):
         msg = "接口地址不正确"
     elif isinstance(ex, DRFAPIException):
         set_rollback()
-        msg = ex.detail
-        if isinstance(msg,dict):
-            for k, v in msg.items():
-                for i in v:
-                    msg = "%s:%s" % (k, i)
+        detail = ex.detail
+        if isinstance(detail, dict):
+            msg = _format_drf_detail(detail) or str(detail)
+        elif isinstance(detail, (list, tuple)):
+            msg = _format_drf_detail(detail) or str(detail)
+        else:
+            msg = str(detail)
     elif isinstance(ex, ProtectedError):
         set_rollback()
         msg = "删除失败:该条数据与其他数据有相关绑定"

@@ -28,7 +28,7 @@ from apps.pissupplier.serializers import (
 class QuotationMasterViewSet(CustomModelViewSet):
     """杂采报价单主表管理接口"""
 
-    queryset = QuotationMaster.objects.all()
+    queryset = QuotationMaster.objects.prefetch_related("rfq_items")
     serializer_class = QuotationMasterSerializer
     create_serializer_class = QuotationMasterCreateUpdateSerializer
     update_serializer_class = QuotationMasterCreateUpdateSerializer
@@ -64,23 +64,38 @@ class QuotationMasterViewSet(CustomModelViewSet):
 
     def update(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.status != 1:
-            return ErrorResponse(msg="仅未报价状态可保存报价内容")
+        if instance.status not in (1, 2):
+            return ErrorResponse(msg="仅未报价/报价中状态可保存报价内容")
         return super().update(request, *args, **kwargs)
 
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
-        if instance.status != 1:
-            return ErrorResponse(msg="仅未报价状态可保存报价内容")
+        if instance.status not in (1, 2):
+            return ErrorResponse(msg="仅未报价/报价中状态可保存报价内容")
         return super().partial_update(request, *args, **kwargs)
+
+    @action(methods=["post"], detail=True, url_path="quote")
+    def quote(self, request, pk=None):
+        """进入报价中：写入当前时间为报价时间，状态为报价中(2)。仅未报价(status=1)可报价。"""
+        instance = self.get_object()
+        if instance.status != 1:
+            return ErrorResponse(msg="仅未报价状态可进入报价中")
+        instance.status = 2
+        instance.quotetime = timezone.now()
+        username = getattr(getattr(request, "user", None), "username", None)
+        if username:
+            instance.quoteuser = username
+        instance.save(update_fields=["status", "quotetime", "quoteuser"])
+        serializer = self.get_serializer(instance)
+        return DetailResponse(data=serializer.data, msg="报价中状态更新成功")
 
     @action(methods=["post"], detail=True, url_path="submit")
     def submit(self, request, pk=None):
-        """正式提交报价：写入当前时间为报价时间，状态为已报价(2)。仅未报价(status=1)可提交。"""
+        """正式提交报价：写入当前时间为报价时间，状态为已报价(3)。仅报价中(status=2)可提交。"""
         instance = self.get_object()
-        if instance.status != 1:
-            return ErrorResponse(msg="仅未报价状态可提交报价")
-        instance.status = 2
+        if instance.status != 2:
+            return ErrorResponse(msg="仅报价中状态可提交报价")
+        instance.status = 3
         instance.quotetime = timezone.now()
         username = getattr(getattr(request, "user", None), "username", None)
         if username:

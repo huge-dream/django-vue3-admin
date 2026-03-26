@@ -215,6 +215,11 @@ class Inquiry(CoreModel):
         verbose_name="询价模版",
         help_text="对应成本估算模板编号；发布生成供应商报价单时，子表字段是否从询价单带入由该模板明细 is_computed=1 或 supplier_required 为 1/2 决定。",
     )
+    template_version = models.IntegerField(
+        db_column="TemplateVersion",
+        verbose_name="模板版本号",
+        help_text="与 template 共同锁定成本估算模板主表版本（CostEstimateTemplateHead.version）；发布与供应商报价结构均以此为准。",
+    )
     is_bom = models.IntegerField(default=0, verbose_name="是否BOM否")
     currency = models.CharField(max_length=20, default="CNY", verbose_name="交易币别")
     company_code = models.CharField(max_length=20, null=True, blank=True, verbose_name="公司代码")
@@ -283,7 +288,7 @@ class InquirySupplier(models.Model):
 
 
 class InquiryAttachment(models.Model):
-    """杂采询价单-附件关联表"""
+    """杂采询价单-附件关联表（采购方上传）。发布询价生成报价单时不写入 `pissupplier.QuotationAttachment`，供应商通过详情中的询价附件只读展示。"""
     
     FILE_TYPE_CHOICES = (
         (1, "产品图纸"),
@@ -340,6 +345,14 @@ class InquiryMaterialCost(models.Model):
     )
     material_cost = models.DecimalField(
         max_digits=12, decimal_places=4, db_column="material_cost", null=True, blank=True, verbose_name="材料费用"
+    )
+    weight = models.DecimalField(
+        max_digits=12,
+        decimal_places=4,
+        db_column="Weight",
+        null=True,
+        blank=True,
+        verbose_name="重量",
     )
     remark = models.CharField(max_length=100, db_column="remark", null=True, blank=True, verbose_name="备注")
     option_json = models.TextField(db_column="OptionJson", null=True, blank=True, verbose_name="可选扩展信息")

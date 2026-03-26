@@ -70,17 +70,45 @@ type ExtraHooks = {
   onAdd?: () => void
   onEdit?: (row: any) => void
   onView?: (row: any) => void
+  /** 列表多选变化（用于后续多询价单比价等） */
+  onTableSelectionChange?: (rows: any[]) => void
 }
 
 const STATUS_OPEN = 1
 const STATUS_CONFIRMED = 2
 const STATUS_PUBLISHED = 3
 
+/** 询价单接口错误文案：将数据库唯一约束等转为可读提示 */
+export const formatRfqApiErrorMessage = (err: any, fallback: string) => {
+  const d = err?.response?.data
+  const pick = () => {
+    if (typeof d?.msg === 'string' && d.msg.trim()) return d.msg
+    if (typeof d?.message === 'string' && d.message.trim()) return d.message
+    if (typeof d?.detail === 'string' && d.detail.trim()) return d.detail
+    if (Array.isArray(d?.non_field_errors) && d.non_field_errors.length) return String(d.non_field_errors[0])
+    return ''
+  }
+  const raw = pick() || (typeof err?.msg === 'string' ? err.msg : '') || (typeof err?.message === 'string' ? err.message : '')
+  const s = typeof raw === 'string' ? raw : String(raw)
+  if (
+    /重复键违反唯一约束|unique constraint|UniqueViolation|duplicate key|already exists|pis_proc_inquiry_supplie/i.test(
+      s
+    )
+  ) {
+    if (/supplier|suppli|PartId|part_id|inquiry_no/i.test(s)) {
+      return '供应商名单重复：同一询价单、同一料号下不能添加相同供应商，请删除重复行或更换供应商后再保存'
+    }
+    return '保存失败：存在与数据库冲突的重复数据，请检查供应商名单或其它唯一项'
+  }
+  if (s) return s.length > 280 ? `${s.slice(0, 280)}…` : s
+  return fallback
+}
+
 const getRowStatus = (row: any) => Number(row?.status)
 const isOpenStatus = (row: any) => getRowStatus(row) === STATUS_OPEN
 const isConfirmedStatus = (row: any) => getRowStatus(row) === STATUS_CONFIRMED
 const canPublishStatus = (row: any) => isConfirmedStatus(row)
-const getErrorMessage = (err: any, fallback: string) => err?.msg || err?.message || err?.response?.data?.msg || fallback
+const getErrorMessage = (err: any, fallback: string) => formatRfqApiErrorMessage(err, fallback)
 
 /** 列表行含 `suppliers` 时可先做提示；未返回嵌套时交由接口校验 */
 const rowHasSuppliersList = (row: any): boolean | null => {
@@ -97,7 +125,14 @@ export const formatCostTemplateVersionTwoDigits = (v: unknown) => {
   return String(Math.trunc(n)).padStart(2, '0')
 }
 
-export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit, onView }: Partial<CreateCrudOptionsProps> & ExtraHooks): CreateCrudOptionsRet {
+export const createCrudOptions = function ({
+  context,
+  crudExpose,
+  onAdd,
+  onEdit,
+  onView,
+  onTableSelectionChange
+}: Partial<CreateCrudOptionsProps> & ExtraHooks): CreateCrudOptionsRet {
   void context
   return {
     crudOptions: {
@@ -128,7 +163,10 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
         }
       },
       table: {
-        rowKey: 'id'
+        rowKey: 'id',
+        onSelectionChange: (changed: any[]) => {
+          onTableSelectionChange?.(changed || [])
+        }
       },
       actionbar: {
         buttons: {
@@ -143,19 +181,21 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
       },
       rowHandle: {
         fixed: 'right',
-        width: 320,
+        width: 420,
         buttons: {
           view: { show: false },
           edit: { show: false },
           remove: {
             text: '删除',
-            type: 'danger',
+            // 禁用时不沿用 danger 的淡红底，改为 info 灰底 + disabled
+            type: compute(({ row }) => (isOpenStatus(row) ? 'danger' : 'info')),
             order: 1,
-            show: compute(({ row }) => isOpenStatus(row))
+            show: true,
+            disabled: compute(({ row }) => !isOpenStatus(row))
           },
           customView: {
             text: '查看',
-            type: 'info',
+            type: 'default',
             order: 0,
             show: true,
             click({ row }) {
@@ -164,19 +204,23 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
           },
           customEdit: {
             text: '编辑',
-            type: 'primary',
+            type: compute(({ row }) => (isOpenStatus(row) ? 'primary' : 'info')),
             order: 1.5,
-            show: compute(({ row }) => isOpenStatus(row)),
+            show: true,
+            disabled: compute(({ row }) => !isOpenStatus(row)),
             click({ row }) {
+              if (!isOpenStatus(row)) return
               onEdit && onEdit(row)
             }
           },
           confirm: {
             text: '确认',
-            type: 'success',
+            type: compute(({ row }) => (isOpenStatus(row) ? 'success' : 'info')),
             order: 2,
-            show: compute(({ row }) => isOpenStatus(row)),
+            show: true,
+            disabled: compute(({ row }) => !isOpenStatus(row)),
             async click({ row }) {
+              if (!isOpenStatus(row)) return
               try {
                 const supplierOk = rowHasSuppliersList(row)
                 if (supplierOk === false) {
@@ -200,10 +244,12 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
           },
           restore: {
             text: '还原',
-            type: 'primary',
+            type: compute(({ row }) => (isConfirmedStatus(row) ? 'primary' : 'info')),
             order: 2.5,
-            show: compute(({ row }) => isConfirmedStatus(row)),
+            show: true,
+            disabled: compute(({ row }) => !isConfirmedStatus(row)),
             async click({ row }) {
+              if (!isConfirmedStatus(row)) return
               try {
                 await ElMessageBox.confirm('确认将状态还原为【开立】？', '提示', {
                   type: 'warning',
@@ -222,10 +268,12 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
           },
           publish: {
             text: '发布',
-            type: 'warning',
+            type: compute(({ row }) => (canPublishStatus(row) ? 'warning' : 'info')),
             order: 3,
-            show: compute(({ row }) => canPublishStatus(row)),
+            show: true,
+            disabled: compute(({ row }) => !canPublishStatus(row)),
             async click({ row }) {
+              if (!canPublishStatus(row)) return
               try {
                 await ElMessageBox.confirm('确认将状态改为【发布】？', '提示', {
                   type: 'warning',
@@ -245,6 +293,18 @@ export const createCrudOptions = function ({ context, crudExpose, onAdd, onEdit,
         }
       },
       columns: {
+        $checked: {
+          title: '',
+          form: { show: false },
+          search: { show: false },
+          column: {
+            type: 'selection',
+            align: 'center',
+            width: 52,
+            fixed: 'left',
+            columnSetDisabled: true
+          }
+        },
         inquiry_no: {
           title: '询价单号',
           type: 'input',
