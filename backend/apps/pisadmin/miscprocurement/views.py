@@ -239,6 +239,14 @@ class InquiryViewSet(CustomModelViewSet):
     STATUS_OPEN = 1
     STATUS_CONFIRMED = 2
     STATUS_PUBLISHED = 3
+    STATUS_QUOTING = 4
+    STATUS_QUOTE_ENDED = 5
+    STATUS_BARGaining = 6
+    STATUS_NEGOTIATED = 7
+    STATUS_PRICE_REVIEW = 7
+    STATUS_APPROVED = 8
+    STATUS_AWARDED = 9
+    STATUS_VOID = 0
     TEMPLATE_PREFILL_FIELD_MAP = {
         "1": {
             "material": "material_spec",
@@ -318,7 +326,7 @@ class InquiryViewSet(CustomModelViewSet):
             return ErrorResponse(msg="当前询价单状态仅允许查看，不允许编辑或删除；如需修改请先还原为“开立”")
         return None
 
-    def _save_status(self, instance, *, status, confirm_user=None, confirm_time=None, release_user=None, release_time=None):
+    def _save_status(self, instance, *, status, confirm_user=None, confirm_time=None, release_user=None, release_time=None, comparison_user=None, comparison_time=None):
         current_time = timezone.now()
         current_user = self._get_request_username() or getattr(instance, "update_user", None)
         instance.status = status
@@ -326,6 +334,10 @@ class InquiryViewSet(CustomModelViewSet):
         instance.confirm_time = confirm_time
         instance.release_user = release_user
         instance.release_time = release_time
+        if comparison_user is not None:
+            instance.comparison_user = comparison_user
+        if comparison_time is not None:
+            instance.comparison_time = comparison_time
         instance.update_user = current_user
         instance.update_time = current_time
         instance.save(
@@ -335,6 +347,8 @@ class InquiryViewSet(CustomModelViewSet):
                 "confirm_time",
                 "release_user",
                 "release_time",
+                "comparison_user",
+                "comparison_time",
                 "update_user",
                 "update_time",
             ]

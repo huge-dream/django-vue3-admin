@@ -42,17 +42,6 @@ const formatQuoteDeadlineDisplay = (value: unknown) => {
   return text
 }
 
-const normalizeList = (value: unknown, label: string) => {
-  if (value === null || value === undefined || value === '') return []
-  if (typeof value === 'string') {
-    const parsed = JSON.parse(value)
-    if (!Array.isArray(parsed)) throw new Error(`${label} 需为 JSON 数组`)
-    return parsed
-  }
-  if (Array.isArray(value)) return value
-  throw new Error(`${label} 需为 JSON 数组`)
-}
-
 export const normalizeDict = (value: unknown, label: string) => {
   if (value === null || value === undefined || value === '') return {}
   if (typeof value === 'string') {
@@ -134,6 +123,49 @@ export const createCrudOptions = function ({
   onTableSelectionChange
 }: Partial<CreateCrudOptionsProps> & ExtraHooks): CreateCrudOptionsRet {
   void context
+
+  const normalizeSelection = (raw: unknown): any[] => {
+    if (Array.isArray(raw)) return raw
+    if (raw != null && typeof raw === 'object') return [raw as any]
+    return []
+  }
+
+  const getSelectedRows = () => {
+    if (typeof getTableSelection === 'function') {
+      const rows = normalizeSelection(getTableSelection())
+      if (rows.length > 0) return rows
+    }
+    const expose = crudExpose as any
+    // Element Plus：当前勾选行（与列表第一列选择列一致）
+    const baseTable = expose?.getBaseTableRef?.()
+    if (baseTable?.getSelectionRows) {
+      const fromEl = normalizeSelection(baseTable.getSelectionRows())
+      if (fromEl.length) return fromEl
+    }
+    const tableRef: any = expose?.getTableRef?.() || expose?.tableRef
+    const selection =
+      tableRef?.getSelection?.() ||
+      tableRef?.getSelectionRows?.() ||
+      tableRef?.getSelections?.() ||
+      tableRef?.getSelected?.() ||
+      []
+    return normalizeSelection(selection)
+  }
+
+  /** 工具栏批量操作：取当前勾选的全部行（与列表选择列一致） */
+  const pickSelectedRows = (): any[] | null => {
+    const rows = getSelectedRows()
+    if (!rows.length) {
+      ElMessage.warning('请先选择询价单')
+      return null
+    }
+    // if (rows.length > 1) {
+    //   ElMessage.warning('仅支持单条操作')
+    //   return null
+    // }
+    return rows[0]
+  }
+
   return {
     crudOptions: {
       form: {
@@ -303,6 +335,20 @@ export const createCrudOptions = function ({
             width: 52,
             fixed: 'left',
             columnSetDisabled: true
+          }
+        },
+company_short_name: {
+          title: '交易厂区',
+          type: 'text',
+          form: { show: false },
+          search: { show: false },
+          column: {
+            minWidth: 100,
+            showOverflowTooltip: true,
+            formatter: ({ row }: { row: any }) => {
+              const v = row?.company_short_name ?? row?.companyShortName
+              return v != null && v !== '' ? String(v) : ''
+            }
           }
         },
         inquiry_no: {
