@@ -217,6 +217,7 @@ class Inquiry(CoreModel):
     )
     template_version = models.IntegerField(
         db_column="TemplateVersion",
+        default=1,
         verbose_name="模板版本号",
         help_text="与 template 共同锁定成本估算模板主表版本（CostEstimateTemplateHead.version）；发布与供应商报价结构均以此为准。",
     )

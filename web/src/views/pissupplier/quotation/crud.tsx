@@ -32,6 +32,10 @@ type Quote = {
   quoteNo: string
   inquiryCode: string
   inquiryTitle: string
+  /** 询价主表 `Inquiry.company_code` */
+  inquiryCompanyCode?: string
+  /** 公司信息简称（交易厂区/询价厂区展示） */
+  companyShortName?: string
   inquiryStatus: string
   /** 询价主表 `Inquiry.status`（数字），用于中标列与 status=9 判断 */
   inquiryStatusCode?: number | null
@@ -1038,6 +1042,8 @@ function blankQuote(): Quote {
     quoteNo: '',
     inquiryCode: '',
     inquiryTitle: '',
+    inquiryCompanyCode: '',
+    companyShortName: '',
     inquiryStatus: '',
     inquiryStatusCode: undefined,
     template: '',
@@ -1064,7 +1070,7 @@ function blankQuote(): Quote {
 
 export function useQuoteCrud(options?: { onChange?: () => void }) {
   const filters = reactive<{
-    status: string
+    inquiryPlant: string
     isAwarded: string | number | ''
     quoteNo?: string
     inquiryCode?: string
@@ -1072,7 +1078,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     currency?: string
     dateRange: [Date, Date] | []
   }>({
-    status: '',
+    inquiryPlant: '',
     isAwarded: '',
     quoteNo: '',
     inquiryCode: '',
@@ -1297,6 +1303,8 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       if (tpl) q.template = tpl
       if (inv.currency) q.currency = inv.currency
       if (inv.quote_deadline) q.quoteDeadline = inv.quote_deadline
+      const cc = inv.company_code != null && inv.company_code !== '' ? String(inv.company_code).trim() : ''
+      if (cc) q.inquiryCompanyCode = cc
       const invSt = inv.status ?? inv.inquiry_status
       if (invSt !== undefined && invSt !== null && invSt !== '') {
         q.inquiryStatusCode = Number(invSt)
@@ -1312,6 +1320,14 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       inquiryCode: item.inquiry_no || item.inquiryCode || '',
       inquiryTitle:
         item.inquiry_name || item.inquiry_title || item.title || item.inquiryTitle || '',
+      inquiryCompanyCode:
+        item.inquiry_company_code != null && item.inquiry_company_code !== ''
+          ? String(item.inquiry_company_code).trim()
+          : '',
+      companyShortName:
+        item.inquiry_company_short_name != null && item.inquiry_company_short_name !== ''
+          ? String(item.inquiry_company_short_name).trim()
+          : '',
       inquiryStatus: item.inquiry_status || item.inquiryStatus || '',
       inquiryStatusCode:
         item.inquiry_status_code != null && item.inquiry_status_code !== ''
@@ -1480,7 +1496,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   })
 
   const resetFilter = () => {
-    filters.status = ''
+    filters.inquiryPlant = ''
     filters.isAwarded = ''
     filters.quoteNo = ''
     filters.inquiryCode = ''
@@ -1496,13 +1512,17 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
         const matchInquiryCode = !filters.inquiryCode || q.inquiryCode.toLowerCase().includes(filters.inquiryCode.trim().toLowerCase())
         const matchInquiryTitle = !filters.inquiryTitle || q.inquiryTitle.toLowerCase().includes(filters.inquiryTitle.trim().toLowerCase())
         const matchCurrency = !filters.currency || q.currency.toLowerCase().includes(filters.currency.trim().toLowerCase())
-        const matchStatus = !filters.status || q.status === filters.status
+        const plantQ = (filters.inquiryPlant || '').trim().toLowerCase()
+        const matchPlant =
+          !plantQ ||
+          (q.companyShortName || '').toLowerCase().includes(plantQ) ||
+          (q.inquiryCompanyCode || '').toLowerCase().includes(plantQ)
         const matchAwarded =
           filters.isAwarded === '' || filters.isAwarded === undefined || filters.isAwarded === null
             ? true
             : Number(q.isAwarded) === Number(filters.isAwarded)
         const matchDate = !start || !end || (new Date(q.quoteDeadline) >= start && new Date(q.quoteDeadline) <= end)
-        return matchQuoteNo && matchInquiryCode && matchInquiryTitle && matchCurrency && matchStatus && matchAwarded && matchDate
+        return matchQuoteNo && matchInquiryCode && matchInquiryTitle && matchCurrency && matchPlant && matchAwarded && matchDate
       })
   })
 
@@ -1727,6 +1747,8 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
             quoteData.template = inquiry.template || inquiry.template_code || quoteData.template
             quoteData.currency = inquiry.currency || quoteData.currency
             quoteData.quoteDeadline = inquiry.quote_deadline || quoteData.quoteDeadline
+            const icc = inquiry.company_code != null && inquiry.company_code !== '' ? String(inquiry.company_code).trim() : ''
+            if (icc) quoteData.inquiryCompanyCode = icc
             quoteData.inquiryStatus = inquiry.status || inquiry.inquiry_status || quoteData.inquiryStatus
             // const inqSt = inquiry.status ?? inquiry.inquiry_status
             // if (inqSt !== undefined && inqSt !== null && inqSt !== '') {

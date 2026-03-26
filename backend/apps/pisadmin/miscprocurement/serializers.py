@@ -20,6 +20,7 @@ from .models import (
     CostEstimateTemplateHead,
     CostEstimateTemplateBody,
 )
+from apps.pisadmin.basicinfo.models import Company
 from apps.pisadmin.basicinfo.models import Unit
 from apps.pisadmin.basicinfo.models import SystemNoRule
 from dvadmin.utils.serializers import CustomModelSerializer
@@ -37,6 +38,31 @@ def get_request_username(serializer) -> str:
         or getattr(user, "nickname", "")
         or ""
     )
+
+
+def resolve_inquiry_template_version(template_no: str, preferred_version=None):
+    """
+    从 t_CostEstimate_Template_Head（CostEstimateTemplateHead）解析询价单应锁定的模板版本号。
+    与 InquiryViewSet._get_template_prefill_fields 一致：仅 status=1（已确认）；若 preferred_version
+    存在且对应主表行存在则用之，否则取该 template_no 下最高 version。
+    """
+    tn = str(template_no or "").strip()
+    if not tn:
+        return None
+    base_qs = CostEstimateTemplateHead.objects.filter(template_no=tn, status=1)
+    head = None
+    if preferred_version is not None and preferred_version != "":
+        try:
+            ver = int(preferred_version)
+        except (TypeError, ValueError):
+            ver = None
+        if ver is not None:
+            head = base_qs.filter(version=ver).first()
+    if head is None:
+        head = base_qs.order_by("-version", "-id").first()
+    if not head:
+        return None
+    return int(head.version)
 
 
 def get_request_username_from_request(request) -> str:
@@ -862,6 +888,22 @@ class InquirySerializer(CustomModelSerializer):
     other_costs = InquiryOtherCostSerializer(many=True, required=False)
     profit_costs = InquiryProfitCostSerializer(many=True, required=False)
     rfq_items = InquiryRfqItemSerializer(many=True, required=False)
+    # 列表/详情展示：company_code → 公司信息简称（同请求内按代码缓存）
+    company_short_name = serializers.SerializerMethodField(read_only=True)
+
+    def get_company_short_name(self, obj):
+        code = (getattr(obj, "company_code", None) or "").strip()
+        if not code:
+            return ""
+        cache = self.context.setdefault("_company_short_by_code", {})
+        if code not in cache:
+            row = Company.objects.filter(company_code=code).only("company_short_name", "company_name").first()
+            if row:
+                short = (row.company_short_name or row.company_name or "").strip()
+            else:
+                short = ""
+            cache[code] = short or code
+        return cache[code]
 
     def to_internal_value(self, data):
         if hasattr(data, "copy"):
@@ -885,7 +927,43 @@ class InquirySerializer(CustomModelSerializer):
             "update_time",
             "update_user",
         ]
-        extra_kwargs = {"inquiry_no": {"required": False, "allow_blank": True, "allow_null": True}}
+        extra_kwargs = {
+            "inquiry_no": {"required": False, "allow_blank": True, "allow_null": True},
+            # 由 resolve_inquiry_template_version 根据 template 从 CostEstimateTemplateHead 写入
+            "template_version": {"required": False, "allow_null": True},
+        }
+
+    def validate(self, attrs):
+        instance = getattr(self, "instance", None)
+
+        template_in_attrs = "template" in attrs
+        tv_in_attrs = "template_version" in attrs
+
+        # 局部更新且未改模板/版本：保持库中原值
+        if instance and not template_in_attrs and not tv_in_attrs:
+            return attrs
+
+        template_no = attrs.get("template")
+        if template_no is not None:
+            template_no = str(template_no).strip()
+        elif instance is not None:
+            template_no = (instance.template or "").strip()
+        else:
+            template_no = ""
+
+        if not template_no:
+            return attrs
+
+        preferred = attrs["template_version"] if tv_in_attrs else None
+        resolved = resolve_inquiry_template_version(template_no, preferred_version=preferred)
+        if resolved is None:
+            raise serializers.ValidationError(
+                {
+                    "template": "所选询价模板无已确认版本，请先在「成本结构模板」中确认后再保存",
+                }
+            )
+        attrs["template_version"] = resolved
+        return attrs
 
     def _generate_code(self, validated_data: dict) -> str:
         """

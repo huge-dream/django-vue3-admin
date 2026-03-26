@@ -7,6 +7,7 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from dvadmin.utils.serializers import CustomModelSerializer
+from apps.pisadmin.basicinfo.models import Company
 from apps.pisadmin.miscprocurement.models import (
     CostEstimateTemplateBody,
     CostEstimateTemplateHead,
@@ -382,6 +383,9 @@ class QuotationMasterSerializer(BusinessAuditSerializer):
         required=False,
         allow_null=True,
     )
+    # 列表/详情：询价主表 company_code + 公司信息简称（同请求内按 inquiry_no 缓存，减轻重复查询）
+    inquiry_company_code = serializers.SerializerMethodField(read_only=True)
+    inquiry_company_short_name = serializers.SerializerMethodField(read_only=True)
     # 列表/详情展示：上阶物料明细 total_price_incl_tax 之和（主表无报价金额列）
     quote_amount = serializers.SerializerMethodField(read_only=True)
     template_sections = serializers.SerializerMethodField(read_only=True)
@@ -397,6 +401,35 @@ class QuotationMasterSerializer(BusinessAuditSerializer):
     audit_create_time_field = "creattime"
     audit_update_user_field = "quoteuser"
     audit_update_time_field = "quotetime"
+
+    def _inquiry_plant_tuple(self, inquiry_no):
+        """(company_code, 展示用简称)；简称优先 company_short_name，否则 company_name，再否则代码。"""
+        if not inquiry_no:
+            return None, ""
+        cache = self.context.setdefault("_inquiry_plant_by_inquiry_no", {})
+        if inquiry_no in cache:
+            return cache[inquiry_no]
+        inq = Inquiry.objects.filter(inquiry_no=inquiry_no).only("company_code").first()
+        code = (getattr(inq, "company_code", None) or "").strip() if inq else ""
+        if not code:
+            cache[inquiry_no] = (None, "")
+            return cache[inquiry_no]
+        co = Company.objects.filter(company_code=code).only("company_short_name", "company_name").first()
+        short = ""
+        if co:
+            short = (co.company_short_name or co.company_name or "").strip()
+        if not short:
+            short = code
+        cache[inquiry_no] = (code, short)
+        return cache[inquiry_no]
+
+    def get_inquiry_company_code(self, obj):
+        code, _ = self._inquiry_plant_tuple(getattr(obj, "inquiry_no", None))
+        return code
+
+    def get_inquiry_company_short_name(self, obj):
+        _, short = self._inquiry_plant_tuple(getattr(obj, "inquiry_no", None))
+        return short or ""
 
     def get_quote_amount(self, obj):
         total = Decimal("0")

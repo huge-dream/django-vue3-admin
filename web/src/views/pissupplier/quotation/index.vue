@@ -36,7 +36,7 @@
               <el-descriptions-item label="询价模板">{{ templateLabel(current.template) }}</el-descriptions-item>
               <el-descriptions-item label="交易币别">{{ current.currency }}</el-descriptions-item>
               <el-descriptions-item label="报价截止日">{{ current.quoteDeadline }}</el-descriptions-item>
-              <el-descriptions-item label="询价状态">{{ formatMiscInquiryStatus(current) }}</el-descriptions-item>
+              <el-descriptions-item label="交易厂区">{{ current.companyShortName || current.inquiryCompanyCode || '—' }}</el-descriptions-item>
             </el-descriptions>
             <el-divider content-position="left">询价附件</el-divider>
             <div class="inquiry-attachments">
@@ -299,7 +299,7 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Flag } from '@element-plus/icons-vue'
 import { compute, dict, useCrud, useExpose } from '@fast-crud/fast-crud'
 import { getBaseURL } from '/@/utils/baseUrl'
-import { useQuoteCrud, formatAwardBidStatus, formatMiscInquiryStatus, type InquiryAttachmentRow } from './crud'
+import { useQuoteCrud, formatAwardBidStatus, type InquiryAttachmentRow } from './crud'
 
 const INQUIRY_FILE_TYPE_ORDER = [1, 2, 3] as const
 const INQUIRY_FILE_TYPE_LABELS: Record<number, string> = {
@@ -474,7 +474,7 @@ onUnmounted(() => {
 })
 
 const syncFilters = (form: any = {}) => {
-  filters.status = form.status || ''
+  filters.inquiryPlant = form.inquiryPlant || ''
   filters.quoteNo = form.quoteNo || ''
   filters.inquiryCode = form.inquiryCode || ''
   filters.inquiryTitle = form.inquiryTitle || ''
@@ -543,6 +543,21 @@ const crudOptions = {
     }
   },
   columns: {
+    inquiryPlant: {
+      title: '交易厂区',
+      type: 'text',
+      search: {
+        show: true,
+        component: { props: { clearable: true, placeholder: '公司代码或简称' } }
+      },
+      column: { show: false }
+    },
+    companyShortName: {
+      title: '交易厂区',
+      type: 'text',
+      search: { show: false },
+      column: { minWidth: 100, showOverflowTooltip: true }
+    },
     quoteNo: {
       title: '报价单号',
       type: 'text',
@@ -592,7 +607,7 @@ const crudOptions = {
       title: '报价状态',
       type: 'dict-select',
       dict: dict({ data: statusOptions }),
-      search: { show: true },
+      search: { show: false },
       column: { width: 100, slots: { default: 'cell_status' } }
     },
     isAwarded: {
