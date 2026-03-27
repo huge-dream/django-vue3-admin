@@ -247,6 +247,14 @@ class CostEstimateTemplateViewSet(CustomModelViewSet):
 
 
 class InquiryViewSet(CustomModelViewSet):
+    """
+    杂采询价单 CRUD/发布等。
+
+    与供应商报价单联动：当 `pissupplier.QuotationMasterViewSet.sync_expired` 将超时报价置为已过期后，
+    若该询价下已无待报价/报价中的报价单，且主表状态仍为「发布」(3) 或「报价中」(4)，
+    会由 `Inquiry.sync_to_quote_closed_when_no_open_quotations` 将询价单置为「报价结束」(5)。
+    """
+
     queryset = Inquiry.objects.all().prefetch_related(
         "suppliers",
         "attachments",
@@ -572,7 +580,7 @@ class InquiryViewSet(CustomModelViewSet):
             20,
         ) or None
         current_time = timezone.now()
-        quote_deadline = inquiry.quote_deadline.strftime("%Y-%m-%d %H:%M:%S") if inquiry.quote_deadline else None
+        quote_deadline = inquiry.quote_deadline
 
         inquiry_materials = list(inquiry.material_costs.all())
         inquiry_processes = list(inquiry.process_costs.all())

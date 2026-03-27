@@ -376,9 +376,20 @@ class SupplierInquiryAttachmentSerializer(serializers.ModelSerializer):
 
 
 class QuotationMasterSerializer(BusinessAuditSerializer):
-    """杂采报价单主表序列化器"""
+    """杂采报价单主表序列化器
+
+    `status`：1 待报价、2 报价中、3 已报价、4 已过期；超时由 POST `quotation_master/sync_expired/` 批量更新。
+    同步过期后，若询价单 `Inquiry` 仍为「发布」(3) 或「报价中」(4) 且该询价下已无任何待报价/报价中单，
+    则询价单会置为「报价结束」(5)，见 `Inquiry.sync_to_quote_closed_when_no_open_quotations`。
+    全部供应商名单均已正式提交报价（均为已报价）时由 `POST …/submit/` 内 `Inquiry.sync_to_quote_closed_when_all_suppliers_quoted` 收口。
+    """
 
     creattime = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S",
+        required=False,
+        allow_null=True,
+    )
+    quote_deadline = serializers.DateTimeField(
         format="%Y-%m-%d %H:%M:%S",
         required=False,
         allow_null=True,
@@ -503,7 +514,11 @@ class QuotationMasterCreateUpdateSerializer(BusinessAuditSerializer):
     contact_person = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
     contact_phone = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
     contact_email = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
-    quote_deadline = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
+    quote_deadline = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S",
+        required=False,
+        allow_null=True,
+    )
     validity_days = serializers.IntegerField(required=False, allow_null=True)
     delivery_days = serializers.IntegerField(required=False, allow_null=True)
     payment_method = serializers.IntegerField(required=False, allow_null=True)

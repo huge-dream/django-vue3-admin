@@ -22,7 +22,7 @@ export const PISSUPPLIER_ROUTES = {
 
 const baseUrl = PISSUPPLIER_ROUTES.quotation_master
 
-export type QuotationStatusCode = 1 | 2 | 3
+export type QuotationStatusCode = 1 | 2 | 3 | 4
 export type PaymentCode = 1 | 2 | 3 | 4
 
 /**
@@ -36,6 +36,10 @@ export type PaymentCode = 1 | 2 | 3 | 4
  * 成本结构须提交 material_costs、process_costs、other_costs、profit_costs（与 QuotationMasterCreateUpdateSerializer），
  * 勿使用 cost_items——后端不识别，子表不会更新。
  */
+/** 将待报价/报价中且已超过截止时间的报价单置为已过期(4)，与列表权限范围一致 */
+export const syncExpiredQuotations = () =>
+  request({ url: `${baseUrl}sync_expired/`, method: 'post', data: {} })
+
 export const getList = (params: any) => request({ url: baseUrl, method: 'get', params })
 export const getDetail = (id: string | number) => request({ url: `${baseUrl}${id}/`, method: 'get' })
 export const create = (data: any) => request({ url: baseUrl, method: 'post', data })

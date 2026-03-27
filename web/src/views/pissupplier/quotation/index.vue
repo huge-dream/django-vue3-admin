@@ -45,8 +45,8 @@
                 <el-form-item label="交易币别">
                   <el-input :model-value="current.currency" disabled />
                 </el-form-item>
-                <el-form-item label="报价截止日">
-                  <el-input :model-value="current.quoteDeadline" disabled />
+                <el-form-item label="报价截止时间">
+                  <el-input :model-value="formatQuoteDeadlineDisplay(current.quoteDeadline)" disabled />
                 </el-form-item>
                 <el-form-item label="交易厂区">
                   <el-input :model-value="current.companyShortName || current.inquiryCompanyCode || '—'" disabled />
@@ -320,8 +320,10 @@ import {
   formatAwardBidStatus,
   type InquiryAttachmentRow,
   buyingMethodDict,
-  formatBidTimeColumn
+  formatBidTimeColumn,
+  formatQuoteDeadlineDisplay
 } from './crud'
+
 
 const INQUIRY_FILE_TYPE_ORDER = [1, 2, 3] as const
 const INQUIRY_FILE_TYPE_LABELS: Record<number, string> = {
@@ -539,10 +541,10 @@ const crudOptions = {
   form: { labelWidth: '110px' },
   search: { show: true, labelWidth: '90px' },
   actionbar: { show: false },
-  table: { rowKey: 'id', size: 'small' },
+  table: { rowKey: 'id', size: 'medium' },
   rowHandle: {
     fixed: 'right',
-    width: 320,
+    width: 240,
     buttons: {
       // Hide fast-crud default actions; use custom actions below instead
       view: { show: false },
@@ -630,7 +632,7 @@ const crudOptions = {
       }
     },
     quoteDeadline: {
-      title: '报价截止日',
+      title: '报价截止时间',
       type: 'datetime',
       search: {
         show: true,
@@ -645,7 +647,7 @@ const crudOptions = {
           }
         }
       },
-      column: { width: 150 }
+      column: { width: 150, formatter: ({ value }: any) => formatQuoteDeadlineDisplay(value) }
     },
     bidStartTime: {
       title: '投标开始时间',

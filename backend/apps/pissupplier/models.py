@@ -38,7 +38,7 @@ class QuotationMaster(models.Model):
     contact_person = models.CharField( max_length=20, null=True, blank=True, verbose_name="联系人" )
     contact_phone = models.CharField( max_length=20, null=True, blank=True, verbose_name="联系人电话" )
     contact_email = models.CharField( max_length=20, null=True, blank=True, verbose_name="联系人邮件" )
-    quote_deadline = models.CharField( max_length=20, null=True, blank=True, verbose_name="报价截止时间" )
+    quote_deadline = models.DateTimeField( null=True, blank=True, verbose_name="报价截止时间" )
     validity_days = models.IntegerField( null=True, blank=True, verbose_name="有效天数" )
     delivery_days = models.IntegerField( null=True, blank=True, verbose_name="交货周期" )
     payment_method = models.IntegerField( choices=PAYMENT_METHOD_CHOICES, null=True, blank=True, verbose_name="付款方式" )
@@ -48,7 +48,12 @@ class QuotationMaster(models.Model):
         null=True,
         blank=True,
         verbose_name="状态",
-        help_text="1 待报价 2 已报价 3 已过期；置为已报价请走供应商端 POST quotation_master/{id}/submit/",
+        help_text=(
+            "1 待报价 2 报价中 3 已报价 4 已过期；"
+            "置为已报价请走 POST quotation_master/{id}/submit/；"
+            "超时批量置过期及询价单收口见 sync_expired / Inquiry.sync_to_quote_closed_when_no_open_quotations；"
+            "名单内供应商均已提交见 submit 与 Inquiry.sync_to_quote_closed_when_all_suppliers_quoted。"
+        ),
     )
     is_awarded = models.IntegerField( choices=AWARD_STATUS_CHOICES, default=0, null=True, blank=True, verbose_name="报价中标否" )
     createuser = models.CharField( max_length=20, null=True, blank=True, verbose_name="创建人员" )
