@@ -39,6 +39,11 @@ type Quote = {
   inquiryStatus: string
   /** 询价主表 `Inquiry.status`（数字），用于中标列与 status=9 判断 */
   inquiryStatusCode?: number | null
+  /** 报价主表 `QuotationMaster.buying_method`（发布时自询价单拷贝） */
+  buyingMethod?: number | null
+  /** 报价主表投标时间（询价=1 时列表/表单显示「-」） */
+  bidStartTime?: string
+  bidEndTime?: string
   template: string
   currency: string
   quoteDeadline: string
@@ -74,6 +79,33 @@ type Quote = {
 }
 
 type SummaryRow = { section: string; amount: number; isSubtotal?: boolean }
+
+/** 与杂采询价列表列展示一致 */
+export const buyingMethodDict = [
+  { value: 1, label: '询价' },
+  { value: 2, label: '招标' }
+]
+
+export function formatQuoteDeadlineDisplay(value: unknown) {
+  if (!value) return ''
+  const text = String(value).trim()
+  if (!text) return ''
+  const matched = text.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2})/)
+  if (matched) {
+    return `${matched[1]} ${matched[2]}:00`
+  }
+  const dateOnly = text.match(/^(\d{4}-\d{2}-\d{2})$/)
+  if (dateOnly) {
+    return `${dateOnly[1]} 00:00`
+  }
+  return text
+}
+
+/** 列表「投标开始/截止」列：采购方式=询价 时显示「-」 */
+export function formatBidTimeColumn(row: any, value: unknown) {
+  if (Number(row?.buyingMethod ?? row?.buying_method) === 1) return '-'
+  return formatQuoteDeadlineDisplay(value)
+}
 
 export type InquiryAttachmentRow = {
   id?: number | string
@@ -1048,6 +1080,9 @@ function blankQuote(): Quote {
     inquiryStatusCode: undefined,
     template: '',
     currency: 'CNY',
+    buyingMethod: 1,
+    bidStartTime: '',
+    bidEndTime: '',
     quoteDeadline: '',
     quoteAmount: '',
     quoteTime: '',
@@ -1072,6 +1107,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   const filters = reactive<{
     inquiryPlant: string
     isAwarded: string | number | ''
+    buyingMethod: string | number | ''
     quoteNo?: string
     inquiryCode?: string
     inquiryTitle?: string
@@ -1080,6 +1116,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   }>({
     inquiryPlant: '',
     isAwarded: '',
+    buyingMethod: '',
     quoteNo: '',
     inquiryCode: '',
     inquiryTitle: '',
@@ -1303,6 +1340,14 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       if (tpl) q.template = tpl
       if (inv.currency) q.currency = inv.currency
       if (inv.quote_deadline) q.quoteDeadline = inv.quote_deadline
+      if (q.buyingMethod == null && inv.buying_method != null && inv.buying_method !== '') {
+        const n = Number(inv.buying_method)
+        if (Number.isFinite(n)) q.buyingMethod = n
+      }
+      if (Number(q.buyingMethod) !== 1) {
+        if (!q.bidStartTime && inv.bid_start_time) q.bidStartTime = String(inv.bid_start_time).trim()
+        if (!q.bidEndTime && inv.bid_end_time) q.bidEndTime = String(inv.bid_end_time).trim()
+      }
       const cc = inv.company_code != null && inv.company_code !== '' ? String(inv.company_code).trim() : ''
       if (cc) q.inquiryCompanyCode = cc
       const invSt = inv.status ?? inv.inquiry_status
@@ -1338,6 +1383,20 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       /** 询价主表 `Inquiry.template` 存模板编号，与报价主表无该字段时需关联询价补全 */
       template: item.template || item.template_code || '',
       currency: item.currency || 'CNY',
+      buyingMethod: (() => {
+        const raw = item.buying_method ?? item.buyingMethod
+        if (raw === null || raw === undefined || raw === '') return null
+        const n = Number(raw)
+        return Number.isFinite(n) ? n : null
+      })(),
+      bidStartTime: (() => {
+        const raw = item.bid_start_time ?? item.bidStartTime
+        return raw != null && String(raw).trim() !== '' ? String(raw).trim() : ''
+      })(),
+      bidEndTime: (() => {
+        const raw = item.bid_end_time ?? item.bidEndTime
+        return raw != null && String(raw).trim() !== '' ? String(raw).trim() : ''
+      })(),
       quoteDeadline: item.quote_deadline || item.quoteDeadline || '',
       quoteAmount:
         item.quote_amount ??
@@ -1498,6 +1557,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   const resetFilter = () => {
     filters.inquiryPlant = ''
     filters.isAwarded = ''
+    filters.buyingMethod = ''
     filters.quoteNo = ''
     filters.inquiryCode = ''
     filters.inquiryTitle = ''
@@ -1521,8 +1581,21 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
           filters.isAwarded === '' || filters.isAwarded === undefined || filters.isAwarded === null
             ? true
             : Number(q.isAwarded) === Number(filters.isAwarded)
+        const matchBuying =
+          filters.buyingMethod === '' || filters.buyingMethod === undefined || filters.buyingMethod === null
+            ? true
+            : Number(q.buyingMethod) === Number(filters.buyingMethod)
         const matchDate = !start || !end || (new Date(q.quoteDeadline) >= start && new Date(q.quoteDeadline) <= end)
-        return matchQuoteNo && matchInquiryCode && matchInquiryTitle && matchCurrency && matchPlant && matchAwarded && matchDate
+        return (
+          matchQuoteNo &&
+          matchInquiryCode &&
+          matchInquiryTitle &&
+          matchCurrency &&
+          matchPlant &&
+          matchAwarded &&
+          matchBuying &&
+          matchDate
+        )
       })
   })
 
