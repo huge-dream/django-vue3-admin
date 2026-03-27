@@ -710,7 +710,7 @@ class MiscLowPriceHeader(CoreModel):
         max_length=100,
         db_column="ItemNo",
         verbose_name="项次名",
-        help_text="如：铝等项次名称",
+        help_text="根据成本类别获取询价单对应子表数据行，材料类别 - 材料成本的产品料号 part_id, 加工类别 - 加工工站 process_station",
     )
     min_price = models.CharField(
         max_length=10,

@@ -32,7 +32,13 @@ from apps.pissupplier.serializers import (
 class QuotationMasterViewSet(CustomModelViewSet):
     """杂采报价单主表管理接口"""
 
-    queryset = QuotationMaster.objects.prefetch_related("rfq_items")
+    queryset = QuotationMaster.objects.prefetch_related(
+        "rfq_items",
+        "material_costs",
+        "process_costs",
+        "other_costs",
+        "profit_costs",
+    )
     serializer_class = QuotationMasterSerializer
     create_serializer_class = QuotationMasterCreateUpdateSerializer
     update_serializer_class = QuotationMasterCreateUpdateSerializer

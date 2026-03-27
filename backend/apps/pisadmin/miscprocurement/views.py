@@ -1,3 +1,5 @@
+import logging
+from collections import defaultdict
 from decimal import Decimal
 
 from django.db import transaction
@@ -24,6 +26,9 @@ from apps.pissupplier.models import (
     QuotationProfit,
     QuotationItem,
 )
+
+logger = logging.getLogger(__name__)
+
 
 from .models import (
     MiscProcurementMaterialInfo,
@@ -82,6 +87,155 @@ def _negotiation_totals_from_quotation_item(quotation_no: str, part_id: str):
     if not item:
         return None, None
     return item.total_price_excl_tax, item.total_price_incl_tax
+
+
+def _clip_price_str(value, max_len: int = 10) -> str:
+    s = str(value).strip() if value is not None else ""
+    return s[:max_len]
+
+
+def _clip_field(value, max_len: int) -> str:
+    return str(value or "").strip()[:max_len]
+
+
+def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
+    """
+    确认比价时：按当前询价单下各供应商报价单，汇总材料/加工/包装/运输的「制程最低价」，
+    写入 MiscLowPriceHeader；材料规格下重量、单价的最小值写入 MiscLowPriceDetail（与次表设计一致）。
+    """
+    inquiry_no = (inquiry.inquiry_no or "").strip()
+    part_id = (part_id or "").strip()
+    if not inquiry_no or not part_id:
+        return
+
+    qn_active = QuotationMaster.objects.filter(inquiry_no=inquiry_no).exclude(status=4)
+    qn_list = list(qn_active.values_list("quotation_no", flat=True))
+    if not qn_list:
+        return
+
+    souce_ref = inquiry_no[:20]
+
+    MiscLowPriceHeader.objects.filter(inquiry_no=inquiry_no, part_id=part_id).delete()
+    MiscLowPriceDetail.objects.filter(inquiry_no=inquiry_no, part_id=part_id).delete()
+
+    # —— 主表：材料行（按材料规格）——
+    materials = QuotationMaterial.objects.filter(quotation_no__in=qn_list, part_id=part_id)
+    by_spec: dict[str, list] = defaultdict(list)
+    for m in materials:
+        spec = (m.material_spec or "").strip() or "材料"
+        by_spec[spec].append(m)
+
+    for spec, rows in by_spec.items():
+        costs = []
+        for r in rows:
+            if r.material_cost is not None:
+                try:
+                    costs.append(Decimal(str(r.material_cost)))
+                except Exception:
+                    continue
+        if costs:
+            MiscLowPriceHeader.objects.create(
+                inquiry_no=inquiry_no,
+                part_id=part_id,
+                souce_no=souce_ref or None,
+                cost_type="1",
+                item_no=_clip_field(spec, 100),
+                min_price=_clip_price_str(min(costs)),
+            )
+
+        weights = []
+        unit_prices = []
+        for r in rows:
+            if r.weight is not None:
+                try:
+                    weights.append(Decimal(str(r.weight)))
+                except Exception:
+                    pass
+            if r.unit_price is not None:
+                try:
+                    unit_prices.append(Decimal(str(r.unit_price)))
+                except Exception:
+                    pass
+        spec_key = _clip_field(spec, 50)
+        if weights:
+            MiscLowPriceDetail.objects.create(
+                inquiry_no=inquiry_no,
+                part_id=part_id,
+                cost_type="1",
+                material_spec=spec_key,
+                item_no="1",
+                value=_clip_price_str(min(weights)),
+                souce_no=souce_ref,
+            )
+        if unit_prices:
+            MiscLowPriceDetail.objects.create(
+                inquiry_no=inquiry_no,
+                part_id=part_id,
+                cost_type="1",
+                material_spec=spec_key,
+                item_no="2",
+                value=_clip_price_str(min(unit_prices)),
+                souce_no=souce_ref,
+            )
+
+    # —— 主表：加工（按工站）——
+    processes = QuotationProcess.objects.filter(quotation_no__in=qn_list, part_id=part_id)
+    by_station: dict[str, list] = defaultdict(list)
+    for p in processes:
+        st = (p.process_station or "").strip() or "工站"
+        by_station[st].append(p)
+
+    for station, rows in by_station.items():
+        prices = []
+        for r in rows:
+            if r.process_price is not None:
+                try:
+                    prices.append(Decimal(str(r.process_price)))
+                except Exception:
+                    continue
+        if prices:
+            MiscLowPriceHeader.objects.create(
+                inquiry_no=inquiry_no,
+                part_id=part_id,
+                souce_no=souce_ref or None,
+                cost_type="2",
+                item_no=_clip_field(station, 100),
+                min_price=_clip_price_str(min(prices)),
+            )
+
+    # —— 主表：包装费 / 运输费 ——
+    others = QuotationOther.objects.filter(quotation_no__in=qn_list, part_id=part_id)
+    pkg_vals = []
+    tr_vals = []
+    for o in others:
+        if o.packaging_cost is not None:
+            try:
+                pkg_vals.append(Decimal(str(o.packaging_cost)))
+            except Exception:
+                pass
+        if o.transportation_cost is not None:
+            try:
+                tr_vals.append(Decimal(str(o.transportation_cost)))
+            except Exception:
+                pass
+    if pkg_vals:
+        MiscLowPriceHeader.objects.create(
+            inquiry_no=inquiry_no,
+            part_id=part_id,
+            souce_no=souce_ref or None,
+            cost_type="3",
+            item_no="包装费",
+            min_price=_clip_price_str(min(pkg_vals)),
+        )
+    if tr_vals:
+        MiscLowPriceHeader.objects.create(
+            inquiry_no=inquiry_no,
+            part_id=part_id,
+            souce_no=souce_ref or None,
+            cost_type="4",
+            item_no="运输费",
+            min_price=_clip_price_str(min(tr_vals)),
+        )
 
 
 class MiscMaterialViewSet(CustomModelViewSet):
@@ -870,24 +1024,39 @@ class InquiryViewSet(CustomModelViewSet):
 
     @action(methods=["put"], detail=True)
     def confirm_negotiation(self, request, pk=None):
-        """确认议价：从比议价中进入议价确认/价格审核"""
+        """确认议价：从比议价中进入议价确认/价格审核；并写入比价-制程最低价主/次表。"""
         instance = self.get_object()
         if int(instance.status or self.STATUS_BARGaining) != self.STATUS_BARGaining:
             return ErrorResponse(msg='只有“比议价中”状态的询价单才能确认议价')
-        current_user = self._get_request_username() or None
-        current_time = timezone.now()
-        return self._save_status(
-            instance,
-            status=self.STATUS_NEGOTIATED,
-            confirm_user=getattr(instance, "confirm_user", None),
-            confirm_time=getattr(instance, "confirm_time", None),
-            release_user=getattr(instance, "release_user", None),
-            release_time=getattr(instance, "release_time", None),
-            comparison_user=getattr(instance, "comparison_user", None),
-            comparison_time=getattr(instance, "comparison_time", None),
-            operation_type=8,
-            operation_desc="议价审核提交（进入价格审核）",
-        )
+        part_id = (request.data.get("part_id") or request.query_params.get("part_id") or "").strip()
+        if not part_id:
+            first = InquiryRfqItem.objects.filter(inquiry_no=instance).order_by("id").first()
+            if first:
+                part_id = (first.part_id or "").strip()
+        try:
+            with transaction.atomic():
+                if part_id:
+                    _sync_misc_low_price_records(instance, part_id)
+                else:
+                    logger.warning(
+                        "confirm_negotiation: 缺少 part_id，跳过制程最低价落库 inquiry_no=%s",
+                        instance.inquiry_no,
+                    )
+                return self._save_status(
+                    instance,
+                    status=self.STATUS_NEGOTIATED,
+                    confirm_user=getattr(instance, "confirm_user", None),
+                    confirm_time=getattr(instance, "confirm_time", None),
+                    release_user=getattr(instance, "release_user", None),
+                    release_time=getattr(instance, "release_time", None),
+                    comparison_user=getattr(instance, "comparison_user", None),
+                    comparison_time=getattr(instance, "comparison_time", None),
+                    operation_type=8,
+                    operation_desc="议价审核提交（进入价格审核）",
+                )
+        except Exception as exc:
+            logger.exception("confirm_negotiation 写入制程最低价失败")
+            return ErrorResponse(msg=f"确认比价失败：{exc}")
 
     @action(methods=["put"], detail=True)
     def submit_price_audit(self, request, pk=None):
