@@ -15,6 +15,11 @@ const statusDict = [
   { value: 0, label: '作废' }
 ]
 
+const buyingMethodDict = [
+  { value: 1, label: '询价' },
+  { value: 2, label: '招标' }
+]
+
 const paymentMethods = [
   { value: 1, label: '月结30天' },
   { value: 2, label: '月结60天' },
@@ -59,8 +64,12 @@ type ExtraHooks = {
   onAdd?: () => void
   onEdit?: (row: any) => void
   onView?: (row: any) => void
+  /** 打开比价/议价弹窗（比议价中、价格审核、核价通过）；保存时按报价单写入杂采议价记录（议价前总价快照等） */
+  onComparison?: (row: any) => void
   /** 列表多选变化（用于后续多询价单比价等） */
   onTableSelectionChange?: (rows: any[]) => void
+  /** 与勾选列同步：由页面 ref 维护当前选中行，工具栏按钮据此取行（fast-crud 的 tableRef 往往拿不到 selection） */
+  getTableSelection?: () => any[]
 }
 
 const STATUS_OPEN = 1
@@ -97,6 +106,10 @@ const getRowStatus = (row: any) => Number(row?.status)
 const isOpenStatus = (row: any) => getRowStatus(row) === STATUS_OPEN
 const isConfirmedStatus = (row: any) => getRowStatus(row) === STATUS_CONFIRMED
 const canPublishStatus = (row: any) => isConfirmedStatus(row)
+/** 报价中(4)、报价结束(5) 可开启比价 */
+const isQuotingOrEndedStatus = (row: any) => [4, 5].includes(getRowStatus(row))
+/** 比议价中(6)、价格审核(7)、核价通过(8) 可打开比价窗口 */
+const canOpenComparison = (row: any) => [6, 7, 8].includes(getRowStatus(row))
 const getErrorMessage = (err: any, fallback: string) => formatRfqApiErrorMessage(err, fallback)
 
 /** 列表行含 `suppliers` 时可先做提示；未返回嵌套时交由接口校验 */
@@ -106,12 +119,12 @@ const rowHasSuppliersList = (row: any): boolean | null => {
   return list.length > 0
 }
 
-/** 成本模板版本号两位展示（与 pricetemplate 一致） */
-export const formatCostTemplateVersionTwoDigits = (v: unknown) => {
-  if (v == null || v === '') return '00'
+/** 成本模板版本号展示（不做位数补零） */
+export const formatCostTemplateVersion = (v: unknown) => {
+  if (v == null || v === '') return ''
   const n = Number(v)
-  if (!Number.isFinite(n)) return String(v)
-  return String(Math.trunc(n)).padStart(2, '0')
+  if (!Number.isFinite(n)) return String(v).trim()
+  return String(Math.trunc(n))
 }
 
 export const createCrudOptions = function ({
@@ -120,27 +133,23 @@ export const createCrudOptions = function ({
   onAdd,
   onEdit,
   onView,
-  onTableSelectionChange
+  onComparison,
+  onTableSelectionChange,
+  getTableSelection
 }: Partial<CreateCrudOptionsProps> & ExtraHooks): CreateCrudOptionsRet {
   void context
 
-  const normalizeSelection = (raw: unknown): any[] => {
-    if (Array.isArray(raw)) return raw
-    if (raw != null && typeof raw === 'object') return [raw as any]
-    return []
-  }
-
   const getSelectedRows = () => {
     if (typeof getTableSelection === 'function') {
-      const rows = normalizeSelection(getTableSelection())
-      if (rows.length > 0) return rows
+      const rows = getTableSelection()
+      if (Array.isArray(rows) && rows.length > 0) return rows
     }
     const expose = crudExpose as any
     // Element Plus：当前勾选行（与列表第一列选择列一致）
     const baseTable = expose?.getBaseTableRef?.()
     if (baseTable?.getSelectionRows) {
-      const fromEl = normalizeSelection(baseTable.getSelectionRows())
-      if (fromEl.length) return fromEl
+      const fromEl = baseTable.getSelectionRows()
+      if (Array.isArray(fromEl) && fromEl.length) return fromEl
     }
     const tableRef: any = expose?.getTableRef?.() || expose?.tableRef
     const selection =
@@ -149,20 +158,20 @@ export const createCrudOptions = function ({
       tableRef?.getSelections?.() ||
       tableRef?.getSelected?.() ||
       []
-    return normalizeSelection(selection)
-  }
+      if (Array.isArray(selection)) return selection
+      return []  }
 
   /** 工具栏批量操作：取当前勾选的全部行（与列表选择列一致） */
-  const pickSelectedRows = (): any[] | null => {
+  const pickSelectedRow = (): any | null => {
     const rows = getSelectedRows()
     if (!rows.length) {
       ElMessage.warning('请先选择询价单')
       return null
     }
-    // if (rows.length > 1) {
-    //   ElMessage.warning('仅支持单条操作')
-    //   return null
-    // }
+    if (rows.length > 1) {
+      ElMessage.warning('仅支持单条操作')
+      return null
+    }
     return rows[0]
   }
 
@@ -208,12 +217,39 @@ export const createCrudOptions = function ({
             click() {
               onAdd && onAdd()
             }
-          }
+          },
+          startBargaining: {
+            show: true,
+            text: '开启比价',
+            order: 2,
+            type: 'warning',
+            async click() {
+              const row = pickSelectedRow()
+              if (!row) return
+              if (!isQuotingOrEndedStatus(row)) {
+                ElMessage.warning('仅报价中或报价结束状态可开启比价')
+                return
+              }
+              try {
+                await ElMessageBox.confirm('确认将状态改为【比议价中】？', '提示', {
+                  type: 'warning',
+                  confirmButtonText: '确定',
+                  cancelButtonText: '取消'
+                })
+                await api.StartBargainingObj(row.id)
+                onComparison && onComparison(row)
+                crudExpose?.doRefresh?.()
+              } catch (err: any) {
+                if (err === 'cancel' || err === 'close') return
+                ElMessage.error(getErrorMessage(err, '开启比价失败'))
+              }
+            }
+          },
         }
       },
       rowHandle: {
         fixed: 'right',
-        width: 420,
+        width: 500,
         buttons: {
           view: { show: false },
           edit: { show: false },
@@ -321,6 +357,17 @@ export const createCrudOptions = function ({
                 throw err
               }
             }
+          },
+          viewComparison: {
+            text: '比价',
+            type: compute(({ row }) => (canOpenComparison(row) ? 'primary' : 'info')),
+            order: 0.25,
+            show: true,
+            disabled: compute(({ row }) => !canOpenComparison(row)),
+            click({ row }) {
+              if (!canOpenComparison(row)) return
+              onComparison && onComparison(row)
+            }
           }
         }
       },
@@ -337,7 +384,7 @@ export const createCrudOptions = function ({
             columnSetDisabled: true
           }
         },
-company_short_name: {
+        company_short_name: {
           title: '交易厂区',
           type: 'text',
           form: { show: false },
@@ -351,6 +398,25 @@ company_short_name: {
             }
           }
         },
+        buying_method: {
+          title: '采购方式',
+          type: 'dict-select',
+          dict: dict({ data: buyingMethodDict }),
+          search: {
+            show: true,
+            component: { props: { placeholder: '采购方式', clearable: true } }
+          },
+          form: { show: false },
+          column: {
+            width: 100,
+            formatter: ({ row, value }: { row: any; value: unknown }) => {
+              const v = value ?? row?.buying_method
+              const n = Number(v)
+              if (!Number.isFinite(n)) return v != null && v !== '' ? String(v) : ''
+              return buyingMethodDict.find((d) => d.value === n)?.label ?? String(v)
+            }
+          }
+        },
         inquiry_no: {
           title: '询价单号',
           type: 'input',
@@ -361,7 +427,7 @@ company_short_name: {
           form: {
             show: false
           },
-          column: { minWidth: 140 }
+          column: { minWidth: 120, showOverflowTooltip: true }
         },
         title: {
           title: '询价单名称',
@@ -377,13 +443,13 @@ company_short_name: {
           title: '询价模版',
           type: 'input',
           column: {
-            minWidth: 180,
+            minWidth: 120,
             showOverflowTooltip: true,
             formatter: ({ row, value }: { row: any; value: unknown }) => {
               const code = String(value ?? row?.template ?? row?.template_code ?? '').trim()
               const verRaw = row?.template_version ?? row?.templateVersion ?? row?.cost_template_version
               if (!code) return ''
-              if (verRaw != null && verRaw !== '') return `${code}（V${formatCostTemplateVersionTwoDigits(verRaw)}）`
+              if (verRaw != null && verRaw !== '') return `${code}（V${formatCostTemplateVersion(verRaw)}）`
               return code
             }
           }
@@ -392,8 +458,26 @@ company_short_name: {
           title: '报价截止时',
           type: 'datetime',
           column: {
-            width: 160,
+            width: 150,
             formatter: ({ value }: { value: unknown }) => formatQuoteDeadlineDisplay(value)
+          }
+        },
+        bid_start_time: {
+          title: '投标开始时间',
+          type: 'datetime',
+          column: {
+            width: 150,
+            formatter: ({ row, value }: { row: any; value: unknown }) =>
+              Number(row?.buying_method) === 1 ? '-' : formatQuoteDeadlineDisplay(value)
+          }
+        },
+        bid_end_time: {
+          title: '投标截止时间',
+          type: 'datetime',
+          column: {
+            width: 150,
+            formatter: ({ row, value }: { row: any; value: unknown }) =>
+              Number(row?.buying_method) === 1 ? '-' : formatQuoteDeadlineDisplay(value)
           }
         },
         buyer: {

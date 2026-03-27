@@ -7,7 +7,7 @@ from rest_framework.decorators import action
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse
 from dvadmin.utils.viewset import CustomModelViewSet
 
-from apps.pisadmin.miscprocurement.models import Inquiry
+from apps.pisadmin.miscprocurement.models import Inquiry, RFQOperationLogs
 from apps.pissupplier.models import (
     QuotationMaster,
     QuotationAttachment,
@@ -84,7 +84,12 @@ class QuotationMasterViewSet(CustomModelViewSet):
         return super().partial_update(request, *args, **kwargs)
 
     @staticmethod
-    def _sync_inquiry_when_quotation_quoting(inquiry_no: str, *, actor_username: Optional[str] = None):
+    def _sync_inquiry_when_quotation_quoting(
+        inquiry_no: str,
+        *,
+        actor_username: Optional[str] = None,
+        quotation_no: Optional[str] = None,
+    ):
         """
         任意报价单进入「报价中」(status=2) 时，若询价单仍为「发布」(3)，同步为「报价中」(4)。
         已进入报价中(4) 的询价单无需再改；不回退报价结束及之后状态。
@@ -95,6 +100,7 @@ class QuotationMasterViewSet(CustomModelViewSet):
         inq = Inquiry.objects.filter(inquiry_no=inq_no, status=3).first()
         if not inq:
             return
+        old_status = int(inq.status if inq.status is not None else 0)
         now = timezone.now()
         update_user = (str(actor_username).strip()[:20] if actor_username else None) or None
         inq.status = 4
@@ -103,6 +109,16 @@ class QuotationMasterViewSet(CustomModelViewSet):
         if update_user:
             inq.update_user = update_user
         inq.save(update_fields=["status", "update_time", "update_user", "update_datetime"])
+        RFQOperationLogs.try_append(
+            inquiry_no=inq.inquiry_no,
+            purchase_type=int(inq.purchase_type),
+            operation_type=6,
+            operation_user=update_user,
+            quotation_no=(quotation_no or "-")[:20],
+            per_status=old_status,
+            cur_status=4,
+            operation_desc="供应商进入报价中，询价单同步为报价中",
+        )
 
     @action(methods=["post"], detail=True, url_path="quote")
     def quote(self, request, pk=None):
@@ -117,7 +133,11 @@ class QuotationMasterViewSet(CustomModelViewSet):
             instance.quoteuser = username
         with transaction.atomic():
             instance.save(update_fields=["status", "quotetime", "quoteuser"])
-            self._sync_inquiry_when_quotation_quoting(instance.inquiry_no, actor_username=username)
+            self._sync_inquiry_when_quotation_quoting(
+                instance.inquiry_no,
+                actor_username=username,
+                quotation_no=getattr(instance, "quotation_no", None),
+            )
         serializer = self.get_serializer(instance)
         return DetailResponse(data=serializer.data, msg="报价中状态更新成功")
 

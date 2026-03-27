@@ -80,6 +80,38 @@
                 </el-select>
               </div>
             </el-form-item>
+            <!-- <el-form-item label="采购方式">
+              <el-select v-model="form.buying_method" placeholder="采购方式" clearable>
+                <el-option :value="1" label="询价" />
+                <el-option :value="2" label="招标" />
+              </el-select>
+            </el-form-item>
+            <el-form-item label="投标开始时间">
+              <template v-if="isInquiryBuyingMethod">
+                <span class="bid-time-placeholder">-</span>
+              </template>
+              <el-date-picker
+                v-else
+                v-model="form.bid_start_time"
+                type="datetime"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                placeholder="选择投标开始时间"
+                style="width: 100%"
+              />
+            </el-form-item>
+            <el-form-item label="投标截止时间">
+              <template v-if="isInquiryBuyingMethod">
+                <span class="bid-time-placeholder">-</span>
+              </template>
+              <el-date-picker
+                v-else
+                v-model="form.bid_end_time"
+                type="datetime"
+                value-format="YYYY-MM-DD HH:mm:ss"
+                placeholder="选择投标截止时间"
+                style="width: 100%"
+              />
+            </el-form-item> -->
             <el-form-item label="是否成本结构">
               <el-switch
                 v-model="form.is_bom"
@@ -390,17 +422,145 @@
         <el-button v-if="!isViewMode" type="primary" @click="saveForm">保存</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="comparisonDialog.visible" :title="comparisonDialog.title" width="1200px">
+      <div class="compare-body" v-loading="comparisonDialog.loading">
+        <div class="compare-info">
+          <div class="info-item"><span class="label">询价单号</span><span class="value">{{ comparisonDialog.baseInfo.code || '-' }}</span></div>
+          <div class="info-item"><span class="label">采购件料号</span><span class="value">{{ comparisonDialog.baseInfo.partNo || '-' }}</span></div>
+          <div class="info-item"><span class="label">采购件名称</span><span class="value">{{ comparisonDialog.baseInfo.partName || '-' }}</span></div>
+          <div class="info-item"><span class="label">目标价格</span><span class="value">{{ comparisonDialog.baseInfo.targetPrice || '-' }}</span></div>
+          <div class="info-item"><span class="label">交易币别</span><span class="value">{{ comparisonDialog.baseInfo.currency || '-' }}</span></div>
+          <div class="info-item"><span class="label">税率</span><span class="value">{{ comparisonDialog.baseInfo.taxRate || '-' }}</span></div>
+          <div class="info-item"><span class="label">当前成交价</span><span class="value">{{ comparisonDialog.baseInfo.dealPrice || '-' }}</span></div>
+          <div class="info-item"><span class="label">制程最低价</span><span class="value">{{ comparisonDialog.baseInfo.lowestProcessPrice || '-' }}</span></div>
+        </div>
+
+        <el-table
+          :key="compareTableRenderKey"
+          ref="compareTableRef"
+          :data="comparisonDialog.rows"
+          border
+          size="small"
+          class="compare-table"
+          :row-key="comparisonRowKeyFn"
+          :row-class-name="comparisonRowClassName"
+          @expand-change="handleComparisonExpandChange"
+        >
+          <el-table-column type="expand" width="1" class-name="hidden-expand" header-class-name="hidden-expand">
+            <template #default="{ row }">
+              <div class="compare-detail">
+                <el-table
+                  v-if="row.details && row.details.length"
+                  :data="row.details"
+                  size="small"
+                  border
+                  class="compare-detail-table"
+                >
+                  <el-table-column :label="detailHeaderLabel(row)" prop="label" min-width="140" />
+                  <el-table-column
+                    v-for="sup in comparisonDialog.suppliers"
+                    :key="sup.name"
+                    :prop="`values.${sup.name}`"
+                    :label="sup.name"
+                    min-width="140"
+                  >
+                    <template #default="{ row: detail }">
+                      <span :class="['compare-value', detail.min === detail.values[sup.name] ? 'is-min' : '']">
+                        {{ detail.values[sup.name] ?? '-' }}
+                      </span>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="avg" label="平均价" width="120">
+                    <template #default="{ row: detail }">{{ formatCompareAvg(detail.avg) }}</template>
+                  </el-table-column>
+                  <el-table-column prop="min" label="制程最低价" width="120">
+                    <template #default="{ row: detail }">{{ detail.min !== undefined ? detail.min : '-' }}</template>
+                  </el-table-column>
+                </el-table>
+                <div v-else class="no-detail">暂无明细</div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="label" label="成本结构" fixed="left" min-width="160">
+            <template #default="{ row }">
+              <span v-if="row.details && row.details.length" class="expand-toggle" @click.stop="toggleCompareExpand(row)">
+                {{ expandedRowKeys.includes(comparisonRowKeyFn(row)) ? '－' : '＋' }}
+              </span>
+              <span>{{ row.label }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column
+            v-for="sup in comparisonDialog.suppliers"
+            :key="sup.name"
+            :prop="`values.${sup.name}`"
+            :label="sup.name"
+            min-width="140"
+          >
+            <template #default="{ row }">
+              <template v-if="row.key === 'bargain'">
+                <el-input v-model="row.values[sup.name]" size="small" placeholder="请输入议价价" />
+              </template>
+              <template v-else-if="row.key === 'award'">
+                <el-switch
+                  :model-value="row.values[sup.name] === '是'"
+                  @update:model-value="(val: boolean) => toggleComparisonAward(row, sup.name, val)"
+                  active-text="是"
+                  inactive-text="否"
+                />
+              </template>
+              <template v-else>
+                <span :class="['compare-value', row.min === row.values[sup.name] ? 'is-min' : '']">
+                  {{ row.values[sup.name] ?? '-' }}
+                </span>
+              </template>
+            </template>
+          </el-table-column>
+          <el-table-column prop="avg" label="平均价" width="120">
+            <template #default="{ row }">{{ row.key === 'bargain' ? '-' : formatCompareAvg(row.avg) }}</template>
+          </el-table-column>
+          <el-table-column prop="min" label="制程最低价" width="120">
+            <template #default="{ row }">{{ row.key === 'bargain' ? '-' : row.min !== undefined ? row.min : '-' }}</template>
+          </el-table-column>
+        </el-table>
+      </div>
+      <template #footer>
+        <el-button @click="onSaveComparisonDraft" :loading="comparisonDialog.loading">暂存</el-button>
+        <el-button
+          type="success"
+          @click="onConfirmComparison"
+          :loading="comparisonDialog.loading"
+          :disabled="![4, 5, 6].includes(comparisonInquiryStatus)"
+        >
+          确认比价
+        </el-button>
+        <el-button
+          type="primary"
+          @click="onSubmitComparisonReview"
+          :loading="comparisonDialog.loading"
+          :disabled="comparisonInquiryStatus !== 7"
+        >
+          提交核价
+        </el-button>
+        <el-button @click="comparisonDialog.visible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </fs-page>
 </template>
 
 <script setup lang="ts" name="InquiryManagement">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useCrud, useExpose } from '@fast-crud/fast-crud'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  getList as getQuotationList,
+  getDetail as getQuotationDetail,
+  update as updateQuotation
+} from '../../../pissupplier/quotation/api'
 import {
   createCrudOptions,
   normalizeDict,
-  formatCostTemplateVersionTwoDigits,
+  formatCostTemplateVersion,
   formatRfqApiErrorMessage
 } from './crud'
 import * as api from './api'
@@ -527,7 +687,7 @@ const templateOptions = computed(() =>
     const no = t.template_no || ''
     const v =
       t.version != null && t.version !== ''
-        ? formatCostTemplateVersionTwoDigits(t.version)
+        ? formatCostTemplateVersion(t.version)
         : ''
     const label = no
       ? v
@@ -919,6 +1079,7 @@ const sectionAddConfig = ref<Record<string, boolean>>({})
 
 const dialog = reactive({ visible: false, mode: 'create' as 'create' | 'edit' | 'view', currentId: null as number | null })
 const isViewMode = computed(() => dialog.mode === 'view')
+
 const dialogTitle = computed(() => {
   if (dialog.mode === 'create') return '新增询价单'
   if (dialog.mode === 'view') return '查看询价单'
@@ -963,6 +1124,9 @@ const emptyForm = () => ({
   part_name: '',
   part_unit: '',
   quote_deadline: '',
+  buying_method: 1,
+  bid_start_time: '',
+  bid_end_time: '',
   purchase_qty: 0,
   buyer: '',
   currency: 'CNY',
@@ -977,6 +1141,18 @@ const emptyForm = () => ({
 })
 
 const form = reactive(emptyForm())
+
+const isInquiryBuyingMethod = computed(() => Number(form.buying_method) === 1)
+
+watch(
+  () => form.buying_method,
+  (v) => {
+    if (Number(v) === 1) {
+      form.bid_start_time = ''
+      form.bid_end_time = ''
+    }
+  }
+)
 
 const toNumberOrZero = (val: any) => {
   if (val === null || val === undefined || val === '') return 0
@@ -1005,6 +1181,29 @@ const normalizeQuoteDeadline = (value: unknown) => {
     if (matched) {
       return `${matched[1]} ${matched[2] || '00'}:00:00`
     }
+  }
+  return ''
+}
+
+const formatDateTimeFull = (value: Date) =>
+  `${value.getFullYear()}-${padTwoDigits(value.getMonth() + 1)}-${padTwoDigits(value.getDate())} ${padTwoDigits(value.getHours())}:${padTwoDigits(value.getMinutes())}:${padTwoDigits(value.getSeconds())}`
+
+/** 投标时间：保留时分秒，与 `el-date-picker` datetime 的 `YYYY-MM-DD HH:mm:ss` 一致 */
+const normalizeDateTime = (value: unknown) => {
+  if (!value) return ''
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? '' : formatDateTimeFull(value)
+  }
+  if (typeof value === 'string') {
+    const text = value.trim()
+    if (!text) return ''
+    const fullMatch = text.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?/)
+    if (fullMatch) {
+      const sec = fullMatch[4] ?? '00'
+      return `${fullMatch[1]} ${fullMatch[2]}:${fullMatch[3]}:${sec}`
+    }
+    const parsed = new Date(text.includes('T') ? text : text.replace(' ', 'T'))
+    if (!Number.isNaN(parsed.getTime())) return formatDateTimeFull(parsed)
   }
   return ''
 }
@@ -1404,6 +1603,8 @@ const openDetail = async (row: any, mode: 'edit' | 'view') => {
     detail = row
   }
   const rfqItem = Array.isArray(detail?.rfq_items) && detail.rfq_items.length ? detail.rfq_items[0] : null
+  const detailBuyingMethod =
+    detail?.buying_method != null && detail?.buying_method !== '' ? Number(detail.buying_method) : 1
   const mappedDetail = {
     ...detail,
     plant: detail?.plant || detail?.company_code || '',
@@ -1413,6 +1614,11 @@ const openDetail = async (row: any, mode: 'edit' | 'view') => {
     part_name: detail?.part_name || rfqItem?.product_name || '',
     part_unit: detail?.part_unit || rfqItem?.unit || '',
     quote_deadline: normalizeQuoteDeadline(detail?.quote_deadline),
+    buying_method: Number.isFinite(detailBuyingMethod) ? detailBuyingMethod : 1,
+    bid_start_time:
+      Number(detailBuyingMethod) === 1 ? '' : normalizeDateTime(detail?.bid_start_time),
+    bid_end_time:
+      Number(detailBuyingMethod) === 1 ? '' : normalizeDateTime(detail?.bid_end_time),
     purchase_qty: detail?.purchase_qty ?? rfqItem?.qty ?? 0,
     target_price: detail?.target_price ?? detail?.inquiry_price ?? rfqItem?.unit_price ?? 0
   }
@@ -1538,6 +1744,637 @@ const openDetail = async (row: any, mode: 'edit' | 'view') => {
 
 const openEdit = (row: any) => openDetail(row, 'edit')
 const openView = (row: any) => openDetail(row, 'view')
+
+type ComparisonDetailRow = { label: string; values: Record<string, any>; avg?: number; min?: number }
+type ComparisonRow = ComparisonDetailRow & { key: string; details?: ComparisonDetailRow[] }
+
+const compareTableRef = ref()
+/** el-table 内 el-input 在异步合并 values 后常不重绘，递增 key 强制刷新 */
+const compareTableRenderKey = ref(0)
+const expandedRowKeys = ref<string[]>([])
+
+const comparisonDialog = reactive({
+  visible: false,
+  loading: false,
+  title: '',
+  currentRow: null as any,
+  quotes: [] as any[],
+  baseInfo: {
+    code: '',
+    partNo: '',
+    partName: '',
+    targetPrice: '',
+    currency: '',
+    taxRate: '',
+    dealPrice: '',
+    lowestProcessPrice: ''
+  },
+  suppliers: [] as { name: string; code: string }[],
+  rows: [] as ComparisonRow[]
+})
+
+const comparisonInquiryStatus = computed(() => Number(comparisonDialog.currentRow?.status))
+
+const formatCompareAvg = (v: unknown) => {
+  if (v === undefined || v === null) return '-'
+  const n = Number(v)
+  if (Number.isFinite(n)) return n.toFixed(2)
+  return String(v)
+}
+
+const extractQuotationList = (res: any): any[] => {
+  const raw = res?.data?.results ?? res?.data?.data?.results ?? res?.data?.list ?? res?.data
+  return Array.isArray(raw) ? raw : []
+}
+
+const unwrapQuotationDetail = (res: any) => {
+  const d = res?.data
+  if (d && typeof d === 'object' && d.data != null) return d.data
+  return d
+}
+
+const quotationSupplierKey = (quote: any, idx: number) =>
+  quote?.supplier_name ||
+  quote?.supplierName ||
+  quote?.supplier_code ||
+  quote?.supplierCode ||
+  quote?.autoid ||
+  quote?.id ||
+  `sup-${idx}`
+
+/** 比价弹窗：与杂采议价记录表 part_id 对齐 */
+const resolveComparisonPartId = (row: any, quotes: any[]) => {
+  const fromRow = String(row?.part_no || '').trim()
+  if (fromRow) return fromRow
+  const q0 = quotes[0]
+  const fromRfq = String(q0?.rfq_items?.[0]?.part_id || '').trim()
+  if (fromRfq) return fromRfq
+  return String(q0?.part_no || q0?.part_id || '').trim()
+}
+
+/** 议价金额回显：保留接口字符串精度，避免 Number 化丢小数位 */
+const formatBargainDisplayValue = (bp: any): string => {
+  if (bp === null || bp === undefined || bp === '') return ''
+  if (typeof bp === 'string') {
+    const t = bp.trim()
+    return t
+  }
+  const n = Number(bp)
+  if (Number.isFinite(n)) return String(n)
+  return String(bp)
+}
+
+const hasBargainPrice = (bp: any): boolean => {
+  if (bp === null || bp === undefined || bp === '') return false
+  if (typeof bp === 'number') return Number.isFinite(bp)
+  const n = Number(bp)
+  return Number.isFinite(n) || (typeof bp === 'string' && bp.trim() !== '')
+}
+
+const mergeNegotiationIntoComparisonRows = (
+  rows: ComparisonRow[],
+  quotes: any[],
+  negList: any[]
+) => {
+  if (!Array.isArray(negList) || !negList.length) return
+  const byQuotationNo = new Map<string, any>()
+  const byCode = new Map<string, any>()
+  negList.forEach((r) => {
+    const qn = String(r.quotation_no || '').trim()
+    const c = String(r.supplier_code || '').trim()
+    if (qn) byQuotationNo.set(qn, r)
+    if (c) byCode.set(c, r)
+  })
+  const bargainRow = rows.find((r) => r.key === 'bargain')
+  const awardRow = rows.find((r) => r.key === 'award')
+  const keys = quotes.map((q, idx) => quotationSupplierKey(q, idx))
+  const bargainNext = bargainRow?.values ? { ...bargainRow.values } : {}
+  const awardNext = awardRow?.values ? { ...awardRow.values } : {}
+  quotes.forEach((quote, idx) => {
+    const qn = String(quote.quotation_no || quote.quotationNo || '').trim()
+    const code = String(quote.supplier_code || quote.supplierCode || '').trim()
+    const rec = (qn && byQuotationNo.get(qn)) || (code ? byCode.get(code) : null)
+    if (!rec) return
+    const name = keys[idx]
+    const bp = rec.bargaining_price
+    bargainNext[name] = hasBargainPrice(bp) ? formatBargainDisplayValue(bp) : ''
+    awardNext[name] = Number(rec.is_awarded) === 1 ? '是' : '否'
+  })
+  if (bargainRow) bargainRow.values = bargainNext
+  if (awardRow) awardRow.values = awardNext
+}
+
+/** 合并议价数据后整体替换行引用，避免 el-table 单元格内 el-input 不随异步赋值更新 */
+const applyComparisonRowsAfterNegotiationMerge = async (rows: ComparisonRow[]) => {
+  comparisonDialog.rows = rows.map((r) => ({ ...r, values: { ...r.values } }))
+  await nextTick()
+  compareTableRenderKey.value += 1
+}
+
+const calcCompareStats = (values: Record<string, any>) => {
+  const nums = Object.values(values || {})
+    .map((v: any) => Number(v))
+    .filter((v): v is number => Number.isFinite(v))
+  if (!nums.length) return { avg: undefined as number | undefined, min: undefined as number | undefined }
+  return {
+    avg: nums.reduce((a, b) => a + b, 0) / nums.length,
+    min: Math.min(...nums)
+  }
+}
+
+const sumMaterialCost = (q: any): number | null => {
+  const rows = q.material_costs || []
+  let s = 0
+  let ok = false
+  for (const r of rows) {
+    const n = Number(r.material_cost)
+    if (Number.isFinite(n)) {
+      s += n
+      ok = true
+    }
+  }
+  if (ok) return s
+  let s2 = 0
+  let ok2 = false
+  for (const it of q.rfq_items || []) {
+    const n = Number(it.total_material_cost)
+    if (Number.isFinite(n)) {
+      s2 += n
+      ok2 = true
+    }
+  }
+  return ok2 ? s2 : null
+}
+
+const sumProcessCost = (q: any): number | null => {
+  let s = 0
+  let ok = false
+  for (const r of q.process_costs || []) {
+    const n = Number(r.process_price)
+    if (Number.isFinite(n)) {
+      s += n
+      ok = true
+    }
+  }
+  if (ok) return s
+  let s2 = 0
+  let ok2 = false
+  for (const it of q.rfq_items || []) {
+    const n = Number(it.total_processing_cost)
+    if (Number.isFinite(n)) {
+      s2 += n
+      ok2 = true
+    }
+  }
+  return ok2 ? s2 : null
+}
+
+const sumOtherCost = (q: any): number | null => {
+  let s = 0
+  let ok = false
+  for (const r of q.other_costs || []) {
+    const a = Number(r.packaging_cost)
+    const b = Number(r.transportation_cost)
+    if (Number.isFinite(a)) {
+      s += a
+      ok = true
+    }
+    if (Number.isFinite(b)) {
+      s += b
+      ok = true
+    }
+  }
+  if (ok) return s
+  let s2 = 0
+  let ok2 = false
+  for (const it of q.rfq_items || []) {
+    const n = Number(it.total_other_expense)
+    if (Number.isFinite(n)) {
+      s2 += n
+      ok2 = true
+    }
+  }
+  return ok2 ? s2 : null
+}
+
+const sumRfqField = (q: any, field: string): number | null => {
+  let s = 0
+  let ok = false
+  for (const it of q.rfq_items || []) {
+    const n = Number(it[field])
+    if (Number.isFinite(n)) {
+      s += n
+      ok = true
+    }
+  }
+  return ok ? s : null
+}
+
+const firstRfqField = (q: any, field: string) => {
+  const it = (q.rfq_items || [])[0]
+  if (!it) return undefined
+  const v = it[field]
+  return v !== undefined && v !== null && v !== '' ? v : undefined
+}
+
+const buildMaterialProcessOtherDetails = (quotes: any[], supplierKeys: string[], kind: 'material' | 'process' | 'other') => {
+  const map = new Map<string, ComparisonDetailRow>()
+  quotes.forEach((q, idx) => {
+    const sup = supplierKeys[idx]
+    if (kind === 'material') {
+      for (const r of q.material_costs || []) {
+        const label = String(r.material_spec || r.part_id || '材料').trim() || '材料'
+        if (!map.has(label)) map.set(label, { label, values: {} })
+        const n = Number(r.material_cost)
+        map.get(label)!.values[sup] = Number.isFinite(n) ? n : (r.material_cost ?? '-')
+      }
+    } else if (kind === 'process') {
+      for (const r of q.process_costs || []) {
+        const label = String(r.process_station || '工站').trim() || '工站'
+        if (!map.has(label)) map.set(label, { label, values: {} })
+        const n = Number(r.process_price)
+        map.get(label)!.values[sup] = Number.isFinite(n) ? n : (r.process_price ?? '-')
+      }
+    } else {
+      for (const r of q.other_costs || []) {
+        const pkg = r.packaging_cost
+        const tr = r.transportation_cost
+        if (pkg !== undefined && pkg !== null && pkg !== '') {
+          const label = '包装费'
+          if (!map.has(label)) map.set(label, { label, values: {} })
+          const n = Number(pkg)
+          map.get(label)!.values[sup] = Number.isFinite(n) ? n : pkg
+        }
+        if (tr !== undefined && tr !== null && tr !== '') {
+          const label = '运输费'
+          if (!map.has(label)) map.set(label, { label, values: {} })
+          const n = Number(tr)
+          map.get(label)!.values[sup] = Number.isFinite(n) ? n : tr
+        }
+      }
+    }
+  })
+  return Array.from(map.values()).map((d) => ({
+    ...d,
+    ...calcCompareStats(d.values)
+  }))
+}
+
+const buildComparisonRowsFromPisQuotes = (quotes: any[]) => {
+  const supplierKeys = quotes.map((q, idx) => quotationSupplierKey(q, idx))
+  const rows: ComparisonRow[] = []
+
+  const pushRow = (key: string, label: string, getter: (q: any) => number | null | undefined) => {
+    const values: Record<string, any> = {}
+    supplierKeys.forEach((name, idx) => {
+      const v = getter(quotes[idx])
+      values[name] = v != null && Number.isFinite(Number(v)) ? Number(v) : v ?? '-'
+    })
+    rows.push({ key, label, values, ...calcCompareStats(values) })
+  }
+
+  pushRow('material', '材料成本', (q) => sumMaterialCost(q))
+  pushRow('process', '加工成本', (q) => sumProcessCost(q))
+  pushRow('other', '其它成本', (q) => sumOtherCost(q))
+  pushRow('overhead', '管销研费用', (q) => sumRfqField(q, 'total_opex_amt'))
+
+  const profitValues: Record<string, any> = {}
+  supplierKeys.forEach((name, idx) => {
+    profitValues[name] = firstRfqField(quotes[idx], 'profit_rate') ?? '-'
+  })
+  rows.push({ key: 'profit', label: '利润', values: profitValues, ...calcCompareStats(profitValues) })
+
+  const taxValues: Record<string, any> = {}
+  supplierKeys.forEach((name, idx) => {
+    const q = quotes[idx]
+    const fromItem = firstRfqField(q, 'tax_rate')
+    const fromProfit = (q.profit_costs || [])[0]?.tax_rate
+    taxValues[name] = fromItem ?? fromProfit ?? '-'
+  })
+  rows.push({ key: 'tax', label: '税金', values: taxValues, ...calcCompareStats(taxValues) })
+
+  const totalValues: Record<string, any> = {}
+  supplierKeys.forEach((name, idx) => {
+    const q = quotes[idx]
+    const a = q.quote_amount
+    if (a !== undefined && a !== null && a !== '') {
+      const n = Number(a)
+      totalValues[name] = Number.isFinite(n) ? n : a
+    } else {
+      const s = sumRfqField(q, 'total_price_incl_tax')
+      totalValues[name] = s != null ? s : '-'
+    }
+  })
+  rows.push({ key: 'total', label: '总价', values: totalValues, ...calcCompareStats(totalValues) })
+
+  const rankValues: Record<string, any> = {}
+  supplierKeys.forEach((name, idx) => {
+    rankValues[name] = quotes[idx]?.rank ?? quotes[idx]?.quote_rank ?? '1'
+  })
+  rows.push({ key: 'rank', label: '报价排名', values: rankValues })
+
+  /* 议价价格仅由杂采议价记录表回显（openComparison 中 merge），勿用报价明细 winning_bid_price 以免与议价记录不一致 */
+  const bargainValues: Record<string, any> = {}
+  supplierKeys.forEach((name) => {
+    bargainValues[name] = ''
+  })
+  rows.push({
+    key: 'bargain',
+    label: '议价价格',
+    values: bargainValues,
+    avg: undefined,
+    min: undefined
+  })
+
+  const winValues: Record<string, any> = {}
+  supplierKeys.forEach((name, idx) => {
+    const flag = quotes[idx]?.is_awarded ?? quotes[idx]?.isAwarded
+    winValues[name] = flag === 1 || flag === true ? '是' : '否'
+  })
+  rows.push({ key: 'award', label: '中标否', values: winValues })
+
+  const materialDetails = buildMaterialProcessOtherDetails(quotes, supplierKeys, 'material')
+  const processDetails = buildMaterialProcessOtherDetails(quotes, supplierKeys, 'process')
+  const otherDetails = buildMaterialProcessOtherDetails(quotes, supplierKeys, 'other')
+
+  const attachDetail = (key: string, details: ComparisonDetailRow[]) => {
+    const target = rows.find((r) => r.key === key)
+    if (target && details.length) target.details = details
+  }
+  attachDetail('material', materialDetails)
+  attachDetail('process', processDetails)
+  attachDetail('other', otherDetails)
+
+  const suppliers = supplierKeys.map((name, idx) => ({
+    name: name || `供应商${idx + 1}`,
+    code: quotes[idx]?.supplier_code || quotes[idx]?.supplierCode || ''
+  }))
+
+  return { suppliers, rows }
+}
+
+const openComparison = async (row: any) => {
+  // const st = Number(row?.status)
+  // if (![6, 7, 8].includes(st)) {
+  //   ElMessage.warning('仅比议价中、价格审核或核价通过状态可查看比价')
+  //   return
+  // }
+  comparisonDialog.currentRow = row
+  expandedRowKeys.value = []
+  comparisonDialog.visible = true
+  comparisonDialog.loading = true
+  comparisonDialog.title = `比价/议价 - ${row.title || row.inquiry_name || row.inquiry_no || ''}`
+  comparisonDialog.baseInfo = {
+    code: row.inquiry_no || '',
+    partNo: row.part_no || '',
+    partName: row.part_name || '',
+    targetPrice: row.target_price != null ? String(row.target_price) : '',
+    currency: row.currency || '',
+    taxRate: row.tax_rate != null ? String(row.tax_rate) : '',
+    dealPrice: row.win_price != null ? String(row.win_price) : '-',
+    lowestProcessPrice: '-'
+  }
+  try {
+    const listRes = await getQuotationList({ inquiry_no: row.inquiry_no, page: 1, page_size: 200 })
+    const list = extractQuotationList(listRes)
+    const details = await Promise.all(
+      list.map((q: any) => getQuotationDetail(q.autoid ?? q.id))
+    )
+    const quotes = details.map((r: any) => unwrapQuotationDetail(r)).filter(Boolean)
+    const { suppliers, rows } = buildComparisonRowsFromPisQuotes(quotes)
+    comparisonDialog.quotes = quotes
+    comparisonDialog.suppliers = suppliers
+    comparisonDialog.rows = rows
+    const partId = resolveComparisonPartId(row, quotes)
+    if (partId) {
+      try {
+        const negRes = await api.GetNegotiationRecordsObj(row.id, { part_id: partId })
+        const raw = negRes?.data?.data ?? negRes?.data
+        const negList = Array.isArray(raw) ? raw : []
+        mergeNegotiationIntoComparisonRows(rows, quotes, negList)
+        if (negList.length) await applyComparisonRowsAfterNegotiationMerge(rows)
+      } catch {
+        /* 无议价记录时沿用报价单展示 */
+      }
+    }
+    const procRow = rows.find((r) => r.key === 'process')
+    if (procRow && procRow.min !== undefined) {
+      comparisonDialog.baseInfo.lowestProcessPrice = String(procRow.min)
+    }
+  } catch (e: any) {
+    comparisonDialog.quotes = []
+    comparisonDialog.suppliers = []
+    comparisonDialog.rows = []
+    ElMessage.error(e?.message || '加载比价信息失败')
+  } finally {
+    comparisonDialog.loading = false
+  }
+}
+
+const updateComparisonRowStats = (row: any) => {
+  if (row?.key === 'bargain') return
+  const nums = Object.values(row.values || {})
+    .map((v: any) => Number(v))
+    .filter((v) => Number.isFinite(v)) as number[]
+  if (nums.length) {
+    row.avg = nums.reduce((a: number, b: number) => a + b, 0) / nums.length
+    row.min = Math.min(...nums)
+  } else {
+    row.avg = undefined
+    row.min = undefined
+  }
+}
+
+const comparisonRowClassName = ({ row }: any) => (!row.details || !row.details.length ? 'no-expand' : '')
+
+const comparisonRowKeyFn = (row: ComparisonRow) => String(row.key || row.label || '')
+
+const detailHeaderLabel = (row: ComparisonRow) => {
+  if (row.key === 'material') return '材质'
+  if (row.key === 'process') return '工站'
+  if (row.key === 'other') return '类型'
+  return '明细'
+}
+
+const handleComparisonExpandChange = (row: ComparisonRow, expandedRows: ComparisonRow[]) => {
+  expandedRowKeys.value = expandedRows.map((r) => comparisonRowKeyFn(r))
+}
+
+const toggleCompareExpand = (row: ComparisonRow) => {
+  if (!row.details || !row.details.length) return
+  const key = comparisonRowKeyFn(row)
+  const next = !expandedRowKeys.value.includes(key)
+  ;(compareTableRef.value as any)?.toggleRowExpansion?.(row, next)
+  if (next) expandedRowKeys.value = [...expandedRowKeys.value, key]
+  else expandedRowKeys.value = expandedRowKeys.value.filter((k) => k !== key)
+}
+
+const getComparisonRow = (key: string) => comparisonDialog.rows.find((r) => r.key === key)
+
+const stripQuotationForPut = (q: any) => {
+  if (!q || typeof q !== 'object') return q
+  const { quote_amount, template_sections, inquiry_attachments, ...rest } = q
+  return { ...rest }
+}
+
+const syncQuotesFromComparisonRows = () => {
+  const awardRow = getComparisonRow('award')
+  const keys = comparisonDialog.quotes.map((q, idx) => quotationSupplierKey(q, idx))
+  return comparisonDialog.quotes.map((quote, idx) => {
+    const key = keys[idx]
+    const awarded = awardRow?.values?.[key] === '是'
+    const next = stripQuotationForPut(quote) as any
+    next.is_awarded = awarded ? 1 : 0
+    const items = Array.isArray(next.rfq_items)
+      ? next.rfq_items.map((it: any) => ({
+          ...it,
+          is_awarded: awarded ? 1 : 0,
+          /* 议价后价格写入杂采议价记录表 bargaining_price，不使用上阶物料「中标价格」 */
+          winning_bid_price: null
+        }))
+      : []
+    next.rfq_items = items
+    return next
+  })
+}
+
+const validateComparisonAwardAndBargain = async () => {
+  const keys = comparisonDialog.quotes.map((q, idx) => quotationSupplierKey(q, idx))
+  const awardRow = getComparisonRow('award')
+  const bargainRow = getComparisonRow('bargain')
+  const awarded = keys.filter((k) => awardRow?.values?.[k] === '是')
+  if (awarded.length === 0) {
+    try {
+      await ElMessageBox.confirm('当前比价未选择中标供应商，请确定是否流标？', '提示', {
+        type: 'warning',
+        confirmButtonText: '确定',
+        cancelButtonText: '取消'
+      })
+    } catch {
+      return false
+    }
+    return true
+  }
+  const missingBargain = awarded.some((k) => {
+    const v = bargainRow?.values?.[k]
+    if (v === undefined || v === null || v === '') return true
+    const n = Number(v)
+    return !Number.isFinite(n)
+  })
+  if (missingBargain) {
+    ElMessage.warning('请先为中标供应商维护有效议价价格（数字）后再确认')
+    return false
+  }
+  return true
+}
+
+const saveComparison = async (target: 'draft' | 'negotiated' | 'audit') => {
+  const st = Number(comparisonDialog.currentRow?.status)
+  if (target === 'negotiated' && st !== 6) {
+    ElMessage.warning('仅比议价中状态可确认比价')
+    return
+  }
+  if (target === 'audit' && st !== 7) {
+    ElMessage.warning('仅价格审核状态可提交核价')
+    return
+  }
+  if (target !== 'draft' && !(await validateComparisonAwardAndBargain())) return
+
+  const partId = resolveComparisonPartId(comparisonDialog.currentRow, comparisonDialog.quotes)
+  if (!partId) {
+    ElMessage.warning('缺少产品料号，无法保存议价记录')
+    return
+  }
+
+  const updates = syncQuotesFromComparisonRows()
+  if (!updates.length) {
+    ElMessage.warning('无可保存的报价数据')
+    return
+  }
+  const keys = comparisonDialog.quotes.map((q, idx) => quotationSupplierKey(q, idx))
+  const bargainRow = getComparisonRow('bargain')
+  const awardRow = getComparisonRow('award')
+  const pickQuotationItemTotals = (quote: any) => {
+    const it = (quote.rfq_items || [])[0]
+    if (!it) return { total_price_excl_tax: null as number | null, total_price_incl_tax: null as number | null }
+    const ex = it.total_price_excl_tax
+    const inc = it.total_price_incl_tax
+    return {
+      total_price_excl_tax: ex != null && ex !== '' && Number.isFinite(Number(ex)) ? Number(ex) : null,
+      total_price_incl_tax: inc != null && inc !== '' && Number.isFinite(Number(inc)) ? Number(inc) : null
+    }
+  }
+  const records = comparisonDialog.quotes
+    .map((quote, idx) => {
+      const key = keys[idx]
+      const awarded = awardRow?.values?.[key] === '是'
+      const bargRaw = bargainRow?.values?.[key]
+      const bargNum = Number(bargRaw)
+      const hasBarg = Number.isFinite(bargNum)
+      const qn = String(quote.quotation_no || quote.quotationNo || '').trim()
+      const totals = pickQuotationItemTotals(quote)
+      return {
+        quotation_no: qn,
+        supplier_code: String(quote.supplier_code || quote.supplierCode || '').trim(),
+        is_awarded: awarded ? 1 : 0,
+        bargaining_price: hasBarg ? bargNum : null,
+        total_price_excl_tax: totals.total_price_excl_tax,
+        total_price_incl_tax: totals.total_price_incl_tax
+      }
+    })
+    .filter((r) => r.quotation_no)
+  if (!records.length) {
+    ElMessage.warning('无可保存的议价记录（缺少报价单号）')
+    return
+  }
+
+  comparisonDialog.loading = true
+  try {
+    await api.SaveNegotiationRecordsObj(comparisonDialog.currentRow.id, { part_id: partId, records })
+    try {
+      const negRes = await api.GetNegotiationRecordsObj(comparisonDialog.currentRow.id, { part_id: partId })
+      const raw = negRes?.data?.data ?? negRes?.data
+      const negList = Array.isArray(raw) ? raw : []
+      mergeNegotiationIntoComparisonRows(comparisonDialog.rows, comparisonDialog.quotes, negList)
+      if (negList.length) await applyComparisonRowsAfterNegotiationMerge(comparisonDialog.rows)
+    } catch {
+      /* 回显失败时保留输入框当前值 */
+    }
+    await Promise.all(
+      updates.map((q) => {
+        const id = q.autoid ?? q.id
+        if (!id) return Promise.resolve()
+        return updateQuotation(id, stripQuotationForPut(q))
+      })
+    )
+    if (target === 'negotiated') {
+      await api.ConfirmNegotiationObj(comparisonDialog.currentRow.id)
+      comparisonDialog.currentRow.status = 7
+      ElMessage.success('已确认比价')
+      crudExpose.doRefresh()
+    } else if (target === 'audit') {
+      await api.SubmitPriceAuditObj(comparisonDialog.currentRow.id)
+      comparisonDialog.currentRow.status = 8
+      ElMessage.success('已提交核价')
+      crudExpose.doRefresh()
+    } else {
+      ElMessage.success('已暂存比价结果')
+    }
+  } catch (e: any) {
+    ElMessage.error(formatRfqApiErrorMessage(e, '操作失败'))
+  } finally {
+    comparisonDialog.loading = false
+  }
+}
+
+const onSaveComparisonDraft = () => saveComparison('draft')
+const onConfirmComparison = () => saveComparison('negotiated')
+const onSubmitComparisonReview = () => saveComparison('audit')
+
+const toggleComparisonAward = (row: any, supName: string, val: boolean) => {
+  if (!row.values) return
+  row.values[supName] = val ? '是' : '否'
+}
 
 const removeVendor = (row: any) => {
   form.vendors = form.vendors.filter((v: any) => v !== row)
@@ -1887,6 +2724,15 @@ const saveForm = async () => {
       purchase_dept: clipPurchaseDept(form.purchase_dept) || undefined,
       buyer: form.buyer,
       quote_deadline: normalizeQuoteDeadline(form.quote_deadline) || undefined,
+      buying_method: Number.isFinite(Number(form.buying_method)) ? Number(form.buying_method) : 1,
+      bid_start_time:
+        Number(form.buying_method) === 1
+          ? null
+          : normalizeDateTime(form.bid_start_time) || null,
+      bid_end_time:
+        Number(form.buying_method) === 1
+          ? null
+          : normalizeDateTime(form.bid_end_time) || null,
       target_price: targetPrice,
       lead_time_days: Number(form.lead_time_days) || 0,
       payment_method: Number(form.payment_method) || 1,
@@ -1962,9 +2808,11 @@ const { crudOptions } = createCrudOptions({
   onAdd: openCreate,
   onEdit: openEdit,
   onView: openView,
+  onComparison: openComparison,
   onTableSelectionChange: (rows) => {
     selectedInquiryRows.value = rows || []
-  }
+  },
+  getTableSelection: () => selectedInquiryRows.value
 })
 
 useCrud({ crudExpose, crudOptions })
@@ -1997,6 +2845,9 @@ onMounted(() => {
   margin: 4px 0 0;
   color: #6b7280;
   font-size: 13px;
+}
+.bid-time-placeholder {
+  color: #6b7280;
 }
 .actions {
   display: flex;
@@ -2119,5 +2970,68 @@ onMounted(() => {
 }
 .cost-desc {
   --el-descriptions-border-color: #e5e7eb;
+}
+
+.compare-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.compare-info {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px 12px;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fafafa;
+}
+.compare-info .info-item {
+  display: flex;
+  gap: 6px;
+  color: #374151;
+  font-size: 13px;
+}
+.compare-info .info-item .label {
+  color: #6b7280;
+}
+.compare-table :deep(.is-min) {
+  color: #0ea5e9;
+  font-weight: 600;
+}
+.compare-table :deep(.no-expand .el-table__expand-icon) {
+  visibility: hidden;
+}
+.compare-table :deep(.el-table__expanded-cell) {
+  padding: 6px 12px;
+  background: #f9fafb;
+}
+.compare-detail {
+  padding: 4px 0 6px;
+}
+.compare-detail-table {
+  margin: 0;
+}
+.no-detail {
+  color: #9ca3af;
+  padding: 6px 0;
+}
+.expand-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  margin-right: 6px;
+  cursor: pointer;
+  color: #374151;
+  user-select: none;
+  font-weight: 700;
+}
+.compare-table :deep(.hidden-expand .el-table__expand-icon) {
+  opacity: 0;
+  pointer-events: none;
+}
+.compare-table :deep(.el-table__header .hidden-expand .cell) {
+  display: none;
 }
 </style>

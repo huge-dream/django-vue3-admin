@@ -30,41 +30,57 @@
 
         <el-tabs v-model="activeTab" type="card" class="tabs-fill quote-dialog-tabs">
           <el-tab-pane label="询价单信息" name="inquiry">
-            <el-descriptions :column="2" border size="small" class="mb8">
-              <el-descriptions-item label="询价单号">{{ current.inquiryCode }}</el-descriptions-item>
-              <el-descriptions-item label="询价单名称">{{ current.inquiryTitle }}</el-descriptions-item>
-              <el-descriptions-item label="询价模板">{{ templateLabel(current.template) }}</el-descriptions-item>
-              <el-descriptions-item label="交易币别">{{ current.currency }}</el-descriptions-item>
-              <el-descriptions-item label="报价截止日">{{ current.quoteDeadline }}</el-descriptions-item>
-              <el-descriptions-item label="交易厂区">{{ current.companyShortName || current.inquiryCompanyCode || '—' }}</el-descriptions-item>
-            </el-descriptions>
-            <el-divider content-position="left">询价附件</el-divider>
-            <div class="inquiry-attachments">
-              <div v-for="group in inquiryAttachmentGroups" :key="group.fileType" class="inquiry-attachments__block">
-                <div class="inquiry-attachments__type">{{ group.label }}</div>
-                <div class="inquiry-attachments__links">
-                  <template v-for="(file, idx) in group.items" :key="`${group.fileType}-${file.id ?? idx}-${file.file_name}`">
-                    <el-link
-                      v-if="inquiryAttachmentHref(file) !== '#'"
-                      type="primary"
-                      :href="inquiryAttachmentHref(file)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="inquiry-attachments__link"
-                    >
-                      {{ file.file_name || '（未命名）' }}
-                    </el-link>
-                    <span v-else class="inquiry-attachments__link inquiry-attachments__link--text">
-                      {{ file.file_name || '（未命名）' }}
-                    </span>
-                  </template>
+            <el-divider content-position="left"></el-divider>
+            <div class="inquiry-tab-pane">
+              <el-form class="grid-form inquiry-form-readonly" label-width="120px">
+                <el-form-item label="询价单号">
+                  <el-input :model-value="current.inquiryCode" disabled />
+                </el-form-item>
+                <el-form-item label="询价单名称">
+                  <el-input :model-value="current.inquiryTitle" disabled />
+                </el-form-item>
+                <el-form-item label="询价模板">
+                  <el-input :model-value="templateLabel(current.template)" disabled />
+                </el-form-item>
+                <el-form-item label="交易币别">
+                  <el-input :model-value="current.currency" disabled />
+                </el-form-item>
+                <el-form-item label="报价截止日">
+                  <el-input :model-value="current.quoteDeadline" disabled />
+                </el-form-item>
+                <el-form-item label="交易厂区">
+                  <el-input :model-value="current.companyShortName || current.inquiryCompanyCode || '—'" disabled />
+                </el-form-item>
+              </el-form>
+              <el-divider content-position="left">询价附件</el-divider>
+              <div class="inquiry-attachments">
+                <div v-for="group in inquiryAttachmentGroups" :key="group.fileType" class="inquiry-attachments__block">
+                  <div class="inquiry-attachments__type">{{ group.label }}</div>
+                  <div class="inquiry-attachments__links">
+                    <template v-for="(file, idx) in group.items" :key="`${group.fileType}-${file.id ?? idx}-${file.file_name}`">
+                      <el-link
+                        v-if="inquiryAttachmentHref(file) !== '#'"
+                        type="primary"
+                        :href="inquiryAttachmentHref(file)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="inquiry-attachments__link"
+                      >
+                        {{ file.file_name || '（未命名）' }}
+                      </el-link>
+                      <span v-else class="inquiry-attachments__link inquiry-attachments__link--text">
+                        {{ file.file_name || '（未命名）' }}
+                      </span>
+                    </template>
+                  </div>
                 </div>
+                <div v-if="!inquiryAttachmentGroups.length" class="inquiry-attachments__empty">暂无询价附件</div>
               </div>
-              <div v-if="!inquiryAttachmentGroups.length" class="inquiry-attachments__empty">暂无询价附件</div>
             </div>
           </el-tab-pane>
 
           <el-tab-pane label="报价基础信息" name="base">
+            <el-divider content-position="left"></el-divider>
             <el-form :model="current.base" label-width="120px" class="grid-form">
               <el-form-item label="联系人">
                 <el-input v-model="current.base.contact" :disabled="isReadOnly" />
@@ -299,7 +315,13 @@ import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { Flag } from '@element-plus/icons-vue'
 import { compute, dict, useCrud, useExpose } from '@fast-crud/fast-crud'
 import { getBaseURL } from '/@/utils/baseUrl'
-import { useQuoteCrud, formatAwardBidStatus, type InquiryAttachmentRow } from './crud'
+import {
+  useQuoteCrud,
+  formatAwardBidStatus,
+  type InquiryAttachmentRow,
+  buyingMethodDict,
+  formatBidTimeColumn
+} from './crud'
 
 const INQUIRY_FILE_TYPE_ORDER = [1, 2, 3] as const
 const INQUIRY_FILE_TYPE_LABELS: Record<number, string> = {
@@ -479,6 +501,10 @@ const syncFilters = (form: any = {}) => {
   filters.inquiryCode = form.inquiryCode || ''
   filters.inquiryTitle = form.inquiryTitle || ''
   filters.currency = form.currency || ''
+  filters.buyingMethod =
+    form.buyingMethod !== undefined && form.buyingMethod !== null && form.buyingMethod !== ''
+      ? form.buyingMethod
+      : ''
   filters.isAwarded =
     form.isAwarded !== undefined && form.isAwarded !== null && form.isAwarded !== '' ? form.isAwarded : ''
   if (Array.isArray(form.quoteDeadline) && form.quoteDeadline.length === 2) {
@@ -558,6 +584,24 @@ const crudOptions = {
       search: { show: false },
       column: { minWidth: 100, showOverflowTooltip: true }
     },
+    buyingMethod: {
+      title: '采购方式',
+      type: 'dict-select',
+      dict: dict({ data: buyingMethodDict }),
+      search: {
+        show: true,
+        component: { props: { placeholder: '采购方式', clearable: true } }
+      },
+      column: {
+        width: 100,
+        formatter: ({ row, value }: any) => {
+          const v = value ?? row?.buyingMethod
+          const n = Number(v)
+          if (!Number.isFinite(n)) return v != null && v !== '' ? String(v) : ''
+          return buyingMethodDict.find((d) => d.value === n)?.label ?? String(v)
+        }
+      }
+    },
     quoteNo: {
       title: '报价单号',
       type: 'text',
@@ -601,7 +645,23 @@ const crudOptions = {
           }
         }
       },
-      column: { width: 180 }
+      column: { width: 150 }
+    },
+    bidStartTime: {
+      title: '投标开始时间',
+      type: 'datetime',
+      column: {
+        width: 150,
+        formatter: ({ row, value }: any) => formatBidTimeColumn(row, value)
+      }
+    },
+    bidEndTime: {
+      title: '投标截止时间',
+      type: 'datetime',
+      column: {
+        width: 150,
+        formatter: ({ row, value }: any) => formatBidTimeColumn(row, value)
+      }
     },
     status: {
       title: '报价状态',
@@ -701,7 +761,9 @@ onMounted(() => {
   padding-top: 12px;
   padding-bottom: 8px;
 }
+/* 与 max-height 相同，避免短内容页签（如询价单信息）把弹窗整体压矮 */
 .quote-dialog-scroll {
+  min-height: min(72vh, calc(100vh - 200px));
   max-height: min(72vh, calc(100vh - 200px));
   overflow-x: hidden;
   overflow-y: auto;
@@ -709,6 +771,22 @@ onMounted(() => {
   padding: 0 0 12px 0;
   background: var(--el-bg-color, #fff);
   isolation: isolate;
+}
+.inquiry-tab-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+.inquiry-form-readonly :deep(.el-form-item) {
+  margin-bottom: 0;
+}
+.inquiry-form-readonly :deep(.el-input.is-disabled .el-input__wrapper) {
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
+  background-color: var(--el-fill-color-blank);
+}
+.inquiry-form-readonly :deep(.el-input.is-disabled .el-input__inner) {
+  color: var(--el-text-color-primary);
+  -webkit-text-fill-color: var(--el-text-color-primary);
 }
 .quote-dialog-sticky-status {
   position: sticky;

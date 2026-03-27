@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
@@ -27,6 +29,10 @@ from .models import (
     MiscProcurementMaterialInfo,
     MiscProcurementStationInfo,
     MiscProcMaterial,
+    MiscLowPriceHeader,
+    MiscLowPriceDetail,
+    MiscNegotiationRecords,
+    RFQOperationLogs,
     Inquiry,
     InquirySupplier,
     InquiryAttachment,
@@ -45,6 +51,11 @@ from .serializers import (
     MiscStationCreateUpdateSerializer,
     MiscPartSerializer,
     MiscPartCreateUpdateSerializer,
+    MiscLowPriceHeaderSerializer,
+    MiscLowPriceDetailSerializer,
+    MiscNegotiationRecordsSerializer,
+    MiscNegotiationSaveSerializer,
+    RFQOperationLogsSerializer,
     InquirySerializer,
     InquirySupplierSerializer,
     InquiryAttachmentSerializer,
@@ -57,6 +68,20 @@ from .serializers import (
     CostEstimateTemplateNewVersionSerializer,
     create_cost_template_new_version,
 )
+
+
+def _negotiation_totals_from_quotation_item(quotation_no: str, part_id: str):
+    """从杂采报价单上阶物料明细取议价前含税/不含税总价（与 part_id 匹配行）。"""
+    if not quotation_no or not part_id:
+        return None, None
+    item = (
+        QuotationItem.objects.filter(quotation_no=quotation_no, part_id=part_id)
+        .order_by("autoid")
+        .first()
+    )
+    if not item:
+        return None, None
+    return item.total_price_excl_tax, item.total_price_incl_tax
 
 
 class MiscMaterialViewSet(CustomModelViewSet):
@@ -232,7 +257,16 @@ class InquiryViewSet(CustomModelViewSet):
         "rfq_items",
     )
     serializer_class = InquirySerializer
-    filter_fields = ("inquiry_no", "title", "purchase_type", "template", "template_version", "status", "buyer")
+    filter_fields = (
+        "inquiry_no",
+        "title",
+        "purchase_type",
+        "template",
+        "template_version",
+        "status",
+        "buyer",
+        "buying_method",
+    )
     search_fields = ("inquiry_no", "title", "material_type", "buyer", "remark")
     ordering = ("-update_datetime",)
 
@@ -326,7 +360,21 @@ class InquiryViewSet(CustomModelViewSet):
             return ErrorResponse(msg="当前询价单状态仅允许查看，不允许编辑或删除；如需修改请先还原为“开立”")
         return None
 
-    def _save_status(self, instance, *, status, confirm_user=None, confirm_time=None, release_user=None, release_time=None, comparison_user=None, comparison_time=None):
+    def _save_status(
+        self,
+        instance,
+        *,
+        status,
+        confirm_user=None,
+        confirm_time=None,
+        release_user=None,
+        release_time=None,
+        comparison_user=None,
+        comparison_time=None,
+        operation_type=None,
+        operation_desc=None,
+    ):
+        old_status = int(instance.status if instance.status is not None else 0)
         current_time = timezone.now()
         current_user = self._get_request_username() or getattr(instance, "update_user", None)
         instance.status = status
@@ -353,6 +401,18 @@ class InquiryViewSet(CustomModelViewSet):
                 "update_time",
             ]
         )
+        new_status = int(status)
+        if operation_type is not None and old_status != new_status:
+            RFQOperationLogs.try_append(
+                inquiry_no=instance.inquiry_no,
+                purchase_type=int(instance.purchase_type),
+                operation_type=operation_type,
+                operation_user=current_user or None,
+                quotation_no="-",
+                per_status=old_status,
+                cur_status=new_status,
+                operation_desc=operation_desc,
+            )
         serializer = self.get_serializer(instance)
         return DetailResponse(data=serializer.data, msg="状态更新成功")
 
@@ -537,6 +597,9 @@ class InquiryViewSet(CustomModelViewSet):
                 contact_phone=supplier["contact_phone"] or None,
                 contact_email=supplier["contact_email"] or None,
                 quote_deadline=quote_deadline,
+                buying_method=getattr(inquiry, "buying_method", None),
+                bid_start_time=getattr(inquiry, "bid_start_time", None),
+                bid_end_time=getattr(inquiry, "bid_end_time", None),
                 delivery_days=getattr(inquiry, "lead_time_days", None),
                 payment_method=getattr(inquiry, "payment_method", None),
                 status=1,
@@ -655,7 +718,17 @@ class InquiryViewSet(CustomModelViewSet):
             QuotationItem.objects.bulk_create(item_bulk)
 
     def perform_create(self, serializer):
-        serializer.save()
+        inquiry = serializer.save()
+        RFQOperationLogs.try_append(
+            inquiry_no=inquiry.inquiry_no,
+            purchase_type=int(inquiry.purchase_type),
+            operation_type=1,
+            operation_user=self._get_request_username() or None,
+            quotation_no="-",
+            per_status=None,
+            cur_status=int(inquiry.status) if inquiry.status is not None else 1,
+            operation_desc="询价单创建",
+        )
 
     def perform_update(self, serializer):
         serializer.save()
@@ -717,6 +790,8 @@ class InquiryViewSet(CustomModelViewSet):
             confirm_time=current_time,
             release_user=getattr(instance, "release_user", None),
             release_time=getattr(instance, "release_time", None),
+            operation_type=2,
+            operation_desc="询价单确认",
         )
 
     @action(methods=["put"], detail=True)
@@ -731,6 +806,8 @@ class InquiryViewSet(CustomModelViewSet):
             confirm_time=None,
             release_user=None,
             release_time=None,
+            operation_type=4,
+            operation_desc="询价单还原为开立",
         )
 
     @action(methods=["put"], detail=True)
@@ -751,6 +828,8 @@ class InquiryViewSet(CustomModelViewSet):
                     confirm_time=getattr(instance, "confirm_time", None),
                     release_user=current_user,
                     release_time=current_time,
+                    operation_type=3,
+                    operation_desc="询价单发布",
                 )
         except serializers.ValidationError as exc:
             detail = getattr(exc, "detail", None)
@@ -759,6 +838,160 @@ class InquiryViewSet(CustomModelViewSet):
             else:
                 msg = str(detail or exc)
             return ErrorResponse(msg=msg)
+
+    @action(methods=["put"], detail=True)
+    def start_bargaining(self, request, pk=None):
+        """开启比价议价：从报价结束状态进入比议价中"""
+        instance = self.get_object()
+        if int(instance.status or self.STATUS_PUBLISHED) not in (self.STATUS_PUBLISHED, self.STATUS_QUOTING, self.STATUS_QUOTE_ENDED):
+            return ErrorResponse(msg='只有“发布”或“报价结束”状态的询价单才能开启比价')
+        current_user = self._get_request_username() or None
+        current_time = timezone.now()
+        return self._save_status(
+            instance,
+            status=self.STATUS_BARGaining,
+            confirm_user=getattr(instance, "confirm_user", None),
+            confirm_time=getattr(instance, "confirm_time", None),
+            release_user=getattr(instance, "release_user", None),
+            release_time=getattr(instance, "release_time", None),
+            comparison_user=current_user,
+            comparison_time=current_time,
+            operation_type=7,
+            operation_desc="开启比议价",
+        )
+
+    @action(methods=["put"], detail=True)
+    def confirm_negotiation(self, request, pk=None):
+        """确认议价：从比议价中进入议价确认/价格审核"""
+        instance = self.get_object()
+        if int(instance.status or self.STATUS_BARGaining) != self.STATUS_BARGaining:
+            return ErrorResponse(msg='只有“比议价中”状态的询价单才能确认议价')
+        current_user = self._get_request_username() or None
+        current_time = timezone.now()
+        return self._save_status(
+            instance,
+            status=self.STATUS_NEGOTIATED,
+            confirm_user=getattr(instance, "confirm_user", None),
+            confirm_time=getattr(instance, "confirm_time", None),
+            release_user=getattr(instance, "release_user", None),
+            release_time=getattr(instance, "release_time", None),
+            comparison_user=getattr(instance, "comparison_user", None),
+            comparison_time=getattr(instance, "comparison_time", None),
+            operation_type=8,
+            operation_desc="议价审核提交（进入价格审核）",
+        )
+
+    @action(methods=["put"], detail=True)
+    def submit_price_audit(self, request, pk=None):
+        """价格审核提交：由「价格审核」(7) 进入「核价通过」(8)。"""
+        instance = self.get_object()
+        if int(instance.status or 0) != self.STATUS_NEGOTIATED:
+            return ErrorResponse(msg='只有「价格审核」状态的询价单才能提交核价')
+        return self._save_status(
+            instance,
+            status=self.STATUS_APPROVED,
+            confirm_user=getattr(instance, "confirm_user", None),
+            confirm_time=getattr(instance, "confirm_time", None),
+            release_user=getattr(instance, "release_user", None),
+            release_time=getattr(instance, "release_time", None),
+            comparison_user=getattr(instance, "comparison_user", None),
+            comparison_time=getattr(instance, "comparison_time", None),
+            operation_type=9,
+            operation_desc="议价审核完成（核价通过）",
+        )
+
+    @action(methods=["get"], detail=True, url_path="negotiation_records")
+    def negotiation_records(self, request, pk=None):
+        """按询价单号查询杂采议价记录（可选 part_id）。"""
+        instance = self.get_object()
+        part_id = (request.query_params.get("part_id") or "").strip()
+        qs = MiscNegotiationRecords.objects.filter(inquiry_no=instance.inquiry_no)
+        if part_id:
+            qs = qs.filter(part_id=part_id)
+        data = MiscNegotiationRecordsSerializer(qs.order_by("id"), many=True).data
+        return DetailResponse(data=data, msg="success")
+
+    @action(methods=["put"], detail=True, url_path="save_negotiation_records")
+    def save_negotiation_records(self, request, pk=None):
+        """按报价单写入杂采议价记录：议价结果 + 该报价单议价前含税/不含税总价快照（来自上阶物料明细）。"""
+        instance = self.get_object()
+        serializer = MiscNegotiationSaveSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        part_id = (serializer.validated_data.get("part_id") or "").strip()
+        if not part_id:
+            return ErrorResponse(msg="part_id 不能为空")
+        records = serializer.validated_data.get("records") or []
+        username = self._get_request_username() or None
+        now = timezone.now()
+        with transaction.atomic():
+            for row in records:
+                qn = (row.get("quotation_no") or "").strip()
+                if not qn:
+                    return ErrorResponse(msg="records 中每条须包含 quotation_no（报价单号）")
+                code = (row.get("supplier_code") or "").strip()
+                if not code:
+                    qm = QuotationMaster.objects.filter(quotation_no=qn).only("supplier_code").first()
+                    if qm:
+                        code = (qm.supplier_code or "").strip()
+                is_awarded = int(row.get("is_awarded") or 0)
+                # 议价价格独立于是否中标：用户填写即落库（清空时前端传 null）
+                bp = row.get("bargaining_price")
+                snap_ex, snap_in = _negotiation_totals_from_quotation_item(qn, part_id)
+                tex = row.get("total_price_excl_tax")
+                tin = row.get("total_price_incl_tax")
+                if tex is None:
+                    tex = snap_ex
+                if tin is None:
+                    tin = snap_in
+                if tex is None:
+                    tex = Decimal("0")
+                if tin is None:
+                    tin = Decimal("0")
+                defaults = {
+                    "supplier_code": code or None,
+                    "is_awarded": is_awarded,
+                    "bargaining_user": username,
+                    "bargaining_time": now,
+                    "bargaining_price": bp,
+                    "quotation_no": qn,
+                    "total_price_excl_tax": tex,
+                    "total_price_incl_tax": tin,
+                }
+                qs = MiscNegotiationRecords.objects.filter(
+                    inquiry_no=instance.inquiry_no,
+                    part_id=part_id,
+                    quotation_no=qn,
+                )
+                if qs.count() > 1:
+                    keep_id = qs.order_by("id").first().id
+                    qs.exclude(id=keep_id).delete()
+                obj = (
+                    MiscNegotiationRecords.objects.filter(
+                        inquiry_no=instance.inquiry_no,
+                        part_id=part_id,
+                        quotation_no=qn,
+                    )
+                    .order_by("id")
+                    .first()
+                )
+                if obj:
+                    for k, v in defaults.items():
+                        setattr(obj, k, v)
+                    obj.save()
+                else:
+                    MiscNegotiationRecords.objects.create(
+                        inquiry_no=instance.inquiry_no,
+                        part_id=part_id,
+                        **defaults,
+                    )
+        out_qs = MiscNegotiationRecords.objects.filter(
+            inquiry_no=instance.inquiry_no,
+            part_id=part_id,
+        ).order_by("id")
+        return DetailResponse(
+            data=MiscNegotiationRecordsSerializer(out_qs, many=True).data,
+            msg="议价记录已保存",
+        )
 
     def _notify_vendors_on_publish(self, inquiry: Inquiry):
         """
@@ -924,3 +1157,51 @@ class InquiryRfqItemViewSet(CustomModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save()
+
+
+class MiscLowPriceHeaderViewSet(CustomModelViewSet):
+    """比价-制程最低价记录主表"""
+
+    queryset = MiscLowPriceHeader.objects.all()
+    serializer_class = MiscLowPriceHeaderSerializer
+    filter_fields = ("inquiry_no", "part_id", "souce_no", "cost_type", "item_no")
+    search_fields = ("inquiry_no", "part_id", "souce_no", "item_no")
+    ordering = ("-create_datetime", "id")
+
+
+class MiscLowPriceDetailViewSet(CustomModelViewSet):
+    """比价-制程最低价记录次表"""
+
+    queryset = MiscLowPriceDetail.objects.all()
+    serializer_class = MiscLowPriceDetailSerializer
+    filter_fields = ("inquiry_no", "part_id", "cost_type", "material_spec", "item_no", "souce_no")
+    search_fields = ("inquiry_no", "part_id", "material_spec", "item_no", "souce_no")
+    ordering = ("-create_datetime", "id")
+
+
+class MiscNegotiationRecordsViewSet(CustomModelViewSet):
+    """杂采议价记录表"""
+
+    queryset = MiscNegotiationRecords.objects.all()
+    serializer_class = MiscNegotiationRecordsSerializer
+    filter_fields = ("inquiry_no", "part_id", "supplier_code")
+    search_fields = ("inquiry_no", "part_id", "supplier_code")
+    ordering = ("-create_datetime", "id")
+
+
+class RFQOperationLogsViewSet(CustomModelViewSet):
+    """询价单操作日志（rfq_operation_logs）"""
+
+    queryset = RFQOperationLogs.objects.all()
+    serializer_class = RFQOperationLogsSerializer
+    create_serializer_class = RFQOperationLogsSerializer
+    update_serializer_class = RFQOperationLogsSerializer
+    filter_fields = (
+        "inquiry_no",
+        "quotation_no",
+        "operation_type",
+        "operation_user",
+        "purchase_type",
+    )
+    search_fields = ("inquiry_no", "quotation_no", "operation_user", "operation_desc")
+    ordering = ("-create_datetime", "-id")

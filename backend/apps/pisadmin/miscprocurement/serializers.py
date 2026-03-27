@@ -9,6 +9,10 @@ from .models import (
     MiscProcurementMaterialInfo,
     MiscProcurementStationInfo,
     MiscProcMaterial,
+    MiscLowPriceHeader,
+    MiscLowPriceDetail,
+    MiscNegotiationRecords,
+    RFQOperationLogs,
     Inquiry,
     InquirySupplier,
     InquiryAttachment,
@@ -260,6 +264,141 @@ class MiscPartCreateUpdateSerializer(CustomModelSerializer):
     class Meta:
         model = MiscProcMaterial
         fields = "__all__"
+
+
+class MiscLowPriceHeaderSerializer(CustomModelSerializer):
+    """比价-制程最低价记录主表"""
+
+    class Meta:
+        model = MiscLowPriceHeader
+        fields = "__all__"
+        read_only_fields = [
+            "id",
+            "create_datetime",
+            "update_datetime",
+            "creator",
+            "modifier",
+            "dept_belong_id",
+        ]
+
+
+class MiscLowPriceDetailSerializer(CustomModelSerializer):
+    """比价-制程最低价记录次表"""
+
+    class Meta:
+        model = MiscLowPriceDetail
+        fields = "__all__"
+        read_only_fields = [
+            "id",
+            "create_datetime",
+            "update_datetime",
+            "creator",
+            "modifier",
+            "dept_belong_id",
+        ]
+
+
+class MiscNegotiationRecordsSerializer(CustomModelSerializer):
+    """杂采议价记录表"""
+
+    class Meta:
+        model = MiscNegotiationRecords
+        fields = "__all__"
+        read_only_fields = [
+            "id",
+            "create_datetime",
+            "update_datetime",
+            "creator",
+            "modifier",
+            "dept_belong_id",
+        ]
+
+
+class RFQOperationLogsSerializer(CustomModelSerializer):
+    """询价单操作日志（rfq_operation_logs）"""
+
+    operation_type = serializers.IntegerField(required=True)
+    operation_time = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S",
+        required=False,
+        allow_null=True,
+    )
+
+    class Meta:
+        model = RFQOperationLogs
+        fields = "__all__"
+        read_only_fields = [
+            "id",
+            "create_datetime",
+            "update_datetime",
+            "creator",
+            "modifier",
+            "dept_belong_id",
+        ]
+        extra_kwargs = {
+            "inquiry_no": {"required": True, "allow_blank": False},
+            "quotation_no": {"required": True, "allow_blank": False},
+            "purchase_type": {"required": True},
+        }
+
+    def validate_operation_type(self, value):
+        valid_values = {choice[0] for choice in RFQOperationLogs.OPERATION_TYPE_CHOICES}
+        if value not in valid_values:
+            raise serializers.ValidationError("操作类型取值不合法")
+        return value
+
+    def validate_purchase_type(self, value):
+        valid_values = {choice[0] for choice in RFQOperationLogs.PURCHASE_TYPE_CHOICES}
+        if value not in valid_values:
+            raise serializers.ValidationError("采购类别取值不合法")
+        return value
+
+    def _normalize_operation_type(self, validated_data: dict) -> None:
+        ot = validated_data.get("operation_type")
+        if ot is not None and not isinstance(ot, str):
+            validated_data["operation_type"] = str(int(ot))
+
+    def create(self, validated_data):
+        self._normalize_operation_type(validated_data)
+        return super().create(validated_data)
+
+    def update(self, instance, validated_data):
+        self._normalize_operation_type(validated_data)
+        return super().update(instance, validated_data)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        ot = data.get("operation_type")
+        if ot is not None and ot != "":
+            try:
+                data["operation_type"] = int(ot)
+            except (TypeError, ValueError):
+                pass
+        return data
+
+
+class MiscNegotiationRecordBatchItemSerializer(serializers.Serializer):
+    """比价保存时按报价单维度的议价行"""
+
+    quotation_no = serializers.CharField(max_length=20)
+    supplier_code = serializers.CharField(max_length=50, required=False, allow_blank=True)
+    is_awarded = serializers.IntegerField(required=False, default=0)
+    bargaining_price = serializers.DecimalField(
+        max_digits=12, decimal_places=4, required=False, allow_null=True
+    )
+    total_price_excl_tax = serializers.DecimalField(
+        max_digits=12, decimal_places=4, required=False, allow_null=True
+    )
+    total_price_incl_tax = serializers.DecimalField(
+        max_digits=12, decimal_places=4, required=False, allow_null=True
+    )
+
+
+class MiscNegotiationSaveSerializer(serializers.Serializer):
+    """比价/议价结果批量写入杂采议价记录表"""
+
+    part_id = serializers.CharField(max_length=50)
+    records = MiscNegotiationRecordBatchItemSerializer(many=True)
 
 
 class CostEstimateTemplateBodySerializer(serializers.ModelSerializer):
@@ -890,6 +1029,16 @@ class InquirySerializer(CustomModelSerializer):
     rfq_items = InquiryRfqItemSerializer(many=True, required=False)
     # 列表/详情展示：company_code → 公司信息简称（同请求内按代码缓存）
     company_short_name = serializers.SerializerMethodField(read_only=True)
+    bid_start_time = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S",
+        required=False,
+        allow_null=True,
+    )
+    bid_end_time = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S",
+        required=False,
+        allow_null=True,
+    )
 
     def get_company_short_name(self, obj):
         code = (getattr(obj, "company_code", None) or "").strip()
@@ -931,7 +1080,31 @@ class InquirySerializer(CustomModelSerializer):
             "inquiry_no": {"required": False, "allow_blank": True, "allow_null": True},
             # 由 resolve_inquiry_template_version 根据 template 从 CostEstimateTemplateHead 写入
             "template_version": {"required": False, "allow_null": True},
+            "buying_method": {"required": False, "allow_null": True},
         }
+
+    def validate_buying_method(self, value):
+        if value is None:
+            return value
+        valid_values = {choice[0] for choice in Inquiry.BUYING_METHOD_CHOICES}
+        if value not in valid_values:
+            raise serializers.ValidationError("采购方式（寻源方式）取值不合法")
+        return value
+
+    def _apply_inquiry_bid_times_for_buying_method(self, attrs, instance):
+        """采购方式为询价(1)时，投标开始/截止时间不入库。"""
+        bm = attrs.get("buying_method")
+        if bm is None and instance is not None:
+            bm = getattr(instance, "buying_method", None)
+        if bm is None:
+            bm = 1
+        try:
+            bm = int(bm)
+        except (TypeError, ValueError):
+            return
+        if bm == 1:
+            attrs["bid_start_time"] = None
+            attrs["bid_end_time"] = None
 
     def validate(self, attrs):
         instance = getattr(self, "instance", None)
@@ -941,6 +1114,7 @@ class InquirySerializer(CustomModelSerializer):
 
         # 局部更新且未改模板/版本：保持库中原值
         if instance and not template_in_attrs and not tv_in_attrs:
+            self._apply_inquiry_bid_times_for_buying_method(attrs, instance)
             return attrs
 
         template_no = attrs.get("template")
@@ -963,6 +1137,7 @@ class InquirySerializer(CustomModelSerializer):
                 }
             )
         attrs["template_version"] = resolved
+        self._apply_inquiry_bid_times_for_buying_method(attrs, instance)
         return attrs
 
     def _generate_code(self, validated_data: dict) -> str:
