@@ -1,6 +1,12 @@
+import logging
+from typing import Optional
+
 from django.db import models
+from django.utils import timezone
 
 from dvadmin.utils.models import CoreModel, table_prefix
+
+logger = logging.getLogger(__name__)
 
 
 class MiscProcurementMaterialInfo(CoreModel):
@@ -205,6 +211,10 @@ class Inquiry(CoreModel):
         (3, "模具/夹具"),
         (4, "管"),
     )
+    BUYING_METHOD_CHOICES = (
+        (1, "询价"),
+        (2, "招标"),
+    )
 
     inquiry_no = models.CharField(max_length=20, unique=True, db_index=True, verbose_name="询价单号")
     title = models.CharField(max_length=20, verbose_name="询价单名称")
@@ -246,6 +256,9 @@ class Inquiry(CoreModel):
     create_user = models.CharField(max_length=20, db_column="createuser", null=True, blank=True, verbose_name="创建人")
     update_user = models.CharField(max_length=20, db_column="UpdateUser", null=True, blank=True, verbose_name="最后更新人")
     update_time = models.DateTimeField(db_column="UpdateTime", null=True, blank=True, verbose_name="最后更新时间")
+    buying_method = models.IntegerField(choices=BUYING_METHOD_CHOICES, null=True, blank=True, verbose_name="采购方式（寻源方式）")
+    bid_start_time = models.DateTimeField(null=True, blank=True, verbose_name="投标开始时间")
+    bid_end_time = models.DateTimeField(null=True, blank=True, verbose_name="投标截止时间")
 
     class Meta:
         db_table = table_prefix + "proc_inquiry_master"
@@ -546,3 +559,240 @@ class InquiryRfqItem(models.Model):
 
     def __str__(self) -> str:  # pragma: no cover - simple repr
         return f"{self.inquiry_no_id}-{self.part_id}"
+
+
+class MiscLowPriceHeader(CoreModel):
+    """比价-制程最低价记录主表。"""
+
+    # 成本类别: 1-材料; 2-加工; 3-包装费; 4-运输费; 5-管销研费用; 6-利润率（与库表 CostType varchar 一致）
+    COST_TYPE_CHOICES = (
+        ("1", "材料"),
+        ("2", "加工"),
+        ("3", "包装费"),
+        ("4", "运输费"),
+        ("5", "管销研费用"),
+        ("6", "利润率"),
+    )
+
+    inquiry_no = models.CharField(
+        max_length=20,
+        db_index=True,
+        db_column="inquiry_no",
+        verbose_name="询价单号",
+        help_text="业务主键列之一；逻辑主键与 id 并存",
+    )
+    part_id = models.CharField(max_length=50, db_column="PartId", verbose_name="产品料号")
+    # 来源单号（报价单&询价单）；设计库字段名为 SouceNo
+    souce_no = models.CharField(
+        max_length=20,
+        null=True,
+        blank=True,
+        db_column="SouceNo",
+        verbose_name="来源单号(报价单&询价单)",
+    )
+    cost_type = models.CharField(
+        max_length=50,
+        choices=COST_TYPE_CHOICES,
+        db_column="CostType",
+        verbose_name="成本类别",
+    )
+    item_no = models.CharField(
+        max_length=100,
+        db_column="ItemNo",
+        verbose_name="项次名",
+        help_text="如：铝等项次名称",
+    )
+    min_price = models.CharField(
+        max_length=10,
+        db_column="MinPrice",
+        verbose_name="最低价格",
+        help_text="表结构为 varchar，若需参与运算可在业务层转换",
+    )
+
+    class Meta:
+        db_table = table_prefix + "misc_low_price_header"
+        verbose_name = "比价-制程最低价记录主表"
+        verbose_name_plural = verbose_name
+        ordering = ("-create_datetime", "id")
+        indexes = [
+            models.Index(fields=["inquiry_no", "part_id"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.inquiry_no}-{self.part_id}-{self.cost_type}"
+
+
+class MiscLowPriceDetail(CoreModel):
+    """比价-制程最低价记录次表"""
+
+    ITEM_NO_CHOICES = (
+        (1, "重量"),
+        (2, "单价"),
+        )
+    inquiry_no = models.CharField(max_length=20, db_column="inquiry_no", db_index=True, verbose_name="询价单号")
+    part_id = models.CharField(max_length=50, db_column="PartId", verbose_name="产品料号")
+    cost_type = models.CharField(
+        max_length=50,
+        db_column="CostType",
+        verbose_name="成本类别",
+        help_text="仅支持1-材料",
+    )
+    material_spec = models.CharField(max_length=50, db_column="materialspec", verbose_name="材料规格")
+    item_no = models.CharField(
+        max_length=100,
+        db_column="ItemNo",
+        verbose_name="项次名",
+        help_text="策采：重量、损耗、单价；杂采：重量、单价",
+        choices=ITEM_NO_CHOICES,
+    )
+    value = models.CharField(max_length=10, db_column="Value", verbose_name="最小值")
+    souce_no = models.CharField(
+        max_length=20,
+        db_column="SouceNo",
+        verbose_name="来源单号(报价单&询价单)",
+    )
+
+    class Meta:
+        db_table = table_prefix + "misc_low_price_detail"
+        verbose_name = "比价-制程最低价记录次表"
+        verbose_name_plural = verbose_name
+        ordering = ("-create_datetime", "id")
+        indexes = [
+            models.Index(fields=["inquiry_no", "part_id"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.inquiry_no}-{self.part_id}-{self.item_no}"
+
+
+class MiscNegotiationRecords(CoreModel):
+    """杂采议价记录表"""
+
+    inquiry_no = models.CharField(max_length=20, db_column="inquiry_no", db_index=True, verbose_name="询价单号")
+    part_id = models.CharField(max_length=50, db_column="PartId", verbose_name="产品料号")
+    supplier_code = models.CharField(max_length=50, null=True, blank=True, db_column="SupplierCode", verbose_name="供应商代码")
+    bargaining_price = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True, default=0, verbose_name="议价后价格")
+    bargaining_time = models.DateTimeField(null=True, blank=True, verbose_name="议价时间")
+    bargaining_user = models.CharField(max_length=20, null=True, blank=True, db_column="BargainingUser", verbose_name="议价人")
+    is_awarded = models.IntegerField(default=0, null=True, blank=True, verbose_name="是否中标", help_text="是否中标(1:是 0:否)")
+    quotation_no = models.CharField(max_length=20, null=True, blank=True, db_column="QuotationNo", verbose_name="报价单号")
+    total_price_excl_tax = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True, default=0, verbose_name="议价前不含税总价")
+    total_price_incl_tax = models.DecimalField(max_digits=12, decimal_places=4, null=True, blank=True, default=0, verbose_name="议价前含税总价")
+
+    class Meta:
+        db_table = table_prefix + "misc_negotiation_records"
+        verbose_name = "杂采议价记录表"
+        verbose_name_plural = verbose_name
+        ordering = ("-create_datetime", "id")
+        indexes = [
+            models.Index(fields=["inquiry_no", "part_id"]),
+            models.Index(
+                fields=["inquiry_no", "part_id", "quotation_no"],
+                name="pis_misc_ne_inq_part_qtn_idx",
+            ),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.inquiry_no}-{self.part_id}-{self.quotation_no or self.supplier_code}"
+
+
+class RFQOperationLogs(CoreModel):
+    """询价单操作日志表"""
+
+    # (01询价单创;02询价单确认;03询价单发布;04询价单还原;05询价发送通知;06报价;07比议价;08议价审核提交;09议价审核完成;10议价审核驳回)
+    OPERATION_TYPE_CHOICES = (
+        (1, "询价单创建"),
+        (2, "询价单确认"),
+        (3, "询价单发布"),
+        (4, "询价单还原"),
+        (5, "询价发送通知"),
+        (6, "报价"),
+        (7, "比议价"),
+        (8, "议价审核提交"),
+        (9, "议价审核完成"),
+        (10, "议价审核驳回"),
+    )
+    PURCHASE_TYPE_CHOICES = (
+        (1, "策采"),
+        (2, "杂采"),
+    )
+
+    operation_type = models.CharField(max_length=20, db_column="OperationType", verbose_name="操作类型", choices=OPERATION_TYPE_CHOICES)
+    operation_user = models.CharField(max_length=20, null=True, blank=True, db_column="OperationUser", verbose_name="操作人")
+    operation_time = models.DateTimeField(null=True, blank=True, db_column="OperationTime", verbose_name="操作时间")
+    operation_desc = models.TextField(max_length=200, null=True, blank=True, db_column="OperationDesc", verbose_name="操作描述")
+    inquiry_no = models.CharField(max_length=20, db_column="InquiryNo", db_index=True, verbose_name="询价单号")
+    quotation_no = models.CharField(max_length=20, null=False, blank=False, db_column="QuotationNo", db_index=True, verbose_name="报价单号")
+    per_status = models.CharField(max_length=50, null=True, blank=True, db_column="PerStatus", verbose_name="作业前状态")
+    cur_status = models.TextField(max_length=100, null=True, blank=True, db_column="CurStatus", verbose_name="作业后状态")
+    is_show_user = models.IntegerField(null=True, blank=True, db_column="IsShowUser", verbose_name="履历显示否", help_text="履历显示否(1:是 0:否)")
+    purchase_type = models.IntegerField(choices=PURCHASE_TYPE_CHOICES, null=False, blank=False, db_column="PurchaseType", verbose_name="采购类别", help_text="采购类别(1:策采 2:杂采)")
+
+    class Meta:
+        db_table = table_prefix + "rfq_operation_logs"
+        verbose_name = "询价单操作日志"
+        verbose_name_plural = verbose_name
+        ordering = ("-create_datetime", "id")
+        indexes = [
+            models.Index(fields=["inquiry_no", "quotation_no"]),
+        ]
+
+    @classmethod
+    def inquiry_status_display(cls, code: Optional[int]) -> str:
+        """询价单状态码 → 与 Inquiry.STATUS_CHOICES 一致的可读文案。"""
+        if code is None:
+            return ""
+        try:
+            c = int(code)
+        except (TypeError, ValueError):
+            return str(code)
+        return dict(Inquiry.STATUS_CHOICES).get(c, str(c))
+
+    @classmethod
+    def append(
+        cls,
+        *,
+        inquiry_no: str,
+        purchase_type: int,
+        operation_type: int,
+        operation_user: Optional[str] = None,
+        quotation_no: Optional[str] = None,
+        per_status: Optional[int] = None,
+        cur_status: Optional[int] = None,
+        operation_desc: Optional[str] = None,
+        is_show_user: int = 1,
+    ) -> None:
+        """
+        写入一条询价操作日志。quotation_no 无关联报价单时使用 \"-\"。
+        operation_type 与 OPERATION_TYPE_CHOICES 取值 1–10 一致。
+        """
+        qn = (quotation_no or "-").strip()[:20] or "-"
+        op_user = (operation_user or "").strip()[:20] if operation_user else None
+        now = timezone.now()
+        per_str = cls.inquiry_status_display(per_status) if per_status is not None else None
+        cur_str = cls.inquiry_status_display(cur_status) if cur_status is not None else None
+        desc = (operation_desc or "").strip()[:200] if operation_desc else None
+
+        cls.objects.create(
+            operation_type=str(int(operation_type)),
+            operation_user=op_user,
+            operation_time=now,
+            operation_desc=desc,
+            inquiry_no=(inquiry_no or "")[:20],
+            quotation_no=qn,
+            per_status=(per_str[:50] if per_str else None),
+            cur_status=(cur_str[:100] if cur_str else None),
+            is_show_user=is_show_user,
+            purchase_type=int(purchase_type),
+        )
+
+    @classmethod
+    def try_append(cls, **kwargs) -> None:
+        """写入失败不影响主流程，仅记录异常日志。"""
+        try:
+            cls.append(**kwargs)
+        except Exception:
+            logger.exception("写入询价操作日志失败")
+
+    def __str__(self) -> str:
+        return f"{self.inquiry_no}-{self.quotation_no}"

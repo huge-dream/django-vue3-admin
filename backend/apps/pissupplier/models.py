@@ -25,6 +25,11 @@ class QuotationMaster(models.Model):
         (1, "已中标"),
     )
 
+    BUYING_METHOD_CHOICES = (
+        (1, "询价"),
+        (2, "招标"),
+    )
+
     autoid = models.BigAutoField( primary_key=True, db_column="autoId", verbose_name="自增ID" )
     quotation_no = models.CharField( max_length=20, unique=True, db_index=True, verbose_name="报价单单号" )
     inquiry_no = models.CharField( max_length=20, db_index=True, verbose_name="询价单单号", help_text="报价单关联的询价单单号" )
@@ -53,6 +58,9 @@ class QuotationMaster(models.Model):
         null=True, blank=True, verbose_name="报价时间", help_text="正式提交报价时由 submit 接口写入当前时间"
     )
     remark = models.TextField( null=True, blank=True, verbose_name="报价说明及备注" )
+    buying_method = models.IntegerField(choices=BUYING_METHOD_CHOICES, null=True, blank=True, verbose_name="采购方式（寻源方式）")
+    bid_start_time = models.DateTimeField(null=True, blank=True, verbose_name="投标开始时间")
+    bid_end_time = models.DateTimeField(null=True, blank=True, verbose_name="投标截止时间")
 
     class Meta:
         db_table = table_prefix + "sup_quotation_master"

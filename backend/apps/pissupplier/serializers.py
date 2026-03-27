@@ -383,6 +383,16 @@ class QuotationMasterSerializer(BusinessAuditSerializer):
         required=False,
         allow_null=True,
     )
+    bid_start_time = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S",
+        required=False,
+        allow_null=True,
+    )
+    bid_end_time = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S",
+        required=False,
+        allow_null=True,
+    )
     # 列表/详情：询价主表 company_code + 公司信息简称（同请求内按 inquiry_no 缓存，减轻重复查询）
     inquiry_company_code = serializers.SerializerMethodField(read_only=True)
     inquiry_company_short_name = serializers.SerializerMethodField(read_only=True)
@@ -504,6 +514,9 @@ class QuotationMasterCreateUpdateSerializer(BusinessAuditSerializer):
     quoteuser = serializers.CharField(max_length=20, required=False, allow_blank=True, allow_null=True)
     quotetime = serializers.DateTimeField(required=False, allow_null=True)
     remark = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    buying_method = serializers.IntegerField(required=False, allow_null=True)
+    bid_start_time = serializers.DateTimeField(required=False, allow_null=True)
+    bid_end_time = serializers.DateTimeField(required=False, allow_null=True)
 
     audit_create_user_field = "createuser"
     audit_create_time_field = "creattime"
@@ -546,6 +559,14 @@ class QuotationMasterCreateUpdateSerializer(BusinessAuditSerializer):
         valid_values = {choice[0] for choice in QuotationMaster.AWARD_STATUS_CHOICES}
         if value not in valid_values:
             raise serializers.ValidationError("中标状态值不合法")
+        return value
+
+    def validate_buying_method(self, value):
+        if value is None:
+            return value
+        valid_values = {choice[0] for choice in QuotationMaster.BUYING_METHOD_CHOICES}
+        if value not in valid_values:
+            raise serializers.ValidationError("采购方式（寻源方式）取值不合法")
         return value
 
     def _upsert_attachments(self, quotation, attachments):

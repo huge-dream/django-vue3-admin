@@ -4,6 +4,8 @@ from .views import (
     MiscMaterialViewSet,
     MiscStationViewSet,
     MiscPartViewSet,
+    MiscLowPriceHeaderViewSet,
+    MiscLowPriceDetailViewSet,
     InquiryViewSet,
     InquirySupplierViewSet,
     InquiryAttachmentViewSet,
@@ -13,6 +15,7 @@ from .views import (
     InquiryProfitCostViewSet,
     InquiryRfqItemViewSet,
     CostEstimateTemplateViewSet,
+    RFQOperationLogsViewSet,
 )
 
 router = routers.SimpleRouter()
@@ -27,7 +30,10 @@ router.register(r'inquiry_process_cost', InquiryProcessCostViewSet)
 router.register(r'inquiry_other_cost', InquiryOtherCostViewSet)
 router.register(r'inquiry_profit_cost', InquiryProfitCostViewSet)
 router.register(r'inquiry_rfq_item', InquiryRfqItemViewSet)
+router.register(r'proc_low_price_header', MiscLowPriceHeaderViewSet)
+router.register(r'proc_low_price_detail', MiscLowPriceDetailViewSet)
 router.register(r'cost_template', CostEstimateTemplateViewSet)
+router.register(r'rfq_operation_logs', RFQOperationLogsViewSet)
 
 urlpatterns = []
 urlpatterns += router.urls
