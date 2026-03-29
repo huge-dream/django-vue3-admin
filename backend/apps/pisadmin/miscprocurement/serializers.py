@@ -267,7 +267,7 @@ class MiscPartCreateUpdateSerializer(CustomModelSerializer):
 
 
 class MiscLowPriceHeaderSerializer(CustomModelSerializer):
-    """比价-制程最低价记录主表"""
+    """比价-制程最低价记录主表（采购端「确认比价」时由 InquiryViewSet.confirm_negotiation 写入）。"""
 
     class Meta:
         model = MiscLowPriceHeader
@@ -283,7 +283,7 @@ class MiscLowPriceHeaderSerializer(CustomModelSerializer):
 
 
 class MiscLowPriceDetailSerializer(CustomModelSerializer):
-    """比价-制程最低价记录次表"""
+    """比价-制程最低价记录次表（材料规格下重量/单价最小值；与 confirm_negotiation 同步写入）。"""
 
     class Meta:
         model = MiscLowPriceDetail
@@ -1029,6 +1029,11 @@ class InquirySerializer(CustomModelSerializer):
     rfq_items = InquiryRfqItemSerializer(many=True, required=False)
     # 列表/详情展示：company_code → 公司信息简称（同请求内按代码缓存）
     company_short_name = serializers.SerializerMethodField(read_only=True)
+    # 上阶物料首行：与 misc_rfq_items 一致，供列表/比价弹窗回显采购件料号、名称（主表无独立字段）
+    part_no = serializers.SerializerMethodField(read_only=True)
+    part_name = serializers.SerializerMethodField(read_only=True)
+    # 税率：优先上阶物料行 tax_rate，否则同料号税费利润行（proc_inquiry_profit_cost.tax_rate）
+    tax_rate = serializers.SerializerMethodField(read_only=True)
     bid_start_time = serializers.DateTimeField(
         format="%Y-%m-%d %H:%M:%S",
         required=False,
@@ -1053,6 +1058,53 @@ class InquirySerializer(CustomModelSerializer):
                 short = ""
             cache[code] = short or code
         return cache[code]
+
+    def _first_rfq_item(self, obj: Inquiry):
+        qs = getattr(obj, "rfq_items", None)
+        if qs is None:
+            return None
+        return qs.order_by("id").first()
+
+    def get_part_no(self, obj):
+        item = self._first_rfq_item(obj)
+        if not item:
+            return ""
+        v = getattr(item, "part_id", None)
+        return "" if v is None else str(v).strip()
+
+    def get_part_name(self, obj):
+        item = self._first_rfq_item(obj)
+        if not item:
+            return ""
+        v = getattr(item, "product_name", None)
+        return "" if v is None else str(v).strip()
+
+    def _profit_cost_for_first_part(self, obj: Inquiry):
+        """首条上阶物料对应料号的税费利润行；无料号时取首条利润行。"""
+        rfq = self._first_rfq_item(obj)
+        qs = getattr(obj, "profit_costs", None)
+        if qs is None:
+            return None
+        if rfq:
+            pid = getattr(rfq, "part_id", None)
+            if pid is not None and str(pid).strip() != "":
+                row = qs.filter(part_id=pid).order_by("id").first()
+                if row:
+                    return row
+        return qs.order_by("id").first()
+
+    def get_tax_rate(self, obj):
+        item = self._first_rfq_item(obj)
+        if item:
+            v = getattr(item, "tax_rate", None)
+            if v is not None and str(v).strip() != "":
+                return str(v).strip()
+        pc = self._profit_cost_for_first_part(obj)
+        if pc:
+            v = getattr(pc, "tax_rate", None)
+            if v is not None and str(v).strip() != "":
+                return str(v).strip()
+        return ""
 
     def to_internal_value(self, data):
         if hasattr(data, "copy"):

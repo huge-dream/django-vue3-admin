@@ -4,7 +4,7 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.decorators import action
 
-from dvadmin.utils.json_response import DetailResponse, ErrorResponse
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
 from dvadmin.utils.viewset import CustomModelViewSet
 
 from apps.pisadmin.miscprocurement.models import Inquiry, RFQOperationLogs
@@ -32,7 +32,13 @@ from apps.pissupplier.serializers import (
 class QuotationMasterViewSet(CustomModelViewSet):
     """杂采报价单主表管理接口"""
 
-    queryset = QuotationMaster.objects.prefetch_related("rfq_items")
+    queryset = QuotationMaster.objects.prefetch_related(
+        "rfq_items",
+        "material_costs",
+        "process_costs",
+        "other_costs",
+        "profit_costs",
+    )
     serializer_class = QuotationMasterSerializer
     create_serializer_class = QuotationMasterCreateUpdateSerializer
     update_serializer_class = QuotationMasterCreateUpdateSerializer
@@ -59,6 +65,32 @@ class QuotationMasterViewSet(CustomModelViewSet):
         "remark",
     )
     ordering = ("-creattime", "-autoid")
+
+    @action(methods=["post"], detail=False, url_path="sync_expired")
+    def sync_expired(self, request):
+        """
+        将当前用户数据权限范围内、状态为待报价(1)或报价中(2)、且已超过报价截止时间的报价单
+        更新为已过期(4)。若某询价单下已无任何待报价/报价中的报价单，且询价单仍为「发布」或「报价中」，
+        则将该询价单置为「报价结束」(5)。供供应商端列表加载前调用。
+        """
+        now = timezone.now()
+        qs = self.filter_queryset(self.get_queryset()).filter(
+            status__in=(1, 2),
+            quote_deadline__isnull=False,
+            quote_deadline__lt=now,
+        )
+        inquiry_nos = list(qs.values_list("inquiry_no", flat=True).distinct())
+        username = getattr(getattr(request, "user", None), "username", None)
+        with transaction.atomic():
+            updated = qs.update(status=4)
+            inquiries_closed = Inquiry.sync_to_quote_closed_when_no_open_quotations(
+                inquiry_nos,
+                actor_username=username,
+            )
+        return SuccessResponse(
+            data={"updated": updated, "inquiries_closed": inquiries_closed},
+            msg="同步成功",
+        )
 
     def perform_create(self, serializer):
         serializer.save()
@@ -126,6 +158,9 @@ class QuotationMasterViewSet(CustomModelViewSet):
         instance = self.get_object()
         if instance.status not in (1, 2):
             return ErrorResponse(msg="仅未报价状态可进入报价中")
+        dl = getattr(instance, "quote_deadline", None)
+        if dl is not None and dl < timezone.now():
+            return ErrorResponse(msg="已超过报价截止时间")
         instance.status = 2
         instance.quotetime = timezone.now()
         username = getattr(getattr(request, "user", None), "username", None)
@@ -147,14 +182,27 @@ class QuotationMasterViewSet(CustomModelViewSet):
         instance = self.get_object()
         if instance.status != 2:
             return ErrorResponse(msg="仅报价中状态可提交报价")
+        dl = getattr(instance, "quote_deadline", None)
+        if dl is not None and dl < timezone.now():
+            return ErrorResponse(msg="已超过报价截止时间")
         instance.status = 3
         instance.quotetime = timezone.now()
         username = getattr(getattr(request, "user", None), "username", None)
         if username:
             instance.quoteuser = username
-        instance.save(update_fields=["status", "quotetime", "quoteuser"])
+        inquiry_quote_closed = False
+        with transaction.atomic():
+            instance.save(update_fields=["status", "quotetime", "quoteuser"])
+            inquiry_quote_closed = Inquiry.sync_to_quote_closed_when_all_suppliers_quoted(
+                instance.inquiry_no,
+                actor_username=username,
+                quotation_no=getattr(instance, "quotation_no", None),
+            )
         serializer = self.get_serializer(instance)
-        return DetailResponse(data=serializer.data, msg="提交成功")
+        payload = dict(serializer.data)
+        payload["inquiry_quote_closed"] = inquiry_quote_closed
+        msg = "提交成功" + ("，询价单已进入报价结束" if inquiry_quote_closed else "")
+        return DetailResponse(data=payload, msg=msg)
 
 
 class QuotationAttachmentViewSet(CustomModelViewSet):

@@ -40,7 +40,7 @@
                 <el-option v-for="tpl in templateOptions" :key="tpl.value" :label="tpl.label" :value="tpl.value" />
               </el-select>
             </el-form-item>
-            <el-form-item label="采购件料号">
+            <el-form-item label="采购件料号" required>
               <el-select
                 v-model="form.part_no"
                 placeholder="选择采购件料号"
@@ -65,6 +65,12 @@
                 <el-option v-for="c in categoryDict" :key="c.value" :label="c.label" :value="c.value" />
               </el-select>
             </el-form-item>
+            <el-form-item label="采购方式" required>
+              <el-select v-model="form.buying_method" placeholder="采购方式" clearable>
+                <el-option :value="1" label="询价" />
+                <el-option :value="2" label="招标" />
+              </el-select>
+            </el-form-item>
             <el-form-item label="报价截止时" required>
               <div class="quote-deadline-input">
                 <el-date-picker
@@ -80,13 +86,7 @@
                 </el-select>
               </div>
             </el-form-item>
-            <!-- <el-form-item label="采购方式">
-              <el-select v-model="form.buying_method" placeholder="采购方式" clearable>
-                <el-option :value="1" label="询价" />
-                <el-option :value="2" label="招标" />
-              </el-select>
-            </el-form-item>
-            <el-form-item label="投标开始时间">
+            <!-- el-form-item label="投标开始时间">
               <template v-if="isInquiryBuyingMethod">
                 <span class="bid-time-placeholder">-</span>
               </template>
@@ -450,8 +450,35 @@
           <el-table-column type="expand" width="1" class-name="hidden-expand" header-class-name="hidden-expand">
             <template #default="{ row }">
               <div class="compare-detail">
+                <template v-if="row.detailGroups && row.detailGroups.length">
+                  <div v-for="grp in row.detailGroups" :key="grp.title" class="compare-detail-group">
+                    <div class="compare-detail-group-title">{{ grp.title }}</div>
+                    <el-table :data="grp.lines" size="small" border class="compare-detail-table">
+                      <el-table-column label="明细" prop="label" min-width="140" />
+                      <el-table-column
+                        v-for="sup in comparisonDialog.suppliers"
+                        :key="`${grp.title}-${sup.name}`"
+                        :prop="`values.${sup.name}`"
+                        :label="sup.name"
+                        min-width="120"
+                      >
+                        <template #default="{ row: line }">
+                          <span :class="['compare-value', line.min === line.values[sup.name] ? 'is-min' : '']">
+                            {{ line.values[sup.name] ?? '-' }}
+                          </span>
+                        </template>
+                      </el-table-column>
+                      <el-table-column prop="avg" label="平均价" width="100">
+                        <template #default="{ row: line }">{{ formatCompareAvg(line.avg) }}</template>
+                      </el-table-column>
+                      <el-table-column prop="min" label="制程最低价" width="110">
+                        <template #default="{ row: line }">{{ line.min !== undefined ? line.min : '-' }}</template>
+                      </el-table-column>
+                    </el-table>
+                  </div>
+                </template>
                 <el-table
-                  v-if="row.details && row.details.length"
+                  v-else-if="row.details && row.details.length"
                   :data="row.details"
                   size="small"
                   border
@@ -484,7 +511,11 @@
           </el-table-column>
           <el-table-column prop="label" label="成本结构" fixed="left" min-width="160">
             <template #default="{ row }">
-              <span v-if="row.details && row.details.length" class="expand-toggle" @click.stop="toggleCompareExpand(row)">
+              <span
+                v-if="(row.details && row.details.length) || (row.detailGroups && row.detailGroups.length)"
+                class="expand-toggle"
+                @click.stop="toggleCompareExpand(row)"
+              >
                 {{ expandedRowKeys.includes(comparisonRowKeyFn(row)) ? '－' : '＋' }}
               </span>
               <span>{{ row.label }}</span>
@@ -1746,7 +1777,13 @@ const openEdit = (row: any) => openDetail(row, 'edit')
 const openView = (row: any) => openDetail(row, 'view')
 
 type ComparisonDetailRow = { label: string; values: Record<string, any>; avg?: number; min?: number }
-type ComparisonRow = ComparisonDetailRow & { key: string; details?: ComparisonDetailRow[] }
+/** 材料/加工：按材质或工站分组，组内多行明细（对齐 bargain_price.html 展开结构） */
+type ComparisonDetailGroup = { title: string; lines: ComparisonDetailRow[] }
+type ComparisonRow = ComparisonDetailRow & {
+  key: string
+  details?: ComparisonDetailRow[]
+  detailGroups?: ComparisonDetailGroup[]
+}
 
 const compareTableRef = ref()
 /** el-table 内 el-input 在异步合并 values 后常不重绘，递增 key 强制刷新 */
@@ -1866,7 +1903,17 @@ const mergeNegotiationIntoComparisonRows = (
 
 /** 合并议价数据后整体替换行引用，避免 el-table 单元格内 el-input 不随异步赋值更新 */
 const applyComparisonRowsAfterNegotiationMerge = async (rows: ComparisonRow[]) => {
-  comparisonDialog.rows = rows.map((r) => ({ ...r, values: { ...r.values } }))
+  comparisonDialog.rows = rows.map((r) => ({
+    ...r,
+    values: { ...r.values },
+    details: r.details ? r.details.map((d) => ({ ...d, values: { ...d.values } })) : undefined,
+    detailGroups: r.detailGroups
+      ? r.detailGroups.map((g) => ({
+          ...g,
+          lines: g.lines.map((l) => ({ ...l, values: { ...l.values } }))
+        }))
+      : undefined
+  }))
   await nextTick()
   compareTableRenderKey.value += 1
 }
@@ -1977,40 +2024,170 @@ const firstRfqField = (q: any, field: string) => {
   return v !== undefined && v !== null && v !== '' ? v : undefined
 }
 
-const buildMaterialProcessOtherDetails = (quotes: any[], supplierKeys: string[], kind: 'material' | 'process' | 'other') => {
+/** 与比价表「总价」行一致，用于按含税总价排名（价低名次靠前） */
+const getQuoteTotalNumeric = (q: any): number | null => {
+  const a = q?.quote_amount
+  if (a !== undefined && a !== null && a !== '') {
+    const n = Number(a)
+    if (Number.isFinite(n)) return n
+  }
+  const s = sumRfqField(q, 'total_price_incl_tax')
+  if (s != null && Number.isFinite(s)) return s
+  return null
+}
+
+/** 按总价升序赋名次；同价同名次（1,1,3）；无有效总价显示为 '-' */
+const buildRanksByTotal = (quotes: any[], supplierKeys: string[]): Record<string, any> => {
+  const out: Record<string, any> = {}
+  supplierKeys.forEach((k) => {
+    out[k] = '-'
+  })
+  const entries = supplierKeys
+    .map((key, idx) => ({ key, total: getQuoteTotalNumeric(quotes[idx]) }))
+    .filter((e): e is { key: string; total: number } => e.total != null && Number.isFinite(e.total))
+  entries.sort((a, b) => a.total - b.total)
+  let rank = 1
+  for (let i = 0; i < entries.length; i++) {
+    if (i > 0 && entries[i].total !== entries[i - 1].total) {
+      rank = i + 1
+    }
+    out[entries[i].key] = rank
+  }
+  return out
+}
+
+/** 合并 option_json 扁平字段，便于带出模板扩展列（损耗率、模穴数等） */
+const mergeOptionJsonIntoRow = (row: any): any => {
+  if (!row || typeof row !== 'object') return row
+  const oj = row.option_json
+  if (oj == null || oj === '') return row
+  let extra: Record<string, any> = {}
+  if (typeof oj === 'string') {
+    try {
+      const p = JSON.parse(oj)
+      if (p && typeof p === 'object') extra = p
+    } catch {
+      return row
+    }
+  } else if (typeof oj === 'object') {
+    extra = oj as Record<string, any>
+  }
+  return { ...row, ...extra }
+}
+
+const formatMetricCell = (v: unknown): string => {
+  if (v === null || v === undefined || v === '') return '-'
+  const n = Number(v)
+  if (Number.isFinite(n)) return String(v)
+  return String(v)
+}
+
+const findMaterialRowBySpec = (q: any, spec: string) => {
+  const t = String(spec || '').trim()
+  return (q.material_costs || []).find((r: any) => String(r.material_spec || '').trim() === t)
+}
+
+const findProcessRowByStation = (q: any, station: string) => {
+  const t = String(station || '').trim()
+  return (q.process_costs || []).find((r: any) => String(r.process_station || '').trim() === t)
+}
+
+/** 材料成本展开：按材料规格分组，组内展示重量/尺寸/单价/费用等（与报价单 material_costs 一致） */
+const buildMaterialDetailGroups = (quotes: any[], supplierKeys: string[]): ComparisonDetailGroup[] => {
+  const specs = new Set<string>()
+  quotes.forEach((q) => {
+    ;(q.material_costs || []).forEach((r: any) => {
+      specs.add(String(r.material_spec || '').trim() || '材料')
+    })
+  })
+  const sortedSpecs = [...specs].sort()
+  const metrics: { label: string; get: (r: any) => unknown }[] = [
+    { label: '用量(重量)', get: (r) => r?.weight },
+    { label: '长', get: (r) => r?.length },
+    { label: '宽', get: (r) => r?.width },
+    { label: '高', get: (r) => r?.height },
+    { label: '材料单价', get: (r) => r?.unit_price },
+    { label: '比重', get: (r) => r?.specific_gravity },
+    { label: '数量', get: (r) => r?.qty },
+    { label: '损耗率(%)', get: (r) => r?.loss_rate ?? r?.lossRate },
+    { label: '材料费用', get: (r) => r?.material_cost },
+    { label: '备注', get: (r) => r?.remark }
+  ]
+  const groups: ComparisonDetailGroup[] = []
+  for (const spec of sortedSpecs) {
+    const lines: ComparisonDetailRow[] = []
+    for (const m of metrics) {
+      const values: Record<string, any> = {}
+      supplierKeys.forEach((sup, idx) => {
+        const raw = findMaterialRowBySpec(quotes[idx], spec)
+        const merged = mergeOptionJsonIntoRow(raw || {})
+        values[sup] = formatMetricCell(m.get(merged))
+      })
+      const allDash = supplierKeys.every((sup) => values[sup] === '-')
+      if (allDash) continue
+      lines.push({ label: m.label, values, ...calcCompareStats(values) })
+    }
+    if (lines.length) groups.push({ title: spec || '材料', lines })
+  }
+  return groups
+}
+
+/** 加工成本展开：按工站分组，组内展示计量/费率/加工费等 */
+const buildProcessDetailGroups = (quotes: any[], supplierKeys: string[]): ComparisonDetailGroup[] => {
+  const stations = new Set<string>()
+  quotes.forEach((q) => {
+    ;(q.process_costs || []).forEach((r: any) => {
+      stations.add(String(r.process_station || '').trim() || '工站')
+    })
+  })
+  const sorted = [...stations].sort()
+  const metrics: { label: string; get: (r: any) => unknown }[] = [
+    { label: '加工计量', get: (r) => r?.process_qty },
+    { label: '单位', get: (r) => r?.unit },
+    { label: '费率', get: (r) => r?.unit_rate },
+    { label: '加工时间', get: (r) => r?.process_time ?? r?.processTime },
+    { label: '模穴数', get: (r) => r?.cavity_count ?? r?.cavityCount },
+    { label: '加工费用', get: (r) => r?.process_price },
+    { label: '备注', get: (r) => r?.remark }
+  ]
+  const groups: ComparisonDetailGroup[] = []
+  for (const station of sorted) {
+    const lines: ComparisonDetailRow[] = []
+    for (const m of metrics) {
+      const values: Record<string, any> = {}
+      supplierKeys.forEach((sup, idx) => {
+        const raw = findProcessRowByStation(quotes[idx], station)
+        const merged = mergeOptionJsonIntoRow(raw || {})
+        values[sup] = formatMetricCell(m.get(merged))
+      })
+      const allDash = supplierKeys.every((s) => values[s] === '-')
+      if (allDash) continue
+      lines.push({ label: m.label, values, ...calcCompareStats(values) })
+    }
+    if (lines.length) groups.push({ title: station || '工站', lines })
+  }
+  return groups
+}
+
+/** 其它成本：包装费 / 运输费（保持原单层表） */
+const buildOtherCostDetails = (quotes: any[], supplierKeys: string[]): ComparisonDetailRow[] => {
   const map = new Map<string, ComparisonDetailRow>()
   quotes.forEach((q, idx) => {
     const sup = supplierKeys[idx]
-    if (kind === 'material') {
-      for (const r of q.material_costs || []) {
-        const label = String(r.material_spec || r.part_id || '材料').trim() || '材料'
+    for (const r of q.other_costs || []) {
+      const pkg = r.packaging_cost
+      const tr = r.transportation_cost
+      if (pkg !== undefined && pkg !== null && pkg !== '') {
+        const label = '包装费'
         if (!map.has(label)) map.set(label, { label, values: {} })
-        const n = Number(r.material_cost)
-        map.get(label)!.values[sup] = Number.isFinite(n) ? n : (r.material_cost ?? '-')
+        const n = Number(pkg)
+        map.get(label)!.values[sup] = Number.isFinite(n) ? n : pkg
       }
-    } else if (kind === 'process') {
-      for (const r of q.process_costs || []) {
-        const label = String(r.process_station || '工站').trim() || '工站'
+      if (tr !== undefined && tr !== null && tr !== '') {
+        const label = '运输费'
         if (!map.has(label)) map.set(label, { label, values: {} })
-        const n = Number(r.process_price)
-        map.get(label)!.values[sup] = Number.isFinite(n) ? n : (r.process_price ?? '-')
-      }
-    } else {
-      for (const r of q.other_costs || []) {
-        const pkg = r.packaging_cost
-        const tr = r.transportation_cost
-        if (pkg !== undefined && pkg !== null && pkg !== '') {
-          const label = '包装费'
-          if (!map.has(label)) map.set(label, { label, values: {} })
-          const n = Number(pkg)
-          map.get(label)!.values[sup] = Number.isFinite(n) ? n : pkg
-        }
-        if (tr !== undefined && tr !== null && tr !== '') {
-          const label = '运输费'
-          if (!map.has(label)) map.set(label, { label, values: {} })
-          const n = Number(tr)
-          map.get(label)!.values[sup] = Number.isFinite(n) ? n : tr
-        }
+        const n = Number(tr)
+        map.get(label)!.values[sup] = Number.isFinite(n) ? n : tr
       }
     }
   })
@@ -2067,10 +2244,7 @@ const buildComparisonRowsFromPisQuotes = (quotes: any[]) => {
   })
   rows.push({ key: 'total', label: '总价', values: totalValues, ...calcCompareStats(totalValues) })
 
-  const rankValues: Record<string, any> = {}
-  supplierKeys.forEach((name, idx) => {
-    rankValues[name] = quotes[idx]?.rank ?? quotes[idx]?.quote_rank ?? '1'
-  })
+  const rankValues = buildRanksByTotal(quotes, supplierKeys)
   rows.push({ key: 'rank', label: '报价排名', values: rankValues })
 
   /* 议价价格仅由杂采议价记录表回显（openComparison 中 merge），勿用报价明细 winning_bid_price 以免与议价记录不一致 */
@@ -2093,17 +2267,16 @@ const buildComparisonRowsFromPisQuotes = (quotes: any[]) => {
   })
   rows.push({ key: 'award', label: '中标否', values: winValues })
 
-  const materialDetails = buildMaterialProcessOtherDetails(quotes, supplierKeys, 'material')
-  const processDetails = buildMaterialProcessOtherDetails(quotes, supplierKeys, 'process')
-  const otherDetails = buildMaterialProcessOtherDetails(quotes, supplierKeys, 'other')
+  const materialGroups = buildMaterialDetailGroups(quotes, supplierKeys)
+  const processGroups = buildProcessDetailGroups(quotes, supplierKeys)
+  const otherDetails = buildOtherCostDetails(quotes, supplierKeys)
 
-  const attachDetail = (key: string, details: ComparisonDetailRow[]) => {
-    const target = rows.find((r) => r.key === key)
-    if (target && details.length) target.details = details
-  }
-  attachDetail('material', materialDetails)
-  attachDetail('process', processDetails)
-  attachDetail('other', otherDetails)
+  const matRow = rows.find((r) => r.key === 'material')
+  if (matRow && materialGroups.length) matRow.detailGroups = materialGroups
+  const procRow = rows.find((r) => r.key === 'process')
+  if (procRow && processGroups.length) procRow.detailGroups = processGroups
+  const otherRow = rows.find((r) => r.key === 'other')
+  if (otherRow && otherDetails.length) otherRow.details = otherDetails
 
   const suppliers = supplierKeys.map((name, idx) => ({
     name: name || `供应商${idx + 1}`,
@@ -2111,6 +2284,22 @@ const buildComparisonRowsFromPisQuotes = (quotes: any[]) => {
   }))
 
   return { suppliers, rows }
+}
+
+/** 税率等：取首个非空值（接口 tax_rate / 嵌套 rfq_items、profit_costs） */
+const firstNonEmptyString = (...vals: unknown[]) => {
+  for (const v of vals) {
+    if (v === null || v === undefined || v === '') continue
+    const s = String(v).trim()
+    if (s !== '') {
+      const num = Number(s)
+      if (isNaN(num)) {
+        return s
+      }
+      return `${num.toFixed(2)}%`
+    }
+  }
+  return ''
 }
 
 const openComparison = async (row: any) => {
@@ -2124,13 +2313,19 @@ const openComparison = async (row: any) => {
   comparisonDialog.visible = true
   comparisonDialog.loading = true
   comparisonDialog.title = `比价/议价 - ${row.title || row.inquiry_name || row.inquiry_no || ''}`
+  const rfqFromRow = Array.isArray(row.rfq_items) ? row.rfq_items[0] : undefined
+  const profitFromRow = Array.isArray(row.profit_costs)
+    ? rfqFromRow?.part_id
+      ? row.profit_costs.find((p: any) => p.part_id === rfqFromRow.part_id) || row.profit_costs[0]
+      : row.profit_costs[0]
+    : undefined
   comparisonDialog.baseInfo = {
     code: row.inquiry_no || '',
-    partNo: row.part_no || '',
-    partName: row.part_name || '',
+    partNo: String(row.part_no || row.part_id || rfqFromRow?.part_id || '').trim(),
+    partName: String(row.part_name || rfqFromRow?.product_name || '').trim(),
     targetPrice: row.target_price != null ? String(row.target_price) : '',
-    currency: row.currency || '',
-    taxRate: row.tax_rate != null ? String(row.tax_rate) : '',
+    currency: String(row.currency || row.transaction_currency || '').trim(),
+    taxRate: firstNonEmptyString(row.tax_rate, rfqFromRow?.tax_rate, profitFromRow?.tax_rate),
     dealPrice: row.win_price != null ? String(row.win_price) : '-',
     lowestProcessPrice: '-'
   }
@@ -2145,6 +2340,24 @@ const openComparison = async (row: any) => {
     comparisonDialog.quotes = quotes
     comparisonDialog.suppliers = suppliers
     comparisonDialog.rows = rows
+    const rq0 = quotes[0]?.rfq_items?.[0]
+    if (rq0) {
+      if (!comparisonDialog.baseInfo.partNo) comparisonDialog.baseInfo.partNo = String(rq0.part_id || '').trim()
+      if (!comparisonDialog.baseInfo.partName) comparisonDialog.baseInfo.partName = String(rq0.product_name || '').trim()
+    }
+    if (!comparisonDialog.baseInfo.taxRate) {
+      const pcQ =
+        quotes[0] && Array.isArray(quotes[0].profit_costs)
+          ? rq0?.part_id
+            ? quotes[0].profit_costs.find((p: any) => p.part_id === rq0.part_id) || quotes[0].profit_costs[0]
+            : quotes[0].profit_costs[0]
+          : undefined
+      comparisonDialog.baseInfo.taxRate = firstNonEmptyString(rq0?.tax_rate, pcQ?.tax_rate)
+    }
+    if (!comparisonDialog.baseInfo.currency && quotes[0]) {
+      const c = quotes[0].currency ?? quotes[0].transaction_currency
+      if (c != null && c !== '') comparisonDialog.baseInfo.currency = String(c).trim()
+    }
     const partId = resolveComparisonPartId(row, quotes)
     if (partId) {
       try {
@@ -2157,9 +2370,10 @@ const openComparison = async (row: any) => {
         /* 无议价记录时沿用报价单展示 */
       }
     }
-    const procRow = rows.find((r) => r.key === 'process')
-    if (procRow && procRow.min !== undefined) {
-      comparisonDialog.baseInfo.lowestProcessPrice = String(procRow.min)
+    /** 与表格「制程最低价」列一致：取「总价」行各供应商报价中的最小值，勿用「加工成本」或「议价价格」行 */
+    const totalRow = rows.find((r) => r.key === 'total')
+    if (totalRow && totalRow.min !== undefined) {
+      comparisonDialog.baseInfo.lowestProcessPrice = String(totalRow.min)
     }
   } catch (e: any) {
     comparisonDialog.quotes = []
@@ -2185,7 +2399,11 @@ const updateComparisonRowStats = (row: any) => {
   }
 }
 
-const comparisonRowClassName = ({ row }: any) => (!row.details || !row.details.length ? 'no-expand' : '')
+const comparisonRowClassName = ({ row }: any) => {
+  const has =
+    (row.details && row.details.length) || (row.detailGroups && row.detailGroups.length)
+  return has ? '' : 'no-expand'
+}
 
 const comparisonRowKeyFn = (row: ComparisonRow) => String(row.key || row.label || '')
 
@@ -2201,7 +2419,9 @@ const handleComparisonExpandChange = (row: ComparisonRow, expandedRows: Comparis
 }
 
 const toggleCompareExpand = (row: ComparisonRow) => {
-  if (!row.details || !row.details.length) return
+  const has =
+    (row.details && row.details.length) || (row.detailGroups && row.detailGroups.length)
+  if (!has) return
   const key = comparisonRowKeyFn(row)
   const next = !expandedRowKeys.value.includes(key)
   ;(compareTableRef.value as any)?.toggleRowExpansion?.(row, next)
@@ -2270,7 +2490,7 @@ const validateComparisonAwardAndBargain = async () => {
 
 const saveComparison = async (target: 'draft' | 'negotiated' | 'audit') => {
   const st = Number(comparisonDialog.currentRow?.status)
-  if (target === 'negotiated' && st !== 6) {
+  if (target === 'negotiated' && ![5, 6].includes(st)) {
     ElMessage.warning('仅比议价中状态可确认比价')
     return
   }
@@ -2348,7 +2568,7 @@ const saveComparison = async (target: 'draft' | 'negotiated' | 'audit') => {
       })
     )
     if (target === 'negotiated') {
-      await api.ConfirmNegotiationObj(comparisonDialog.currentRow.id)
+      await api.ConfirmNegotiationObj(comparisonDialog.currentRow.id, { part_id: partId })
       comparisonDialog.currentRow.status = 7
       ElMessage.success('已确认比价')
       crudExpose.doRefresh()
@@ -3008,6 +3228,22 @@ onMounted(() => {
 }
 .compare-detail {
   padding: 4px 0 6px;
+}
+.compare-detail-group {
+  margin-bottom: 12px;
+}
+.compare-detail-group:last-child {
+  margin-bottom: 0;
+}
+.compare-detail-group-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: #065f46;
+  background: linear-gradient(90deg, #d1fae5 0%, #ecfdf5 55%, transparent 100%);
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  border-radius: 4px;
+  border-left: 3px solid #10b981;
 }
 .compare-detail-table {
   margin: 0;
