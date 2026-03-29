@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Iterable, Optional
 
 from django.db import models
 from django.utils import timezone
@@ -175,8 +175,13 @@ class CostEstimateTemplateBody(models.Model):
 
 
 class Inquiry(CoreModel):
-    """杂采询价单主表"""
-    
+    """杂采询价单主表
+
+    与供应商端报价联动：当全部报价单都不再处于待报价/报价中时，「发布」「报价中」可经
+    `Inquiry.sync_to_quote_closed_when_no_open_quotations` 收口为「报价结束」；
+    当供应商名单中每家均有一条「已报价」报价单时，可经 `Inquiry.sync_to_quote_closed_when_all_suppliers_quoted` 收口（见 `submit`）。
+    """
+
     # (1开立；2确认；3发布；4报价中；5报价结束；6比议价中；7价格审核；8核价通过(结束)；9落标(结束)；0作废)
     STATUS_CHOICES = (
         (1, "开立"),
@@ -268,6 +273,111 @@ class Inquiry(CoreModel):
 
     def __str__(self) -> str:  # pragma: no cover - simple repr
         return self.inquiry_no
+
+    @classmethod
+    def sync_to_quote_closed_when_no_open_quotations(
+        cls,
+        inquiry_nos: Iterable[str],
+        *,
+        actor_username: Optional[str] = None,
+    ) -> int:
+        """
+        当某询价单下已不存在「待报价」(1) 或「报价中」(2) 的报价单时，若询价单仍为「发布」(3) 或「报价中」(4)，
+        则置为「报价结束」(5)，并写操作日志。
+
+        典型调用：供应商报价单因超过截止时间被批量置为「已过期」后，判断询价维度是否可收口为报价结束。
+        """
+        from apps.pissupplier.models import QuotationMaster  # 避免 apps 间循环 import
+
+        now = timezone.now()
+        username = (str(actor_username).strip()[:20] if actor_username else None) or None
+        unique = {str(x).strip() for x in inquiry_nos if x and str(x).strip()}
+        n = 0
+        for inq_no in unique:
+            if QuotationMaster.objects.filter(inquiry_no=inq_no, status__in=(1, 2)).exists():
+                continue
+            inq = cls.objects.filter(inquiry_no=inq_no, status__in=(3, 4)).first()
+            if not inq:
+                continue
+            old_status = int(inq.status if inq.status is not None else 0)
+            inq.status = 5
+            inq.update_time = now
+            inq.update_datetime = now
+            if username:
+                inq.update_user = username
+            inq.save(update_fields=["status", "update_time", "update_user", "update_datetime"])
+            RFQOperationLogs.try_append(
+                inquiry_no=inq.inquiry_no,
+                purchase_type=int(inq.purchase_type),
+                operation_type=6,
+                operation_user=username,
+                quotation_no="-",
+                per_status=old_status,
+                cur_status=5,
+                operation_desc="全部报价单已结束待报价/报价中，询价单同步为报价结束",
+            )
+            n += 1
+        return n
+
+    @classmethod
+    def sync_to_quote_closed_when_all_suppliers_quoted(
+        cls,
+        inquiry_no: str,
+        *,
+        actor_username: Optional[str] = None,
+        quotation_no: Optional[str] = None,
+    ) -> bool:
+        """
+        若询价单供应商名单（InquirySupplier）中每个供应商在 `QuotationMaster` 上均有一条「已报价」(3) 记录，
+        且询价单仍为「发布」(3) 或「报价中」(4)，则将询价单置为「报价结束」(5)。
+
+        用于最后一户提交正式报价后收口，不依赖是否已超过报价截止时间。
+        """
+        from apps.pissupplier.models import QuotationMaster  # 避免 apps 间循环 import
+
+        inq_no = (inquiry_no or "").strip()
+        if not inq_no:
+            return False
+        inq = cls.objects.filter(inquiry_no=inq_no, status__in=(3, 4)).first()
+        if not inq:
+            return False
+
+        raw_codes = (
+            InquirySupplier.objects.filter(inquiry_no=inq_no)
+            .values_list("supplier_code", flat=True)
+            .distinct()
+        )
+        supplier_codes = {str(c).strip() for c in raw_codes if c and str(c).strip()}
+        if not supplier_codes:
+            return False
+
+        for code in supplier_codes:
+            qm = QuotationMaster.objects.filter(inquiry_no=inq_no, supplier_code=code).first()
+            st = int(qm.status) if qm is not None and qm.status is not None else None
+            if st != 3:
+                return False
+
+        old_status = int(inq.status if inq.status is not None else 0)
+        now = timezone.now()
+        username = (str(actor_username).strip()[:20] if actor_username else None) or None
+        inq.status = 5
+        inq.update_time = now
+        inq.update_datetime = now
+        if username:
+            inq.update_user = username
+        inq.save(update_fields=["status", "update_time", "update_user", "update_datetime"])
+        qn = (quotation_no or "-").strip()[:20] or "-"
+        RFQOperationLogs.try_append(
+            inquiry_no=inq.inquiry_no,
+            purchase_type=int(inq.purchase_type),
+            operation_type=6,
+            operation_user=username,
+            quotation_no=qn,
+            per_status=old_status,
+            cur_status=5,
+            operation_desc="全部供应商已提交报价，询价单同步为报价结束",
+        )
+        return True
 
 
 class InquirySupplier(models.Model):
@@ -600,7 +710,7 @@ class MiscLowPriceHeader(CoreModel):
         max_length=100,
         db_column="ItemNo",
         verbose_name="项次名",
-        help_text="如：铝等项次名称",
+        help_text="根据成本类别获取询价单对应子表数据行，材料类别 - 材料成本的产品料号 part_id, 加工类别 - 加工工站 process_station",
     )
     min_price = models.CharField(
         max_length=10,

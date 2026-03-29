@@ -46,6 +46,7 @@ type Quote = {
   bidEndTime?: string
   template: string
   currency: string
+  /** 与后端 `quote_deadline`（DateTime）对应的展示用字符串，经 `formatQuoteDeadlineDisplay` 规范化 */
   quoteDeadline: string
   quoteAmount: string
   quoteTime: string
@@ -90,15 +91,63 @@ export function formatQuoteDeadlineDisplay(value: unknown) {
   if (!value) return ''
   const text = String(value).trim()
   if (!text) return ''
-  const matched = text.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2})/)
-  if (matched) {
-    return `${matched[1]} ${matched[2]}:00`
+  // 匹配完整日期时间：yyyy-mm-dd HH:MM:SS 或 yyyy-mm-ddTHH:MM:SS
+  const fullMatched = text.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}):(\d{2})/)
+  if (fullMatched) {
+    return `${fullMatched[1]} ${fullMatched[2]}:${fullMatched[3]}`
   }
+  // 匹配只到小时：yyyy-mm-dd HH
+  const hourMatched = text.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2})/)
+  if (hourMatched) {
+    return `${hourMatched[1]} ${hourMatched[2]}:00`
+  }
+  // 只有日期：yyyy-mm-dd
   const dateOnly = text.match(/^(\d{4}-\d{2}-\d{2})$/)
   if (dateOnly) {
     return `${dateOnly[1]} 00:00`
   }
   return text
+}
+
+/** 将后端返回的 `quote_deadline`（ISO 或 `YYYY-MM-DD HH:mm:ss`）规范为列表/表单展示用字符串 */
+export function normalizeQuoteDeadlineFromApi(value: unknown): string {
+  return formatQuoteDeadlineDisplay(value)
+}
+
+/** 解析报价截止时间用于本地筛选（与 `YYYY-MM-DD HH:mm:ss` / ISO 字符串兼容） */
+export function parseQuoteDeadlineToMs(value: unknown): number {
+  if (value == null || value === '') return NaN
+  const text = String(value).trim()
+  if (!text) return NaN
+  const normalized = formatQuoteDeadlineDisplay(text)
+  if (!normalized) return NaN
+  const forDate = normalized.replace(/^(\d{4}-\d{2}-\d{2})\s+/, '$1T')
+  const d = new Date(forDate)
+  const t = d.getTime()
+  return Number.isNaN(t) ? NaN : t
+}
+
+/**
+ * 保存主表时提交 `quote_deadline`：后端为 DateTimeField，提交 `YYYY-MM-DD HH:mm:ss` 或省略
+ */
+export function quoteDeadlineToApiPayload(value: unknown): string | undefined {
+  if (value == null || value === '') return undefined
+  const raw = String(value).trim()
+  if (!raw) return undefined
+  const normalized = formatQuoteDeadlineDisplay(raw)
+  if (!normalized) return undefined
+  const m = normalized.match(/^(\d{4}-\d{2}-\d{2})\s+(\d{2}):(\d{2})(?::(\d{2}))?$/)
+  if (m) {
+    const sec = m[4] ?? '00'
+    return `${m[1]} ${m[2]}:${m[3]}:${sec}`
+  }
+  const m2 = normalized.match(/^(\d{4}-\d{2}-\d{2})$/)
+  if (m2) return `${m2[1]} 00:00:00`
+  const isoCandidate = raw.includes('T') || raw.includes('Z') ? raw : raw.replace(/^(\d{4}-\d{2}-\d{2})\s+/, '$1T')
+  const d = new Date(isoCandidate)
+  if (Number.isNaN(d.getTime())) return undefined
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
 }
 
 /** 列表「投标开始/截止」列：采购方式=询价 时显示「-」 */
@@ -1339,7 +1388,9 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       const tpl = inv.template || inv.template_code
       if (tpl) q.template = tpl
       if (inv.currency) q.currency = inv.currency
-      if (inv.quote_deadline) q.quoteDeadline = inv.quote_deadline
+      if (inv.quote_deadline != null && String(inv.quote_deadline).trim() !== '') {
+        q.quoteDeadline = normalizeQuoteDeadlineFromApi(inv.quote_deadline)
+      }
       if (q.buyingMethod == null && inv.buying_method != null && inv.buying_method !== '') {
         const n = Number(inv.buying_method)
         if (Number.isFinite(n)) q.buyingMethod = n
@@ -1397,7 +1448,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
         const raw = item.bid_end_time ?? item.bidEndTime
         return raw != null && String(raw).trim() !== '' ? String(raw).trim() : ''
       })(),
-      quoteDeadline: item.quote_deadline || item.quoteDeadline || '',
+      quoteDeadline: normalizeQuoteDeadlineFromApi(item.quote_deadline ?? item.quoteDeadline ?? ''),
       quoteAmount:
         item.quote_amount ??
         item.quoteAmount ??
@@ -1534,6 +1585,11 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     loading.value = true
     try {
       await ensureTemplateNameLookup()
+      try {
+        await api.syncExpiredQuotations()
+      } catch (e) {
+        console.warn('同步已过期报价单状态失败', e)
+      }
       const res = await api.getList({ page: 1, page_size: 200 })
       const list = res?.data?.results || res?.data?.data?.results || res?.data?.list || res?.data || []
       const mapped = (Array.isArray(list) ? list : []).map(mapBackendQuote)
@@ -1585,7 +1641,13 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
           filters.buyingMethod === '' || filters.buyingMethod === undefined || filters.buyingMethod === null
             ? true
             : Number(q.buyingMethod) === Number(filters.buyingMethod)
-        const matchDate = !start || !end || (new Date(q.quoteDeadline) >= start && new Date(q.quoteDeadline) <= end)
+        const matchDate =
+          !start ||
+          !end ||
+          (() => {
+            const t = parseQuoteDeadlineToMs(q.quoteDeadline)
+            return !Number.isNaN(t) && t >= start.getTime() && t <= end.getTime()
+          })()
         return (
           matchQuoteNo &&
           matchInquiryCode &&
@@ -1819,7 +1881,9 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
             quoteData.inquiryTitle = inquiry.title || quoteData.inquiryTitle
             quoteData.template = inquiry.template || inquiry.template_code || quoteData.template
             quoteData.currency = inquiry.currency || quoteData.currency
-            quoteData.quoteDeadline = inquiry.quote_deadline || quoteData.quoteDeadline
+            if (inquiry.quote_deadline != null && String(inquiry.quote_deadline).trim() !== '') {
+              quoteData.quoteDeadline = normalizeQuoteDeadlineFromApi(inquiry.quote_deadline)
+            }
             const icc = inquiry.company_code != null && inquiry.company_code !== '' ? String(inquiry.company_code).trim() : ''
             if (icc) quoteData.inquiryCompanyCode = icc
             quoteData.inquiryStatus = inquiry.status || inquiry.inquiry_status || quoteData.inquiryStatus
@@ -2138,13 +2202,17 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       loading.value = true
       try {
         const res: any = await api.submitOfficial(row.id)
-        const data = res?.data?.data ?? res?.data ?? res
-        const updated = mapBackendQuote(data)
+        const raw = res?.data?.data ?? res?.data ?? res
+        const inquiryClosed = raw?.inquiry_quote_closed === true
+        const updated = mapBackendQuote(raw)
         await enrichQuotesWithInquiryData([updated])
         const idx = quotes.value.findIndex((q) => q.id === updated.id)
         if (idx >= 0) quotes.value.splice(idx, 1, updated)
         else quotes.value.unshift(updated)
-        ElMessage.success('报价已提交')
+        const tip =
+          res?.data?.msg ||
+          (inquiryClosed ? '报价已提交，询价单已进入报价结束' : '报价已提交')
+        ElMessage.success(tip)
         options?.onChange?.()
       } catch (err) {
         console.error('提交报价失败', err)
@@ -2240,7 +2308,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     const payload: any = {
       quotation_no: q.quoteNo || undefined,
       inquiry_no: q.inquiryCode || undefined,
-      quote_deadline: q.quoteDeadline || undefined,
+      quote_deadline: quoteDeadlineToApiPayload(q.quoteDeadline),
       supplier_code: q.supplierCode || undefined,
       supplier_name: q.supplierName || undefined,
       contact_person: q.base.contact || undefined,
