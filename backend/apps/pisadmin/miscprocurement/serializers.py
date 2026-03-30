@@ -267,7 +267,8 @@ class MiscPartCreateUpdateSerializer(CustomModelSerializer):
 
 
 class MiscLowPriceHeaderSerializer(CustomModelSerializer):
-    """比价-制程最低价主表：开启/确认比价时写入；含材料规格、工站、包装费(3)、运输费(4)、利润率(6)；杂采不写管销研(5)。"""
+    """比价-制程最低价主表：开启/确认比价时写入；材料一行（重量×单价×数量）、加工一行（无次表、不按工站；合计最小，全 0/空也落库）、包装费(3)、运输费(4)、利润率(6)；杂采不写管销研(5)。
+    souce_no：材料行为次表来源聚合（如 W:报价单号;U:报价单号或厂区）；加工行为合计最小的报价单单号，无报价时回退询价单号。"""
 
     class Meta:
         model = MiscLowPriceHeader
@@ -283,7 +284,7 @@ class MiscLowPriceHeaderSerializer(CustomModelSerializer):
 
 
 class MiscLowPriceDetailSerializer(CustomModelSerializer):
-    """比价-制程最低价记录次表（材料规格下重量/单价最小值；与 confirm_negotiation 同步写入）。"""
+    """比价-制程最低价记录次表（材料：最低重量、最低单价各一行；souce_no 为对应报价单单号或杂采交易厂区代码）。"""
 
     class Meta:
         model = MiscLowPriceDetail

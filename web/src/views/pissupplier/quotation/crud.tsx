@@ -127,6 +127,33 @@ export function parseQuoteDeadlineToMs(value: unknown): number {
   return Number.isNaN(t) ? NaN : t
 }
 
+/** 报价主表 `buying_method === 2`（招标） */
+export function isBuyingMethodBidding(row: any) {
+  return Number(row?.buyingMethod ?? row?.buying_method) === 2
+}
+
+/** 非招标不限制；招标须在投标开始～截止（含端点）内；缺时间则不可用 */
+export function isWithinSupplierBidWindow(row: any, nowMs: number = Date.now()) {
+  if (!isBuyingMethodBidding(row)) return true
+  const start = parseQuoteDeadlineToMs(row?.bidStartTime ?? row?.bid_start_time)
+  const end = parseQuoteDeadlineToMs(row?.bidEndTime ?? row?.bid_end_time)
+  if (!Number.isFinite(start) || !Number.isFinite(end)) return false
+  return nowMs >= start && nowMs <= end
+}
+
+/** 非招标或未超限返回 null；否则返回提示文案（列表按钮禁用、openQuote/submit 前置校验） */
+export function getSupplierBidWindowRejectReason(row: any, nowMs: number = Date.now()): string | null {
+  if (!isBuyingMethodBidding(row)) return null
+  const start = parseQuoteDeadlineToMs(row?.bidStartTime ?? row?.bid_start_time)
+  const end = parseQuoteDeadlineToMs(row?.bidEndTime ?? row?.bid_end_time)
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    return '招标项目缺少投标开始或截止时间，无法报价或提交'
+  }
+  if (nowMs < start) return '投标尚未开始，请在投标开始后再报价或提交'
+  if (nowMs > end) return '已超过投标截止时间，无法报价或提交'
+  return null
+}
+
 /**
  * 保存主表时提交 `quote_deadline`：后端为 DateTimeField，提交 `YYYY-MM-DD HH:mm:ss` 或省略
  */
@@ -400,12 +427,12 @@ export type QuotationCostColumn = {
 export const FIXED_QUOTATION_SECTION_COLUMNS: Record<string, QuotationCostColumn[]> = {
   材料成本: [
     { key: 'material', label: '材质' },
-    { key: 'len', label: '长' },
-    { key: 'width', label: '宽' },
-    { key: 'height', label: '高' },
-    { key: 'specificgravity', label: '比重' },
+    { key: 'len', label: '长(mm)' },
+    { key: 'width', label: '宽(mm)' },
+    { key: 'height', label: '高(mm)' },
+    { key: 'specificgravity', label: '比重(kg/cm³)' },
     { key: 'qty', label: '数量' },
-    { key: 'weight', label: '重量' },
+    { key: 'weight', label: '重量(kg)' },
     { key: 'unitPrice', label: '单价' },
     { key: 'material_fee', label: '材料费用' },
     { key: 'remark', label: '备注' }
@@ -1834,6 +1861,11 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   }
 
   const openQuote = async (row: Quote) => {
+    const bidReason = getSupplierBidWindowRejectReason(row)
+    if (bidReason) {
+      ElMessage.warning(bidReason)
+      return
+    }
     dialog.mode = 'edit'
     dialog.quoteId = row.id
     loading.value = true
@@ -2185,6 +2217,11 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   function submitQuotationFromRow(row: Quote) {
     if (!isQuotedQuotation(row)) {
       ElMessage.warning('仅报价中状态可提交报价')
+      return
+    }
+    const bidReason = getSupplierBidWindowRejectReason(row)
+    if (bidReason) {
+      ElMessage.warning(bidReason)
       return
     }
     const c = (row.base?.contact || '').trim()

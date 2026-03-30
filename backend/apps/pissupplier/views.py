@@ -29,6 +29,23 @@ from apps.pissupplier.serializers import (
 )
 
 
+def _supplier_bidding_window_error(instance: QuotationMaster):
+    """招标：报价/提交仅允许在投标开始时间～投标截止时间（含端点）内。"""
+    bm = getattr(instance, "buying_method", None)
+    if bm != 2:
+        return None
+    now = timezone.now()
+    bs = getattr(instance, "bid_start_time", None)
+    be = getattr(instance, "bid_end_time", None)
+    if bs is None or be is None:
+        return ErrorResponse(msg="招标项目未设置投标开始或截止时间，无法报价或提交")
+    if now < bs:
+        return ErrorResponse(msg="投标尚未开始")
+    if now > be:
+        return ErrorResponse(msg="已超过投标截止时间")
+    return None
+
+
 class QuotationMasterViewSet(CustomModelViewSet):
     """杂采报价单主表管理接口
 
@@ -164,6 +181,9 @@ class QuotationMasterViewSet(CustomModelViewSet):
         dl = getattr(instance, "quote_deadline", None)
         if dl is not None and dl < timezone.now():
             return ErrorResponse(msg="已超过报价截止时间")
+        bid_err = _supplier_bidding_window_error(instance)
+        if bid_err is not None:
+            return bid_err
         instance.status = 2
         instance.quotetime = timezone.now()
         username = getattr(getattr(request, "user", None), "username", None)
@@ -188,6 +208,9 @@ class QuotationMasterViewSet(CustomModelViewSet):
         dl = getattr(instance, "quote_deadline", None)
         if dl is not None and dl < timezone.now():
             return ErrorResponse(msg="已超过报价截止时间")
+        bid_err = _supplier_bidding_window_error(instance)
+        if bid_err is not None:
+            return bid_err
         instance.status = 3
         instance.quotetime = timezone.now()
         username = getattr(getattr(request, "user", None), "username", None)

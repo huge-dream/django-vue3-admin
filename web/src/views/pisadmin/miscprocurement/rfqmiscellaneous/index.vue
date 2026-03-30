@@ -71,7 +71,7 @@
                 <el-option :value="2" label="招标" />
               </el-select>
             </el-form-item>
-            <el-form-item v-if="isInquiryBuyingMethod" label="报价截止时" required>
+            <el-form-item v-if="isInquiryBuyingMethod" label="报价截止时间" required>
               <div class="quote-deadline-input">
                 <el-date-picker
                   v-model="quoteDeadlineDate"
@@ -81,8 +81,8 @@
                   :disabled-date="isQuoteDeadlineDateDisabled"
                   style="max-width: 100%"
                 />
-                <el-select v-model="quoteDeadlineHour" placeholder="小时" :disabled="!quoteDeadlineDate" style="max-width: 120px">
-                  <el-option v-for="hour in quoteDeadlineHourOptions" :key="hour" :label="`${hour}:00`" :value="hour" />
+                <el-select v-model="quoteDeadlineTimeSlot" placeholder="时间" :disabled="!quoteDeadlineDate" style="max-width: 120px">
+                  <el-option v-for="slot in THIRTY_MIN_TIME_SLOTS" :key="slot" :label="slot" :value="slot" />
                 </el-select>
               </div>
             </el-form-item>
@@ -96,23 +96,8 @@
                   :disabled-date="isQuoteDeadlineDateDisabled"
                   style="max-width: 100%"
                 />
-                <el-select v-model="bidStartTimeHour" placeholder="小时" :disabled="!bidStartTimeDate" style="max-width: 120px">
-                  <el-option v-for="hour in quoteDeadlineHourOptions" :key="hour" :label="`${hour}:00`" :value="hour" />
-                </el-select>
-              </div>
-            </el-form-item>
-            <el-form-item v-if="!isInquiryBuyingMethod" label="投标截止时间" required>
-              <div class="quote-deadline-input">
-                <el-date-picker
-                v-model="bidEndTimeDate"
-                type="date"
-                  value-format="YYYY-MM-DD"
-                  placeholder="选择日期"
-                  :disabled-date="isQuoteDeadlineDateDisabled"
-                  style="width: 100%"
-                />
-                <el-select v-model="bidEndTimeHour" placeholder="小时" :disabled="!bidEndTimeDate" style="width: 120px">
-                  <el-option v-for="hour in quoteDeadlineHourOptions" :key="hour" :label="`${hour}:00`" :value="hour" />
+                <el-select v-model="bidStartTimeSlot" placeholder="时间" :disabled="!bidStartTimeDate" style="max-width: 120px">
+                  <el-option v-for="slot in THIRTY_MIN_TIME_SLOTS" :key="slot" :label="slot" :value="slot" />
                 </el-select>
               </div>
             </el-form-item>
@@ -128,6 +113,21 @@
             </el-form-item>
             <el-form-item label="采购部门">
               <el-input v-model="form.purchase_dept" placeholder="当前登录用户所属部门" disabled />
+            </el-form-item>
+            <el-form-item v-if="!isInquiryBuyingMethod" label="投标截止时间" required>
+              <div class="quote-deadline-input">
+                <el-date-picker
+                v-model="bidEndTimeDate"
+                type="date"
+                  value-format="YYYY-MM-DD"
+                  placeholder="选择日期"
+                  :disabled-date="isQuoteDeadlineDateDisabled"
+                  style="max-width: 100%"
+                />
+                <el-select v-model="bidEndTimeSlot" placeholder="时间" :disabled="!bidEndTimeDate" style="max-width: 120px">
+                  <el-option v-for="slot in THIRTY_MIN_TIME_SLOTS" :key="slot" :label="slot" :value="slot" />
+                </el-select>
+              </div>
             </el-form-item>
             <el-form-item label="采购人员" required>
               <el-input v-model="form.buyer" />
@@ -732,7 +732,13 @@ import {
   displayPercentRate,
   buildMaterialComparisonMetricsFromTemplateFields,
   buildProcessComparisonMetricsFromTemplateFields,
-  type ComparisonDetailMetric
+  shouldSkipMaterialDetailMetric,
+  shouldSkipProcessDetailMetric,
+  computeLowPriceMinContext,
+  applyMaterialDetailLowPriceMin,
+  applyProcessDetailLowPriceMin,
+  type ComparisonDetailMetric,
+  type LowPriceMinContext
 } from './crud'
 import * as api from './api'
 import * as costTemplateApi from '../cost_template/api'
@@ -1336,7 +1342,7 @@ const toNumberOrZero = (val: any) => {
 const padTwoDigits = (value: number) => String(value).padStart(2, '0')
 
 const formatQuoteDeadlineValue = (value: Date) =>
-  `${value.getFullYear()}-${padTwoDigits(value.getMonth() + 1)}-${padTwoDigits(value.getDate())} ${padTwoDigits(value.getHours())}:00:00`
+  `${value.getFullYear()}-${padTwoDigits(value.getMonth() + 1)}-${padTwoDigits(value.getDate())} ${padTwoDigits(value.getHours())}:${padTwoDigits(value.getMinutes())}:00`
 
 const normalizeQuoteDeadline = (value: unknown) => {
   if (!value) return ''
@@ -1350,9 +1356,11 @@ const normalizeQuoteDeadline = (value: unknown) => {
     if (!Number.isNaN(parsed.getTime())) {
       return formatQuoteDeadlineValue(parsed)
     }
-    const matched = text.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{2}))?/)
+    const matched = text.match(/^(\d{4}-\d{2}-\d{2})(?:[ T](\d{1,2})(?::(\d{1,2}))?)?/)
     if (matched) {
-      return `${matched[1]} ${matched[2] || '00'}:00:00`
+      const hh = Math.min(23, Math.max(0, Number(matched[2] ?? 0)))
+      const mm = Math.min(59, Math.max(0, Number(matched[3] ?? 0)))
+      return `${matched[1]} ${padTwoDigits(hh)}:${padTwoDigits(mm)}:00`
     }
   }
   return ''
@@ -1381,13 +1389,52 @@ const normalizeDateTime = (value: unknown) => {
   return ''
 }
 
-const quoteDeadlineHourOptions = Array.from({ length: 24 }, (_, index) => padTwoDigits(index))
+/** 表单时间下拉：每 30 分钟一档 */
+const THIRTY_MIN_TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
+  const h = Math.floor(i / 2)
+  const m = (i % 2) * 30
+  return `${padTwoDigits(h)}:${padTwoDigits(m)}`
+})
+
+/** 旧数据非整半点时，对齐到最近 30 分钟（不超过 23:30） */
+const snapToHalfHourSlot = (hhmm: string): string => {
+  const parts = hhmm.split(':')
+  if (parts.length < 2) return '23:00'
+  const h = Number(parts[0])
+  const m = Number(parts[1])
+  if (!Number.isFinite(h) || !Number.isFinite(m)) return '23:00'
+  const total = h * 60 + m
+  const snapped = Math.round(total / 30) * 30
+  const maxM = 23 * 60 + 30
+  const clamped = Math.min(maxM, Math.max(0, snapped))
+  const nh = Math.floor(clamped / 60)
+  const nm = clamped % 60
+  return `${padTwoDigits(nh)}:${padTwoDigits(nm)}`
+}
+
 const openBaseDate = ref<Date | null>(null)
 
 const getDayStart = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate())
 
+const extractTimeSlotHHmm = (raw: unknown): string => {
+  const d = (normalizeDateTime(raw) || normalizeQuoteDeadline(raw) || '').trim()
+  if (d.length >= 16) return d.slice(11, 16)
+  return ''
+}
+
+/** 将日期时间字符串加若干分钟（用于投标截止默认 = 开始 +30 分钟） */
+const addMinutesToDateTimeString = (src: string, addMin: number): string => {
+  let normalized = normalizeDateTime(src)
+  if (!normalized) normalized = normalizeQuoteDeadline(src)
+  if (!normalized) return ''
+  const d = new Date(normalized.replace(' ', 'T'))
+  if (Number.isNaN(d.getTime())) return ''
+  d.setMinutes(d.getMinutes() + addMin)
+  return formatDateTimeFull(d)
+}
+
 const parseDate = (value: unknown) => {
-  const normalized = normalizeQuoteDeadline(value)
+  const normalized = normalizeDateTime(value) || normalizeQuoteDeadline(value)
   if (!normalized) return null
   const parsed = new Date(normalized.replace(' ', 'T'))
   return Number.isNaN(parsed.getTime()) ? null : parsed
@@ -1399,7 +1446,7 @@ const captureQuoteDeadlineOpenBaseDate = () => {
 
 const isQuoteDeadlineDateDisabled = (date: Date) => {
   if (!openBaseDate.value) return false
-  return getDayStart(date).getTime() <= openBaseDate.value.getTime()
+  return getDayStart(date).getTime() < openBaseDate.value.getTime()
 }
 
 const validateQuoteDeadlineAfterOpenDay = () => {
@@ -1410,7 +1457,7 @@ const validateQuoteDeadlineAfterOpenDay = () => {
       activeTab.value = 'base'
       return false
     }
-    if (openBaseDate.value && getDayStart(selectedDate).getTime() <= openBaseDate.value.getTime()) {
+    if (openBaseDate.value && getDayStart(selectedDate).getTime() < openBaseDate.value.getTime()) {
       ElMessage.error('报价截止时只能选择大于打开创建/编辑当天的日期')
       activeTab.value = 'base'
       return false
@@ -1428,7 +1475,7 @@ const validateQuoteDeadlineAfterOpenDay = () => {
       activeTab.value = 'base'
       return false
     }
-    if (openBaseDate.value && getDayStart(selectedBSDate).getTime() <= openBaseDate.value.getTime()) {
+    if (openBaseDate.value && getDayStart(selectedBSDate).getTime() < openBaseDate.value.getTime()) {
       ElMessage.error('投标开始时间只能选择大于打开创建/编辑当天的日期')
       activeTab.value = 'base'
       return false
@@ -1447,15 +1494,16 @@ const quoteDeadlineDate = computed({
       form.quote_deadline = ''
       return
     }
-    const currentHour = quoteDeadlineHour.value || '23'
-    form.quote_deadline = `${value} ${currentHour}:00:00`
+    const slot = extractTimeSlotHHmm(form.quote_deadline) || '23:00'
+    form.quote_deadline = `${value} ${slot}:00`
   }
 })
 
-const quoteDeadlineHour = computed({
+const quoteDeadlineTimeSlot = computed({
   get: () => {
-    const normalized = normalizeQuoteDeadline(form.quote_deadline)
-    return normalized ? normalized.slice(11, 13) : '23'
+    const slot = extractTimeSlotHHmm(form.quote_deadline)
+    if (!slot) return '23:00'
+    return THIRTY_MIN_TIME_SLOTS.includes(slot) ? slot : snapToHalfHourSlot(slot)
   },
   set: (value: string) => {
     const date = quoteDeadlineDate.value
@@ -1463,7 +1511,8 @@ const quoteDeadlineHour = computed({
       form.quote_deadline = ''
       return
     }
-    form.quote_deadline = `${date} ${value || '00'}:00:00`
+    const slot = value || '23:00'
+    form.quote_deadline = `${date} ${slot}:00`
   }
 })
 
@@ -1477,15 +1526,16 @@ const bidStartTimeDate = computed({
       form.bid_start_time = ''
       return
     }
-    const currentHour = bidStartTimeHour.value || '23'
-    form.bid_start_time = `${value} ${currentHour}:00:00`
+    const slot = extractTimeSlotHHmm(form.bid_start_time) || '23:00'
+    form.bid_start_time = `${value} ${slot}:00`
   }
 })
 
-const bidStartTimeHour = computed({
+const bidStartTimeSlot = computed({
   get: () => {
-    const normalized = normalizeDateTime(form.bid_start_time)
-    return normalized ? normalized.slice(11, 13) : '23'
+    const slot = extractTimeSlotHHmm(form.bid_start_time)
+    if (!slot) return '23:00'
+    return THIRTY_MIN_TIME_SLOTS.includes(slot) ? slot : snapToHalfHourSlot(slot)
   },
   set: (value: string) => {
     const date = bidStartTimeDate.value
@@ -1493,7 +1543,8 @@ const bidStartTimeHour = computed({
       form.bid_start_time = ''
       return
     }
-    form.bid_start_time = `${date} ${value || '00'}:00:00`
+    const slot = value || '23:00'
+    form.bid_start_time = `${date} ${slot}:00`
   }
 })
 
@@ -1507,15 +1558,16 @@ const bidEndTimeDate = computed({
       form.bid_end_time = ''
       return
     }
-    const currentHour = bidEndTimeHour.value || '23'
-    form.bid_end_time = `${value} ${currentHour}:00:00`
+    const slot = extractTimeSlotHHmm(form.bid_end_time) || '23:00'
+    form.bid_end_time = `${value} ${slot}:00`
   }
 })
 
-const bidEndTimeHour = computed({
+const bidEndTimeSlot = computed({
   get: () => {
-    const normalized = normalizeDateTime(form.bid_end_time)
-    return normalized ? normalized.slice(11, 13) : '23'
+    const slot = extractTimeSlotHHmm(form.bid_end_time)
+    if (!slot) return '23:00'
+    return THIRTY_MIN_TIME_SLOTS.includes(slot) ? slot : snapToHalfHourSlot(slot)
   },
   set: (value: string) => {
     const date = bidEndTimeDate.value
@@ -1523,9 +1575,27 @@ const bidEndTimeHour = computed({
       form.bid_end_time = ''
       return
     }
-    form.bid_end_time = `${date} ${value || '00'}:00:00`
+    const slot = value || '23:00'
+    form.bid_end_time = `${date} ${slot}:00`
   }
 })
+
+/** 回填详情时勿触发「投标截止 = 开始」自动覆盖 */
+const skipBidEndAutoFill = ref(false)
+
+watch(
+  () => form.bid_start_time,
+  (newVal) => {
+    if (skipBidEndAutoFill.value) return
+    if (Number(form.buying_method) !== 2) return
+    if (!newVal) {
+      form.bid_end_time = ''
+      return
+    }
+    const next = addMinutesToDateTimeString(String(newVal), 30)
+    if (next) form.bid_end_time = next
+  }
+)
 
 const currentTemplate = computed(() => templates.value.find((t: any) => t.template_no === form.template))
 const templateSectionMap = computed(() => {
@@ -1847,6 +1917,7 @@ const openDetail = async (row: any, mode: 'edit' | 'view') => {
   dialog.mode = nextMode
   dialog.currentId = row.id
   skipTemplateWatch.value = true
+  skipBidEndAutoFill.value = true
   // 以详情接口为准，避免列表字段缺失导致子表/字段不同步
   let detail = row
   try {
@@ -1876,6 +1947,8 @@ const openDetail = async (row: any, mode: 'edit' | 'view') => {
     target_price: detail?.target_price ?? detail?.inquiry_price ?? rfqItem?.unit_price ?? 0
   }
   Object.assign(form, emptyForm(), mappedDetail)
+  await nextTick()
+  skipBidEndAutoFill.value = false
   ;['purchase_qty', 'target_price', 'lead_time_days'].forEach((k) => {
     ;(form as any)[k] = toNumberOrZero((form as any)[k])
   })
@@ -2461,11 +2534,12 @@ const DEFAULT_PROCESS_COMPARISON_METRICS: ComparisonDetailMetric[] = [
   { label: '备注', get: (r) => r?.remark, isText: true }
 ]
 
-/** 材料成本展开：按材料规格分组；组内行顺序按成本结构模板 fields */
+/** 材料成本展开：按材料规格分组；「制程最低价」列对重量/单价/材料费用行使用全局口径（与后端落库一致） */
 const buildMaterialDetailGroups = (
   quotes: any[],
   supplierKeys: string[],
-  metrics: ComparisonDetailMetric[] = DEFAULT_MATERIAL_COMPARISON_METRICS
+  metrics: ComparisonDetailMetric[] = DEFAULT_MATERIAL_COMPARISON_METRICS,
+  lowPriceCtx: LowPriceMinContext | null = null
 ): ComparisonDetailGroup[] => {
   const specs = new Set<string>()
   quotes.forEach((q) => {
@@ -2478,6 +2552,7 @@ const buildMaterialDetailGroups = (
   for (const spec of sortedSpecs) {
     const lines: ComparisonDetailRow[] = []
     for (const m of metrics) {
+      if (shouldSkipMaterialDetailMetric(m.fieldKey)) continue
       const values: Record<string, any> = {}
       supplierKeys.forEach((sup, idx) => {
         const raw = findMaterialRowBySpec(quotes[idx], spec)
@@ -2486,18 +2561,21 @@ const buildMaterialDetailGroups = (
       })
       const allDash = supplierKeys.every((sup) => values[sup] === '-')
       if (allDash) continue
-      lines.push({ label: m.label, values, isText: m.isText, ...calcCompareStats(values) })
+      const line: ComparisonDetailRow = { label: m.label, values, isText: m.isText, ...calcCompareStats(values) }
+      if (lowPriceCtx) applyMaterialDetailLowPriceMin(line, m, lowPriceCtx)
+      lines.push(line)
     }
     if (lines.length) groups.push({ title: spec || '材料', lines })
   }
   return groups
 }
 
-/** 加工成本展开：按工站分组；组内行顺序按成本结构模板 fields */
+/** 加工成本展开：按工站分组；「加工费用」行制程最低价为各报价单加工费合计之最小值 */
 const buildProcessDetailGroups = (
   quotes: any[],
   supplierKeys: string[],
-  metrics: ComparisonDetailMetric[] = DEFAULT_PROCESS_COMPARISON_METRICS
+  metrics: ComparisonDetailMetric[] = DEFAULT_PROCESS_COMPARISON_METRICS,
+  lowPriceCtx: LowPriceMinContext | null = null
 ): ComparisonDetailGroup[] => {
   const stations = new Set<string>()
   quotes.forEach((q) => {
@@ -2510,6 +2588,7 @@ const buildProcessDetailGroups = (
   for (const station of sorted) {
     const lines: ComparisonDetailRow[] = []
     for (const m of metrics) {
+      if (shouldSkipProcessDetailMetric(m.fieldKey)) continue
       const values: Record<string, any> = {}
       supplierKeys.forEach((sup, idx) => {
         const raw = findProcessRowByStation(quotes[idx], station)
@@ -2518,7 +2597,9 @@ const buildProcessDetailGroups = (
       })
       const allDash = supplierKeys.every((s) => values[s] === '-')
       if (allDash) continue
-      lines.push({ label: m.label, values, isText: m.isText, ...calcCompareStats(values) })
+      const line: ComparisonDetailRow = { label: m.label, values, isText: m.isText, ...calcCompareStats(values) }
+      if (lowPriceCtx) applyProcessDetailLowPriceMin(line, m, lowPriceCtx)
+      lines.push(line)
     }
     if (lines.length) groups.push({ title: station || '工站', lines })
   }
@@ -2558,6 +2639,7 @@ const buildComparisonRowsFromPisQuotes = (
   detailOpts?: {
     materialMetrics?: ComparisonDetailMetric[]
     processMetrics?: ComparisonDetailMetric[]
+    lowPriceCtx?: LowPriceMinContext | null
   }
 ) => {
   const supplierKeys = quotes.map((q, idx) => quotationSupplierKey(q, idx))
@@ -2629,14 +2711,17 @@ const buildComparisonRowsFromPisQuotes = (
   })
   rows.push({ key: 'award', label: '中标否', values: winValues })
 
-  const materialGroups = buildMaterialDetailGroups(quotes, supplierKeys, detailOpts?.materialMetrics)
-  const processGroups = buildProcessDetailGroups(quotes, supplierKeys, detailOpts?.processMetrics)
+  const lp = detailOpts?.lowPriceCtx ?? null
+  const materialGroups = buildMaterialDetailGroups(quotes, supplierKeys, detailOpts?.materialMetrics, lp)
+  const processGroups = buildProcessDetailGroups(quotes, supplierKeys, detailOpts?.processMetrics, lp)
   const otherDetails = buildOtherCostDetails(quotes, supplierKeys)
 
   const matRow = rows.find((r) => r.key === 'material')
   if (matRow && materialGroups.length) matRow.detailGroups = materialGroups
+  if (matRow && lp?.materialProduct != null) matRow.min = lp.materialProduct
   const procRow = rows.find((r) => r.key === 'process')
   if (procRow && processGroups.length) procRow.detailGroups = processGroups
+  if (procRow && lp?.minProcessTotal != null) procRow.min = lp.minProcessTotal
   const otherRow = rows.find((r) => r.key === 'other')
   if (otherRow && otherDetails.length) otherRow.details = otherDetails
 
@@ -2721,7 +2806,24 @@ const openComparison = async (row: any) => {
         if (built.length) processMetrics = built
       }
     }
-    const { suppliers, rows } = buildComparisonRowsFromPisQuotes(quotes, { materialMetrics, processMetrics })
+    let miscMinUnitPrice: number | undefined
+    try {
+      const mres = await GetMaterials({ page: 1, page_size: 5000 })
+      const mlist = extractQuotationList(mres)
+      for (const it of mlist) {
+        if (it.status != null && Number(it.status) !== 1) continue
+        const p = Number(it.price)
+        if (Number.isFinite(p)) miscMinUnitPrice = miscMinUnitPrice === undefined ? p : Math.min(miscMinUnitPrice, p)
+      }
+    } catch {
+      /* 杂采材料信息不可用则制程最低价单价仅来自报价 */
+    }
+    const lowPriceCtx = computeLowPriceMinContext(quotes, miscMinUnitPrice)
+    const { suppliers, rows } = buildComparisonRowsFromPisQuotes(quotes, {
+      materialMetrics,
+      processMetrics,
+      lowPriceCtx
+    })
     comparisonDialog.quotes = quotes
     comparisonDialog.suppliers = suppliers
     comparisonDialog.rows = rows
