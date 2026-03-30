@@ -64,7 +64,10 @@ type ExtraHooks = {
   onAdd?: () => void
   onEdit?: (row: any) => void
   onView?: (row: any) => void
-  /** 打开比价/议价弹窗（比议价中、价格审核、核价通过）；保存时按报价单写入杂采议价记录（议价前总价快照等） */
+  /**
+   * 打开比价/议价弹窗（比议价中、价格审核、核价通过）；保存时按报价单写入杂采议价记录（议价前总价快照等）。
+   * 弹窗内表头供应商名称可点击，预览对应 GET quotation_master/{autoid}/ 报价明细。
+   */
   onComparison?: (row: any) => void
   /** 列表多选变化（用于后续多询价单比价等） */
   onTableSelectionChange?: (rows: any[]) => void
@@ -75,6 +78,13 @@ type ExtraHooks = {
 const STATUS_OPEN = 1
 const STATUS_CONFIRMED = 2
 const STATUS_PUBLISHED = 3
+const STATUS_QUOTING = 4
+const STATUS_QUOTING_ENDED = 5
+const STATUS_BARGaining = 6
+const STATUS_NEGOTIATED = 7
+const STATUS_PRICE_AUDITED = 8
+const STATUS_FINISHED = 9
+const STATUS_CANCELLED = 0
 
 /** 询价单接口错误文案：将数据库唯一约束等转为可读提示 */
 export const formatRfqApiErrorMessage = (err: any, fallback: string) => {
@@ -107,7 +117,9 @@ const isOpenStatus = (row: any) => getRowStatus(row) === STATUS_OPEN
 const isConfirmedStatus = (row: any) => getRowStatus(row) === STATUS_CONFIRMED
 const canPublishStatus = (row: any) => isConfirmedStatus(row)
 /** 报价中(4)、报价结束(5) 可开启比价 */
-const isQuotingOrEndedStatus = (row: any) => [4, 5].includes(getRowStatus(row))
+// const isQuotingOrEndedStatus = (row: any) => [4, 5].includes(getRowStatus(row))
+/** 改为仅状态：报价结束(5) 可开启比价 */
+const isQuotingOrEndedStatus = (row: any) => getRowStatus(row) === STATUS_QUOTING_ENDED
 /** 比议价中(6)、价格审核(7)、核价通过(8) 可打开比价窗口 */
 const canOpenComparison = (row: any) => [6, 7, 8].includes(getRowStatus(row))
 const getErrorMessage = (err: any, fallback: string) => formatRfqApiErrorMessage(err, fallback)
@@ -125,6 +137,128 @@ export const formatCostTemplateVersion = (v: unknown) => {
   const n = Number(v)
   if (!Number.isFinite(n)) return String(v).trim()
   return String(Math.trunc(n))
+}
+
+/** 数据库数值型空值：展示 0.00（含占位符 -） */
+export const displayNumericEmpty = (v: unknown): string => {
+  if (v === null || v === undefined || v === '' || v === '-') return '0.00'
+  const n = Number(v)
+  if (Number.isFinite(n)) return n.toFixed(2)
+  const s = String(v).trim()
+  return s === '' ? '0.00' : s
+}
+
+/** 文本型空值：展示 - */
+export const displayTextEmpty = (v: unknown): string => {
+  if (v === null || v === undefined) return '-'
+  const s = String(v).trim()
+  return s === '' ? '-' : s
+}
+
+/** 利润率、税率等：空值 0.00%，数值保留两位小数并加 % */
+export const displayPercentRate = (v: unknown): string => {
+  if (v === null || v === undefined || v === '') return '0.00%'
+  const raw = String(v).trim()
+  if (raw === '') return '0.00%'
+  const stripped = raw.replace(/%/g, '').trim()
+  const n = Number(stripped)
+  if (Number.isFinite(n)) return `${n.toFixed(2)}%`
+  return raw.endsWith('%') ? raw : '0.00%'
+}
+
+/** 比价展开明细：与模板 fields 顺序一致 */
+export type ComparisonDetailMetric = {
+  label: string
+  get: (r: any) => unknown
+  isText: boolean
+}
+
+const normCmpTplKey = (k: string) =>
+  String(k || '')
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, '')
+
+const toSnake = (s: string) =>
+  String(s || '')
+    .replace(/([A-Z])/g, '_$1')
+    .replace(/^_/, '')
+    .toLowerCase()
+
+const materialGetterByNormKey: Record<string, (r: any) => unknown> = {
+  material: (r) => r?.material_spec ?? r?.material,
+  length: (r) => r?.length,
+  width: (r) => r?.width,
+  height: (r) => r?.height,
+  specificgravity: (r) => r?.specific_gravity ?? r?.specificgravity,
+  qty: (r) => r?.qty,
+  quantity: (r) => r?.qty,
+  weight: (r) => r?.weight,
+  unitprice: (r) => r?.unit_price ?? r?.unitPrice,
+  materialcost: (r) => r?.material_cost,
+  lossrate: (r) => r?.loss_rate ?? r?.lossRate,
+  remark: (r) => r?.remark,
+  unit: (r) => r?.unit
+}
+
+const processGetterByNormKey: Record<string, (r: any) => unknown> = {
+  processstation: (r) => r?.process_station,
+  unit: (r) => r?.unit,
+  unitrate: (r) => r?.unit_rate ?? r?.unitRate,
+  processqty: (r) => r?.process_qty ?? r?.processQty,
+  processprice: (r) => r?.process_price ?? r?.processPrice,
+  processtime: (r) => r?.process_time ?? r?.processTime,
+  remark: (r) => r?.remark,
+  unitprice: (r) => r?.unit_rate ?? r?.unit_price,
+  processcost: (r) => r?.process_price,
+  lossrate: (r) => r?.loss_rate ?? r?.lossRate,
+  cavitycount: (r) => r?.cavity_count ?? r?.cavityCount
+}
+
+const materialTextNormKeys = new Set(['material', 'remark', 'unit'])
+const processTextNormKeys = new Set(['processstation', 'unit', 'remark'])
+
+function fallbackRowGetter(rawKey: string): (r: any) => unknown {
+  const k = String(rawKey || '').trim()
+  return (r: any) => {
+    if (r == null) return undefined
+    const nk = normCmpTplKey(k)
+    return r[k] ?? r[toSnake(k)] ?? r[nk]
+  }
+}
+
+/** 材料成本：按成本模板 fields 顺序生成展开行 */
+export function buildMaterialComparisonMetricsFromTemplateFields(fields: Array<{ key?: string; label?: string; nameCn?: string; name_cn?: string }>): ComparisonDetailMetric[] {
+  const out: ComparisonDetailMetric[] = []
+  if (!Array.isArray(fields)) return out
+  for (const f of fields) {
+    const rawKey = String(f?.key ?? '').trim()
+    if (!rawKey) continue
+    const nk = normCmpTplKey(rawKey)
+    const label =
+      String(f.label || f.nameCn || f.name_cn || '').trim() || rawKey
+    const getter = materialGetterByNormKey[nk] ?? fallbackRowGetter(rawKey)
+    const isText = materialTextNormKeys.has(nk)
+    out.push({ label, get: getter, isText })
+  }
+  return out
+}
+
+/** 加工成本：按成本模板 fields 顺序生成展开行 */
+export function buildProcessComparisonMetricsFromTemplateFields(fields: Array<{ key?: string; label?: string; nameCn?: string; name_cn?: string }>): ComparisonDetailMetric[] {
+  const out: ComparisonDetailMetric[] = []
+  if (!Array.isArray(fields)) return out
+  for (const f of fields) {
+    const rawKey = String(f?.key ?? '').trim()
+    if (!rawKey) continue
+    const nk = normCmpTplKey(rawKey)
+    const label =
+      String(f.label || f.nameCn || f.name_cn || '').trim() || rawKey
+    const getter = processGetterByNormKey[nk] ?? fallbackRowGetter(rawKey)
+    const isText = processTextNormKeys.has(nk)
+    out.push({ label, get: getter, isText })
+  }
+  return out
 }
 
 export const createCrudOptions = function ({
@@ -237,6 +371,8 @@ export const createCrudOptions = function ({
                   cancelButtonText: '取消'
                 })
                 await api.StartBargainingObj(row.id)
+                await api.SaveNegotiationRecordsObj(row.id, { records: [] })
+
                 onComparison && onComparison(row)
                 crudExpose?.doRefresh?.()
               } catch (err: any) {

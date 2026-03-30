@@ -267,7 +267,7 @@ class MiscPartCreateUpdateSerializer(CustomModelSerializer):
 
 
 class MiscLowPriceHeaderSerializer(CustomModelSerializer):
-    """比价-制程最低价记录主表（采购端「确认比价」时由 InquiryViewSet.confirm_negotiation 写入）。"""
+    """比价-制程最低价主表：开启/确认比价时写入；含材料规格、工站、包装费(3)、运输费(4)、利润率(6)；杂采不写管销研(5)。"""
 
     class Meta:
         model = MiscLowPriceHeader
@@ -395,9 +395,9 @@ class MiscNegotiationRecordBatchItemSerializer(serializers.Serializer):
 
 
 class MiscNegotiationSaveSerializer(serializers.Serializer):
-    """比价/议价结果批量写入杂采议价记录表"""
+    """比价/议价结果批量写入杂采议价记录表。part_id 可选，缺省时由服务端按 InquiryRfqItem 首行解析。"""
 
-    part_id = serializers.CharField(max_length=50)
+    part_id = serializers.CharField(max_length=50, required=False, allow_blank=True, allow_null=True)
     records = MiscNegotiationRecordBatchItemSerializer(many=True)
 
 
@@ -1034,6 +1034,11 @@ class InquirySerializer(CustomModelSerializer):
     part_name = serializers.SerializerMethodField(read_only=True)
     # 税率：优先上阶物料行 tax_rate，否则同料号税费利润行（proc_inquiry_profit_cost.tax_rate）
     tax_rate = serializers.SerializerMethodField(read_only=True)
+    quote_deadline = serializers.DateTimeField(
+        format="%Y-%m-%d %H:%M:%S",
+        required=False,
+        allow_null=True,
+    )
     bid_start_time = serializers.DateTimeField(
         format="%Y-%m-%d %H:%M:%S",
         required=False,
@@ -1143,20 +1148,57 @@ class InquirySerializer(CustomModelSerializer):
             raise serializers.ValidationError("采购方式（寻源方式）取值不合法")
         return value
 
-    def _apply_inquiry_bid_times_for_buying_method(self, attrs, instance):
-        """采购方式为询价(1)时，投标开始/截止时间不入库。"""
+    @staticmethod
+    def _effective_inquiry_field(attrs, instance, field_name):
+        """合并局部更新：未出现在 attrs 中的字段沿用 instance。"""
+        if field_name in attrs:
+            return attrs[field_name]
+        if instance is not None:
+            return getattr(instance, field_name, None)
+        return None
+
+    def _resolve_buying_method(self, attrs, instance):
         bm = attrs.get("buying_method")
         if bm is None and instance is not None:
             bm = getattr(instance, "buying_method", None)
         if bm is None:
-            bm = 1
+            return 1
         try:
-            bm = int(bm)
+            return int(bm)
         except (TypeError, ValueError):
-            return
+            return 1
+
+    def _validate_inquiry_deadline_fields(self, attrs, instance):
+        """与前端一致：询价(1)必填报价截止时；招标(2)必填投标起止时间且结束晚于开始。"""
+        bm = self._resolve_buying_method(attrs, instance)
+        errors = {}
+        if bm == 1:
+            qd = self._effective_inquiry_field(attrs, instance, "quote_deadline")
+            if qd is None:
+                errors["quote_deadline"] = "询价方式下须填写报价截止时间"
+        elif bm == 2:
+            bs = self._effective_inquiry_field(attrs, instance, "bid_start_time")
+            be = self._effective_inquiry_field(attrs, instance, "bid_end_time")
+            if bs is None:
+                errors["bid_start_time"] = "招标方式下须填写投标开始时间"
+            if be is None:
+                errors["bid_end_time"] = "招标方式下须填写投标截止时间"
+            if bs is not None and be is not None and bs >= be:
+                errors["bid_end_time"] = "投标截止时间须晚于投标开始时间"
+        if errors:
+            raise serializers.ValidationError(errors)
+
+    def _apply_inquiry_deadline_fields_for_buying_method(self, attrs, instance):
+        """
+        询价(1)：投标时间不入库。
+        招标(2)：报价截止时不入库（与前端「投标开始/截止」互斥）。
+        """
+        bm = self._resolve_buying_method(attrs, instance)
         if bm == 1:
             attrs["bid_start_time"] = None
             attrs["bid_end_time"] = None
+        elif bm == 2:
+            attrs["quote_deadline"] = None
 
     def validate(self, attrs):
         instance = getattr(self, "instance", None)
@@ -1164,9 +1206,10 @@ class InquirySerializer(CustomModelSerializer):
         template_in_attrs = "template" in attrs
         tv_in_attrs = "template_version" in attrs
 
-        # 局部更新且未改模板/版本：保持库中原值
+        # 局部更新且未改模板/版本：不重新解析模板版本
         if instance and not template_in_attrs and not tv_in_attrs:
-            self._apply_inquiry_bid_times_for_buying_method(attrs, instance)
+            self._validate_inquiry_deadline_fields(attrs, instance)
+            self._apply_inquiry_deadline_fields_for_buying_method(attrs, instance)
             return attrs
 
         template_no = attrs.get("template")
@@ -1178,6 +1221,8 @@ class InquirySerializer(CustomModelSerializer):
             template_no = ""
 
         if not template_no:
+            self._validate_inquiry_deadline_fields(attrs, instance)
+            self._apply_inquiry_deadline_fields_for_buying_method(attrs, instance)
             return attrs
 
         preferred = attrs["template_version"] if tv_in_attrs else None
@@ -1189,7 +1234,8 @@ class InquirySerializer(CustomModelSerializer):
                 }
             )
         attrs["template_version"] = resolved
-        self._apply_inquiry_bid_times_for_buying_method(attrs, instance)
+        self._validate_inquiry_deadline_fields(attrs, instance)
+        self._apply_inquiry_deadline_fields_for_buying_method(attrs, instance)
         return attrs
 
     def _generate_code(self, validated_data: dict) -> str:

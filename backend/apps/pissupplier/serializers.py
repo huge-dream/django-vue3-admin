@@ -378,6 +378,8 @@ class SupplierInquiryAttachmentSerializer(serializers.ModelSerializer):
 class QuotationMasterSerializer(BusinessAuditSerializer):
     """杂采报价单主表序列化器
 
+    详情接口返回结构供采购端「比价」弹窗中点击供应商预览整单（材料/加工/其它/利润/上阶物料行等）。
+
     `status`：1 待报价、2 报价中、3 已报价、4 已过期；超时由 POST `quotation_master/sync_expired/` 批量更新。
     同步过期后，若询价单 `Inquiry` 仍为「发布」(3) 或「报价中」(4) 且该询价下已无任何待报价/报价中单，
     则询价单会置为「报价结束」(5)，见 `Inquiry.sync_to_quote_closed_when_no_open_quotations`。

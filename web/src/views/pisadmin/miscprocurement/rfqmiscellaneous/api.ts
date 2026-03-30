@@ -11,18 +11,18 @@ export const ConfirmObj = (id: string | number) => request({ url: `${baseUrl}${i
 export const RestoreObj = (id: string | number) => request({ url: `${baseUrl}${id}/restore/`, method: 'put' })
 export const PublishObj = (id: string | number) => request({ url: `${baseUrl}${id}/publish/`, method: 'put' })
 export const StartBargainingObj = (id: string | number) => request({ url: `${baseUrl}${id}/start_bargaining/`, method: 'put' })
-/** 确认比价：后端写入制程最低价主/次表时需带 part_id（与议价记录一致） */
-export const ConfirmNegotiationObj = (id: string | number, data?: { part_id?: string }) =>
+/** 确认比价：料号由后端从上阶物料表解析 */
+export const ConfirmNegotiationObj = (id: string | number, data?: Record<string, unknown>) =>
   request({ url: `${baseUrl}${id}/confirm_negotiation/`, method: 'put', data: data ?? {} })
 export const SubmitPriceAuditObj = (id: string | number) => request({ url: `${baseUrl}${id}/submit_price_audit/`, method: 'put' })
 /** 查询杂采议价记录（比价议价价格存此表，非报价明细「中标价格」） */
-export const GetNegotiationRecordsObj = (id: string | number, params: { part_id?: string }) =>
-  request({ url: `${baseUrl}${id}/negotiation_records/`, method: 'get', params })
+export const GetNegotiationRecordsObj = (id: string | number, params?: { part_id?: string }) =>
+  request({ url: `${baseUrl}${id}/negotiation_records/`, method: 'get', params: params ?? {} })
 /** 保存比价中的议价后价格、中标否至杂采议价记录表 */
 export const SaveNegotiationRecordsObj = (
   id: string | number,
   data: {
-    part_id: string
+    part_id?: string
     records: {
       quotation_no: string
       supplier_code?: string

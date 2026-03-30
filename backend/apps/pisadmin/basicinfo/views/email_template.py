@@ -71,6 +71,9 @@ def build_context_rfs_publish(
     material_info = "；".join(lines) if lines else (title or "—")
 
     qd = getattr(inquiry, "quote_deadline", None)
+    # 招标：主表不存报价截止时，发布邮件展示投标截止时间
+    if qd is None and int(getattr(inquiry, "buying_method", 1) or 1) == 2:
+        qd = getattr(inquiry, "bid_end_time", None)
     if qd:
         local_qd = _for_local_display(qd)
         deadline_time = local_qd.strftime("%Y-%m-%d %H:%M")

@@ -71,7 +71,7 @@
                 <el-option :value="2" label="招标" />
               </el-select>
             </el-form-item>
-            <el-form-item label="报价截止时" required>
+            <el-form-item v-if="isInquiryBuyingMethod" label="报价截止时" required>
               <div class="quote-deadline-input">
                 <el-date-picker
                   v-model="quoteDeadlineDate"
@@ -79,39 +79,43 @@
                   value-format="YYYY-MM-DD"
                   placeholder="选择日期"
                   :disabled-date="isQuoteDeadlineDateDisabled"
-                  style="width: 100%"
+                  style="max-width: 100%"
                 />
-                <el-select v-model="quoteDeadlineHour" placeholder="小时" :disabled="!quoteDeadlineDate" style="width: 120px">
+                <el-select v-model="quoteDeadlineHour" placeholder="小时" :disabled="!quoteDeadlineDate" style="max-width: 120px">
                   <el-option v-for="hour in quoteDeadlineHourOptions" :key="hour" :label="`${hour}:00`" :value="hour" />
                 </el-select>
               </div>
             </el-form-item>
-            <!-- el-form-item label="投标开始时间">
-              <template v-if="isInquiryBuyingMethod">
-                <span class="bid-time-placeholder">-</span>
-              </template>
-              <el-date-picker
-                v-else
-                v-model="form.bid_start_time"
-                type="datetime"
-                value-format="YYYY-MM-DD HH:mm:ss"
-                placeholder="选择投标开始时间"
-                style="width: 100%"
-              />
+            <el-form-item v-if="!isInquiryBuyingMethod" label="投标开始时间" required>
+              <div class="quote-deadline-input">
+                <el-date-picker
+                  v-model="bidStartTimeDate"
+                  type="date"
+                  value-format="YYYY-MM-DD"
+                  placeholder="选择日期"
+                  :disabled-date="isQuoteDeadlineDateDisabled"
+                  style="max-width: 100%"
+                />
+                <el-select v-model="bidStartTimeHour" placeholder="小时" :disabled="!bidStartTimeDate" style="max-width: 120px">
+                  <el-option v-for="hour in quoteDeadlineHourOptions" :key="hour" :label="`${hour}:00`" :value="hour" />
+                </el-select>
+              </div>
             </el-form-item>
-            <el-form-item label="投标截止时间">
-              <template v-if="isInquiryBuyingMethod">
-                <span class="bid-time-placeholder">-</span>
-              </template>
-              <el-date-picker
-                v-else
-                v-model="form.bid_end_time"
-                type="datetime"
-                value-format="YYYY-MM-DD HH:mm:ss"
-                placeholder="选择投标截止时间"
-                style="width: 100%"
-              />
-            </el-form-item> -->
+            <el-form-item v-if="!isInquiryBuyingMethod" label="投标截止时间" required>
+              <div class="quote-deadline-input">
+                <el-date-picker
+                v-model="bidEndTimeDate"
+                type="date"
+                  value-format="YYYY-MM-DD"
+                  placeholder="选择日期"
+                  :disabled-date="isQuoteDeadlineDateDisabled"
+                  style="width: 100%"
+                />
+                <el-select v-model="bidEndTimeHour" placeholder="小时" :disabled="!bidEndTimeDate" style="width: 120px">
+                  <el-option v-for="hour in quoteDeadlineHourOptions" :key="hour" :label="`${hour}:00`" :value="hour" />
+                </el-select>
+              </div>
+            </el-form-item>
             <el-form-item label="是否成本结构">
               <el-switch
                 v-model="form.is_bom"
@@ -153,7 +157,7 @@
             <el-form-item label="交货周期(天)">
               <el-input-number v-model="form.lead_time_days" :min="0" :precision="0" controls-position="right" />
             </el-form-item>
-            <el-form-item label="付款方式" class="span2">
+            <el-form-item label="付款方式">
               <el-select v-model="form.payment_method" placeholder="选择付款方式">
                 <el-option v-for="p in paymentMethods" :key="p.value" :label="p.label" :value="p.value" />
               </el-select>
@@ -426,14 +430,14 @@
     <el-dialog v-model="comparisonDialog.visible" :title="comparisonDialog.title" width="1200px">
       <div class="compare-body" v-loading="comparisonDialog.loading">
         <div class="compare-info">
-          <div class="info-item"><span class="label">询价单号</span><span class="value">{{ comparisonDialog.baseInfo.code || '-' }}</span></div>
-          <div class="info-item"><span class="label">采购件料号</span><span class="value">{{ comparisonDialog.baseInfo.partNo || '-' }}</span></div>
-          <div class="info-item"><span class="label">采购件名称</span><span class="value">{{ comparisonDialog.baseInfo.partName || '-' }}</span></div>
-          <div class="info-item"><span class="label">目标价格</span><span class="value">{{ comparisonDialog.baseInfo.targetPrice || '-' }}</span></div>
-          <div class="info-item"><span class="label">交易币别</span><span class="value">{{ comparisonDialog.baseInfo.currency || '-' }}</span></div>
-          <div class="info-item"><span class="label">税率</span><span class="value">{{ comparisonDialog.baseInfo.taxRate || '-' }}</span></div>
-          <div class="info-item"><span class="label">当前成交价</span><span class="value">{{ comparisonDialog.baseInfo.dealPrice || '-' }}</span></div>
-          <div class="info-item"><span class="label">制程最低价</span><span class="value">{{ comparisonDialog.baseInfo.lowestProcessPrice || '-' }}</span></div>
+          <div class="info-item"><span class="label">询价单号</span><span class="value">{{ displayTextEmpty(comparisonDialog.baseInfo.code) }}</span></div>
+          <div class="info-item"><span class="label">采购件料号</span><span class="value">{{ displayTextEmpty(comparisonDialog.baseInfo.partNo) }}</span></div>
+          <div class="info-item"><span class="label">采购件名称</span><span class="value">{{ displayTextEmpty(comparisonDialog.baseInfo.partName) }}</span></div>
+          <div class="info-item"><span class="label">目标价格</span><span class="value">{{ displayNumericEmpty(comparisonDialog.baseInfo.targetPrice) }}</span></div>
+          <div class="info-item"><span class="label">交易币别</span><span class="value">{{ displayTextEmpty(comparisonDialog.baseInfo.currency) }}</span></div>
+          <div class="info-item"><span class="label">税率</span><span class="value">{{ displayPercentRate(comparisonDialog.baseInfo.taxRate) }}</span></div>
+          <div class="info-item"><span class="label">当前成交价</span><span class="value">{{ displayNumericEmpty(comparisonDialog.baseInfo.dealPrice) }}</span></div>
+          <div class="info-item"><span class="label">制程最低价</span><span class="value">{{ displayNumericEmpty(comparisonDialog.baseInfo.lowestProcessPrice) }}</span></div>
         </div>
 
         <el-table
@@ -456,23 +460,27 @@
                     <el-table :data="grp.lines" size="small" border class="compare-detail-table">
                       <el-table-column label="明细" prop="label" min-width="140" />
                       <el-table-column
-                        v-for="sup in comparisonDialog.suppliers"
+                        v-for="(sup, supIdx) in comparisonDialog.suppliers"
                         :key="`${grp.title}-${sup.name}`"
                         :prop="`values.${sup.name}`"
-                        :label="sup.name"
                         min-width="120"
                       >
+                        <template #header>
+                          <span class="supplier-header-link" title="预览该供应商报价单" @click.stop="openQuotationPreview(supIdx)">
+                            {{ sup.name }}
+                          </span>
+                        </template>
                         <template #default="{ row: line }">
                           <span :class="['compare-value', line.min === line.values[sup.name] ? 'is-min' : '']">
-                            {{ line.values[sup.name] ?? '-' }}
+                            {{ formatMetricDetailCell(line.values[sup.name], line.label, line.isText) }}
                           </span>
                         </template>
                       </el-table-column>
                       <el-table-column prop="avg" label="平均价" width="100">
-                        <template #default="{ row: line }">{{ formatCompareAvg(line.avg) }}</template>
+                        <template #default="{ row: line }">{{ formatCompareAvg(line.avg, row.key) }}</template>
                       </el-table-column>
                       <el-table-column prop="min" label="制程最低价" width="110">
-                        <template #default="{ row: line }">{{ line.min !== undefined ? line.min : '-' }}</template>
+                        <template #default="{ row: line }">{{ formatCompareMin(line.min, row.key) }}</template>
                       </el-table-column>
                     </el-table>
                   </div>
@@ -486,23 +494,27 @@
                 >
                   <el-table-column :label="detailHeaderLabel(row)" prop="label" min-width="140" />
                   <el-table-column
-                    v-for="sup in comparisonDialog.suppliers"
+                    v-for="(sup, supIdx) in comparisonDialog.suppliers"
                     :key="sup.name"
                     :prop="`values.${sup.name}`"
-                    :label="sup.name"
                     min-width="140"
                   >
+                    <template #header>
+                      <span class="supplier-header-link" title="预览该供应商报价单" @click.stop="openQuotationPreview(supIdx)">
+                        {{ sup.name }}
+                      </span>
+                    </template>
                     <template #default="{ row: detail }">
                       <span :class="['compare-value', detail.min === detail.values[sup.name] ? 'is-min' : '']">
-                        {{ detail.values[sup.name] ?? '-' }}
+                        {{ formatMetricDetailCell(detail.values[sup.name], detail.label, detail.isText) }}
                       </span>
                     </template>
                   </el-table-column>
                   <el-table-column prop="avg" label="平均价" width="120">
-                    <template #default="{ row: detail }">{{ formatCompareAvg(detail.avg) }}</template>
+                    <template #default="{ row: detail }">{{ formatCompareAvg(detail.avg, row.key) }}</template>
                   </el-table-column>
                   <el-table-column prop="min" label="制程最低价" width="120">
-                    <template #default="{ row: detail }">{{ detail.min !== undefined ? detail.min : '-' }}</template>
+                    <template #default="{ row: detail }">{{ formatCompareMin(detail.min, row.key) }}</template>
                   </el-table-column>
                 </el-table>
                 <div v-else class="no-detail">暂无明细</div>
@@ -522,12 +534,16 @@
             </template>
           </el-table-column>
           <el-table-column
-            v-for="sup in comparisonDialog.suppliers"
+            v-for="(sup, supIdx) in comparisonDialog.suppliers"
             :key="sup.name"
             :prop="`values.${sup.name}`"
-            :label="sup.name"
             min-width="140"
           >
+            <template #header>
+              <span class="supplier-header-link" title="预览该供应商报价单" @click.stop="openQuotationPreview(supIdx)">
+                {{ sup.name }}
+              </span>
+            </template>
             <template #default="{ row }">
               <template v-if="row.key === 'bargain'">
                 <el-input v-model="row.values[sup.name]" size="small" placeholder="请输入议价价" />
@@ -542,21 +558,21 @@
               </template>
               <template v-else>
                 <span :class="['compare-value', row.min === row.values[sup.name] ? 'is-min' : '']">
-                  {{ row.values[sup.name] ?? '-' }}
+                  {{ formatComparisonMainCell(row, row.values[sup.name]) }}
                 </span>
               </template>
             </template>
           </el-table-column>
           <el-table-column prop="avg" label="平均价" width="120">
-            <template #default="{ row }">{{ row.key === 'bargain' ? '-' : formatCompareAvg(row.avg) }}</template>
+            <template #default="{ row }">{{ row.key === 'bargain' ? '-' : formatCompareAvg(row.avg, row.key) }}</template>
           </el-table-column>
           <el-table-column prop="min" label="制程最低价" width="120">
-            <template #default="{ row }">{{ row.key === 'bargain' ? '-' : row.min !== undefined ? row.min : '-' }}</template>
+            <template #default="{ row }">{{ row.key === 'bargain' ? '-' : formatCompareMin(row.min, row.key) }}</template>
           </el-table-column>
         </el-table>
       </div>
       <template #footer>
-        <el-button @click="onSaveComparisonDraft" :loading="comparisonDialog.loading">暂存</el-button>
+        <el-button @click="onSaveComparisonDraft" :loading="comparisonDialog.loading" :disabled="![4, 5, 6].includes(comparisonInquiryStatus)">暂存</el-button>
         <el-button
           type="success"
           @click="onConfirmComparison"
@@ -576,6 +592,124 @@
         <el-button @click="comparisonDialog.visible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="quotationPreview.visible"
+      :title="quotationPreview.title"
+      width="960px"
+      top="5vh"
+      append-to-body
+      destroy-on-close
+      class="quotation-preview-dialog"
+    >
+      <div v-loading="quotationPreview.loading" class="quote-preview-body">
+        <template v-if="quotationPreview.quote">
+          <div class="quote-preview-section">
+            <div class="quote-preview-section-title">基本信息</div>
+            <el-descriptions :column="3" border size="small">
+              <el-descriptions-item label="报价单号">{{ displayTextEmpty(quotationPreview.quote.quotation_no) }}</el-descriptions-item>
+              <el-descriptions-item label="供应商">{{ displayTextEmpty(quotationPreview.quote.supplier_name) }}</el-descriptions-item>
+              <el-descriptions-item label="供应商代码">{{ displayTextEmpty(quotationPreview.quote.supplier_code) }}</el-descriptions-item>
+              <el-descriptions-item label="品名">{{ displayTextEmpty(quotationPreviewRfqItem?.product_name) }}</el-descriptions-item>
+              <el-descriptions-item label="料号">{{ displayTextEmpty(quotationPreviewRfqItem?.part_id) }}</el-descriptions-item>
+              <el-descriptions-item label="币别">{{ quotationPreviewCurrency }}</el-descriptions-item>
+              <el-descriptions-item label="税费">{{ quotationPreviewTaxDisplay }}</el-descriptions-item>
+              <!-- <el-descriptions-item label="报价截止">
+                {{ quotationPreview.quote.quote_deadline || quotationPreview.quote.quoteDeadline || '-' }}
+              </el-descriptions-item>
+              <el-descriptions-item label="状态">{{ quotationPreviewStatusLabel }}</el-descriptions-item> -->
+            </el-descriptions>
+          </div>
+
+          <div class="quote-preview-section">
+            <div class="quote-preview-section-title">① 材料成本</div>
+            <el-table :data="quotationPreview.quote.material_costs || []" border size="small" empty-text="暂无">
+              <el-table-column prop="material_spec" label="材料规格" min-width="120" show-overflow-tooltip>
+                <template #default="{ row }">{{ displayTextEmpty(row.material_spec) }}</template>
+              </el-table-column>
+              <el-table-column prop="weight" label="重量" width="90">
+                <template #default="{ row }">{{ displayNumericEmpty(row.weight) }}</template>
+              </el-table-column>
+              <el-table-column prop="qty" label="用量" width="90">
+                <template #default="{ row }">{{ displayNumericEmpty(row.qty) }}</template>
+              </el-table-column>
+              <el-table-column prop="unit_price" label="材料单价" width="100">
+                <template #default="{ row }">{{ displayNumericEmpty(row.unit_price) }}</template>
+              </el-table-column>
+              <el-table-column prop="material_cost" label="材料费用" width="100">
+                <template #default="{ row }">{{ displayNumericEmpty(row.material_cost) }}</template>
+              </el-table-column>
+              <el-table-column prop="remark" label="备注" min-width="100" show-overflow-tooltip>
+                <template #default="{ row }">{{ displayTextEmpty(row.remark) }}</template>
+              </el-table-column>
+            </el-table>
+          </div>
+
+          <div class="quote-preview-section">
+            <div class="quote-preview-section-title">② 加工成本</div>
+            <el-table :data="quotationPreview.quote.process_costs || []" border size="small" empty-text="暂无">
+              <el-table-column prop="process_station" label="加工(工站)" min-width="120" show-overflow-tooltip>
+                <template #default="{ row }">{{ displayTextEmpty(row.process_station) }}</template>
+              </el-table-column>
+              <el-table-column prop="process_qty" label="加工数量" width="100">
+                <template #default="{ row }">{{ displayNumericEmpty(row.process_qty) }}</template>
+              </el-table-column>
+              <el-table-column prop="unit_rate" label="加工单价" width="100">
+                <template #default="{ row }">{{ displayNumericEmpty(row.unit_rate) }}</template>
+              </el-table-column>
+              <el-table-column prop="unit" label="单位" width="80">
+                <template #default="{ row }">{{ displayTextEmpty(row.unit) }}</template>
+              </el-table-column>
+              <el-table-column prop="process_price" label="工站加工费" width="110">
+                <template #default="{ row }">{{ displayNumericEmpty(row.process_price) }}</template>
+              </el-table-column>
+              <el-table-column prop="remark" label="备注" min-width="100" show-overflow-tooltip>
+                <template #default="{ row }">{{ displayTextEmpty(row.remark) }}</template>
+              </el-table-column>
+            </el-table>
+          </div>
+
+          <div class="quote-preview-section">
+            <div class="quote-preview-section-title">③ 其它费用</div>
+            <el-table :data="quotationPreview.quote.other_costs || []" border size="small" empty-text="暂无">
+              <el-table-column prop="packaging_cost" label="包装费" width="100">
+                <template #default="{ row }">{{ displayNumericEmpty(row.packaging_cost) }}</template>
+              </el-table-column>
+              <el-table-column prop="transportation_cost" label="运输费" width="100">
+                <template #default="{ row }">{{ displayNumericEmpty(row.transportation_cost) }}</template>
+              </el-table-column>
+            </el-table>
+          </div>
+
+          <div class="quote-preview-section">
+            <div class="quote-preview-section-title">④ 利润</div>
+            <el-table :data="quotationPreview.quote.profit_costs || []" border size="small" empty-text="暂无">
+              <el-table-column prop="profit_rate" label="利润率" width="100">
+                <template #default="{ row }">{{ displayPercentRate(row.profit_rate) }}</template>
+              </el-table-column>
+            </el-table>
+          </div>
+
+          <div class="quote-preview-section">
+            <div class="quote-preview-section-title">⑤ 税金</div>
+            <el-table :data="quotationPreviewTaxTableRows" border size="small">
+              <el-table-column prop="tax_rate" label="税率" width="100">
+                <template #default="{ row }">{{ displayPercentRate(row.tax_rate) }}</template>
+              </el-table-column>
+            </el-table>
+          </div>
+          
+          <div class="quote-preview-section quote-preview-total">
+            <div class="quote-preview-section-title">总价（含税）</div>
+            <div class="quote-preview-total-value">{{ quotationPreviewTotalPrice }}</div>
+          </div>
+        </template>
+        <div v-else class="no-detail">暂无报价数据</div>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="quotationPreview.visible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </fs-page>
 </template>
 
@@ -592,7 +726,13 @@ import {
   createCrudOptions,
   normalizeDict,
   formatCostTemplateVersion,
-  formatRfqApiErrorMessage
+  formatRfqApiErrorMessage,
+  displayNumericEmpty,
+  displayTextEmpty,
+  displayPercentRate,
+  buildMaterialComparisonMetricsFromTemplateFields,
+  buildProcessComparisonMetricsFromTemplateFields,
+  type ComparisonDetailMetric
 } from './crud'
 import * as api from './api'
 import * as costTemplateApi from '../cost_template/api'
@@ -1181,6 +1321,8 @@ watch(
     if (Number(v) === 1) {
       form.bid_start_time = ''
       form.bid_end_time = ''
+    } else if (Number(v) === 2) {
+      form.quote_deadline = ''
     }
   }
 )
@@ -1240,11 +1382,11 @@ const normalizeDateTime = (value: unknown) => {
 }
 
 const quoteDeadlineHourOptions = Array.from({ length: 24 }, (_, index) => padTwoDigits(index))
-const quoteDeadlineOpenBaseDate = ref<Date | null>(null)
+const openBaseDate = ref<Date | null>(null)
 
 const getDayStart = (value: Date) => new Date(value.getFullYear(), value.getMonth(), value.getDate())
 
-const parseQuoteDeadlineDate = (value: unknown) => {
+const parseDate = (value: unknown) => {
   const normalized = normalizeQuoteDeadline(value)
   if (!normalized) return null
   const parsed = new Date(normalized.replace(' ', 'T'))
@@ -1252,25 +1394,45 @@ const parseQuoteDeadlineDate = (value: unknown) => {
 }
 
 const captureQuoteDeadlineOpenBaseDate = () => {
-  quoteDeadlineOpenBaseDate.value = getDayStart(new Date())
+  openBaseDate.value = getDayStart(new Date())
 }
 
 const isQuoteDeadlineDateDisabled = (date: Date) => {
-  if (!quoteDeadlineOpenBaseDate.value) return false
-  return getDayStart(date).getTime() <= quoteDeadlineOpenBaseDate.value.getTime()
+  if (!openBaseDate.value) return false
+  return getDayStart(date).getTime() <= openBaseDate.value.getTime()
 }
 
 const validateQuoteDeadlineAfterOpenDay = () => {
-  const selectedDate = parseQuoteDeadlineDate(form.quote_deadline)
-  if (!selectedDate) {
-    ElMessage.error('请选择报价截止时')
-    activeTab.value = 'base'
-    return false
-  }
-  if (quoteDeadlineOpenBaseDate.value && getDayStart(selectedDate).getTime() <= quoteDeadlineOpenBaseDate.value.getTime()) {
-    ElMessage.error('报价截止时只能选择大于打开创建/编辑当天的日期')
-    activeTab.value = 'base'
-    return false
+  if (Number(form.buying_method) === 1) {
+    const selectedDate = parseDate(form.quote_deadline)
+    if (!selectedDate) {
+      ElMessage.error('请选择报价截止时')
+      activeTab.value = 'base'
+      return false
+    }
+    if (openBaseDate.value && getDayStart(selectedDate).getTime() <= openBaseDate.value.getTime()) {
+      ElMessage.error('报价截止时只能选择大于打开创建/编辑当天的日期')
+      activeTab.value = 'base'
+      return false
+    }
+  } else if (Number(form.buying_method) === 2) {
+    const selectedBSDate = parseDate(form.bid_start_time)
+    const selectedBEDate = parseDate(form.bid_end_time)
+    if (!selectedBSDate || !selectedBEDate) {
+      ElMessage.error('请完善投标起止时间')
+      activeTab.value = 'base'
+      return false
+    }
+    if (selectedBSDate >= selectedBEDate) {
+      ElMessage.error('投标截止时间须晚于投标开始时间')
+      activeTab.value = 'base'
+      return false
+    }
+    if (openBaseDate.value && getDayStart(selectedBSDate).getTime() <= openBaseDate.value.getTime()) {
+      ElMessage.error('投标开始时间只能选择大于打开创建/编辑当天的日期')
+      activeTab.value = 'base'
+      return false
+    }
   }
   return true
 }
@@ -1302,6 +1464,66 @@ const quoteDeadlineHour = computed({
       return
     }
     form.quote_deadline = `${date} ${value || '00'}:00:00`
+  }
+})
+
+const bidStartTimeDate = computed({
+  get: () => {
+    const normalized = normalizeDateTime(form.bid_start_time)
+    return normalized ? normalized.slice(0, 10) : ''
+  },
+  set: (value: string) => {
+    if (!value) {
+      form.bid_start_time = ''
+      return
+    }
+    const currentHour = bidStartTimeHour.value || '23'
+    form.bid_start_time = `${value} ${currentHour}:00:00`
+  }
+})
+
+const bidStartTimeHour = computed({
+  get: () => {
+    const normalized = normalizeDateTime(form.bid_start_time)
+    return normalized ? normalized.slice(11, 13) : '23'
+  },
+  set: (value: string) => {
+    const date = bidStartTimeDate.value
+    if (!date) {
+      form.bid_start_time = ''
+      return
+    }
+    form.bid_start_time = `${date} ${value || '00'}:00:00`
+  }
+})
+
+const bidEndTimeDate = computed({
+  get: () => {
+    const normalized = normalizeDateTime(form.bid_end_time)
+    return normalized ? normalized.slice(0, 10) : ''
+  },
+  set: (value: string) => {
+    if (!value) {
+      form.bid_end_time = ''
+      return
+    }
+    const currentHour = bidEndTimeHour.value || '23'
+    form.bid_end_time = `${value} ${currentHour}:00:00`
+  }
+})
+
+const bidEndTimeHour = computed({
+  get: () => {
+    const normalized = normalizeDateTime(form.bid_end_time)
+    return normalized ? normalized.slice(11, 13) : '23'
+  },
+  set: (value: string) => {
+    const date = bidEndTimeDate.value
+    if (!date) {
+      form.bid_end_time = ''
+      return
+    }
+    form.bid_end_time = `${date} ${value || '00'}:00:00`
   }
 })
 
@@ -1776,7 +1998,14 @@ const openDetail = async (row: any, mode: 'edit' | 'view') => {
 const openEdit = (row: any) => openDetail(row, 'edit')
 const openView = (row: any) => openDetail(row, 'view')
 
-type ComparisonDetailRow = { label: string; values: Record<string, any>; avg?: number; min?: number }
+type ComparisonDetailRow = {
+  label: string
+  values: Record<string, any>
+  avg?: number
+  min?: number
+  /** 与成本模板字段一致：文本列走 displayTextEmpty */
+  isText?: boolean
+}
 /** 材料/加工：按材质或工站分组，组内多行明细（对齐 bargain_price.html 展开结构） */
 type ComparisonDetailGroup = { title: string; lines: ComparisonDetailRow[] }
 type ComparisonRow = ComparisonDetailRow & {
@@ -1806,14 +2035,139 @@ const comparisonDialog = reactive({
     dealPrice: '',
     lowestProcessPrice: ''
   },
-  suppliers: [] as { name: string; code: string }[],
+  suppliers: [] as { name: string; code: string; quotationId?: number | string }[],
   rows: [] as ComparisonRow[]
 })
 
+const QUOTATION_STATUS_LABELS: Record<number, string> = {
+  1: '待报价',
+  2: '报价中',
+  3: '已报价',
+  4: '已过期'
+}
+
+const quotationPreview = reactive({
+  visible: false,
+  loading: false,
+  title: '',
+  quote: null as any
+})
+
+const quotationPreviewRfqItem = computed(() => {
+  const q = quotationPreview.quote
+  if (!q?.rfq_items?.length) return null
+  return q.rfq_items[0]
+})
+
+const quotationPreviewCurrency = computed(() => {
+  const q = quotationPreview.quote as any
+  const c = q?.currency ?? q?.transaction_currency
+  if (c != null && c !== '') return String(c)
+  return displayTextEmpty(comparisonDialog.baseInfo.currency)
+})
+
+/**
+ * 基本信息「税费」：金额（含税−不含税，或上阶物料明细 tax_rate 字段——库中存的是税费金额，非比例）
+ */
+const quotationPreviewTaxDisplay = computed(() => {
+  const it = quotationPreviewRfqItem.value as any
+  if (!it) return displayNumericEmpty(null)
+  const inc = it.total_price_incl_tax
+  const ex = it.total_price_excl_tax
+  if (inc != null && inc !== '' && ex != null && ex !== '') {
+    const ni = Number(inc)
+    const ne = Number(ex)
+    if (Number.isFinite(ni) && Number.isFinite(ne)) return displayNumericEmpty(ni - ne)
+  }
+  return displayNumericEmpty(it.tax_rate)
+})
+
+/** ⑤ 税金「税率」：仅来自 profit_costs（税率比例）；勿与 rfq_items.tax_rate（税费金额）混用 */
+const quotationPreviewTaxTableRows = computed(() => {
+  const q = quotationPreview.quote as any
+  if (!q) return []
+  const list = q.tax_costs
+  if (Array.isArray(list) && list.length) return list
+  const pid = quotationPreviewRfqItem.value?.part_id
+  const profits = q.profit_costs
+  const pc =
+    pid && Array.isArray(profits)
+      ? profits.find((p: any) => p.part_id === pid) || profits[0]
+      : profits?.[0]
+  return [{ tax_rate: pc?.tax_rate }]
+})
+
+const quotationPreviewStatusLabel = computed(() => {
+  const s = Number((quotationPreview.quote as any)?.status)
+  if (!Number.isFinite(s)) return '-'
+  return QUOTATION_STATUS_LABELS[s] ?? String(s)
+})
+
+const quotationPreviewTotalPrice = computed(() => {
+  const q = quotationPreview.quote as any
+  if (!q) return '0.00'
+  const a = q.quote_amount
+  if (a !== undefined && a !== null && a !== '') {
+    return displayNumericEmpty(a)
+  }
+  const it = q.rfq_items?.[0]
+  if (it?.total_price_incl_tax != null && it?.total_price_incl_tax !== '') {
+    return displayNumericEmpty(it.total_price_incl_tax)
+  }
+  return '0.00'
+})
+
+const openQuotationPreview = async (supplierIndex: number) => {
+  let quote: any = comparisonDialog.quotes[supplierIndex]
+  const sup = comparisonDialog.suppliers[supplierIndex]
+  if (!quote && sup?.quotationId != null) {
+    quotationPreview.loading = true
+    quotationPreview.quote = null
+    quotationPreview.title = `报价单预览 · ${sup?.name || ''}`
+    quotationPreview.visible = true
+    try {
+      const res = await getQuotationDetail(sup.quotationId)
+      quote = unwrapQuotationDetail(res)
+    } catch (e: any) {
+      ElMessage.error(e?.message || '加载报价单失败')
+      quotationPreview.visible = false
+      return
+    } finally {
+      quotationPreview.loading = false
+    }
+  }
+  if (!quote) {
+    ElMessage.warning('暂无该供应商报价单数据')
+    return
+  }
+  quotationPreview.quote = quote
+  quotationPreview.title = `报价单预览 · ${quote.supplier_name || sup?.name || ''}（${quote.quotation_no || ''}）`
+  quotationPreview.visible = true
+}
+
 const comparisonInquiryStatus = computed(() => Number(comparisonDialog.currentRow?.status))
 
-const formatCompareAvg = (v: unknown) => {
-  if (v === undefined || v === null) return '-'
+/** 比价主表：利润/税金行为金额合计，与材料成本等同用两位小数，不加 %（仅表头「税率」用 displayPercentRate） */
+const formatComparisonMainCell = (row: ComparisonRow, v: unknown) => {
+  if (row.key === 'rank') {
+    if (v === null || v === undefined || v === '') return '-'
+    return String(v)
+  }
+  if (v === null || v === undefined || v === '' || v === '-') return '0.00'
+  const n = Number(v)
+  if (Number.isFinite(n)) return n.toFixed(2)
+  return String(v)
+}
+
+const formatCompareAvg = (v: unknown, _rowKey?: string) => {
+  if (v === undefined || v === null) return '0.00'
+  const n = Number(v)
+  if (Number.isFinite(n)) return n.toFixed(2)
+  return String(v)
+}
+
+const formatCompareMin = (v: unknown, _rowKey?: string) => {
+  if (v === undefined || v === null) return '0.00'
   const n = Number(v)
   if (Number.isFinite(n)) return n.toFixed(2)
   return String(v)
@@ -1838,16 +2192,6 @@ const quotationSupplierKey = (quote: any, idx: number) =>
   quote?.autoid ||
   quote?.id ||
   `sup-${idx}`
-
-/** 比价弹窗：与杂采议价记录表 part_id 对齐 */
-const resolveComparisonPartId = (row: any, quotes: any[]) => {
-  const fromRow = String(row?.part_no || '').trim()
-  if (fromRow) return fromRow
-  const q0 = quotes[0]
-  const fromRfq = String(q0?.rfq_items?.[0]?.part_id || '').trim()
-  if (fromRfq) return fromRfq
-  return String(q0?.part_no || q0?.part_id || '').trim()
-}
 
 /** 议价金额回显：保留接口字符串精度，避免 Number 化丢小数位 */
 const formatBargainDisplayValue = (bp: any): string => {
@@ -2056,7 +2400,7 @@ const buildRanksByTotal = (quotes: any[], supplierKeys: string[]): Record<string
   return out
 }
 
-/** 合并 option_json 扁平字段，便于带出模板扩展列（损耗率、模穴数等） */
+/** 合并 option_json 扁平字段，便于带出模板扩展列 */
 const mergeOptionJsonIntoRow = (row: any): any => {
   if (!row || typeof row !== 'object') return row
   const oj = row.option_json
@@ -2075,11 +2419,14 @@ const mergeOptionJsonIntoRow = (row: any): any => {
   return { ...row, ...extra }
 }
 
-const formatMetricCell = (v: unknown): string => {
-  if (v === null || v === undefined || v === '') return '-'
-  const n = Number(v)
-  if (Number.isFinite(n)) return String(v)
-  return String(v)
+/** 比价展开明细：按行标签区分数值(空→0.00)与文本(空→-) */
+const formatMetricDetailCell = (v: unknown, label: string, isText?: boolean) => {
+  if (isText === true || label === '备注') return displayTextEmpty(v)
+  return displayNumericEmpty(v)
+}
+
+const formatMetricCell = (v: unknown, isText: boolean) => {
+  return isText ? displayTextEmpty(v) : displayNumericEmpty(v)
 }
 
 const findMaterialRowBySpec = (q: any, spec: string) => {
@@ -2092,8 +2439,34 @@ const findProcessRowByStation = (q: any, station: string) => {
   return (q.process_costs || []).find((r: any) => String(r.process_station || '').trim() === t)
 }
 
-/** 材料成本展开：按材料规格分组，组内展示重量/尺寸/单价/费用等（与报价单 material_costs 一致） */
-const buildMaterialDetailGroups = (quotes: any[], supplierKeys: string[]): ComparisonDetailGroup[] => {
+/** 无模板或模板无字段时的回退顺序（与旧版硬编码一致） */
+const DEFAULT_MATERIAL_COMPARISON_METRICS: ComparisonDetailMetric[] = [
+  { label: '用量(重量)', get: (r) => r?.weight, isText: false },
+  { label: '长', get: (r) => r?.length, isText: false },
+  { label: '宽', get: (r) => r?.width, isText: false },
+  { label: '高', get: (r) => r?.height, isText: false },
+  { label: '材料单价', get: (r) => r?.unit_price, isText: false },
+  { label: '比重', get: (r) => r?.specific_gravity, isText: false },
+  { label: '数量', get: (r) => r?.qty, isText: false },
+  { label: '材料费用', get: (r) => r?.material_cost, isText: false },
+  { label: '备注', get: (r) => r?.remark, isText: true }
+]
+
+const DEFAULT_PROCESS_COMPARISON_METRICS: ComparisonDetailMetric[] = [
+  { label: '加工计量', get: (r) => r?.process_qty, isText: false },
+  { label: '单位', get: (r) => r?.unit, isText: true },
+  { label: '费率', get: (r) => r?.unit_rate, isText: false },
+  { label: '加工时间', get: (r) => r?.process_time ?? r?.processTime, isText: false },
+  { label: '加工费用', get: (r) => r?.process_price, isText: false },
+  { label: '备注', get: (r) => r?.remark, isText: true }
+]
+
+/** 材料成本展开：按材料规格分组；组内行顺序按成本结构模板 fields */
+const buildMaterialDetailGroups = (
+  quotes: any[],
+  supplierKeys: string[],
+  metrics: ComparisonDetailMetric[] = DEFAULT_MATERIAL_COMPARISON_METRICS
+): ComparisonDetailGroup[] => {
   const specs = new Set<string>()
   quotes.forEach((q) => {
     ;(q.material_costs || []).forEach((r: any) => {
@@ -2101,18 +2474,6 @@ const buildMaterialDetailGroups = (quotes: any[], supplierKeys: string[]): Compa
     })
   })
   const sortedSpecs = [...specs].sort()
-  const metrics: { label: string; get: (r: any) => unknown }[] = [
-    { label: '用量(重量)', get: (r) => r?.weight },
-    { label: '长', get: (r) => r?.length },
-    { label: '宽', get: (r) => r?.width },
-    { label: '高', get: (r) => r?.height },
-    { label: '材料单价', get: (r) => r?.unit_price },
-    { label: '比重', get: (r) => r?.specific_gravity },
-    { label: '数量', get: (r) => r?.qty },
-    { label: '损耗率(%)', get: (r) => r?.loss_rate ?? r?.lossRate },
-    { label: '材料费用', get: (r) => r?.material_cost },
-    { label: '备注', get: (r) => r?.remark }
-  ]
   const groups: ComparisonDetailGroup[] = []
   for (const spec of sortedSpecs) {
     const lines: ComparisonDetailRow[] = []
@@ -2121,19 +2482,23 @@ const buildMaterialDetailGroups = (quotes: any[], supplierKeys: string[]): Compa
       supplierKeys.forEach((sup, idx) => {
         const raw = findMaterialRowBySpec(quotes[idx], spec)
         const merged = mergeOptionJsonIntoRow(raw || {})
-        values[sup] = formatMetricCell(m.get(merged))
+        values[sup] = formatMetricCell(m.get(merged), m.isText)
       })
       const allDash = supplierKeys.every((sup) => values[sup] === '-')
       if (allDash) continue
-      lines.push({ label: m.label, values, ...calcCompareStats(values) })
+      lines.push({ label: m.label, values, isText: m.isText, ...calcCompareStats(values) })
     }
     if (lines.length) groups.push({ title: spec || '材料', lines })
   }
   return groups
 }
 
-/** 加工成本展开：按工站分组，组内展示计量/费率/加工费等 */
-const buildProcessDetailGroups = (quotes: any[], supplierKeys: string[]): ComparisonDetailGroup[] => {
+/** 加工成本展开：按工站分组；组内行顺序按成本结构模板 fields */
+const buildProcessDetailGroups = (
+  quotes: any[],
+  supplierKeys: string[],
+  metrics: ComparisonDetailMetric[] = DEFAULT_PROCESS_COMPARISON_METRICS
+): ComparisonDetailGroup[] => {
   const stations = new Set<string>()
   quotes.forEach((q) => {
     ;(q.process_costs || []).forEach((r: any) => {
@@ -2141,15 +2506,6 @@ const buildProcessDetailGroups = (quotes: any[], supplierKeys: string[]): Compar
     })
   })
   const sorted = [...stations].sort()
-  const metrics: { label: string; get: (r: any) => unknown }[] = [
-    { label: '加工计量', get: (r) => r?.process_qty },
-    { label: '单位', get: (r) => r?.unit },
-    { label: '费率', get: (r) => r?.unit_rate },
-    { label: '加工时间', get: (r) => r?.process_time ?? r?.processTime },
-    { label: '模穴数', get: (r) => r?.cavity_count ?? r?.cavityCount },
-    { label: '加工费用', get: (r) => r?.process_price },
-    { label: '备注', get: (r) => r?.remark }
-  ]
   const groups: ComparisonDetailGroup[] = []
   for (const station of sorted) {
     const lines: ComparisonDetailRow[] = []
@@ -2158,11 +2514,11 @@ const buildProcessDetailGroups = (quotes: any[], supplierKeys: string[]): Compar
       supplierKeys.forEach((sup, idx) => {
         const raw = findProcessRowByStation(quotes[idx], station)
         const merged = mergeOptionJsonIntoRow(raw || {})
-        values[sup] = formatMetricCell(m.get(merged))
+        values[sup] = formatMetricCell(m.get(merged), m.isText)
       })
       const allDash = supplierKeys.every((s) => values[s] === '-')
       if (allDash) continue
-      lines.push({ label: m.label, values, ...calcCompareStats(values) })
+      lines.push({ label: m.label, values, isText: m.isText, ...calcCompareStats(values) })
     }
     if (lines.length) groups.push({ title: station || '工站', lines })
   }
@@ -2197,7 +2553,13 @@ const buildOtherCostDetails = (quotes: any[], supplierKeys: string[]): Compariso
   }))
 }
 
-const buildComparisonRowsFromPisQuotes = (quotes: any[]) => {
+const buildComparisonRowsFromPisQuotes = (
+  quotes: any[],
+  detailOpts?: {
+    materialMetrics?: ComparisonDetailMetric[]
+    processMetrics?: ComparisonDetailMetric[]
+  }
+) => {
   const supplierKeys = quotes.map((q, idx) => quotationSupplierKey(q, idx))
   const rows: ComparisonRow[] = []
 
@@ -2267,8 +2629,8 @@ const buildComparisonRowsFromPisQuotes = (quotes: any[]) => {
   })
   rows.push({ key: 'award', label: '中标否', values: winValues })
 
-  const materialGroups = buildMaterialDetailGroups(quotes, supplierKeys)
-  const processGroups = buildProcessDetailGroups(quotes, supplierKeys)
+  const materialGroups = buildMaterialDetailGroups(quotes, supplierKeys, detailOpts?.materialMetrics)
+  const processGroups = buildProcessDetailGroups(quotes, supplierKeys, detailOpts?.processMetrics)
   const otherDetails = buildOtherCostDetails(quotes, supplierKeys)
 
   const matRow = rows.find((r) => r.key === 'material')
@@ -2280,7 +2642,8 @@ const buildComparisonRowsFromPisQuotes = (quotes: any[]) => {
 
   const suppliers = supplierKeys.map((name, idx) => ({
     name: name || `供应商${idx + 1}`,
-    code: quotes[idx]?.supplier_code || quotes[idx]?.supplierCode || ''
+    code: quotes[idx]?.supplier_code || quotes[idx]?.supplierCode || '',
+    quotationId: quotes[idx]?.autoid ?? quotes[idx]?.id
   }))
 
   return { suppliers, rows }
@@ -2336,7 +2699,29 @@ const openComparison = async (row: any) => {
       list.map((q: any) => getQuotationDetail(q.autoid ?? q.id))
     )
     const quotes = details.map((r: any) => unwrapQuotationDetail(r)).filter(Boolean)
-    const { suppliers, rows } = buildComparisonRowsFromPisQuotes(quotes)
+    await ensureTemplatesLoaded()
+    const tplCode = String(row?.template_code || row?.template || '').trim()
+    let tplResolved: any = null
+    if (tplCode) {
+      tplResolved = templates.value.find((t: any) => t.template_no === tplCode) ?? null
+      if (tplResolved) tplResolved = await fetchTemplateDetailIfNeeded(tplResolved)
+    }
+    let materialMetrics: ComparisonDetailMetric[] | undefined
+    let processMetrics: ComparisonDetailMetric[] | undefined
+    if (tplResolved) {
+      const secs = normalizeSections(tplResolved.sections)
+      const matSec = secs.find((s: any) => (s.title || s.name) === '材料成本')
+      const procSec = secs.find((s: any) => (s.title || s.name) === '加工成本')
+      if (matSec?.fields?.length) {
+        const built = buildMaterialComparisonMetricsFromTemplateFields(matSec.fields)
+        if (built.length) materialMetrics = built
+      }
+      if (procSec?.fields?.length) {
+        const built = buildProcessComparisonMetricsFromTemplateFields(procSec.fields)
+        if (built.length) processMetrics = built
+      }
+    }
+    const { suppliers, rows } = buildComparisonRowsFromPisQuotes(quotes, { materialMetrics, processMetrics })
     comparisonDialog.quotes = quotes
     comparisonDialog.suppliers = suppliers
     comparisonDialog.rows = rows
@@ -2358,17 +2743,14 @@ const openComparison = async (row: any) => {
       const c = quotes[0].currency ?? quotes[0].transaction_currency
       if (c != null && c !== '') comparisonDialog.baseInfo.currency = String(c).trim()
     }
-    const partId = resolveComparisonPartId(row, quotes)
-    if (partId) {
-      try {
-        const negRes = await api.GetNegotiationRecordsObj(row.id, { part_id: partId })
-        const raw = negRes?.data?.data ?? negRes?.data
-        const negList = Array.isArray(raw) ? raw : []
-        mergeNegotiationIntoComparisonRows(rows, quotes, negList)
-        if (negList.length) await applyComparisonRowsAfterNegotiationMerge(rows)
-      } catch {
-        /* 无议价记录时沿用报价单展示 */
-      }
+    try {
+      const negRes = await api.GetNegotiationRecordsObj(row.id, {})
+      const raw = negRes?.data?.data ?? negRes?.data
+      const negList = Array.isArray(raw) ? raw : []
+      mergeNegotiationIntoComparisonRows(rows, quotes, negList)
+      if (negList.length) await applyComparisonRowsAfterNegotiationMerge(rows)
+    } catch {
+      /* 无议价记录时沿用报价单展示 */
     }
     /** 与表格「制程最低价」列一致：取「总价」行各供应商报价中的最小值，勿用「加工成本」或「议价价格」行 */
     const totalRow = rows.find((r) => r.key === 'total')
@@ -2500,12 +2882,6 @@ const saveComparison = async (target: 'draft' | 'negotiated' | 'audit') => {
   }
   if (target !== 'draft' && !(await validateComparisonAwardAndBargain())) return
 
-  const partId = resolveComparisonPartId(comparisonDialog.currentRow, comparisonDialog.quotes)
-  if (!partId) {
-    ElMessage.warning('缺少产品料号，无法保存议价记录')
-    return
-  }
-
   const updates = syncQuotesFromComparisonRows()
   if (!updates.length) {
     ElMessage.warning('无可保存的报价数据')
@@ -2550,9 +2926,9 @@ const saveComparison = async (target: 'draft' | 'negotiated' | 'audit') => {
 
   comparisonDialog.loading = true
   try {
-    await api.SaveNegotiationRecordsObj(comparisonDialog.currentRow.id, { part_id: partId, records })
+    await api.SaveNegotiationRecordsObj(comparisonDialog.currentRow.id, { records })
     try {
-      const negRes = await api.GetNegotiationRecordsObj(comparisonDialog.currentRow.id, { part_id: partId })
+      const negRes = await api.GetNegotiationRecordsObj(comparisonDialog.currentRow.id, {})
       const raw = negRes?.data?.data ?? negRes?.data
       const negList = Array.isArray(raw) ? raw : []
       mergeNegotiationIntoComparisonRows(comparisonDialog.rows, comparisonDialog.quotes, negList)
@@ -2568,7 +2944,7 @@ const saveComparison = async (target: 'draft' | 'negotiated' | 'audit') => {
       })
     )
     if (target === 'negotiated') {
-      await api.ConfirmNegotiationObj(comparisonDialog.currentRow.id, { part_id: partId })
+      await api.ConfirmNegotiationObj(comparisonDialog.currentRow.id)
       comparisonDialog.currentRow.status = 7
       ElMessage.success('已确认比价')
       crudExpose.doRefresh()
@@ -2943,7 +3319,10 @@ const saveForm = async () => {
       company_code: form.plant || undefined,
       purchase_dept: clipPurchaseDept(form.purchase_dept) || undefined,
       buyer: form.buyer,
-      quote_deadline: normalizeQuoteDeadline(form.quote_deadline) || undefined,
+      quote_deadline:
+        Number(form.buying_method) === 1
+          ? normalizeQuoteDeadline(form.quote_deadline) || undefined
+          : null,
       buying_method: Number.isFinite(Number(form.buying_method)) ? Number(form.buying_method) : 1,
       bid_start_time:
         Number(form.buying_method) === 1
@@ -3065,9 +3444,6 @@ onMounted(() => {
   margin: 4px 0 0;
   color: #6b7280;
   font-size: 13px;
-}
-.bid-time-placeholder {
-  color: #6b7280;
 }
 .actions {
   display: flex;
@@ -3269,5 +3645,39 @@ onMounted(() => {
 }
 .compare-table :deep(.el-table__header .hidden-expand .cell) {
   display: none;
+}
+
+.supplier-header-link {
+  cursor: pointer;
+  color: var(--el-color-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.supplier-header-link:hover {
+  opacity: 0.85;
+}
+
+.quotation-preview-dialog .quote-preview-body {
+  max-height: 72vh;
+  overflow: auto;
+}
+.quote-preview-section {
+  margin-bottom: 16px;
+}
+.quote-preview-section-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #92400e;
+  background: linear-gradient(90deg, #fde68a 0%, #fffbeb 50%, transparent 100%);
+  padding: 8px 10px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+  border-left: 3px solid #f59e0b;
+}
+.quote-preview-total .quote-preview-total-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f766e;
+  padding: 8px 0;
 }
 </style>

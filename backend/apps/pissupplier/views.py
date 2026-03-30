@@ -30,7 +30,10 @@ from apps.pissupplier.serializers import (
 
 
 class QuotationMasterViewSet(CustomModelViewSet):
-    """杂采报价单主表管理接口"""
+    """杂采报价单主表管理接口
+
+    详情 GET 与采购端比价弹窗「供应商报价预览」共用：返回 `QuotationMasterSerializer` 及嵌套材料/加工/其它/利润/上阶物料等。
+    """
 
     queryset = QuotationMaster.objects.prefetch_related(
         "rfq_items",
