@@ -36,9 +36,9 @@ const formatQuoteDeadlineDisplay = (value: unknown) => {
   if (!value) return ''
   const text = String(value).trim()
   if (!text) return ''
-  const matched = text.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2})/)
-  if (matched) {
-    return `${matched[1]} ${matched[2]}:00`
+  const withMin = text.match(/^(\d{4}-\d{2}-\d{2})[ T](\d{2}):(\d{2})/)
+  if (withMin) {
+    return `${withMin[1]} ${withMin[2]}:${withMin[3]}`
   }
   const dateOnly = text.match(/^(\d{4}-\d{2}-\d{2})$/)
   if (dateOnly) {
@@ -171,9 +171,12 @@ export type ComparisonDetailMetric = {
   label: string
   get: (r: any) => unknown
   isText: boolean
+  /** 成本模板字段 key；用于跳过与分组标题重复的「材质 / 工站」行 */
+  fieldKey?: string
 }
 
-const normCmpTplKey = (k: string) =>
+/** 比价展开：模板字段 key 归一化（与 index.vue 聚合逻辑共用） */
+export const normCmpTplKey = (k: string) =>
   String(k || '')
     .trim()
     .toLowerCase()
@@ -239,7 +242,7 @@ export function buildMaterialComparisonMetricsFromTemplateFields(fields: Array<{
       String(f.label || f.nameCn || f.name_cn || '').trim() || rawKey
     const getter = materialGetterByNormKey[nk] ?? fallbackRowGetter(rawKey)
     const isText = materialTextNormKeys.has(nk)
-    out.push({ label, get: getter, isText })
+    out.push({ label, get: getter, isText, fieldKey: rawKey })
   }
   return out
 }
@@ -256,9 +259,108 @@ export function buildProcessComparisonMetricsFromTemplateFields(fields: Array<{ 
       String(f.label || f.nameCn || f.name_cn || '').trim() || rawKey
     const getter = processGetterByNormKey[nk] ?? fallbackRowGetter(rawKey)
     const isText = processTextNormKeys.has(nk)
-    out.push({ label, get: getter, isText })
+    out.push({ label, get: getter, isText, fieldKey: rawKey })
   }
   return out
+}
+
+/** 按材质规格分组后，不再展示「材质」行（与分组标题重复） */
+export function shouldSkipMaterialDetailMetric(fieldKey: string | undefined): boolean {
+  if (!fieldKey?.trim()) return false
+  return normCmpTplKey(fieldKey) === 'material'
+}
+
+/** 按工站分组后，不再展示「加工工站」行（与分组标题重复） */
+export function shouldSkipProcessDetailMetric(fieldKey: string | undefined): boolean {
+  if (!fieldKey?.trim()) return false
+  return normCmpTplKey(fieldKey) === 'processstation'
+}
+
+/** 与后端制程最低价落库一致：全报价最低重量/最低单价（单价含杂采材料信息）、材料费=三者乘积；加工费=各报价单加工费合计之最小值 */
+export type LowPriceMinContext = {
+  minW?: number
+  minUp?: number
+  materialProduct?: number
+  minProcessTotal?: number
+  pid: string
+}
+
+export function computeLowPriceMinContext(
+  quotes: any[],
+  miscMinUnitPrice?: number | null
+): LowPriceMinContext {
+  const pid = String(quotes[0]?.rfq_items?.[0]?.part_id || '').trim()
+  const qty = Number(quotes[0]?.rfq_items?.[0]?.qty)
+  let minW: number | undefined
+  let minUp: number | undefined
+  for (const q of quotes) {
+    for (const r of q.material_costs || []) {
+      if (pid && String(r.part_id || '').trim() !== pid) continue
+      const w = Number(r.weight)
+      if (Number.isFinite(w)) minW = minW === undefined ? w : Math.min(minW, w)
+      const up = Number(r.unit_price)
+      if (Number.isFinite(up)) minUp = minUp === undefined ? up : Math.min(minUp, up)
+    }
+  }
+  if (miscMinUnitPrice != null && Number.isFinite(miscMinUnitPrice)) {
+    minUp = minUp === undefined ? miscMinUnitPrice : Math.min(minUp, miscMinUnitPrice)
+  }
+  let materialProduct: number | undefined
+  if (minW !== undefined && minUp !== undefined && Number.isFinite(qty) && qty > 0) {
+    materialProduct = minW * minUp * qty
+  }
+  let minProcessTotal: number | undefined
+  for (const q of quotes) {
+    let s = 0
+    let ok = false
+    for (const r of q.process_costs || []) {
+      if (pid && String(r.part_id || '').trim() !== pid) continue
+      const p = Number(r.process_price)
+      if (Number.isFinite(p)) {
+        s += p
+        ok = true
+      }
+    }
+    if (ok) minProcessTotal = minProcessTotal === undefined ? s : Math.min(minProcessTotal, s)
+  }
+  return { minW, minUp, materialProduct, minProcessTotal, pid }
+}
+
+/** 展开仍按规格分行时，「制程最低价」列用全局口径覆盖该行 min */
+export function applyMaterialDetailLowPriceMin(
+  line: { min?: number },
+  m: ComparisonDetailMetric,
+  ctx: LowPriceMinContext
+): void {
+  const fk = m.fieldKey ? normCmpTplKey(m.fieldKey) : ''
+  const label = String(m.label || '').trim()
+  if (ctx.minW !== undefined && (fk === 'weight' || /用量|重量/.test(label))) {
+    line.min = ctx.minW
+    return
+  }
+  if (ctx.minUp !== undefined && (fk === 'unitprice' || /材料单价/.test(label))) {
+    line.min = ctx.minUp
+    return
+  }
+  if (ctx.materialProduct !== undefined && (fk === 'materialcost' || /材料费用|材料费/.test(label))) {
+    line.min = ctx.materialProduct
+  }
+}
+
+/** 展开仍按工站分行时，「加工费用」行制程最低价为各报价单加工费合计的最小值 */
+export function applyProcessDetailLowPriceMin(
+  line: { min?: number },
+  m: ComparisonDetailMetric,
+  ctx: LowPriceMinContext
+): void {
+  const fk = m.fieldKey ? normCmpTplKey(m.fieldKey) : ''
+  const label = String(m.label || '').trim()
+  if (
+    ctx.minProcessTotal !== undefined &&
+    (fk === 'processprice' || fk === 'processcost' || /加工费|加工费用/.test(label))
+  ) {
+    line.min = ctx.minProcessTotal
+  }
 }
 
 export const createCrudOptions = function ({
@@ -591,7 +693,7 @@ export const createCrudOptions = function ({
           }
         },
         quote_deadline: {
-          title: '报价截止时',
+          title: '报价截止时间',
           type: 'datetime',
           column: {
             width: 150,

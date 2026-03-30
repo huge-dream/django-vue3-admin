@@ -672,7 +672,7 @@ class InquiryRfqItem(models.Model):
 
 
 class MiscLowPriceHeader(CoreModel):
-    """比价-制程最低价记录主表。按询价单上阶物料料号分套；材料按规格、加工按工站各占一行（无整单合并行）。"""
+    """比价-制程最低价记录主表。按询价单上阶物料料号分套；材料一行（最低重量×最低单价×数量）、加工一行（各报价单加工费合计之最小值）；包装费/运输费/利润率各一行。"""
 
     # 成本类别: 1-材料; 2-加工; 3-包装费; 4-运输费; 5-管销研费用(杂采制程最低价不落库); 6-利润率
     COST_TYPE_CHOICES = (
@@ -692,9 +692,9 @@ class MiscLowPriceHeader(CoreModel):
         help_text="业务主键列之一；逻辑主键与 id 并存",
     )
     part_id = models.CharField(max_length=50, db_column="PartId", verbose_name="产品料号")
-    # 来源单号（报价单&询价单）；设计库字段名为 SouceNo
+    # 来源单号（报价单号/厂区等）；材料行可聚合多来源（如 W:单号;U:单号）；设计库字段名为 SouceNo
     souce_no = models.CharField(
-        max_length=20,
+        max_length=200,
         null=True,
         blank=True,
         db_column="SouceNo",
@@ -733,12 +733,12 @@ class MiscLowPriceHeader(CoreModel):
 
 
 class MiscLowPriceDetail(CoreModel):
-    """比价-制程最低价记录次表"""
+    """比价-制程最低价记录次表（材料：全供应商最低重量、最低单价各一行，material_spec 占位「-」）"""
 
     ITEM_NO_CHOICES = (
-        (1, "重量"),
-        (2, "单价"),
-        )
+        ("1", "重量"),
+        ("2", "单价"),
+    )
     inquiry_no = models.CharField(max_length=20, db_column="inquiry_no", db_index=True, verbose_name="询价单号")
     part_id = models.CharField(max_length=50, db_column="PartId", verbose_name="产品料号")
     cost_type = models.CharField(
@@ -757,9 +757,10 @@ class MiscLowPriceDetail(CoreModel):
     )
     value = models.CharField(max_length=10, db_column="Value", verbose_name="最小值")
     souce_no = models.CharField(
-        max_length=20,
+        max_length=200,
         db_column="SouceNo",
-        verbose_name="来源单号(报价单&询价单)",
+        verbose_name="来源单号(报价单号或交易厂区)",
+        help_text="重量/单价取最小值时对应报价单单号；单价来自杂采材料信息时存交易厂区代码",
     )
 
     class Meta:

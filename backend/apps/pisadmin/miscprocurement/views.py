@@ -1,6 +1,6 @@
 import logging
-from collections import defaultdict
 from decimal import Decimal
+from typing import Optional
 
 from django.db import transaction
 from django.db.models import Q
@@ -115,15 +115,48 @@ def _clip_field(value, max_len: int) -> str:
     return str(value or "").strip()[:max_len]
 
 
+def _norm_low_price_src(s: str, max_len: int = 200) -> str:
+    return (s or "").strip()[:max_len]
+
+
+def _material_cost_header_souce_no(weight_src: Optional[str], unit_src: Optional[str]) -> str:
+    """主表材料行：聚合次表来源；W=最低重量对应报价单号，U=最低单价对应报价单号或杂采厂区代码。"""
+    parts = []
+    if weight_src:
+        parts.append(f"W:{_norm_low_price_src(weight_src)}")
+    if unit_src:
+        parts.append(f"U:{_norm_low_price_src(unit_src)}")
+    return _norm_low_price_src(";".join(parts))
+
+
+def _rfq_qty_decimal(inquiry: Inquiry, pid: str) -> Optional[Decimal]:
+    """上阶物料需求数量；无则返回 None。"""
+    pid = (pid or "").strip()
+    if not pid:
+        return None
+    it = (
+        InquiryRfqItem.objects.filter(inquiry_no=inquiry, part_id=pid)
+        .order_by("id")
+        .first()
+    )
+    if it is None or it.qty is None:
+        return None
+    try:
+        return Decimal(str(it.qty))
+    except Exception:
+        return None
+
+
 def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
     """
     制程最低价落库（与比价展开明细一致）：
     - 询价单下**每个上阶物料料号**单独一套主/次表数据（多料号互不合并）。
-    - **材料**：按「材料规格」各一行，取各供应商该规格 material_cost 的 min；次表为同规格下重量、单价 min。
-    - **加工**：按「工站」各一行，取各供应商该工站 process_price 的 min（多工站互不合并）。
-    - **其它**：包装费、运输费分列取 min（优先 sup_quotation_other；无则用上阶物料 total_other_expense 回退，两列同 min）。
+    - **材料**：次表两行分别记录最低重量、最低单价；souce_no 为取得该最小值对应的报价单单号，单价若来自「杂采材料信息」
+      则存交易厂区（factory）；主表材料行 souce_no 聚合为 W:…;U:…（重量来源与单价来源可能不同）。
+    - **加工**：仅主表一行（无次表、不按工站）；每报价单合计加工费后取最小，全空/全 0 仍写入 MinPrice=0。
+    - 注意：材料行必须用 quotation_no__in=报价单号列表 过滤，勿用 QuerySet(QuotationMaster) 作 __in，否则 ORM 按主键匹配会查不到材料行。
+    - **其它**：包装费、运输费分列取 min（优先 sup_quotation_other；无则用上阶物料 total_other_expense 回退）。
     - **利润率**：cost_type=6，各报价单该料号利润率取 min。杂采不落库管销研（cost_type=5）。
-    不写「整单材料成本/加工成本」汇总行，避免多规格/多工站被合并成一条。
     """
     inquiry_no = (inquiry.inquiry_no or "").strip()
     if not inquiry_no:
@@ -131,9 +164,6 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
 
     qm_qs = QuotationMaster.objects.filter(inquiry_no=inquiry_no).exclude(status=4)
     qn_list = list(qm_qs.values_list("quotation_no", flat=True))
-    if not qn_list:
-        return
-
     souce_ref = inquiry_no[:20]
 
     raw_parts = [
@@ -152,93 +182,104 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
         MiscLowPriceHeader.objects.filter(inquiry_no=inquiry_no, part_id=pid).delete()
         MiscLowPriceDetail.objects.filter(inquiry_no=inquiry_no, part_id=pid).delete()
 
-        # —— 材料：按材料规格一行；次表重量/单价 ——
-        materials = QuotationMaterial.objects.filter(quotation_no__in=qm_qs, part_id=pid)
-        by_spec: dict[str, list] = defaultdict(list)
+        # —— 材料：次表两行（重量、单价）；主表 = 最低重量×最低单价×数量。
+        # FK 须用报价单单号列表：quotation_no__in=QuerySet(QuotationMaster) 会按主键匹配，导致材料行查不到。
+        materials = QuotationMaterial.objects.filter(quotation_no__in=qn_list, part_id=pid)
+        weight_candidates: list[tuple[Decimal, str]] = []
+        unit_candidates: list[tuple[Decimal, str]] = []
         for m in materials:
-            spec = (m.material_spec or "").strip() or "材料"
-            by_spec[spec].append(m)
+            qn_src = getattr(m, "quotation_no_id", None) or ""
+            qn_src = str(qn_src).strip()
+            if m.weight is not None:
+                try:
+                    w = Decimal(str(m.weight))
+                    weight_candidates.append((w, qn_src))
+                except Exception:
+                    pass
+            if m.unit_price is not None:
+                try:
+                    up = Decimal(str(m.unit_price))
+                    unit_candidates.append((up, qn_src))
+                except Exception:
+                    pass
+        for mi in MiscProcurementMaterialInfo.objects.filter(status=1).only("price", "factory"):
+            if mi.price is not None:
+                try:
+                    up = Decimal(str(mi.price))
+                    fac = (getattr(mi, "factory", None) or "").strip() or "MISC"
+                    unit_candidates.append((up, fac))
+                except Exception:
+                    pass
 
-        for spec, rows in by_spec.items():
-            costs = []
-            for r in rows:
-                if r.material_cost is not None:
-                    try:
-                        costs.append(Decimal(str(r.material_cost)))
-                    except Exception:
-                        continue
-            if costs:
-                MiscLowPriceHeader.objects.create(
-                    inquiry_no=inquiry_no,
-                    part_id=pid,
-                    souce_no=souce_ref or None,
-                    cost_type="1",
-                    item_no=_clip_field(spec, 100),
-                    min_price=_clip_price_str(min(costs)),
-                )
+        detail_spec = "-"
+        min_w_row = min(weight_candidates, key=lambda t: (t[0], t[1])) if weight_candidates else None
+        min_up_row = min(unit_candidates, key=lambda t: (t[0], t[1])) if unit_candidates else None
+        min_w = min_w_row[0] if min_w_row else None
+        min_up = min_up_row[0] if min_up_row else None
+        src_w = min_w_row[1] if min_w_row else None
+        src_up = min_up_row[1] if min_up_row else None
+        qty_dec = _rfq_qty_decimal(inquiry, pid)
 
-            weights = []
-            unit_prices = []
-            for r in rows:
-                if r.weight is not None:
+        if min_w is not None:
+            MiscLowPriceDetail.objects.create(
+                inquiry_no=inquiry_no,
+                part_id=pid,
+                cost_type="1",
+                material_spec=detail_spec[:50],
+                item_no="1",
+                value=_clip_price_str(min_w),
+                souce_no=_norm_low_price_src((src_w or souce_ref)),
+            )
+        if min_up is not None:
+            MiscLowPriceDetail.objects.create(
+                inquiry_no=inquiry_no,
+                part_id=pid,
+                cost_type="1",
+                material_spec=detail_spec[:50],
+                item_no="2",
+                value=_clip_price_str(min_up),
+                souce_no=_norm_low_price_src((src_up or souce_ref)),
+            )
+
+        if min_w is not None and min_up is not None and qty_dec is not None and qty_dec > 0:
+            material_low = min_w * min_up * qty_dec
+            MiscLowPriceHeader.objects.create(
+                inquiry_no=inquiry_no,
+                part_id=pid,
+                souce_no=_material_cost_header_souce_no(src_w, src_up) or None,
+                cost_type="1",
+                item_no="材料",
+                min_price=_clip_price_str(material_low),
+            )
+
+        # —— 加工：仅主表一行，无次表、不按工站。每份报价单对该料号加工费合计（空/缺省按 0），再取最小；
+        # 若全无报价单或合计均为空，仍写入 MinPrice=0，来源询价单号。 ——
+        proc_totals: list[tuple[Decimal, str]] = []
+        for qn in qn_list:
+            total = Decimal("0")
+            for p in QuotationProcess.objects.filter(quotation_no=qn, part_id=pid):
+                if p.process_price is not None:
                     try:
-                        weights.append(Decimal(str(r.weight)))
+                        total += Decimal(str(p.process_price))
                     except Exception:
                         pass
-                if r.unit_price is not None:
-                    try:
-                        unit_prices.append(Decimal(str(r.unit_price)))
-                    except Exception:
-                        pass
-            spec_key = _clip_field(spec, 50)
-            if weights:
-                MiscLowPriceDetail.objects.create(
-                    inquiry_no=inquiry_no,
-                    part_id=pid,
-                    cost_type="1",
-                    material_spec=spec_key,
-                    item_no="1",
-                    value=_clip_price_str(min(weights)),
-                    souce_no=souce_ref,
-                )
-            if unit_prices:
-                MiscLowPriceDetail.objects.create(
-                    inquiry_no=inquiry_no,
-                    part_id=pid,
-                    cost_type="1",
-                    material_spec=spec_key,
-                    item_no="2",
-                    value=_clip_price_str(min(unit_prices)),
-                    souce_no=souce_ref,
-                )
+            proc_totals.append((total, str(qn).strip()))
+        if proc_totals:
+            best_total, best_qn = min(proc_totals, key=lambda t: (t[0], t[1]))
+        else:
+            best_total = Decimal("0")
+            best_qn = ""
+        MiscLowPriceHeader.objects.create(
+            inquiry_no=inquiry_no,
+            part_id=pid,
+            souce_no=_norm_low_price_src(best_qn) if best_qn else (souce_ref or None),
+            cost_type="2",
+            item_no="加工",
+            min_price=_clip_price_str(best_total),
+        )
 
-        # —— 加工：按工站一行（多工站互不合并）——
-        processes = QuotationProcess.objects.filter(quotation_no__in=qm_qs, part_id=pid)
-        by_station: dict[str, list] = defaultdict(list)
-        for p in processes:
-            st = (p.process_station or "").strip() or "工站"
-            by_station[st].append(p)
-
-        for station, rows in by_station.items():
-            prices = []
-            for r in rows:
-                if r.process_price is not None:
-                    try:
-                        prices.append(Decimal(str(r.process_price)))
-                    except Exception:
-                        continue
-            if prices:
-                MiscLowPriceHeader.objects.create(
-                    inquiry_no=inquiry_no,
-                    part_id=pid,
-                    souce_no=souce_ref or None,
-                    cost_type="2",
-                    item_no=_clip_field(station, 100),
-                    min_price=_clip_price_str(min(prices)),
-                )
-
-        # —— 包装费 / 运输费（FK 用报价主表 QuerySet；兼容 part_id 大小写；无子表时回退上阶物料 total_other_expense）——
-        others = QuotationOther.objects.filter(quotation_no__in=qm_qs).filter(
+        # —— 包装费 / 运输费（报价单单号列表；兼容 part_id 大小写；无子表时回退上阶物料 total_other_expense）——
+        others = QuotationOther.objects.filter(quotation_no__in=qn_list).filter(
             Q(part_id=pid) | Q(part_id__iexact=(pid or "").strip())
         )
         pkg_vals = []

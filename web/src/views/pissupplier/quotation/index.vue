@@ -321,7 +321,8 @@ import {
   type InquiryAttachmentRow,
   buyingMethodDict,
   formatBidTimeColumn,
-  formatQuoteDeadlineDisplay
+  formatQuoteDeadlineDisplay,
+  isWithinSupplierBidWindow
 } from './crud'
 
 
@@ -407,6 +408,10 @@ const {
   saveQuote,
   submitQuotationFromRow
 } = useQuoteCrud({ onChange: () => crudExpose?.doRefresh?.() })
+
+/** 使「招标」行操作按钮随当前时间进出投标窗口自动刷新（约 30s） */
+const bidWindowClock = ref(0)
+let bidWindowTimer: ReturnType<typeof setInterval> | undefined
 
 const onQuotationAttachmentListChange = (_file: unknown, fileList: any[]) => {
   current.attachments = fileList
@@ -495,6 +500,7 @@ watch(activeTab, () => {
 onUnmounted(() => {
   quoteStickyStatusRo?.disconnect()
   quoteStickyStatusRo = null
+  if (bidWindowTimer != null) clearInterval(bidWindowTimer)
 })
 
 const syncFilters = (form: any = {}) => {
@@ -556,17 +562,31 @@ const crudOptions = {
       },
       quoteNow: {
         text: '报价',
-        type: compute(({ row }) => (isPendingQuotation(row) ? 'primary' : 'info')),
+        type: compute(({ row }) => {
+          bidWindowClock.value
+          const ok = isPendingQuotation(row) && isWithinSupplierBidWindow(row)
+          return ok ? 'primary' : 'info'
+        }),
         show: true,
         click: ({ row }: any) => openQuote(row),
-        disabled: compute(({ row }) => !isPendingQuotation(row))
+        disabled: compute(({ row }) => {
+          bidWindowClock.value
+          return !isPendingQuotation(row) || !isWithinSupplierBidWindow(row)
+        })
       },
       editQuote: {
         text: '提交',
-        type: compute(({ row }) => (isQuotedQuotation(row) ? 'warning' : 'info')),
+        type: compute(({ row }) => {
+          bidWindowClock.value
+          const ok = isQuotedQuotation(row) && isWithinSupplierBidWindow(row)
+          return ok ? 'warning' : 'info'
+        }),
         show: true,
         click: ({ row }: any) => submitQuotationFromRow(row),
-        disabled: compute(({ row }) => !isQuotedQuotation(row))
+        disabled: compute(({ row }) => {
+          bidWindowClock.value
+          return !isQuotedQuotation(row) || !isWithinSupplierBidWindow(row)
+        })
       },
     }
   },
@@ -706,6 +726,9 @@ const crudOptions = {
 useCrud({ crudRef, crudBinding, crudExpose, crudOptions })
 
 onMounted(() => {
+  bidWindowTimer = setInterval(() => {
+    bidWindowClock.value += 1
+  }, 30000)
   crudExpose?.doRefresh?.()
 })
 </script>
