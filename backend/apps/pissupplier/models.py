@@ -4,7 +4,7 @@ from dvadmin.utils.models import table_prefix
 
 
 class QuotationMaster(models.Model):
-    """杂采报价单主表"""
+    """杂采报价单主表（采购端比价弹窗按 autoid 拉详情用于供应商报价预览）"""
 
     PAYMENT_METHOD_CHOICES = (
         (1, "月结30天"),
