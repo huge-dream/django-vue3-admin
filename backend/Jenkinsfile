@@ -1,0 +1,81 @@
+pipeline {
+    agent any
+
+    environment {
+        HARBOR_URL = 'harbor.example.com'
+        HARBOR_PROJECT = 'pis'
+        IMAGE_NAME = 'dvadmin3-django'
+        SERVER_HOST = 'your-server-ip'
+        COMPOSE_PATH = '/mnt/data/pis'
+        CREDENTIALS_ID = 'harbor-credentials'
+        SSH_CREDENTIALS_ID = 'server-ssh-key'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                script {
+                    def imageTag = "${HARBOR_URL}/${HARBOR_PROJECT}/${IMAGE_NAME}:${BUILD_NUMBER}"
+                    env.IMAGE_TAG = imageTag
+                    sh """
+                        docker build -f docker_env/django/Dockerfile \
+                            -t ${imageTag} .
+                    """
+                }
+            }
+        }
+
+        stage('Push to Harbor') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(
+                        credentialsId: CREDENTIALS_ID,
+                        usernameVariable: 'HARBOR_USER',
+                        passwordVariable: 'HARBOR_PASS'
+                    )]) {
+                        sh """
+                            echo ${HARBOR_PASS} | docker login ${HARBOR_URL} -u ${HARBOR_USER} --password-stdin
+                            docker push ${IMAGE_TAG} || true
+                            docker logout ${HARBOR_URL}
+                        """
+                    }
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    withCredentials([sshUserPrivateKey(
+                        credentialsId: SSH_CREDENTIALS_ID,
+                        usernameVariable: 'SSH_USER',
+                        privateKeyVariable: 'SSH_KEY'
+                    )]) {
+                        sh """
+                            ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SERVER_HOST} << 'EOF'
+                            cd ${COMPOSE_PATH}
+                            docker-compose pull dvadmin3-django
+                            docker-compose up -d --no-deps dvadmin3-django
+                            EOF
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo "Backend Pipeline failed! Check Jenkins logs."
+        }
+        success {
+            echo "Backend deployed successfully!"
+        }
+    }
+}
