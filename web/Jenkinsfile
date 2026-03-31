@@ -68,16 +68,16 @@ pipeline {
         stage('Deploy') {
             steps {
                 script {
-                    withCredentials([sshUserPrivateKey(
-                        credentialsId: SSH_CREDENTIALS_ID,
+                    withCredentials([usernamePassword(
+                        credentialsId: 'server-ssh-creds',
                         usernameVariable: 'SSH_USER',
-                        privateKeyVariable: 'SSH_KEY'
+                        passwordVariable: 'SSH_PASS'
                     )]) {
                         sh """
-                            ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SERVER_HOST} << 'EOF'
+                            sshpass -p "${SSH_PASS}" ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SERVER_HOST} << 'EOF'
                             cd ${COMPOSE_PATH}
-                            docker-compose pull dvadmin3-web
-                            docker-compose up -d --no-deps dvadmin3-web
+                            docker-compose pull pis-web
+                            docker-compose up -d --no-deps pis-web
                             EOF
                         """
                     }
