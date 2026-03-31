@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     environment {
-        HARBOR_URL = 'harbor.example.com'
+        HARBOR_URL = '192.168.80.90:8090'
         HARBOR_PROJECT = 'pis'
         IMAGE_NAME = 'dvadmin3-web'
         SERVER_HOST = 'your-server-ip'
