@@ -1,11 +1,18 @@
 # 第一阶段：构建
 FROM docker.1ms.run/node:20-alpine as builder
 
-WORKDIR /web/
-COPY web/. .
+WORKDIR /web
 
-# 使用 npmmirror 加速 yarn install
+# 先复制 package.json 和 yarn.lock
+COPY web/package.json web/yarn.lock* ./
+
+# 安装依赖（利用缓存）
 RUN yarn install --registry=https://registry.npmmirror.com
+
+# 复制源代码
+COPY web/ .
+
+# 构建
 RUN yarn build
 
 # 第二阶段：Nginx 运行时
