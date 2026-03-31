@@ -65,8 +65,8 @@ type ExtraHooks = {
   onEdit?: (row: any) => void
   onView?: (row: any) => void
   /**
-   * 打开比价/议价弹窗（比议价中、价格审核、核价通过）；保存时按报价单写入杂采议价记录（议价前总价快照等）。
-   * 弹窗内表头供应商名称可点击，预览对应 GET quotation_master/{autoid}/ 报价明细。
+   * 跳转杂采比价/议价路由页（`/pisadmin/miscprocurement/rfqmiscellaneous/comparePrice/:id`；比议价中、价格审核、核价通过等由页内按钮状态控制）。
+   * 比价页表头供应商名称可点击，进入报价单详情（`/pissupplier/quotation/detail/:id`，查看模式）。
    */
   onComparison?: (row: any) => void
   /** 列表多选变化（用于后续多询价单比价等） */
@@ -276,6 +276,20 @@ export function shouldSkipProcessDetailMetric(fieldKey: string | undefined): boo
   return normCmpTplKey(fieldKey) === 'processstation'
 }
 
+/** 制程最低价列：重量/单价行跳转目标 */
+export type CompareMinLink =
+  | { kind: 'quotation'; id: string | number }
+  /** 杂采材料单价更低时链向杂采材料管理；sourceFactory 为对应「交易厂区」文案，供浮窗展示 */
+  | { kind: 'misc_materials'; sourceFactory?: string }
+  /** 主表「材料成本」：最低重量与最低单价来自不同报价单（或单价来自杂采材料信息）时，仅展示浮窗说明，不跳转 */
+  | {
+      kind: 'material_cost_split'
+      weight: number
+      unitPrice: number
+      weightSource: string
+      unitPriceSource: string
+    }
+
 /** 与后端制程最低价落库一致：全报价最低重量/最低单价（单价含杂采材料信息）、材料费=三者乘积；加工费=各报价单加工费合计之最小值 */
 export type LowPriceMinContext = {
   minW?: number
@@ -283,27 +297,97 @@ export type LowPriceMinContext = {
   materialProduct?: number
   minProcessTotal?: number
   pid: string
+  /** 全报价中材料明细最低重量所在报价单主键 */
+  minWeightQuotationId?: string | number
+  /** 全报价中材料明细最低单价所在报价单主键（若最低单价由杂采材料信息决定则为空） */
+  minUnitPriceQuotationId?: string | number
+  /** 仅当杂采单价严格低于所有报价单价时，单价/材料成本链向杂采材料管理；与报价持平或更高则链向报价单 */
+  minUnitPriceFromMisc?: boolean
+  /** 杂采材料最低价对应交易厂区（与杂采材料表 factory 等字段一致，供浮窗） */
+  miscMinFactory?: string
+}
+
+const _nearlyEqualMin = (a: number, b: number) => Math.abs(a - b) < 1e-6
+
+/** 各供应商列数值完全一致时，制程最低价列不展示超链接（仅纯文本） */
+export function allCompareSupplierValuesEqual(
+  values: Record<string, any>,
+  supplierKeys: string[]
+): boolean {
+  if (!supplierKeys.length) return true
+  const nums: number[] = []
+  for (const k of supplierKeys) {
+    const v = values[k]
+    if (v === '-' || v === '' || v == null) return false
+    const n = Number(v)
+    if (!Number.isFinite(n)) return false
+    nums.push(n)
+  }
+  if (nums.length !== supplierKeys.length) return false
+  const a0 = nums[0]!
+  return nums.every((x) => _nearlyEqualMin(x, a0))
 }
 
 export function computeLowPriceMinContext(
   quotes: any[],
-  miscMinUnitPrice?: number | null
+  miscMinUnitPrice?: number | null,
+  miscMinFactory?: string | null
 ): LowPriceMinContext {
   const pid = String(quotes[0]?.rfq_items?.[0]?.part_id || '').trim()
   const qty = Number(quotes[0]?.rfq_items?.[0]?.qty)
   let minW: number | undefined
-  let minUp: number | undefined
+  /** 各报价单材料行单价之最小值（不含杂采） */
+  let minQuoteUp: number | undefined
+  let minWeightQuotationId: string | number | undefined
+  let minUnitPriceQuotationId: string | number | undefined
+  const qid = (q: any) => q?.autoid ?? q?.id
+
   for (const q of quotes) {
     for (const r of q.material_costs || []) {
       if (pid && String(r.part_id || '').trim() !== pid) continue
       const w = Number(r.weight)
-      if (Number.isFinite(w)) minW = minW === undefined ? w : Math.min(minW, w)
+      if (Number.isFinite(w)) {
+        if (minW === undefined || w < minW) {
+          minW = w
+          minWeightQuotationId = qid(q)
+        }
+      }
       const up = Number(r.unit_price)
-      if (Number.isFinite(up)) minUp = minUp === undefined ? up : Math.min(minUp, up)
+      if (Number.isFinite(up)) {
+        if (minQuoteUp === undefined || up < minQuoteUp) {
+          minQuoteUp = up
+          minUnitPriceQuotationId = qid(q)
+        }
+      }
     }
   }
+
+  let minUp: number | undefined = minQuoteUp
+  let minUnitPriceFromMisc = false
+  let miscFactoryOut: string | undefined
+  const pickMiscFactory = () => {
+    const f = miscMinFactory != null && String(miscMinFactory).trim() !== '' ? String(miscMinFactory).trim() : ''
+    if (f) miscFactoryOut = f
+  }
+
   if (miscMinUnitPrice != null && Number.isFinite(miscMinUnitPrice)) {
-    minUp = minUp === undefined ? miscMinUnitPrice : Math.min(minUp, miscMinUnitPrice)
+    const misc = miscMinUnitPrice
+    if (minQuoteUp === undefined) {
+      minUp = misc
+      minUnitPriceFromMisc = true
+      minUnitPriceQuotationId = undefined
+      pickMiscFactory()
+    } else if (misc < minQuoteUp && !_nearlyEqualMin(misc, minQuoteUp)) {
+      /** 仅当杂采单价严格低于所有报价单价时，制程最低价单价才记为来自杂采 */
+      minUp = misc
+      minUnitPriceFromMisc = true
+      minUnitPriceQuotationId = undefined
+      pickMiscFactory()
+    } else {
+      /** 杂采高于或与最低报价持平：取 min(报价最低, 杂采)，来源优先报价单（含持平） */
+      minUp = Math.min(minQuoteUp, misc)
+      minUnitPriceFromMisc = false
+    }
   }
   let materialProduct: number | undefined
   if (minW !== undefined && minUp !== undefined && Number.isFinite(qty) && qty > 0) {
@@ -323,27 +407,126 @@ export function computeLowPriceMinContext(
     }
     if (ok) minProcessTotal = minProcessTotal === undefined ? s : Math.min(minProcessTotal, s)
   }
-  return { minW, minUp, materialProduct, minProcessTotal, pid }
+  return {
+    minW,
+    minUp,
+    materialProduct,
+    minProcessTotal,
+    pid,
+    minWeightQuotationId,
+    minUnitPriceQuotationId,
+    minUnitPriceFromMisc,
+    miscMinFactory: miscFactoryOut
+  }
+}
+
+/** 主表「材料成本」制程最低价：同源则链向报价单详情，异源则链样式 + 浮窗说明分项来源 */
+export function buildMaterialCostMinLink(
+  ctx: LowPriceMinContext,
+  quotes: any[],
+  opts?: { materialRowValues?: Record<string, any>; supplierKeys?: string[] }
+): CompareMinLink | null {
+  const materialAllEqual =
+    !!opts?.materialRowValues &&
+    !!opts.supplierKeys?.length &&
+    allCompareSupplierValuesEqual(opts.materialRowValues, opts.supplierKeys)
+
+  /** 各报价一致且杂采单价严格低于所有报价：制程最低价指向杂采材料管理 */
+  if (materialAllEqual && ctx.minUnitPriceFromMisc) {
+    return {
+      kind: 'misc_materials',
+      sourceFactory: ctx.miscMinFactory
+    }
+  }
+  if (materialAllEqual) {
+    return null
+  }
+  if (ctx.materialProduct === undefined) return null
+  const w = ctx.minW
+  const up = ctx.minUp
+  if (w === undefined || up === undefined || !Number.isFinite(w) || !Number.isFinite(up)) return null
+
+  const wid = ctx.minWeightQuotationId
+  const uid = ctx.minUnitPriceQuotationId
+  const misc = ctx.minUnitPriceFromMisc
+
+  const quoteLabel = (qid: string | number | undefined) => {
+    if (qid == null || qid === '') return ''
+    const q = quotes.find((x) => String(x.autoid ?? x.id) === String(qid))
+    const name = String(q?.supplier_name || q?.supplierName || '').trim()
+    const code = String(q?.supplier_code || q?.supplierCode || '').trim()
+    const label = name || code
+    return label || `报价单 #${qid}`
+  }
+
+  const weightSrc = quoteLabel(wid)
+  const unitSrc = misc ? '杂采材料信息' : quoteLabel(uid)
+
+  const sameQuotation =
+    !misc && wid != null && wid !== '' && uid != null && uid !== '' && String(wid) === String(uid)
+
+  if (sameQuotation) {
+    return { kind: 'quotation', id: wid }
+  }
+
+  return {
+    kind: 'material_cost_split',
+    weight: w,
+    unitPrice: up,
+    weightSource: weightSrc || '—',
+    unitPriceSource: unitSrc || '—'
+  }
 }
 
 /** 展开仍按规格分行时，「制程最低价」列用全局口径覆盖该行 min */
 export function applyMaterialDetailLowPriceMin(
-  line: { min?: number },
+  line: { min?: number; minLink?: CompareMinLink | null; values: Record<string, any> },
   m: ComparisonDetailMetric,
-  ctx: LowPriceMinContext
+  ctx: LowPriceMinContext,
+  supplierKeys?: string[]
 ): void {
   const fk = m.fieldKey ? normCmpTplKey(m.fieldKey) : ''
   const label = String(m.label || '').trim()
   if (ctx.minW !== undefined && (fk === 'weight' || /用量|重量/.test(label))) {
     line.min = ctx.minW
+    const qid = ctx.minWeightQuotationId
+    line.minLink =
+      qid != null && qid !== ''
+        ? { kind: 'quotation', id: qid }
+        : null
+    if (supplierKeys?.length && allCompareSupplierValuesEqual(line.values, supplierKeys)) {
+      line.minLink = null
+    }
     return
   }
-  if (ctx.minUp !== undefined && (fk === 'unitprice' || /材料单价/.test(label))) {
+  const isUnitPriceRow =
+    fk === 'unitprice' || /材料单价/.test(label) || label === '单价'
+  if (ctx.minUp !== undefined && isUnitPriceRow) {
     line.min = ctx.minUp
+    if (ctx.minUnitPriceFromMisc) {
+      line.minLink = {
+        kind: 'misc_materials',
+        sourceFactory: ctx.miscMinFactory
+      }
+    } else {
+      const qid = ctx.minUnitPriceQuotationId
+      line.minLink =
+        qid != null && qid !== ''
+          ? { kind: 'quotation', id: qid }
+          : null
+    }
+    if (
+      supplierKeys?.length &&
+      allCompareSupplierValuesEqual(line.values, supplierKeys) &&
+      !ctx.minUnitPriceFromMisc
+    ) {
+      line.minLink = null
+    }
     return
   }
   if (ctx.materialProduct !== undefined && (fk === 'materialcost' || /材料费用|材料费/.test(label))) {
     line.min = ctx.materialProduct
+    line.minLink = null
   }
 }
 
@@ -427,7 +610,7 @@ export const createCrudOptions = function ({
       },
       request: {
         pageRequest: async (query) => api.GetList(query),
-        // 新版：新增/编辑由 index.vue 自定义弹窗负责（嵌套子表一次提交）
+        // 新版：新增/编辑由 detail.vue 路由页负责（嵌套子表一次提交）
         addRequest: async ({ form }) => api.AddObj(form),
         editRequest: async ({ form, row }) => api.UpdateObj({ ...form, id: row.id }),
         delRequest: async ({ row }) => {

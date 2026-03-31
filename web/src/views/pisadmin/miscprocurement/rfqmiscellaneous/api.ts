@@ -2,6 +2,8 @@ import { request } from '/@/utils/service'
 
 const baseUrl = '/api/pisadmin/miscprocurement/inquiry/'
 
+/** 列表/增删改 API；完整表单在隐藏路由 `PisadminRfqMiscInquiryDetail`（`miscInquiryDetail/:id`）。议价相关接口由隐藏路由 `PisadminRfqMiscComparePrice`（`comparePrice/:id`）使用。 */
+
 export const GetList = (params: any) => request({ url: baseUrl, method: 'get', params })
 export const GetObj = (id: string | number) => request({ url: baseUrl + id + '/', method: 'get' })
 export const AddObj = (data: any) => request({ url: baseUrl, method: 'post', data })
