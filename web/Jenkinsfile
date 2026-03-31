@@ -4,7 +4,7 @@ pipeline {
     environment {
         HARBOR_URL = '192.168.80.90:8090'
         HARBOR_PROJECT = 'pis'
-        IMAGE_NAME = 'dvadmin3-web'
+        IMAGE_NAME = 'pis-web'
         SERVER_HOST = '192.168.80.90'
         COMPOSE_PATH = '/mnt/data/pis'
         CREDENTIALS_ID = 'harbor-credentials'
