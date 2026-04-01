@@ -103,6 +103,7 @@ urlpatterns = (
             ),
             path("api/pisadmin/miscprocurement/", include("apps.pisadmin.miscprocurement.urls")),
             path("api/pisadmin/basicinfo/", include("apps.pisadmin.basicinfo.urls")),
+            path("api/pisadmin/dashboard/", include("apps.pisadmin.dashboard.urls")),
             path("api/pissupplier/", include("apps.pissupplier.urls")),
             path("api/system/", include("dvadmin.system.urls")),
             path("api/login/", LoginView.as_view(), name="token_obtain_pair"),
