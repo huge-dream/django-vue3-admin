@@ -371,6 +371,44 @@ class RFQOperationLogsSerializer(CustomModelSerializer):
         self._normalize_operation_type(validated_data)
         return super().update(instance, validated_data)
 
+    def _supplier_count_for_inquiry_publish(self, inquiry_no: str) -> int:
+        """询价单发布日志行：当前受邀供应商家数（distinct supplier_code）。"""
+        from apps.pisadmin.miscprocurement.models import InquirySupplier
+
+        inq = (inquiry_no or "").strip()
+        if not inq:
+            return 0
+        return (
+            InquirySupplier.objects.filter(inquiry_no=inq)
+            .values_list("supplier_code", flat=True)
+            .distinct()
+            .count()
+        )
+
+    def _quote_ended_supplier_submit_and_overdue_counts(self, inquiry_no: str):
+        """
+        询价单进入「报价结束」后：已提交报价(3)与已过期/逾期未报(4)的供应商家数（按 supplier_code 去重）。
+        """
+        from apps.pissupplier.models import QuotationMaster
+
+        inq = (inquiry_no or "").strip()
+        if not inq:
+            return 0, 0
+        qs = QuotationMaster.objects.filter(inquiry_no=inq)
+        submitted = (
+            qs.filter(status=3)
+            .values_list("supplier_code", flat=True)
+            .distinct()
+            .count()
+        )
+        overdue = (
+            qs.filter(status=4)
+            .values_list("supplier_code", flat=True)
+            .distinct()
+            .count()
+        )
+        return submitted, overdue
+
     def to_representation(self, instance):
         data = super().to_representation(instance)
         ot = data.get("operation_type")
@@ -379,6 +417,24 @@ class RFQOperationLogsSerializer(CustomModelSerializer):
                 data["operation_type"] = int(ot)
             except (TypeError, ValueError):
                 pass
+        try:
+            iot = int(data.get("operation_type")) if data.get("operation_type") is not None else None
+        except (TypeError, ValueError):
+            iot = None
+        inq_no = str(getattr(instance, "inquiry_no", "") or "")
+        if iot == 3:
+            data["supplier_count"] = self._supplier_count_for_inquiry_publish(inq_no)
+        else:
+            data["supplier_count"] = None
+
+        cur_label = (data.get("cur_status") or getattr(instance, "cur_status", None) or "").strip()
+        if iot == 6 and cur_label == "报价结束":
+            sub_n, ovd_n = self._quote_ended_supplier_submit_and_overdue_counts(inq_no)
+            data["quote_ended_submitted_supplier_count"] = sub_n
+            data["quote_ended_overdue_supplier_count"] = ovd_n
+        else:
+            data["quote_ended_submitted_supplier_count"] = None
+            data["quote_ended_overdue_supplier_count"] = None
         return data
 
 

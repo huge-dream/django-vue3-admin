@@ -832,7 +832,7 @@ class RFQOperationLogs(CoreModel):
         (2, "询价单确认"),
         (3, "询价单发布"),
         (4, "询价单还原"),
-        # (5, "询价发送通知"),
+        (5, "报价截止"),
         (6, "供应商报价"),
         (7, "比议价"),
         (8, "议价审核提交"),
@@ -920,6 +920,68 @@ class RFQOperationLogs(CoreModel):
             cls.append(**kwargs)
         except Exception:
             logger.exception("写入询价操作日志失败")
+
+    @classmethod
+    def bulk_append_quote_deadline_expired(
+        cls,
+        quotation_rows: list,
+        inquiry_purchase_type: dict,
+        *,
+        operation_user: Optional[str] = None,
+    ) -> int:
+        """
+        供应商端批量将超期报价单置为「已过期」时，按报价单一笔一条写入操作类型「报价截止」(5)。
+
+        ``quotation_rows``：``values()`` 得到的列表，每项须含 ``quotation_no``、``inquiry_no``、``status``（置过期前，1/2）、``supplier_name``。
+        ``inquiry_purchase_type``：``inquiry_no`` -> ``purchase_type``（杂采/策采）。
+        """
+        from apps.pissupplier.models import QuotationMaster
+
+        if not quotation_rows:
+            return 0
+        now = timezone.now()
+        op_user = (operation_user or "").strip()[:20] if operation_user else None
+        qm_status_label = dict(QuotationMaster.STATUS_CHOICES)
+        cur_label = (qm_status_label.get(4) or "已过期")[:100]
+
+        batch = []
+        for row in quotation_rows:
+            inq_no = str(row.get("inquiry_no") or "").strip()[:20]
+            qn = str(row.get("quotation_no") or "").strip()[:20] or "-"
+            supplier_name = (str(row.get("supplier_name") or "").strip() or "—")[:50]
+            desc = f"供应商（{supplier_name}）逾期未报价"[:200]
+            try:
+                old_st = int(row.get("status"))
+            except (TypeError, ValueError):
+                old_st = None
+            pt = inquiry_purchase_type.get(inq_no)
+            if pt is None:
+                continue
+            per_label = (qm_status_label.get(old_st) or "")[:50] if old_st is not None else None
+            batch.append(
+                cls(
+                    operation_type="5",
+                    operation_user=op_user,
+                    operation_time=now,
+                    operation_desc=desc,
+                    inquiry_no=inq_no,
+                    quotation_no=qn,
+                    per_status=per_label or None,
+                    cur_status=cur_label,
+                    is_show_user=1,
+                    purchase_type=int(pt),
+                    create_datetime=now,
+                    update_datetime=now,
+                )
+            )
+        if not batch:
+            return 0
+        try:
+            cls.objects.bulk_create(batch, batch_size=300)
+        except Exception:
+            logger.exception("批量写入报价截止询价操作日志失败")
+            return 0
+        return len(batch)
 
     def __str__(self) -> str:
         return f"{self.inquiry_no}-{self.quotation_no}"
