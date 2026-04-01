@@ -1,1 +1,1 @@
-{% autoescape off %}【报价结束】{{ rfq_number|default:"—" }} {{ inquiry_title_short|default:"—" }}{% endautoescape %}
+{% autoescape off %}【报价完成通知】询价单{{ inquiry_no }}-{{ material_or_project_short }}已全部报价，请进行比价{% endautoescape %}
