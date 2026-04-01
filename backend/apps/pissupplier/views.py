@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 from django.db import transaction
@@ -17,6 +18,7 @@ from apps.pissupplier.models import (
     QuotationProfit,
     QuotationItem,
 )
+from apps.pisadmin.basicinfo.views.email_utils import notify_purchasers_quote_timeout_for_inquiries
 from apps.pissupplier.serializers import (
     QuotationMasterSerializer,
     QuotationMasterCreateUpdateSerializer,
@@ -27,6 +29,8 @@ from apps.pissupplier.serializers import (
     QuotationProfitSerializer,
     QuotationItemSerializer,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _supplier_bidding_window_error(instance: QuotationMaster):
@@ -107,8 +111,18 @@ class QuotationMasterViewSet(CustomModelViewSet):
                 inquiry_nos,
                 actor_username=username,
             )
+        quote_timeout_emails_sent = 0
+        if updated:
+            try:
+                quote_timeout_emails_sent = notify_purchasers_quote_timeout_for_inquiries(inquiry_nos)
+            except Exception:
+                logger.exception("询价截止提醒邮件批量通知失败")
         return SuccessResponse(
-            data={"updated": updated, "inquiries_closed": inquiries_closed},
+            data={
+                "updated": updated,
+                "inquiries_closed": inquiries_closed,
+                "quote_timeout_emails_sent": quote_timeout_emails_sent,
+            },
             msg="同步成功",
         )
 

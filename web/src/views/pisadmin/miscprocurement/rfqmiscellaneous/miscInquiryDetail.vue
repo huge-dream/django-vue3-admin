@@ -430,7 +430,7 @@
           </div>
         </el-tab-pane>
 
-        <el-tab-pane label="询价单操作日志" name="operation_logs">
+        <el-tab-pane label="询价单操作日志" name="operation_logs" v-if="isViewMode">
           <div v-if="!currentId" class="operation-log-empty">
             <el-empty description="保存询价单后可查看操作日志" :image-size="72" />
           </div>

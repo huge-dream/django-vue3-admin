@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""邮件正文/主题模板：按业务场景 key 渲染，供询价发布、报价结束等流程调用。
+"""邮件正文/主题模板：按业务场景 key 渲染，供询价发布、报价结束、询价截止提醒等流程调用。
 
 扩展方式：
 1. 在下方注册 ``EMAIL_TEMPLATE_FILES``（主题模板路径 + HTML 正文路径），
@@ -13,6 +13,7 @@ import os
 from typing import Any, Callable, Dict, Optional, Tuple
 
 from django.conf import settings
+from django.contrib.auth import get_user_model
 from django.template.loader import render_to_string
 from django.utils import timezone
 
@@ -20,6 +21,8 @@ from django.utils import timezone
 TEMPLATE_RFS_PUBLISH = "RFS_publish"
 # 全部供应商已报价 → 询价单进入「报价结束」— 通知采购负责人
 TEMPLATE_QUOTE_ENDED = "Quote_ended"
+# 报价截止后无待报价/报价中单 → 询价单收口为「报价结束」（典型：sync_expired）— 询价截止提醒
+TEMPLATE_QUOTE_TIMEOUT = "Quote_timeout"
 
 
 def _for_local_display(dt: Any):
@@ -124,37 +127,184 @@ def build_context_rfs_publish(
     }
 
 
+def _quote_ended_purchaser_name(inquiry: Any) -> str:
+    """采购负责人展示名：优先系统用户姓名，否则采购负责人字段原文。"""
+    buyer = (getattr(inquiry, "buyer", None) or "").strip()
+    if not buyer:
+        return "采购同事"
+    User = get_user_model()
+    u = User.objects.filter(username=buyer).exclude(name__isnull=True).exclude(name="").first()
+    if not u:
+        u = User.objects.filter(name=buyer).first()
+    if u and (getattr(u, "name", None) or "").strip():
+        return str(u.name).strip()
+    return buyer
+
+
+def _quote_ended_material_or_project_name(inquiry: Any) -> str:
+    """物料/项目名称：优先 RFQ 行料号+品名汇总，否则询价单名称/材料类型。"""
+    lines: list[str] = []
+    rfq_mgr = getattr(inquiry, "rfq_items", None)
+    if rfq_mgr is not None:
+        for row in rfq_mgr.all():
+            seg = " ".join(x for x in (row.part_id, (getattr(row, "product_name", None) or "").strip()) if x).strip()
+            if seg:
+                lines.append(seg)
+    if lines:
+        return "；".join(lines)
+    title = (getattr(inquiry, "title", None) or "").strip()
+    if title:
+        return title
+    mt = (getattr(inquiry, "material_type", None) or "").strip()
+    return mt or "—"
+
+
+def _quote_ended_completion_time(inquiry: Any) -> Any:
+    """全部已报价单中，取最晚的报价时间（quotetime 优先，否则 creattime）。"""
+    from apps.pissupplier.models import QuotationMaster
+
+    inq_no = (getattr(inquiry, "inquiry_no", None) or "").strip()
+    if not inq_no:
+        return None
+    latest: Any = None
+    qs = QuotationMaster.objects.filter(inquiry_no=inq_no, status=3).only("quotetime", "creattime")
+    for row in qs:
+        t = row.quotetime or row.creattime
+        if t is None:
+            continue
+        if latest is None or t > latest:
+            latest = t
+    return latest
+
+
 def build_context_quote_ended(
     inquiry: Any,
     *,
     last_quotation_no: str = "",
 ) -> Dict[str, Any]:
     """
-    报价结束通知（采购端）：全部供应商已提交报价，询价单进入「报价结束」。
+    报价完成通知（采购端）：受邀供应商均已提交报价，与模板「报价完成通知」文案一致。
     """
-    rfq_number = (getattr(inquiry, "inquiry_no", None) or "").strip()
+    from apps.pisadmin.miscprocurement.models import InquirySupplier
+
+    inquiry_no = (getattr(inquiry, "inquiry_no", None) or "").strip()
     title = (getattr(inquiry, "title", None) or "").strip()
-    buyer = (getattr(inquiry, "buyer", None) or "").strip()
-    purchaser_name = buyer or "采购同事"
+    inquiry_name = title or "—"
+
+    purchaser_name = _quote_ended_purchaser_name(inquiry)
+    material_or_project_name = _quote_ended_material_or_project_name(inquiry)
+    plain = material_or_project_name
+    material_or_project_short = plain[:40] + ("…" if len(plain) > 40 else "") if plain and plain != "—" else "—"
+
+    supplier_count = (
+        InquirySupplier.objects.filter(inquiry_no=inquiry)
+        .values_list("supplier_code", flat=True)
+        .distinct()
+        .count()
+    )
+
+    raw_done = _quote_ended_completion_time(inquiry)
+    if raw_done is None:
+        raw_done = _for_local_display(timezone.now())
+    done_local = _for_local_display(raw_done)
+    completion_time = done_local.strftime("%Y-%m-%d %H:%M") if done_local else "—"
+
+    base = admin_portal_base_url()
+    pk = getattr(inquiry, "pk", None) or getattr(inquiry, "id", None)
+    comparison_page_url = ""
+    if base and pk is not None:
+        comparison_page_url = f"{base}/pisadmin/miscprocurement/rfqmiscellaneous/comparePrice/{pk}"
 
     now = _for_local_display(timezone.now())
     current_date = now.strftime("%Y-%m-%d") if now else ""
-    closed_time = now.strftime("%Y-%m-%d %H:%M:%S") if now else "—"
-
-    base = admin_portal_base_url()
-    admin_link = base if base else ""
-
-    t_short = title[:40] + ("…" if len(title) > 40 else "") if title else "—"
 
     return {
         "purchaser_name": purchaser_name,
-        "rfq_number": rfq_number,
-        "inquiry_title": title or "—",
-        "inquiry_title_short": t_short,
+        "inquiry_no": inquiry_no,
+        "inquiry_name": inquiry_name,
+        "material_or_project_name": material_or_project_name,
+        "material_or_project_short": material_or_project_short,
+        "supplier_count": supplier_count,
+        "completion_time": completion_time,
+        "comparison_page_url": comparison_page_url,
+        # 兼容旧模板变量（若外部仍有引用）
+        "rfq_number": inquiry_no,
+        "inquiry_title": inquiry_name,
+        "inquiry_title_short": material_or_project_short,
         "last_quotation_no": (last_quotation_no or "").strip(),
-        "closed_time": closed_time,
+        "closed_time": completion_time,
         "current_date": current_date,
-        "admin_link": admin_link,
+        "admin_link": comparison_page_url or base,
+        "system_name": system_brand_name(),
+    }
+
+
+def _inquiry_effective_deadline_for_display(inquiry: Any) -> Tuple[Any, str]:
+    """询价/招标下用于邮件展示的截止时间：询价用 quote_deadline，招标用 bid_end_time。"""
+    qd = getattr(inquiry, "quote_deadline", None)
+    if qd is None and int(getattr(inquiry, "buying_method", 1) or 1) == 2:
+        qd = getattr(inquiry, "bid_end_time", None)
+    if not qd:
+        return None, "—"
+    loc = _for_local_display(qd)
+    return qd, loc.strftime("%Y-%m-%d %H:%M") if loc else "—"
+
+
+def build_context_quote_timeout(inquiry: Any) -> Dict[str, Any]:
+    """
+    询价截止提醒（采购端）：已到截止时间、需查看报价并完成比价；与模板「询价截止提醒」文案一致。
+    """
+    from apps.pisadmin.miscprocurement.models import InquirySupplier
+    from apps.pissupplier.models import QuotationMaster
+
+    inquiry_no = (getattr(inquiry, "inquiry_no", None) or "").strip()
+    title = (getattr(inquiry, "title", None) or "").strip()
+    inquiry_name = title or "—"
+
+    purchaser_name = _quote_ended_purchaser_name(inquiry)
+    material_or_project_name = _quote_ended_material_or_project_name(inquiry)
+    plain = material_or_project_name
+    material_or_project_short = plain[:40] + ("…" if len(plain) > 40 else "") if plain and plain != "—" else "—"
+
+    _, deadline_display = _inquiry_effective_deadline_for_display(inquiry)
+
+    invited_count = (
+        InquirySupplier.objects.filter(inquiry_no=inquiry)
+        .values_list("supplier_code", flat=True)
+        .distinct()
+        .count()
+    )
+
+    quoted_count = (
+        QuotationMaster.objects.filter(inquiry_no=inquiry_no, status=3)
+        .values_list("supplier_code", flat=True)
+        .distinct()
+        .count()
+    )
+
+    base = admin_portal_base_url()
+    pk = getattr(inquiry, "pk", None) or getattr(inquiry, "id", None)
+    comparison_page_url = ""
+    if base and pk is not None:
+        comparison_page_url = f"{base}/pisadmin/miscprocurement/rfqmiscellaneous/comparePrice/{pk}"
+
+    now = _for_local_display(timezone.now())
+    current_date = now.strftime("%Y-%m-%d") if now else ""
+
+    return {
+        "purchaser_name": purchaser_name,
+        "inquiry_no": inquiry_no,
+        "inquiry_name": inquiry_name,
+        "material_or_project_name": material_or_project_name,
+        "material_or_project_short": material_or_project_short,
+        "deadline": deadline_display,
+        "quoted_count": quoted_count,
+        "invited_count": invited_count,
+        "comparison_page_url": comparison_page_url,
+        "rfq_number": inquiry_no,
+        "inquiry_title": inquiry_name,
+        "current_date": current_date,
+        "admin_link": comparison_page_url or base,
         "system_name": system_brand_name(),
     }
 
@@ -165,6 +315,7 @@ def build_context_quote_ended(
 # ---------------------------------------------------------------------------
 EMAIL_TEMPLATE_FILES: Dict[str, Tuple[str, str]] = {
     TEMPLATE_QUOTE_ENDED: ("emails/quote_ended_subject.txt", "emails/quote_ended_body.html"),
+    TEMPLATE_QUOTE_TIMEOUT: ("emails/quote_timeout_subject.txt", "emails/quote_timeout_body.html"),
 }
 
 

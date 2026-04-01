@@ -1897,6 +1897,11 @@ export function useQuoteCrud(options?: {
 
   /** 编辑报价：由列表「报价」进入（`?mode=edit`）或本页显式打开；路由无 `mode` 时详情页走 `viewQuote` */
   const openQuote = async (row: Quote) => {
+    try {
+      await api.syncExpiredQuotations()
+    } catch (e) {
+      console.warn('同步已过期报价单状态失败', e)
+    }
     /** 路由详情仅带 id 时先拉主表，保证招标投标窗口校验正确 */
     let rowForFlow = row
     if (row.id && row.buyingMethod == null) {
@@ -2058,6 +2063,11 @@ export function useQuoteCrud(options?: {
     loading.value = true
     ;(async () => {
       try {
+        try {
+          await api.syncExpiredQuotations()
+        } catch (e) {
+          console.warn('同步已过期报价单状态失败', e)
+        }
         await ensureTemplateNameLookup()
         let merged: Quote = { ...row }
         if (row.id) {

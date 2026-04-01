@@ -1,7 +1,9 @@
+import logging
 import os
 import tempfile
 import urllib.parse
 import urllib.request
+from datetime import timedelta
 from typing import Tuple, Dict, Any, List
 from rest_framework import serializers
 from rest_framework.decorators import action
@@ -14,6 +16,8 @@ from dvadmin.utils.viewset import CustomModelViewSet
 from django.contrib.auth import get_user_model
 
 from apps.pisadmin.basicinfo.models import EmailNotice
+
+logger = logging.getLogger(__name__)
 
 
 def _collect_attachment_paths(raw_list: List[Any]) -> List[str]:
@@ -109,7 +113,9 @@ def send_quote_ended_notice_to_purchaser(inquiry, *, last_quotation_no: str = ""
         payload={
             "template_key": TEMPLATE_QUOTE_ENDED,
             "is_html": True,
-            "inquiry_no": getattr(inquiry, "inquiry_no", None),
+            "inquiry_no": ctx.get("inquiry_no"),
+            "supplier_count": ctx.get("supplier_count"),
+            "completion_time": ctx.get("completion_time"),
         },
     )
     notice.status = "sending"
@@ -127,6 +133,100 @@ def send_quote_ended_notice_to_purchaser(inquiry, *, last_quotation_no: str = ""
 
     notice.save(update_fields=["status", "sent_at", "response", "last_error", "update_datetime"])
     return success
+
+
+def should_send_quote_timeout_reminder(inquiry_no: str, *, cooldown_hours: int = 24) -> bool:
+    """
+    同一询价单「询价截止提醒」在冷却期内不重复发送，避免供应商端多次刷新列表/详情导致采购重复收信。
+    """
+    key = (inquiry_no or "").strip()
+    if not key:
+        return False
+    cutoff = timezone.now() - timedelta(hours=cooldown_hours)
+    return not EmailNotice.objects.filter(
+        biz_type="inquiry_quote_timeout",
+        biz_id=key,
+        status="success",
+        sent_at__gte=cutoff,
+    ).exists()
+
+
+def send_quote_timeout_notice_to_purchaser(inquiry) -> bool:
+    """
+    询价截止提醒（HTML + EmailNotice）：由 ``notify_purchasers_quote_timeout_for_inquiries`` 在
+    供应商端 ``POST .../quotation_master/sync_expired/`` 将超期未报价单置为已过期之后按需调用。
+    无有效收件人时跳过发送，返回 False。
+    """
+    from apps.pisadmin.basicinfo.views.email_template import (
+        TEMPLATE_QUOTE_TIMEOUT,
+        build_context_quote_timeout,
+        render_email,
+    )
+
+    to_list = resolve_inquiry_purchaser_emails(inquiry)
+    if not to_list:
+        return False
+
+    ctx = build_context_quote_timeout(inquiry)
+    subject, body = render_email(TEMPLATE_QUOTE_TIMEOUT, ctx)
+
+    notice = EmailNotice.objects.create(
+        subject=subject,
+        body=body,
+        to_emails=to_list,
+        cc_emails=[],
+        bcc_emails=[],
+        attachments=[],
+        biz_type="inquiry_quote_timeout",
+        biz_id=getattr(inquiry, "inquiry_no", None) or "",
+        status="pending",
+        payload={
+            "template_key": TEMPLATE_QUOTE_TIMEOUT,
+            "is_html": True,
+            "inquiry_no": ctx.get("inquiry_no"),
+            "quoted_count": ctx.get("quoted_count"),
+            "invited_count": ctx.get("invited_count"),
+            "deadline": ctx.get("deadline"),
+        },
+    )
+    notice.status = "sending"
+    notice.save(update_fields=["status", "update_datetime"])
+
+    success, detail = send_email_notice(notice)
+    notice.response = detail or {}
+    if success:
+        notice.status = "success"
+        notice.sent_at = timezone.now()
+        notice.last_error = None
+    else:
+        notice.status = "failed"
+        notice.last_error = detail.get("error") if isinstance(detail, dict) else str(detail)
+
+    notice.save(update_fields=["status", "sent_at", "response", "last_error", "update_datetime"])
+    return success
+
+
+def notify_purchasers_quote_timeout_for_inquiries(inquiry_nos: List[str]) -> int:
+    """
+    在供应商端 ``sync_expired`` 将超期未报价单置为已过期之后调用：对涉及询价单向采购负责人发送截止提醒邮件。
+    返回成功发送的询价单数量（去重后、且受冷却期限制）。
+    """
+    from apps.pisadmin.miscprocurement.models import Inquiry
+
+    unique = sorted({(x or "").strip() for x in inquiry_nos if x and str(x).strip()})
+    sent = 0
+    for inq_no in unique:
+        if not should_send_quote_timeout_reminder(inq_no):
+            continue
+        inq = Inquiry.objects.filter(inquiry_no=inq_no).first()
+        if not inq:
+            continue
+        try:
+            if send_quote_timeout_notice_to_purchaser(inq):
+                sent += 1
+        except Exception:
+            logger.exception("询价截止提醒邮件发送失败 inquiry_no=%s", inq_no)
+    return sent
 
 
 def send_email_notice(notice) -> Tuple[bool, Dict[str, Any]]:
