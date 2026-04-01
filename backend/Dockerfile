@@ -38,12 +38,10 @@ RUN apt-get update && apt-get install -y unixodbc libodbc2 && rm -rf /var/lib/ap
 
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
-COPY --from=builder /usr/bin/odbcinst /usr/bin/odbcinst
-COPY --from=builder /usr/bin/odbc_config /usr/bin/odbc_config
 COPY --from=builder /opt/microsoft/msodbcsql18 /opt/microsoft/msodbcsql18
 COPY --from=builder /backend /backend
 
-# 注册 ODBC Driver 18
+# 注册 ODBC Driver 18（odbcinst 在 /usr/bin 由 unixodbc 安装提供）
 RUN /usr/bin/odbcinst -i -d -f /opt/microsoft/msodbcsql18/etc/odbcinst.ini
 
 WORKDIR /backend
