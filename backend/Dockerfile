@@ -13,7 +13,7 @@ RUN apt-get update && apt-get install -y \
     && curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/microsoft.gpg \
     && echo "deb [arch=amd64] https://packages.microsoft.com/repos/microsoft-ubuntu-focal-prod focal main" > /etc/apt/sources.list.d/mssql-release.list \
     && apt-get update \
-    && ACCEPT_EULA=Y apt-get install -y msodbcsql17 \
+    && ACCEPT_EULA=Y apt-get install -y msodbcsql18 \
     && rm -rf /var/lib/apt/lists/*
 
 # 先复制依赖文件，利用缓存
@@ -38,7 +38,7 @@ RUN apt-get update && apt-get install -y unixodbc && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
-COPY --from=builder /opt/microsoft/msodbcsql17 /opt/microsoft/msodbcsql17
+COPY --from=builder /opt/microsoft/msodbcsql18 /opt/microsoft/msodbcsql18
 COPY --from=builder /backend /backend
 
 WORKDIR /backend
