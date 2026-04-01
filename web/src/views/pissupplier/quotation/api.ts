@@ -28,6 +28,8 @@ export type PaymentCode = 1 | 2 | 3 | 4
 /**
  * 列表：GET quotation_master/；详情/更新：pk 对应模型主键 autoid
  *
+ * 分页与 dvadmin 一致：查询参数为 `page`、`limit`（`page_size` 无效）；默认每页 10 条。
+ *
  * 报价主表（QuotationMaster）仅含 inquiry_no，不含询价名称与询价模板编号；列表展示由 crud 中
  * 关联 Inquiry 与成本/价格模板接口补全 title、template 与模板名称。
  *

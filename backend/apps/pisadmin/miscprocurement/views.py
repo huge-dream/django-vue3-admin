@@ -1215,6 +1215,17 @@ class InquiryViewSet(CustomModelViewSet):
         data = MiscNegotiationRecordsSerializer(qs.order_by("id"), many=True).data
         return DetailResponse(data=data, msg="success")
 
+    @action(methods=["get"], detail=True, url_path="operation_logs")
+    def operation_logs(self, request, pk=None):
+        """按询价单号查询该询价单全部操作日志（``pis_rfq_operation_logs``）。"""
+        instance = self.get_object()
+        qs = (
+            RFQOperationLogs.objects.filter(inquiry_no=instance.inquiry_no)
+            .order_by("-operation_time", "-create_datetime", "-id")
+        )
+        data = RFQOperationLogsSerializer(qs, many=True).data
+        return DetailResponse(data=data, msg="success")
+
     @action(methods=["put"], detail=True, url_path="save_negotiation_records")
     def save_negotiation_records(self, request, pk=None):
         """按报价单写入杂采议价记录：议价结果 + 该报价单议价前含税/不含税总价快照（来自上阶物料明细）。"""

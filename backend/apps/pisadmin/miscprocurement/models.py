@@ -367,6 +367,12 @@ class Inquiry(CoreModel):
             inq.update_user = username
         inq.save(update_fields=["status", "update_time", "update_user", "update_datetime"])
         qn = (quotation_no or "-").strip()[:20] or "-"
+        qm_submit = (
+            QuotationMaster.objects.filter(inquiry_no=inq_no, quotation_no=qn).first()
+            if qn != "-"
+            else None
+        )
+        submitter_name = (getattr(qm_submit, "supplier_name", None) or "").strip() or "—"
         RFQOperationLogs.try_append(
             inquiry_no=inq.inquiry_no,
             purchase_type=int(inq.purchase_type),
@@ -375,7 +381,7 @@ class Inquiry(CoreModel):
             quotation_no=qn,
             per_status=old_status,
             cur_status=5,
-            operation_desc="全部供应商已提交报价，询价单同步为报价结束",
+            operation_desc=f"供应商（{submitter_name}）提交报价，受邀供应商均提交报价，询价单报价结束",
         )
         try:
             from apps.pisadmin.basicinfo.views.email_utils import send_quote_ended_notice_to_purchaser

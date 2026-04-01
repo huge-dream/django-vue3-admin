@@ -68,7 +68,7 @@ class QuotationMaster(models.Model):
     bid_end_time = models.DateTimeField(null=True, blank=True, verbose_name="投标截止时间")
 
     class Meta:
-        db_table = table_prefix + "sup_quotation_master"
+        db_table = table_prefix + "misc_sup_quotation_master"
         verbose_name = "杂采报价单主表"
         verbose_name_plural = verbose_name
         ordering = ("-creattime", "-autoid")
@@ -96,7 +96,7 @@ class QuotationAttachment(models.Model):
     uploaduser = models.CharField(max_length=20, null=True, blank=True, verbose_name="上传人员")
 
     class Meta:
-        db_table = table_prefix + "sup_quotation_attachment"
+        db_table = table_prefix + "misc_sup_quotation_attachment"
         verbose_name = "杂采报价单-附件关联表"
         verbose_name_plural = verbose_name
         ordering = ("-autoid",)
@@ -159,7 +159,7 @@ class QuotationMaterial(models.Model):
     option_json = models.TextField(db_column="OptionJson", null=True, blank=True, verbose_name="可选扩展信息")
 
     class Meta:
-        db_table = table_prefix + "sup_quotation_material"
+        db_table = table_prefix + "misc_sup_quotation_material"
         verbose_name = "杂采报价单-材料成本明细表"
         verbose_name_plural = verbose_name
         ordering = ("autoid",)
@@ -221,7 +221,7 @@ class QuotationProcess(models.Model):
     option_json = models.TextField(db_column="OptionJson", null=True, blank=True, verbose_name="可选扩展信息")
 
     class Meta:
-        db_table = table_prefix + "sup_quotation_process"
+        db_table = table_prefix + "misc_sup_quotation_process"
         verbose_name = "杂采报价单-加工成本明细表"
         verbose_name_plural = verbose_name
         ordering = ("autoid",)
@@ -265,7 +265,7 @@ class QuotationOther(models.Model):
     )
 
     class Meta:
-        db_table = table_prefix + "sup_quotation_other"
+        db_table = table_prefix + "misc_sup_quotation_other"
         verbose_name = "杂采报价单-其他费用明细表"
         verbose_name_plural = verbose_name
         ordering = ("autoid",)
@@ -308,7 +308,7 @@ class QuotationProfit(models.Model):
     )
 
     class Meta:
-        db_table = table_prefix + "sup_quotation_profit"
+        db_table = table_prefix + "misc_sup_quotation_profit"
         verbose_name = "杂采报价单-税率利润明细表"
         verbose_name_plural = verbose_name
         ordering = ("autoid",)
@@ -439,7 +439,7 @@ class QuotationItem(models.Model):
     )
 
     class Meta:
-        db_table = table_prefix + "sup_quot_items"
+        db_table = table_prefix + "misc_sup_quot_items"
         verbose_name = "杂采报价单-上阶物料明细表"
         verbose_name_plural = verbose_name
         ordering = ("autoid",)
