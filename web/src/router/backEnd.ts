@@ -67,6 +67,23 @@ const pisadminMiscMaterialsIndexRoute: RouteRecordRaw = {
 		icon: ''
 	}
 };
+
+/** 询价单操作日志（隐藏菜单；与菜单中配置的同名页可并存）。 */
+const pisadminRfsOperationLogsRoute: RouteRecordRaw = {
+	path: '/pisadmin/miscprocurement/rfs_operation_logs/index',
+	name: 'PisadminRfsOperationLogs',
+	component: () => import('/@/views/pisadmin/miscprocurement/rfs_operation_logs/index.vue'),
+	meta: {
+		title: '询价单操作日志',
+		isLink: '',
+		isHide: true,
+		isKeepAlive: false,
+		isAffix: false,
+		isIframe: false,
+		roles: ['admin'],
+		icon: ''
+	}
+};
 import { storeToRefs } from 'pinia';
 import pinia from '/@/stores/index';
 import { useUserInfo } from '/@/stores/userInfo';
@@ -127,7 +144,8 @@ export async function initBackEndControlRoutes() {
 		pissupplierQuotationDetailRoute,
 		pisadminRfqMiscInquiryDetailRoute,
 		pisadminRfqMiscComparePriceRoute,
-		pisadminMiscMaterialsIndexRoute
+		pisadminMiscMaterialsIndexRoute,
+		pisadminRfsOperationLogsRoute
 	]
 	// 添加动态路由
 	await setAddRoute();
@@ -144,7 +162,8 @@ export async function setRouters(){
 		pissupplierQuotationDetailRoute,
 		pisadminRfqMiscInquiryDetailRoute,
 		pisadminRfqMiscComparePriceRoute,
-		pisadminMiscMaterialsIndexRoute
+		pisadminMiscMaterialsIndexRoute,
+		pisadminRfsOperationLogsRoute
 	]
 	dynamicRoutes.forEach((item:any)=>{
 		router.addRoute(item)

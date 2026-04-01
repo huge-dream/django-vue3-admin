@@ -430,7 +430,9 @@ const processFeeKeys = ['processFee', 'processprice', 'process_price', 'process_
 const processStationKeys = ['process_station', 'processStation']
 
 /**
- * 与后端子表模型字段及 costRowsToNestedPayload 使用的 row.values 键一致（写死列，不随询价模板增减列）。
+ * 与后端子表模型字段及 costRowsToNestedPayload 使用的 row.values 键一致。
+ * 展示用列名优先来自询价 `template_sections` 各段 `fields[].label`（与 miscInquiryDetail 成本结构一致），
+ * 本常量仅在模板未配置字段时作列键与默认标题的 fallback。
  * QuotationMaterial / QuotationProcess / QuotationOther / QuotationProfit 见 apps.pissupplier.models
  */
 export type QuotationCostColumn = {
@@ -531,52 +533,7 @@ const TEMPLATE_KEY_TO_UI_KEYS: Record<string, Record<string, string[]>> = {
 
 const normTplKey = (k: string) => String(k || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 
-/** 固定列 key 集合（用于判断模板字段是否已映射到内置列，避免重复） */
-const fixedQuotationSectionKeys = (section: string) =>
-  new Set((FIXED_QUOTATION_SECTION_COLUMNS[section] || []).map((c) => c.key))
-
-/**
- * 在固定报价列基础上，仅按成本模板 `template_sections` 追加「扩展」列（如自定义 item_no），不展开整段 JSON。
- * 仅处理材料/加工（与 option_json 扩展落库一致）；内置字段若已映射到固定列则跳过。
- */
-const mergeQuotationSectionColumns = (section: string, templateSections: any): QuotationCostColumn[] => {
-  const base = [...(FIXED_QUOTATION_SECTION_COLUMNS[section] || [])]
-  if (section !== '材料成本' && section !== '加工成本') return base
-
-  const tpl = normalizeSections(templateSections).find(
-    (s: any) => (s.title || s.name || s.section || '') === section
-  )
-  const fixedKeys = fixedQuotationSectionKeys(section)
-  const keyMap = TEMPLATE_KEY_TO_UI_KEYS[section] || {}
-  const seen = new Set(base.map((c) => c.key))
-  const extras: QuotationCostColumn[] = []
-
-  for (const f of tpl?.fields || []) {
-    const rawKey = String(f?.key || '').trim()
-    if (!rawKey) continue
-    const nk = normTplKey(rawKey)
-    if (nk === 'partid' || rawKey === 'part_id') continue
-
-    const uiKeys: string[] = keyMap[nk] || keyMap[String(f.key).toLowerCase()] || [rawKey]
-    const mapsToFixed = uiKeys.some((k) => fixedKeys.has(k))
-    if (mapsToFixed) continue
-    if (fixedKeys.has(rawKey)) continue
-    if (seen.has(rawKey)) continue
-    seen.add(rawKey)
-    const label = String(f.label || f.nameCn || f.name || rawKey).trim() || rawKey
-    extras.push({ key: rawKey, label })
-  }
-
-  if (!extras.length) return base
-  const remarkIdx = base.findIndex((c) => c.key === 'remark')
-  if (remarkIdx >= 0) {
-    const remarkCol = base[remarkIdx]
-    const head = base.filter((c) => c.key !== 'remark')
-    return [...head, ...extras, remarkCol]
-  }
-  return [...base, ...extras]
-}
-
+/** 模板未声明某固定列时的列标题兜底（与 merge 补列一致） */
 const labelFallbacks: Record<string, string> = {
   material: '材质',
   material_cost: '材料费用',
@@ -612,7 +569,58 @@ const labelFallbacks: Record<string, string> = {
   fee: '加工费',
   process_fee: '加工费',
   packageFee: '包装费',
-  transportFee: '运输费'
+  transportFee: '运输费',
+  profitRate: '利润率(%)',
+  taxRate: '税率(%)'
+}
+
+const templateFieldDisplayLabel = (f: any, rawKey: string) =>
+  String(f?.label ?? f?.nameCn ?? f?.name_cn ?? f?.name ?? rawKey).trim() || rawKey
+
+/**
+ * 成本结构列：与 miscInquiryDetail 一致，优先按 `template_sections` 各段 `fields` 顺序与中文名展示；
+ * 模板字段 key 经 TEMPLATE_KEY_TO_UI_KEYS 映射到报价单 UI 存储键；无模板字段时回退 FIXED_QUOTATION_SECTION_COLUMNS。
+ */
+const mergeQuotationSectionColumns = (section: string, templateSections: any): QuotationCostColumn[] => {
+  const fixedFallback = [...(FIXED_QUOTATION_SECTION_COLUMNS[section] || [])]
+  const tpl = normalizeSections(templateSections).find(
+    (s: any) => (s.title || s.name || s.section || '') === section
+  )
+  const fields = Array.isArray(tpl?.fields) ? tpl.fields : []
+  const keyMap = TEMPLATE_KEY_TO_UI_KEYS[section] || {}
+
+  if (!fields.length) {
+    return fixedFallback
+  }
+
+  const out: QuotationCostColumn[] = []
+  const seen = new Set<string>()
+
+  for (const f of fields) {
+    const rawKey = String(f?.key || '').trim()
+    if (!rawKey) continue
+    const nk = normTplKey(rawKey)
+    if (section === '加工成本' && (nk === 'processfee' || rawKey === 'process_fee')) continue
+    if (nk === 'partid' || rawKey === 'part_id') continue
+
+    const uiKeys: string[] = keyMap[nk] || keyMap[String(f.key).toLowerCase()] || []
+    const uiKey = uiKeys.length ? uiKeys[0] : rawKey
+    if (seen.has(uiKey)) continue
+    seen.add(uiKey)
+    out.push({ key: uiKey, label: templateFieldDisplayLabel(f, rawKey) })
+  }
+
+  for (const fc of fixedFallback) {
+    if (!seen.has(fc.key)) {
+      seen.add(fc.key)
+      out.push({
+        key: fc.key,
+        label: labelFallbacks[fc.key] || fc.label
+      })
+    }
+  }
+
+  return out.length ? out : fixedFallback
 }
 
 const costTemplates: Record<string, CostTemplateItem[]> = {
@@ -1639,8 +1647,11 @@ export function useQuoteCrud(options?: {
       } catch (e) {
         console.warn('同步已过期报价单状态失败', e)
       }
-      const res = await api.getList({ page: 1, page_size: 200 })
-      const list = res?.data?.results || res?.data?.data?.results || res?.data?.list || res?.data || []
+      /** 与后端 dvadmin CustomPagination 一致：每页条数参数为 `limit`（非 page_size），默认 10 会导致列表只拉取 10 条 */
+      const res: any = await api.getList({ page: 1, limit: 999 })
+      const list = Array.isArray(res?.data)
+        ? res.data
+        : res?.data?.results || res?.data?.list || res?.results || res?.list || []
       const mapped = (Array.isArray(list) ? list : []).map(mapBackendQuote)
       await enrichQuotesWithInquiryData(mapped)
       quotes.value = mapped
@@ -1849,7 +1860,7 @@ export function useQuoteCrud(options?: {
     const countSection = (sec: string) => costRows.value.filter((r) => r.section === sec).length
     allowed.forEach((sec) => {
       if (countSection(sec) > 0) return
-      const cols = FIXED_QUOTATION_SECTION_COLUMNS[sec]
+      const cols = mergeQuotationSectionColumns(sec, sections)
       if (!cols?.length) return
       const values: Record<string, any> = {}
       const labels: Record<string, string> = {}

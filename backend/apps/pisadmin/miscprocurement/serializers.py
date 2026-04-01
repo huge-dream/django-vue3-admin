@@ -316,7 +316,11 @@ class MiscNegotiationRecordsSerializer(CustomModelSerializer):
 
 
 class RFQOperationLogsSerializer(CustomModelSerializer):
-    """询价单操作日志（rfq_operation_logs）"""
+    """询价单操作日志（rfq_operation_logs）。
+
+    列表查询：``GET /api/.../miscprocurement/inquiry/{id}/operation_logs/``（按询价单主键，
+    返回该单 ``inquiry_no`` 下全部日志，时间倒序）。
+    """
 
     operation_type = serializers.IntegerField(required=True)
     operation_time = serializers.DateTimeField(

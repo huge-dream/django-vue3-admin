@@ -8,8 +8,11 @@ from rest_framework.decorators import action
 
 from django.conf import settings
 from django.core.mail import EmailMessage, get_connection
+from django.utils import timezone
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
+from django.contrib.auth import get_user_model
+
 from apps.pisadmin.basicinfo.models import EmailNotice
 
 
@@ -40,6 +43,90 @@ def _collect_attachment_paths(raw_list: List[Any]) -> List[str]:
                     # skip silently; caller can still send email without this attachment
                     continue
     return paths
+
+
+def resolve_inquiry_purchaser_emails(inquiry) -> list:
+    """
+    根据询价单解析采购端收件人邮箱：优先「采购负责人」对应系统用户邮箱；
+    若无则依次尝试创建人（creator / creator_id）、创建人账号（create_user）。
+    """
+    User = get_user_model()
+
+    buyer = (getattr(inquiry, "buyer", None) or "").strip()
+    if buyer:
+        u = User.objects.filter(username=buyer).exclude(email__isnull=True).exclude(email="").first()
+        if not u:
+            u = User.objects.filter(name=buyer).exclude(email__isnull=True).exclude(email="").first()
+        if u and getattr(u, "email", None):
+            return [str(u.email).strip()]
+
+    cr = getattr(inquiry, "creator", None)
+    if cr is not None and getattr(cr, "email", None):
+        return [str(cr.email).strip()]
+    cid = getattr(inquiry, "creator_id", None)
+    if cid:
+        u = User.objects.filter(id=cid).exclude(email__isnull=True).exclude(email="").first()
+        if u and getattr(u, "email", None):
+            return [str(u.email).strip()]
+
+    cu = (getattr(inquiry, "create_user", None) or "").strip()
+    if cu:
+        u = User.objects.filter(username=cu).exclude(email__isnull=True).exclude(email="").first()
+        if u and getattr(u, "email", None):
+            return [str(u.email).strip()]
+
+    return []
+
+
+def send_quote_ended_notice_to_purchaser(inquiry, *, last_quotation_no: str = "") -> bool:
+    """
+    询价单进入「报价结束」时通知采购负责人（HTML 邮件 + EmailNotice 记录）。
+    无有效收件人时跳过发送，返回 False。
+    """
+    from apps.pisadmin.basicinfo.views.email_template import (
+        TEMPLATE_QUOTE_ENDED,
+        build_context_quote_ended,
+        render_email,
+    )
+
+    to_list = resolve_inquiry_purchaser_emails(inquiry)
+    if not to_list:
+        return False
+
+    ctx = build_context_quote_ended(inquiry, last_quotation_no=last_quotation_no or "")
+    subject, body = render_email(TEMPLATE_QUOTE_ENDED, ctx)
+
+    notice = EmailNotice.objects.create(
+        subject=subject,
+        body=body,
+        to_emails=to_list,
+        cc_emails=[],
+        bcc_emails=[],
+        attachments=[],
+        biz_type="inquiry_quote_ended",
+        biz_id=getattr(inquiry, "inquiry_no", None) or "",
+        status="pending",
+        payload={
+            "template_key": TEMPLATE_QUOTE_ENDED,
+            "is_html": True,
+            "inquiry_no": getattr(inquiry, "inquiry_no", None),
+        },
+    )
+    notice.status = "sending"
+    notice.save(update_fields=["status", "update_datetime"])
+
+    success, detail = send_email_notice(notice)
+    notice.response = detail or {}
+    if success:
+        notice.status = "success"
+        notice.sent_at = timezone.now()
+        notice.last_error = None
+    else:
+        notice.status = "failed"
+        notice.last_error = detail.get("error") if isinstance(detail, dict) else str(detail)
+
+    notice.save(update_fields=["status", "sent_at", "response", "last_error", "update_datetime"])
+    return success
 
 
 def send_email_notice(notice) -> Tuple[bool, Dict[str, Any]]:

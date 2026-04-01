@@ -1215,6 +1215,17 @@ class InquiryViewSet(CustomModelViewSet):
         data = MiscNegotiationRecordsSerializer(qs.order_by("id"), many=True).data
         return DetailResponse(data=data, msg="success")
 
+    @action(methods=["get"], detail=True, url_path="operation_logs")
+    def operation_logs(self, request, pk=None):
+        """按询价单号查询该询价单全部操作日志（``pis_rfq_operation_logs``）。"""
+        instance = self.get_object()
+        qs = (
+            RFQOperationLogs.objects.filter(inquiry_no=instance.inquiry_no)
+            .order_by("-operation_time", "-create_datetime", "-id")
+        )
+        data = RFQOperationLogsSerializer(qs, many=True).data
+        return DetailResponse(data=data, msg="success")
+
     @action(methods=["put"], detail=True, url_path="save_negotiation_records")
     def save_negotiation_records(self, request, pk=None):
         """按报价单写入杂采议价记录：议价结果 + 该报价单议价前含税/不含税总价快照（来自上阶物料明细）。"""
@@ -1503,7 +1514,6 @@ class RFQOperationLogsViewSet(CustomModelViewSet):
     create_serializer_class = RFQOperationLogsSerializer
     update_serializer_class = RFQOperationLogsSerializer
     filter_fields = (
-        "inquiry_no",
         "quotation_no",
         "operation_type",
         "operation_user",
@@ -1511,3 +1521,15 @@ class RFQOperationLogsViewSet(CustomModelViewSet):
     )
     search_fields = ("inquiry_no", "quotation_no", "operation_user", "operation_desc")
     ordering = ("-create_datetime", "-id")
+
+    def filter_queryset(self, queryset):
+        """询价单号模糊查询、按询价主表采购负责人筛选（GET 参数 ``inquiry_no``、``buyer``）。"""
+        queryset = super().filter_queryset(queryset)
+        inquiry_no = (self.request.query_params.get("inquiry_no") or "").strip()
+        if inquiry_no:
+            queryset = queryset.filter(inquiry_no__icontains=inquiry_no)
+        buyer = (self.request.query_params.get("buyer") or "").strip()
+        if buyer:
+            nos = Inquiry.objects.filter(buyer__icontains=buyer).values_list("inquiry_no", flat=True)
+            queryset = queryset.filter(inquiry_no__in=list(nos))
+        return queryset

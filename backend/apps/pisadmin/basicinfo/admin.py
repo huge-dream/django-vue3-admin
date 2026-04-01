@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from django.contrib import admin
 from apps.pisadmin.basicinfo.models import (
-    Unit, Currency, Supplier, Company
+    Unit, Currency, Supplier, SupplierUser, Company
 )
 
 
@@ -21,6 +21,12 @@ class CurrencyAdmin(admin.ModelAdmin):
 class SupplierAdmin(admin.ModelAdmin):
     list_display = ['supplier_name', 'supplier_id', 'company_code', 'contact_person', 'status']
     search_fields = ['supplier_name', 'supplier_id', 'company_code']
+
+
+@admin.register(SupplierUser)
+class SupplierUserAdmin(admin.ModelAdmin):
+    list_display = ['supplier_id', 'supplier_name', 'user_email', 'user_name', 'company_code', 'status']
+    search_fields = ['supplier_id', 'supplier_name', 'user_email', 'user_name']
 
 
 @admin.register(Company)

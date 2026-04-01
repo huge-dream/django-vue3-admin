@@ -1,0 +1,1 @@
+【新询价邀请】{{ rfq_number|default:"—" }} - {{ material_short }} - 截止：{{ deadline_date_subject|default:"—" }}

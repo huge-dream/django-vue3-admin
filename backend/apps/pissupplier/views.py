@@ -201,7 +201,15 @@ class QuotationMasterViewSet(CustomModelViewSet):
 
     @action(methods=["post"], detail=True, url_path="submit")
     def submit(self, request, pk=None):
-        """正式提交报价：写入当前时间为报价时间，状态为已报价(3)。仅报价中(status=2)可提交。"""
+        """正式提交报价：写入当前时间为报价时间，状态为已报价(3)。仅报价中(status=2)可提交。
+
+        若本次提交后，询价单下受邀供应商均已「已报价」，则 ``Inquiry.sync_to_quote_closed_when_all_suppliers_quoted``
+        将询价单置为「报价结束」，并由该同步逻辑向采购负责人发送 HTML 邮件（模板 ``Quote_ended``），
+        不在本 action 内重复发信。
+
+        若本次提交**未**触发询价单收口为「报价结束」，则单独写一条操作日志（描述「{供应商名称}供应商提交报价」、询价单前后状态均为报价中）；
+        若已收口，则仅由 ``sync_to_quote_closed_when_all_suppliers_quoted`` 写一条合并描述（含提交与报价结束），本处不再重复记日志。
+        """
         instance = self.get_object()
         if instance.status != 2:
             return ErrorResponse(msg="仅报价中状态可提交报价")
@@ -224,6 +232,20 @@ class QuotationMasterViewSet(CustomModelViewSet):
                 actor_username=username,
                 quotation_no=getattr(instance, "quotation_no", None),
             )
+            if not inquiry_quote_closed:
+                inq = Inquiry.objects.filter(inquiry_no=instance.inquiry_no).only("purchase_type").first()
+                purchase_type = int(inq.purchase_type) if inq else 2
+                supplier_name = (getattr(instance, "supplier_name", None) or "").strip() or "—"
+                RFQOperationLogs.try_append(
+                    inquiry_no=instance.inquiry_no,
+                    purchase_type=purchase_type,
+                    operation_type=6,
+                    operation_user=username,
+                    quotation_no=getattr(instance, "quotation_no", None),
+                    per_status=4,
+                    cur_status=4,
+                    operation_desc=f"供应商（{supplier_name}）提交报价",
+                )
         serializer = self.get_serializer(instance)
         payload = dict(serializer.data)
         payload["inquiry_quote_closed"] = inquiry_quote_closed
