@@ -15,22 +15,6 @@ pipeline {
             }
         }
 
-        stage('Install & Build') {
-            steps {
-                sh """
-                    cd web
-                    # 安装 Node.js 和 pnpm (如果不存在)
-                    if ! command -v pnpm &> /dev/null; then
-                        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-                        apt-get install -y nodejs
-                        npm install -g pnpm --registry=https://registry.npmmirror.com
-                    fi
-                    pnpm install --registry=https://registry.npmmirror.com
-                    pnpm build
-                """
-            }
-        }
-
         stage('Build Image') {
             steps {
                 script {
