@@ -45,6 +45,20 @@ export const dynamicRoutes: Array<RouteRecordRaw> = [
 			isIframe: false,
 			icon: 'iconfont icon-gerenzhongxin',
 		},
+	},
+	{
+		path: '/dashboard',
+		name: 'Dashboard',
+		component: () => import('/@/views/pisadmin/dashboard/index.vue'),
+		meta: {
+			title: 'message.router.dashboard',
+			isLink: '',
+			isHide: false,
+			isKeepAlive: true,
+			isAffix: false,
+			isIframe: false,
+			icon: 'iconfont icon-dashboard',
+		},
 	}
 ];
 
