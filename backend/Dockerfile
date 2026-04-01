@@ -36,7 +36,7 @@ FROM docker.1ms.run/python:3.10-slim
 
 RUN apt-get update && apt-get install -y \
     unixodbc libodbc2 \
-    libssl3 libcrypto3 libkrb5-3 libgssapi-krb5-2 \
+    libssl3 libkrb5-3 krb5-user \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
