@@ -377,6 +377,12 @@ class Inquiry(CoreModel):
             cur_status=5,
             operation_desc="全部供应商已提交报价，询价单同步为报价结束",
         )
+        try:
+            from apps.pisadmin.basicinfo.views.email_utils import send_quote_ended_notice_to_purchaser
+
+            send_quote_ended_notice_to_purchaser(inq, last_quotation_no=qn)
+        except Exception:
+            logger.exception("报价结束通知邮件发送失败")
         return True
 
 
@@ -808,7 +814,11 @@ class MiscNegotiationRecords(CoreModel):
 
 
 class RFQOperationLogs(CoreModel):
-    """询价单操作日志表"""
+    """询价单操作日志表。
+
+    按询价单号拉取全部记录：采购端 ``InquiryViewSet.operation_logs``（
+    ``GET .../inquiry/{pk}/operation_logs/``）。
+    """
 
     # (01询价单创;02询价单确认;03询价单发布;04询价单还原;05询价发送通知;06报价;07比议价;08议价审核提交;09议价审核完成;10议价审核驳回)
     OPERATION_TYPE_CHOICES = (
@@ -816,8 +826,8 @@ class RFQOperationLogs(CoreModel):
         (2, "询价单确认"),
         (3, "询价单发布"),
         (4, "询价单还原"),
-        (5, "询价发送通知"),
-        (6, "报价"),
+        # (5, "询价发送通知"),
+        (6, "供应商报价"),
         (7, "比议价"),
         (8, "议价审核提交"),
         (9, "议价审核完成"),

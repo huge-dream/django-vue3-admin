@@ -73,6 +73,30 @@ class Supplier(CoreModel):
         return self.supplier_name
 
 
+class SupplierUser(CoreModel):
+    """供应商用户信息"""
+    company_code = models.CharField(max_length=10, verbose_name="交易厂区", help_text="交易厂区(公司)", null=True, blank=True)
+    supplier_id = models.CharField(max_length=20, unique=True, verbose_name="供应商唯一ID", help_text="供应商唯一ID")
+    supplier_name = models.CharField(max_length=100, verbose_name="供应商全称", help_text="供应商全称")
+    supplier_role = models.IntegerField(verbose_name="供应商角色", help_text="供应商角色(1:报价)")
+    user_email = models.CharField(max_length=100, verbose_name="联络人邮箱", help_text="联络人邮箱")
+    user_name = models.CharField(max_length=20, verbose_name="联络人", help_text="联络人")
+    user_phone = models.CharField(max_length=100, verbose_name="联络人电话", help_text="联络人电话")
+    status = models.IntegerField(default=1, verbose_name="有效否", help_text="有效否(1有效0无效)")
+
+    class Meta:
+        db_table = table_prefix + "supplier_users"
+        verbose_name = "供应商用户信息"
+        verbose_name_plural = verbose_name
+        ordering = ("-create_datetime", "id")
+        indexes = [
+            models.Index(fields=["company_code"]),
+        ]
+
+    def __str__(self):
+        return self.supplier_name
+
+
 class Company(CoreModel):
     """公司信息"""
     company_code = models.CharField(max_length=20, verbose_name="公司代码", help_text="公司代码")
