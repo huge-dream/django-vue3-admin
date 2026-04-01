@@ -41,8 +41,8 @@ COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /opt/microsoft/msodbcsql18 /opt/microsoft/msodbcsql18
 COPY --from=builder /backend /backend
 
-# 注册 ODBC Driver 18（odbcinst 在 /usr/bin 由 unixodbc 安装提供）
-RUN /usr/bin/odbcinst -i -d -f /opt/microsoft/msodbcsql18/etc/odbcinst.ini
+# 手动注册 ODBC Driver 18（写入 odbcinst.ini）
+RUN cat /opt/microsoft/msodbcsql18/etc/odbcinst.ini >> /etc/odbcinst.ini || true
 
 WORKDIR /backend
 CMD ["sh","docker_start.sh"]
