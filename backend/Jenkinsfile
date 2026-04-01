@@ -39,6 +39,8 @@ pipeline {
                         sh """
                             echo ${HARBOR_PASS} | docker login ${HARBOR_URL} -u ${HARBOR_USER} --password-stdin
                             docker push ${IMAGE_TAG} || true
+                            docker tag ${IMAGE_TAG} ${HARBOR_URL}/${HARBOR_PROJECT}/${IMAGE_NAME}:latest
+                            docker push ${HARBOR_URL}/${HARBOR_PROJECT}/${IMAGE_NAME}:latest || true
                             docker logout ${HARBOR_URL}
                         """
                     }
