@@ -34,7 +34,7 @@ RUN ls ./conf/ \
 # 第二阶段：运行时镜像
 FROM docker.1ms.run/python:3.10-slim
 
-RUN apt-get update && apt-get install -y unixodbc libodbc1 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y unixodbc libodbc2 && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
