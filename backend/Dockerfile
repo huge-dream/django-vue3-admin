@@ -36,6 +36,11 @@ FROM docker.1ms.run/python:3.10-slim
 
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libmsodbcsql-17.so /usr/lib/x86_64-linux-gnu/libmsodbcsql-17.so
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libiconv.so.2 /usr/lib/x86_64-linux-gnu/libiconv.so.2
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libcharset.so.1 /usr/lib/x86_64-linux-gnu/libcharset.so.1
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libodbc.so.2 /usr/lib/x86_64-linux-gnu/libodbc.so.2
+COPY --from=builder /usr/lib/x86_64-linux-gnu/libodbcinst.so.2 /usr/lib/x86_64-linux-gnu/libodbcinst.so.2
 COPY --from=builder /backend /backend
 
 WORKDIR /backend
