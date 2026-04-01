@@ -19,14 +19,14 @@ pipeline {
             steps {
                 sh """
                     cd web
-                    # 安装 Node.js 和 yarn (如果不存在)
-                    if ! command -v yarn &> /dev/null; then
+                    # 安装 Node.js 和 pnpm (如果不存在)
+                    if ! command -v pnpm &> /dev/null; then
                         curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
                         apt-get install -y nodejs
-                        npm install -g yarn
+                        npm install -g pnpm --registry=https://registry.npmmirror.com
                     fi
-                    yarn install --registry=https://registry.npmmirror.com
-                    yarn build
+                    pnpm install --registry=https://registry.npmmirror.com
+                    pnpm build
                 """
             }
         }
