@@ -314,7 +314,7 @@ class Inquiry(CoreModel):
                 quotation_no="-",
                 per_status=old_status,
                 cur_status=5,
-                operation_desc="全部报价单已结束待报价/报价中，询价单同步为报价结束",
+                operation_desc="超过报价截止时间，询价单截止报价",
             )
             n += 1
         return n
