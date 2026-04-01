@@ -429,6 +429,80 @@
             </div>
           </div>
         </el-tab-pane>
+
+        <el-tab-pane label="询价单操作日志" name="operation_logs">
+          <div v-if="!currentId" class="operation-log-empty">
+            <el-empty description="保存询价单后可查看操作日志" :image-size="72" />
+          </div>
+          <div v-else class="operation-log-root" v-loading="operationLogsLoading">
+            <div class="op-timeline-card">
+              <div class="op-timeline-header">
+                <el-icon class="op-timeline-header__icon"><Clock /></el-icon>
+                <span class="op-timeline-header__title">履历时间轴（询价单：{{ form.inquiry_no || '—' }}）</span>
+              </div>
+              <div class="op-timeline-body">
+                <div class="op-timeline-track">
+                  <div class="op-timeline-line" />
+                  <div class="op-timeline-steps">
+                    <div
+                      v-for="step in timelineStepsView"
+                      :key="step.code"
+                      class="op-timeline-step"
+                      :class="{ 'is-pending': step.state === 'pending' }"
+                    >
+                      <div
+                        class="op-timeline-dot"
+                        :class="{
+                          'is-completed': step.state === 'completed',
+                          'is-current': step.state === 'current',
+                          'is-pending': step.state === 'pending'
+                        }"
+                      />
+                      <div class="op-timeline-label">{{ step.label }}</div>
+                      <div class="op-timeline-time">{{ step.timeText }}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="op-table-card">
+              <div class="op-table-header">
+                <el-icon class="op-table-header__icon"><Document /></el-icon>
+                <span class="op-table-header__title">操作履历明细表</span>
+              </div>
+              <el-table :data="operationLogsTableRows" border size="small" stripe empty-text="暂无操作记录">
+                <el-table-column prop="operation_time" label="操作时间" min-width="160" show-overflow-tooltip />
+                <el-table-column label="操作类型" min-width="120" show-overflow-tooltip>
+                  <template #default="{ row }">
+                    <span class="op-type-badge" :class="operationTypeBadgeClass(row.operation_type)">
+                      {{ operationTypeLabel(row.operation_type) }}
+                    </span>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="operation_user" label="操作人" min-width="100" show-overflow-tooltip>
+                  <template #default="{ row }">
+                    {{ row.operation_user?.trim() ? row.operation_user : '—' }}
+                  </template>
+                </el-table-column>
+                <el-table-column label="状态变更" min-width="160" show-overflow-tooltip>
+                  <template #default="{ row }">
+                    {{ formatOperationStatusChange(row.per_status, row.cur_status) }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="operation_desc" label="操作描述" min-width="160" show-overflow-tooltip>
+                  <template #default="{ row }">
+                    {{ row.operation_desc?.trim() ? row.operation_desc : '—' }}
+                  </template>
+                </el-table-column>
+                <el-table-column prop="quotation_no" label="报价单号" width="116" show-overflow-tooltip>
+                  <template #default="{ row }">
+                    {{ row.quotation_no && row.quotation_no !== '-' ? row.quotation_no : '—' }}
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+        </el-tab-pane>
       </el-tabs>
       </div>
     </div>
@@ -446,7 +520,7 @@
 import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft } from '@element-plus/icons-vue'
+import { ArrowLeft, Clock, Document } from '@element-plus/icons-vue'
 import { normalizeDict, formatCostTemplateVersion, formatRfqApiErrorMessage } from './crud'
 import * as api from './api'
 import * as costTemplateApi from '../cost_template/api'
@@ -491,6 +565,22 @@ const statusDict = [
 const STATUS_OPEN = 1
 const STATUS_CONFIRMED = 2
 const STATUS_PUBLISHED = 3
+
+/** 履历时间轴节点（与主状态 1–7 + 结束里程碑 8 对齐） */
+const TIMELINE_STATUS_CODES = [1, 2, 3, 4, 5, 6, 7, 8] as const
+
+/** 与后端 RFQOperationLogs.OPERATION_TYPE_CHOICES 一致 */
+const OPERATION_TYPE_LABELS: Record<number, string> = {
+  1: '询价单创建',
+  2: '询价单确认',
+  3: '询价单发布',
+  4: '询价单还原',
+  6: '供应商报价',
+  7: '比议价',
+  8: '议价审核提交',
+  9: '议价审核完成',
+  10: '议价审核驳回'
+}
 
 const paymentMethods = [
   { value: 1, label: '月结30天' },
@@ -974,6 +1064,23 @@ const pageTitle = computed(() => {
 })
 const activeTab = ref('base')
 const skipTemplateWatch = ref(false)
+
+type RfqOperationLogRow = {
+  id?: number
+  operation_type?: number
+  operation_user?: string | null
+  operation_time?: string | null
+  operation_desc?: string | null
+  inquiry_no?: string
+  quotation_no?: string
+  per_status?: string | null
+  cur_status?: string | null
+  is_show_user?: number | null
+  purchase_type?: number
+}
+
+const operationLogs = ref<RfqOperationLogRow[]>([])
+const operationLogsLoading = ref(false)
 let handlingPlantChange = false
 const userStore = useUserInfo()
 /** 与主表 `purchase_dept` CharField(max_length=20) 一致 */
@@ -1352,6 +1459,145 @@ const statusTagType = (s: unknown) => {
 }
 const statusLabel = (s: unknown) => statusDict.find((i) => i.value === getStatusCode(s))?.label || String(s ?? '')
 
+const normalizeOperationLogRow = (raw: Record<string, unknown>): RfqOperationLogRow => {
+  const ot = raw.operation_type
+  const opType = typeof ot === 'number' ? ot : Number(ot)
+  return {
+    ...raw,
+    operation_type: Number.isFinite(opType) ? opType : 0
+  } as RfqOperationLogRow
+}
+
+const parseOperationLogTime = (t: string | null | undefined): number => {
+  if (!t) return 0
+  const s = String(t).trim()
+  const d = new Date(s.includes('T') ? s : s.replace(' ', 'T'))
+  return Number.isNaN(d.getTime()) ? 0 : d.getTime()
+}
+
+const formatTimelineDay = (raw: string | null | undefined) => {
+  if (!raw) return ''
+  const s = String(raw).trim()
+  return s.length >= 10 ? s.slice(0, 10) : s
+}
+
+const operationLogsChronological = computed(() => {
+  const list = [...operationLogs.value]
+  list.sort((a, b) => {
+    const d = parseOperationLogTime(a.operation_time) - parseOperationLogTime(b.operation_time)
+    if (d !== 0) return d
+    return (Number(a.id) || 0) - (Number(b.id) || 0)
+  })
+  return list
+})
+
+const firstCurStatusDayByLabel = computed(() => {
+  const map = new Map<string, string>()
+  for (const row of operationLogsChronological.value) {
+    const cur = (row.cur_status || '').trim()
+    if (cur && !map.has(cur)) {
+      map.set(cur, formatTimelineDay(row.operation_time))
+    }
+  }
+  return map
+})
+
+const timelineEndStepLabel = computed(() => {
+  const s = getStatusCode(form.status)
+  if (s === 9) return '落标(结束)'
+  if (s === 8) return '核价通过(结束)'
+  return '已完成'
+})
+
+const timelineStepState = (stepCode: number, status: number): 'completed' | 'current' | 'pending' => {
+  if (status === 0) return 'pending'
+  if (status >= 8) {
+    return stepCode <= 8 ? 'completed' : 'pending'
+  }
+  if (stepCode < status) return 'completed'
+  if (stepCode === status) return 'current'
+  return 'pending'
+}
+
+const timelineStepsView = computed(() => {
+  const st = getStatusCode(form.status)
+  return TIMELINE_STATUS_CODES.map((code) => {
+    const label = code === 8 ? timelineEndStepLabel.value : statusLabel(code)
+    const state = timelineStepState(code, st)
+    let timeText = '—'
+    if (code === 8) {
+      const tWin = firstCurStatusDayByLabel.value.get('核价通过(结束)')
+      const tLose = firstCurStatusDayByLabel.value.get('落标(结束)')
+      timeText = tWin || tLose || (state === 'pending' ? '待处理' : '—')
+    } else {
+      const lb = statusDict.find((x) => x.value === code)?.label || ''
+      if (lb) {
+        timeText = firstCurStatusDayByLabel.value.get(lb) || (state === 'pending' ? '待处理' : '—')
+      }
+    }
+    return { code, label, state, timeText }
+  })
+})
+
+/** 明细表按时间正序，与参考稿「操作履历明细表」阅读习惯一致 */
+const operationLogsTableRows = computed(() => operationLogsChronological.value)
+
+const operationTypeLabel = (t: unknown) => {
+  const n = typeof t === 'number' ? t : Number(t)
+  if (!Number.isFinite(n) || n <= 0) return '—'
+  return OPERATION_TYPE_LABELS[n] || `类型${n}`
+}
+
+/** 与参考稿 HTML 色块含义接近的样式类 */
+const operationTypeBadgeClass = (t: unknown) => {
+  const n = typeof t === 'number' ? t : Number(t)
+  if (n === 1) return 'op-type--create'
+  if (n === 2) return 'op-type--confirm'
+  if (n === 3) return 'op-type--publish'
+  if (n === 4) return 'op-type--restore'
+  if (n === 6) return 'op-type--quote'
+  if (n === 7) return 'op-type--compare'
+  if (n === 8 || n === 9) return 'op-type--audit'
+  if (n === 10) return 'op-type--reject'
+  return 'op-type--default'
+}
+
+const formatOperationStatusChange = (per: string | null | undefined, cur: string | null | undefined) => {
+  const a = (per || '').trim()
+  const b = (cur || '').trim()
+  if (!a && !b) return '—'
+  if (!a) return `${b || '—'}`
+  if (!b) return `${a} → —`
+  return `${a} → ${b}`
+}
+
+const loadOperationLogs = async () => {
+  if (!currentId.value) {
+    operationLogs.value = []
+    return
+  }
+  operationLogsLoading.value = true
+  try {
+    const res = await api.GetOperationLogs(currentId.value)
+    const raw = unwrapResponseData(res)
+    const list = Array.isArray(raw) ? raw : (raw as { results?: unknown[] })?.results
+    operationLogs.value = Array.isArray(list)
+      ? list.map((row) => normalizeOperationLogRow(row as Record<string, unknown>))
+      : []
+  } catch {
+    operationLogs.value = []
+    ElMessage.error('加载操作日志失败')
+  } finally {
+    operationLogsLoading.value = false
+  }
+}
+
+watch(activeTab, (name) => {
+  if (name === 'operation_logs' && currentId.value) {
+    void loadOperationLogs()
+  }
+})
+
 const partNoHiddenSections = new Set(['加工成本', '其它成本', '利润', '税金'])
 const partNoHiddenDisplaySections = new Set(['材料成本', '加工成本', '其它成本', '利润', '税金'])
 
@@ -1584,6 +1830,7 @@ const resetForm = () => {
   Object.assign(form, emptyForm())
   costRows.value = []
   sectionAddConfig.value = {}
+  operationLogs.value = []
   activeTab.value = 'base'
 }
 
@@ -2609,5 +2856,145 @@ onMounted(() => {
   font-weight: 700;
   color: #0f766e;
   padding: 8px 0;
+}
+
+/* —— 询价单操作日志（履历时间轴 + 明细表） */
+.operation-log-empty {
+  padding: 24px 12px 40px;
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.operation-log-root {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.op-timeline-card,
+.op-table-card {
+  background: var(--el-bg-color);
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 8px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+.op-timeline-header,
+.op-table-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.op-timeline-header__icon,
+.op-table-header__icon {
+  font-size: 18px;
+  color: var(--el-color-primary);
+}
+.op-timeline-header__title,
+.op-table-header__title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+.op-timeline-body {
+  overflow-x: auto;
+  padding: 4px 0 8px;
+}
+.op-timeline-track {
+  position: relative;
+  min-width: 720px;
+  padding: 8px 0 4px;
+}
+.op-timeline-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 15px;
+  height: 2px;
+  background: var(--el-border-color);
+  z-index: 0;
+}
+.op-timeline-steps {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+}
+.op-timeline-step {
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+}
+.op-timeline-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin: 0 auto 8px;
+  box-sizing: border-box;
+  border: 2px solid transparent;
+}
+.op-timeline-dot.is-completed {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary-light-5);
+}
+.op-timeline-dot.is-current {
+  background: var(--el-color-success);
+  border-color: var(--el-color-success-light-3);
+}
+.op-timeline-dot.is-pending {
+  background: var(--el-fill-color-dark);
+  border-color: var(--el-border-color-darker);
+}
+.op-timeline-step.is-pending .op-timeline-label,
+.op-timeline-step.is-pending .op-timeline-time {
+  color: var(--el-text-color-placeholder);
+}
+.op-timeline-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 4px;
+  line-height: 1.25;
+}
+.op-timeline-time {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+.op-type-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.4;
+}
+.op-type--create {
+  background: #67c23a;
+}
+.op-type--confirm {
+  background: #409eff;
+}
+.op-type--publish {
+  background: #9c27b0;
+}
+.op-type--restore {
+  background: #909399;
+}
+.op-type--quote {
+  background: #e6a23c;
+}
+.op-type--compare {
+  background: #607d8b;
+}
+.op-type--audit {
+  background: #e91e63;
+}
+.op-type--reject {
+  background: #f56c6c;
+}
+.op-type--default {
+  background: #909399;
 }
 </style>

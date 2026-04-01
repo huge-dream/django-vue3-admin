@@ -17,6 +17,9 @@ export const StartBargainingObj = (id: string | number) => request({ url: `${bas
 export const ConfirmNegotiationObj = (id: string | number, data?: Record<string, unknown>) =>
   request({ url: `${baseUrl}${id}/confirm_negotiation/`, method: 'put', data: data ?? {} })
 export const SubmitPriceAuditObj = (id: string | number) => request({ url: `${baseUrl}${id}/submit_price_audit/`, method: 'put' })
+/** 询价单操作日志（按主键，返回该单 inquiry_no 下全部记录，时间倒序） */
+export const GetOperationLogs = (id: string | number) =>
+  request({ url: `${baseUrl}${id}/operation_logs/`, method: 'get' })
 /** 查询杂采议价记录（比价议价价格存此表，非报价明细「中标价格」） */
 export const GetNegotiationRecordsObj = (id: string | number, params?: { part_id?: string }) =>
   request({ url: `${baseUrl}${id}/negotiation_records/`, method: 'get', params: params ?? {} })

@@ -1514,7 +1514,6 @@ class RFQOperationLogsViewSet(CustomModelViewSet):
     create_serializer_class = RFQOperationLogsSerializer
     update_serializer_class = RFQOperationLogsSerializer
     filter_fields = (
-        "inquiry_no",
         "quotation_no",
         "operation_type",
         "operation_user",
@@ -1522,3 +1521,15 @@ class RFQOperationLogsViewSet(CustomModelViewSet):
     )
     search_fields = ("inquiry_no", "quotation_no", "operation_user", "operation_desc")
     ordering = ("-create_datetime", "-id")
+
+    def filter_queryset(self, queryset):
+        """询价单号模糊查询、按询价主表采购负责人筛选（GET 参数 ``inquiry_no``、``buyer``）。"""
+        queryset = super().filter_queryset(queryset)
+        inquiry_no = (self.request.query_params.get("inquiry_no") or "").strip()
+        if inquiry_no:
+            queryset = queryset.filter(inquiry_no__icontains=inquiry_no)
+        buyer = (self.request.query_params.get("buyer") or "").strip()
+        if buyer:
+            nos = Inquiry.objects.filter(buyer__icontains=buyer).values_list("inquiry_no", flat=True)
+            queryset = queryset.filter(inquiry_no__in=list(nos))
+        return queryset
