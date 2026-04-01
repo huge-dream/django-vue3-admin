@@ -6,14 +6,14 @@ WORKDIR /web
 # 安装 pnpm
 RUN npm install -g pnpm --registry=https://registry.npmmirror.com
 
-# 先复制 package.json 和 pnpm-lock.yaml
-COPY package.json pnpm-lock.yaml* ./
+# 先复制 package.json 和 pnpm-lock.yaml（build context 是项目根目录）
+COPY web/package.json web/pnpm-lock.yaml* ./
 
 # 安装依赖（利用缓存）
 RUN pnpm install --registry=https://registry.npmmirror.com --frozen-lockfile
 
 # 复制源代码
-COPY . .
+COPY web/ .
 
 # 构建
 RUN pnpm build
