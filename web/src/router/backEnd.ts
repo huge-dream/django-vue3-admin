@@ -1,4 +1,72 @@
 import { RouteRecordRaw } from 'vue-router';
+
+/** 供应商报价详情（隐藏菜单）。仅带 `?mode=edit` 为编辑，否则默认查看（含仅点标签页进入）。 */
+const pissupplierQuotationDetailRoute: RouteRecordRaw = {
+	path: '/pissupplier/quotation/detail/:id',
+	name: 'PissupplierQuotationDetail',
+	component: () => import('/@/views/pissupplier/quotation/detail.vue'),
+	meta: {
+		title: '报价单详情',
+		isLink: '',
+		isHide: true,
+		isKeepAlive: false,
+		isAffix: false,
+		isIframe: false,
+		roles: ['admin'],
+		icon: ''
+	}
+};
+
+/** 采购端杂采询价单详情（隐藏菜单）。`id=new` 且 `mode=create` 为新建；否则 `id` 为数字主键，`mode=edit|view`。 */
+const pisadminRfqMiscInquiryDetailRoute: RouteRecordRaw = {
+	path: '/pisadmin/miscprocurement/rfqmiscellaneous/miscInquiryDetail/:id',
+	name: 'PisadminRfqMiscInquiryDetail',
+	component: () => import('/@/views/pisadmin/miscprocurement/rfqmiscellaneous/miscInquiryDetail.vue'),
+	meta: {
+		title: '询价单详情',
+		isLink: '',
+		isHide: true,
+		isKeepAlive: false,
+		isAffix: false,
+		isIframe: false,
+		roles: ['admin'],
+		icon: ''
+	}
+};
+
+/** 杂采比价/议价（隐藏菜单）。`id` 为询价单主键。 */
+const pisadminRfqMiscComparePriceRoute: RouteRecordRaw = {
+	path: '/pisadmin/miscprocurement/rfqmiscellaneous/comparePrice/:id',
+	name: 'PisadminRfqMiscComparePrice',
+	component: () => import('/@/views/pisadmin/miscprocurement/rfqmiscellaneous/comparePrice.vue'),
+	meta: {
+		title: '比价/议价',
+		isLink: '',
+		isHide: true,
+		isKeepAlive: false,
+		isAffix: false,
+		isIframe: false,
+		roles: ['admin'],
+		icon: ''
+	}
+};
+
+/** 杂采材料管理（隐藏菜单，供比价页链入；菜单中若已配置同页可并存）。 */
+const pisadminMiscMaterialsIndexRoute: RouteRecordRaw = {
+	path: '/pisadmin/miscprocurement/misc_materials/index',
+	name: 'PisadminMiscMaterialsIndex',
+	component: () => import('/@/views/pisadmin/miscprocurement/misc_materials/index.vue'),
+	meta: {
+		title: '杂采材料管理',
+		isLink: '',
+		isHide: true,
+		isKeepAlive: false,
+		isAffix: false,
+		isIframe: false,
+		roles: ['admin'],
+		icon: ''
+	}
+};
 import { storeToRefs } from 'pinia';
 import pinia from '/@/stores/index';
 import { useUserInfo } from '/@/stores/userInfo';
@@ -53,7 +121,14 @@ export async function initBackEndControlRoutes() {
 	// if (res.data.length <= 0) return Promise.resolve(true);
 	// 处理路由（component），替换 dynamicRoutes（/@/router/route）第一个顶级 children 的路由
 	const {frameIn,frameOut} = handleMenu(res.data)
-	dynamicRoutes[0].children = await backEndComponent(frameIn);
+	const frameInProcessed = await backEndComponent(frameIn)
+	dynamicRoutes[0].children = [
+		...(frameInProcessed || []),
+		pissupplierQuotationDetailRoute,
+		pisadminRfqMiscInquiryDetailRoute,
+		pisadminRfqMiscComparePriceRoute,
+		pisadminMiscMaterialsIndexRoute
+	]
 	// 添加动态路由
 	await setAddRoute();
 	// 设置路由到 vuex routesList 中（已处理成多级嵌套路由）及缓存多级嵌套数组处理后的一维数组
@@ -64,7 +139,13 @@ export async function setRouters(){
 	const {frameInRoutes,frameOutRoutes} = await useFrontendMenuStore().getRouter()
 	const frameInRouter = toRaw(frameInRoutes)
 	const frameOutRouter = toRaw(frameOutRoutes)
-	dynamicRoutes[0].children = frameInRouter
+	dynamicRoutes[0].children = [
+		...frameInRouter,
+		pissupplierQuotationDetailRoute,
+		pisadminRfqMiscInquiryDetailRoute,
+		pisadminRfqMiscComparePriceRoute,
+		pisadminMiscMaterialsIndexRoute
+	]
 	dynamicRoutes.forEach((item:any)=>{
 		router.addRoute(item)
 	})

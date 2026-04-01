@@ -266,7 +266,7 @@ class Inquiry(CoreModel):
     bid_end_time = models.DateTimeField(null=True, blank=True, verbose_name="投标截止时间")
 
     class Meta:
-        db_table = table_prefix + "proc_inquiry_master"
+        db_table = table_prefix + "misc_proc_inquiry_master"
         verbose_name = "询价单"
         verbose_name_plural = verbose_name
         ordering = ("-create_time", "-id")
@@ -401,7 +401,7 @@ class InquirySupplier(models.Model):
     create_user = models.CharField(max_length=20, db_column="createuser", null=True, blank=True, verbose_name="添加人")
 
     class Meta:
-        db_table = table_prefix + "proc_inquiry_supplier"
+        db_table = table_prefix + "misc_proc_inquiry_supplier"
         verbose_name = "杂采询价单-供应商关联表"
         verbose_name_plural = verbose_name
         unique_together = ("inquiry_no", "part_id", "supplier_code")
@@ -436,7 +436,7 @@ class InquiryAttachment(models.Model):
     upload_user = models.CharField(max_length=20, db_column="uploaduser", null=True, blank=True, verbose_name="上传人")
 
     class Meta:
-        db_table = table_prefix + "proc_inquiry_attachment"
+        db_table = table_prefix + "misc_proc_inquiry_attachment"
         verbose_name = "杂采询价单-附件关联表"
         verbose_name_plural = verbose_name
         unique_together = ("inquiry_no", "part_id", "file_name")
@@ -484,7 +484,7 @@ class InquiryMaterialCost(models.Model):
     create_user = models.CharField(max_length=20, db_column="createuser", null=True, blank=True, verbose_name="创建人")
 
     class Meta:
-        db_table = table_prefix + "proc_inquiry_material_cost"
+        db_table = table_prefix + "misc_proc_inquiry_material_cost"
         verbose_name = "杂采询价单-材料成本明细表"
         verbose_name_plural = verbose_name
         ordering = ("id",)
@@ -526,7 +526,7 @@ class InquiryProcessCost(models.Model):
     create_user = models.CharField(max_length=20, db_column="createuser", null=True, blank=True, verbose_name="创建人")
 
     class Meta:
-        db_table = table_prefix + "proc_inquiry_process_cost"
+        db_table = table_prefix + "misc_proc_inquiry_process_cost"
         verbose_name = "杂采询价单-加工成本明细表"
         verbose_name_plural = verbose_name
         ordering = ("id",)
@@ -560,7 +560,7 @@ class InquiryOtherCost(models.Model):
     create_user = models.CharField(max_length=20, db_column="createuser", null=True, blank=True, verbose_name="创建人")
 
     class Meta:
-        db_table = table_prefix + "proc_inquiry_other_cost"
+        db_table = table_prefix + "misc_proc_inquiry_other_cost"
         verbose_name = "杂采询价单-其它成本明细表"
         verbose_name_plural = verbose_name
         ordering = ("id",)
@@ -594,7 +594,7 @@ class InquiryProfitCost(models.Model):
     create_user = models.CharField(max_length=20, db_column="createuser", null=True, blank=True, verbose_name="创建人")
 
     class Meta:
-        db_table = table_prefix + "proc_inquiry_profit_cost"
+        db_table = table_prefix + "misc_proc_inquiry_profit_cost"
         verbose_name = "杂采询价单-税费利润明细表"
         verbose_name_plural = verbose_name
         ordering = ("id",)

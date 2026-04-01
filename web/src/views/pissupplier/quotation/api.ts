@@ -31,7 +31,8 @@ export type PaymentCode = 1 | 2 | 3 | 4
  * 报价主表（QuotationMaster）仅含 inquiry_no，不含询价名称与询价模板编号；列表展示由 crud 中
  * 关联 Inquiry 与成本/价格模板接口补全 title、template 与模板名称。
  *
- * 更新（PUT）在弹窗「保存」时调用，不改变 status / quotetime；正式提交走 POST `{id}/submit/`。
+ * 前端详情路由：`#/.../quotation/detail/:id` 无 `mode` 时默认**查看**；列表「报价」会带 `?mode=edit`。
+ * 更新（PUT）在报价详情页「保存」时调用，不改变 status / quotetime；正式提交走 POST `{id}/submit/`。
  * 更新（PUT）时序列化要求 supplier_code / supplier_name 等字段；前端从列表/详情映射 supplierCode 并在保存时写回。
  * 成本结构须提交 material_costs、process_costs、other_costs、profit_costs（与 QuotationMasterCreateUpdateSerializer），
  * 勿使用 cost_items——后端不识别，子表不会更新。

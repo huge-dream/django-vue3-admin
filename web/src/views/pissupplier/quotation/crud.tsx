@@ -395,6 +395,20 @@ const paymentMapBackendToFront: Record<number, string> = {
   4: 'tt_30_70'
 }
 
+/** 与报价基础信息 `paymentTerm` 选项一致，供详情页只读展示 */
+export const PAYMENT_TERM_LABELS: Record<string, string> = {
+  tt_30_70: 'T/T 30%预付，70%出货前',
+  net30: '月结30天',
+  net45: '月结45天',
+  prepaid: '全额预付'
+}
+
+export function formatPaymentTermLabel(term: string | null | undefined) {
+  if (term == null || String(term).trim() === '') return '—'
+  const k = String(term).trim()
+  return PAYMENT_TERM_LABELS[k] ?? k
+}
+
 const costEnabledSections = ['材料成本', '加工成本', '其它成本', '利润', '税金']
 const costDisabledSections = ['产品明细', '利润', '税金']
 
@@ -1092,7 +1106,8 @@ const costRowsToNestedPayload = (rows: CostRow[]) => {
   return { material_costs, process_costs, other_costs, profit_costs }
 }
 
-const unwrapQuotationDetail = (res: any): any => {
+/** 详情接口响应解包（列表弹窗与详情页共用） */
+export const unwrapQuotationDetail = (res: any): any => {
   const r = res?.data !== undefined ? res.data : res
   if (r && typeof r === 'object' && r.quotation_no != null) return r
   if (r && typeof r === 'object' && r.data && typeof r.data === 'object' && r.data.quotation_no != null) return r.data
@@ -1179,7 +1194,14 @@ function blankQuote(): Quote {
   }
 }
 
-export function useQuoteCrud(options?: { onChange?: () => void }) {
+export function useQuoteCrud(options?: {
+  onChange?: () => void
+  /** 列表页用弹窗；详情页用独立路由，不打开 dialog */
+  uiContext?: 'list' | 'detail'
+  /** 详情页保存成功后（例如返回列表） */
+  onSaveSuccess?: () => void
+}) {
+  const uiContext = options?.uiContext ?? 'list'
   const filters = reactive<{
     inquiryPlant: string
     isAwarded: string | number | ''
@@ -1630,7 +1652,9 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   }
 
   onMounted(() => {
-    loadQuotes()
+    if (uiContext === 'list') {
+      loadQuotes()
+    }
     loadMaterialOptions()
     loadStationOptions()
     loadUnitOptions()
@@ -1860,26 +1884,41 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     current.costItems = costItemsForCurrent.value
   }
 
+  /** 编辑报价：由列表「报价」进入（`?mode=edit`）或本页显式打开；路由无 `mode` 时详情页走 `viewQuote` */
   const openQuote = async (row: Quote) => {
-    const bidReason = getSupplierBidWindowRejectReason(row)
+    /** 路由详情仅带 id 时先拉主表，保证招标投标窗口校验正确 */
+    let rowForFlow = row
+    if (row.id && row.buyingMethod == null) {
+      try {
+        const preRes = await api.getDetail(row.id)
+        const preRaw = unwrapQuotationDetail(preRes)
+        if (preRaw) {
+          rowForFlow = mapBackendQuote(preRaw)
+          await enrichQuotesWithInquiryData([rowForFlow])
+        }
+      } catch (e) {
+        console.warn('预加载报价详情失败', e)
+      }
+    }
+    const bidReason = getSupplierBidWindowRejectReason(rowForFlow)
     if (bidReason) {
       ElMessage.warning(bidReason)
       return
     }
     dialog.mode = 'edit'
-    dialog.quoteId = row.id
+    dialog.quoteId = rowForFlow.id
     loading.value = true
     try {
       await ensureTemplateNameLookup()
-      let quoteData: Quote = { ...row }
+      let quoteData: Quote = { ...rowForFlow }
       let rawDetail: any = null
-      if (row.id) {
+      if (rowForFlow.id) {
         // 点击「报价」后先进入报价中(2)，以便后续保存/编辑仍可通过后端校验
-        if (isPendingQuotation(row)) {
-          await api.quoteOfficial(row.id)
+        if (isPendingQuotation(rowForFlow)) {
+          await api.quoteOfficial(rowForFlow.id)
         }
         try {
-          const detailRes = await api.getDetail(row.id)
+          const detailRes = await api.getDetail(rowForFlow.id)
           rawDetail = unwrapQuotationDetail(detailRes)
           if (rawDetail) quoteData = mapBackendQuote(rawDetail)
         } catch (e) {
@@ -1887,10 +1926,10 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
         }
       }
       // 详情接口若未展开 supplier 字段，保留列表行上的供应商代码/名称（PUT 保存必填）
-      if (!quoteData.supplierCode && row.supplierCode) quoteData.supplierCode = row.supplierCode
-      if (!quoteData.supplierName && row.supplierName) quoteData.supplierName = row.supplierName
-      if (quoteData.inquiryStatusCode == null && row.inquiryStatusCode != null) {
-        quoteData.inquiryStatusCode = row.inquiryStatusCode
+      if (!quoteData.supplierCode && rowForFlow.supplierCode) quoteData.supplierCode = rowForFlow.supplierCode
+      if (!quoteData.supplierName && rowForFlow.supplierName) quoteData.supplierName = rowForFlow.supplierName
+      if (quoteData.inquiryStatusCode == null && rowForFlow.inquiryStatusCode != null) {
+        quoteData.inquiryStatusCode = rowForFlow.inquiryStatusCode
       }
 
       let effectiveRows: CostRow[] = []
@@ -1898,7 +1937,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
       let inquiry: any = null
 
       try {
-        const inquiryCode = quoteData.inquiryCode || (row as any).inquiry_no
+        const inquiryCode = quoteData.inquiryCode || (rowForFlow as any).inquiry_no
         if (inquiryCode) {
           const res = await inquiryApi.GetList({
             inquiry_no: inquiryCode,
@@ -1991,7 +2030,9 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
         const idx = quotes.value.findIndex((q) => q.id === quoteData.id)
         if (idx >= 0) quotes.value.splice(idx, 1, quoteData)
       }
-      dialog.visible = true
+      if (uiContext === 'list') {
+        dialog.visible = true
+      }
     } finally {
       loading.value = false
     }
@@ -2000,7 +2041,9 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
   const viewQuote = (row: Quote) => {
     dialog.mode = 'view'
     dialog.quoteId = row.id
-    dialog.visible = true
+    if (uiContext === 'list') {
+      dialog.visible = true
+    }
     loading.value = true
     ;(async () => {
       try {
@@ -2202,7 +2245,11 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
         const idx = quotes.value.findIndex((q) => q.id === updated.id)
         if (idx >= 0) quotes.value.splice(idx, 1, updated)
         else quotes.value.unshift(updated)
-        dialog.visible = false
+        if (uiContext === 'detail') {
+          options?.onSaveSuccess?.()
+        } else {
+          dialog.visible = false
+        }
         ElMessage.success('已保存')
         options?.onChange?.()
       } catch (err) {
@@ -2418,6 +2465,7 @@ export function useQuoteCrud(options?: { onChange?: () => void }) {
     statusOptions,
     resetFilter,
     filteredQuotes,
+    loading,
     loadQuotes,
     isPendingQuotation,
     isQuotedQuotation,
