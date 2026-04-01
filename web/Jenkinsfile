@@ -37,7 +37,7 @@ pipeline {
                     def imageTag = "${HARBOR_URL}/${HARBOR_PROJECT}/${IMAGE_NAME}:${BUILD_NUMBER}"
                     env.IMAGE_TAG = imageTag
                     sh """
-                        docker build -f docker_env/web/Dockerfile \
+                        docker build -f web/Dockerfile \
                             -t ${imageTag} .
                     """
                 }
