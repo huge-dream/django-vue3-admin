@@ -34,14 +34,18 @@ RUN ls ./conf/ \
 # 第二阶段：运行时镜像
 FROM docker.1ms.run/python:3.10-slim
 
-RUN apt-get update && apt-get install -y unixodbc libodbc2 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    unixodbc libodbc2 \
+    libssl3 libcrypto3 libkrb5-3 libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /usr/local/lib/python3.10/site-packages /usr/local/lib/python3.10/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 COPY --from=builder /opt/microsoft/msodbcsql18 /opt/microsoft/msodbcsql18
 COPY --from=builder /backend /backend
 
-# 手动注册 ODBC Driver 18（写入 odbcinst.ini）
+# 设置库路径并注册 ODBC Driver 18
+ENV LD_LIBRARY_PATH=/opt/microsoft/msodbcsql18/lib64:${LD_LIBRARY_PATH}
 RUN cat /opt/microsoft/msodbcsql18/etc/odbcinst.ini >> /etc/odbcinst.ini || true
 
 WORKDIR /backend
