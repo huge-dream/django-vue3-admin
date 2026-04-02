@@ -386,7 +386,17 @@ API_MODEL_MAP = {
 }
 
 DJANGO_CELERY_BEAT_TZ_AWARE = False
+from celery.schedules import crontab
+
 CELERY_TIMEZONE = "Asia/Shanghai"  # celery 时区问题
+
+CELERY_BEAT_SCHEDULE = {
+    "check-quote-deadline-expired": {
+        "task": "apps.pisadmin.miscprocurement.tasks.check_quote_deadline_expired",
+        "schedule": crontab(minute="*/5"),  # 每5分钟
+    },
+}
+
 # 静态页面压缩
 STATICFILES_STORAGE = "whitenoise.storage.CompressedStaticFilesStorage"
 
