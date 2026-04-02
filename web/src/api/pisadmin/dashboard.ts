@@ -1,8 +1,10 @@
-import request from '/@/utils/request';
+import { request } from '/@/utils/service';
+
+const apiPrefix = '/api/pisadmin/dashboard/';
 
 export function getDashboard() {
   return request({
-    url: '/pisadmin/dashboard/',
+    url: apiPrefix,
     method: 'get',
   });
 }

@@ -1,5 +1,11 @@
 <template>
   <div class="supplier-dashboard">
+    <!-- 欢迎语 -->
+    <div class="welcome-header">
+      <span class="welcome-text">{{ $t('message.home.welcomeInfo') }}{{ userInfo.userInfos.name }}</span>
+      <span class="welcome-sub">{{ $t('message.home.welcomeInfo1') }}</span>
+    </div>
+
     <!-- KPI 指标卡片 -->
     <div class="kpi-section">
       <div class="kpi-card blue">
@@ -69,33 +75,29 @@
         </div>
       </div>
 
-      <!-- 右侧：消息通知 -->
-      <div class="card notification-card">
-        <div class="card-header">
-          <div class="card-title" style="position: relative;">
-            <i class="fa fa-bell" style="color: #2E5BFF;"></i> 消息通知
-            <span v-if="unreadCount > 0" class="notif-badge">{{ unreadCount }}</span>
-          </div>
-          <a href="#" class="view-all">全部消息</a>
+      <!-- 右侧：图片 + 快捷入口 -->
+      <div class="right-sidebar">
+        <!-- 图片卡片 -->
+        <div class="card home-img-card">
+          <img :src="HomeBg" alt="home-bg" class="home-bg-img" />
         </div>
-        <ul class="notification-list">
-          <li v-for="msg in messages" :key="msg.id" class="notification-item">
-            <div :class="getNotifIconClass(msg.title)">
-              <i :class="getNotifIcon(msg.title)"></i>
+
+        <!-- 快捷入口 -->
+        <div class="card quick-nav-card">
+          <div class="card-header">
+            <div class="card-title">
+              <i class="fa fa-th-large" style="color: #2E5BFF;"></i> 快捷入口
             </div>
-            <div class="notif-content">
-              <div class="notif-header">
-                <span class="notif-title">{{ msg.title }}</span>
-                <span class="notif-time">{{ formatMsgTime(msg.created_at) }}</span>
+          </div>
+          <div class="quick-nav-grid">
+            <div v-for="(item, index) in quickNavList" :key="index" class="quick-nav-item" @click="handleNavClick(item.url)">
+              <div class="quick-nav-icon" :style="{ background: item.bgColor }">
+                <i :class="item.icon" :style="{ color: item.iconColor }"></i>
               </div>
-              <p class="notif-desc">{{ msg.content }}</p>
-              <a href="#" class="notif-link">查看详情 <i class="fa fa-arrow-right" style="font-size: 10px;"></i></a>
+              <span class="quick-nav-label">{{ item.label }}</span>
             </div>
-          </li>
-          <li v-if="messages.length === 0" class="empty-notif">
-            暂无消息通知
-          </li>
-        </ul>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -121,12 +123,31 @@
 import { computed, ref, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDashboardStore } from '/@/stores/modules/dashboard';
+import { useUserInfo } from '/@/stores/userInfo';
+import { useRouter } from 'vue-router';
 import * as echarts from 'echarts';
+import HomeBg from '/@/assets/home-bg.png';
 
 const store = useDashboardStore();
 const { supplier } = storeToRefs(store);
+const userInfo = useUserInfo();
+const router = useRouter();
 
 const chartRef = ref();
+
+// 快捷入口列表
+const quickNavList = [
+  { icon: 'fa fa-user-o', label: '角色管理', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/role' },
+  { icon: 'fa fa-sitemap', label: '部门管理', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/dept' },
+  { icon: 'iconfont icon-system', label: '系统配置', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/config' },
+  { icon: 'iconfont icon-dict', label: '字典管理', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/dictionary' },
+  { icon: 'iconfont icon-Area', label: '区域管理', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/areas' },
+  { icon: 'iconfont icon-xiaoxizhongxin', label: '消息中心', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/messageCenter' },
+];
+
+function handleNavClick(url: string) {
+  window.location.href = url;
+}
 
 const kpi = computed(() => supplier.value?.kpi || {
   total_quotes: 0,
@@ -262,6 +283,23 @@ watch(trend, () => {
 
 <style scoped lang="scss">
 .supplier-dashboard {
+  /* 欢迎语 */
+  .welcome-header {
+    margin-bottom: 24px;
+    font-size: 16px;
+    font-weight: 700;
+
+    .welcome-text {
+      color: #1F2937;
+    }
+
+    .welcome-sub {
+      font-size: 12px;
+      color: #9CA3AF;
+      margin-left: 8px;
+    }
+  }
+
   --primary-color: #2E5BFF;
   --text-main: #1F2937;
   --text-secondary: #6B7280;
@@ -350,6 +388,12 @@ watch(trend, () => {
   grid-template-columns: 2fr 1fr;
   gap: 24px;
   margin-bottom: 24px;
+  align-items: stretch;
+}
+
+.task-card {
+  display: flex;
+  flex-direction: column;
 }
 
 /* 卡片通用样式 */
@@ -394,6 +438,9 @@ watch(trend, () => {
 /* 待办任务表格 */
 .task-table-container {
   overflow-x: auto;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 100px;
 }
 
 table {
@@ -552,6 +599,73 @@ tr:last-child td {
   margin-top: 0;
 }
 
+/* 右侧边栏 */
+.right-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  align-items: stretch;
+}
+
+.right-sidebar .card {
+  flex: 1;
+}
+
+/* 图片卡片 */
+.home-img-card {
+  padding: 0;
+  overflow: hidden;
+  height: 200px;
+}
+
+.home-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 快捷入口 */
+.quick-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.quick-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 8px;
+  background: var(--bg-body);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    background: #E8EEFE;
+    transform: translateY(-2px);
+  }
+}
+
+.quick-nav-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.quick-nav-label {
+  font-size: 13px;
+  color: var(--text-main);
+  font-weight: 500;
+  text-align: center;
+}
+
 .chart-legend {
   font-size: 12px;
   color: var(--text-secondary);
@@ -586,6 +700,16 @@ tr:last-child td {
   .main-container {
     grid-template-columns: 1fr;
   }
+  .right-sidebar {
+    flex-direction: row;
+  }
+  .home-img-card {
+    flex: 1;
+    height: auto;
+  }
+  .quick-nav-card {
+    flex: 1;
+  }
   .kpi-section {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -594,6 +718,15 @@ tr:last-child td {
 @media (max-width: 768px) {
   .kpi-section {
     grid-template-columns: 1fr;
+  }
+  .right-sidebar {
+    flex-direction: column;
+  }
+  .home-img-card {
+    height: 180px;
+  }
+  .quick-nav-grid {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 </style>
