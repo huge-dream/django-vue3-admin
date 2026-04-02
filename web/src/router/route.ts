@@ -111,6 +111,14 @@ export const staticRoutes: Array<RouteRecordRaw> = [
 		},
 	},
 	{
+		path: '/login/supplier',
+		name: 'supplierLogin',
+		component: () => import('/@/views/system/login/supplier.vue'),
+		meta: {
+			title: '供应商登录',
+		},
+	},
+	{
 		path: '/demo',
 		name: 'demo',
 		component: () => import('/@/views/system/demo/index.vue'),
