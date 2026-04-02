@@ -28,6 +28,7 @@ export default {
     limitsBackEnd: 'Backend Control',
     limitsBackEndEndPage: 'Page Permissions',
     personal: 'Personal Center',
+    dashboard: 'Dashboard',
   },
   staticRoutes: {
     signIn: 'Login',

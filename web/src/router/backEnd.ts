@@ -127,7 +127,10 @@ export async function initBackEndControlRoutes() {
 	// 界面 loading 动画开始执行
 	if (window.nextLoading === undefined) NextLoading.start();
 	// 无 token 停止执行下一步
-	if (!Session.get('token')) return false;
+	const token = Session.get('token');
+	if (!token) {
+		return false;
+	}
 	// 触发初始化用户信息 pinia
 	// https://gitee.com/lyt-top/vue-next-admin/issues/I5F1HP
 	await useUserInfo().getApiUserInfo();

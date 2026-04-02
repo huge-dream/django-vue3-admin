@@ -1,26 +1,27 @@
 <template>
   <div class="dashboard-index">
-    <BuyerDashboard v-if="hasBuyerRole && !hasSupplierRole" />
-    <SupplierDashboard v-else-if="hasSupplierRole && !hasBuyerRole" />
-    <div v-else-if="hasBothRoles" class="role-select">
+    <!-- 切换角色时显示 -->
+    <div v-if="showRoleSwitch" class="role-select">
       <el-radio-group v-model="currentRole">
-        <el-radio-button label="buyer">采购方看板</el-radio-button>
-        <el-radio-button label="supplier">供应商看板</el-radio-button>
+        <el-radio-button label="buyer">采购方仪表盘</el-radio-button>
+        <el-radio-button label="supplier">供应商仪表盘</el-radio-button>
       </el-radio-group>
-      <BuyerDashboard v-if="currentRole === 'buyer'" />
-      <SupplierDashboard v-else />
     </div>
-    <el-empty v-else description="您暂无看板权限" />
+    <BuyerDashboard v-if="currentRole === 'buyer'" />
+    <SupplierDashboard v-else-if="currentRole === 'supplier'" />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
+import { useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useDashboardStore } from '/@/stores/modules/dashboard';
+import mittBus from '/@/utils/mitt';
 import BuyerDashboard from './BuyerDashboard.vue';
 import SupplierDashboard from './SupplierDashboard.vue';
 
+const route = useRoute();
 const store = useDashboardStore();
 const { buyer, supplier } = storeToRefs(store);
 
@@ -30,6 +31,51 @@ const hasBuyerRole = computed(() => !!buyer.value);
 const hasSupplierRole = computed(() => !!supplier.value);
 const hasBothRoles = computed(() => hasBuyerRole.value && hasSupplierRole.value);
 
+// 超级管理员默认显示采购方，有双方角色时显示切换器
+const showRoleSwitch = computed(() => hasBothRoles.value);
+
+// 更新 tagsView 标题
+const updateTagsViewTitle = (role: string) => {
+  const title = role === 'buyer' ? '采购方仪表盘' : '供应商仪表盘';
+  mittBus.emit('onUpdateTagsViewName', { path: route.path, title });
+};
+
+// 初始化标题
+onMounted(() => {
+  updateTagsViewTitle(currentRole.value);
+});
+
+// 如果只有采购方权限，默认 buyer
+// 如果只有供应商权限，默认 supplier
+// 初始化时确保 currentRole 与可用角色匹配
+if (!hasBuyerRole.value && hasSupplierRole.value) {
+  currentRole.value = 'supplier';
+}
+
+// 如果后端返回了数据但 currentRole 不匹配角色，则默认 buyer
+if (hasBuyerRole.value && !hasBothRoles.value) {
+  currentRole.value = 'buyer';
+}
+
+// 数据加载后同步 currentRole
+watch([hasBuyerRole, hasSupplierRole], () => {
+  if (hasBothRoles.value) {
+    // 双方角色，默认 buyer
+    if (currentRole.value !== 'buyer' && currentRole.value !== 'supplier') {
+      currentRole.value = 'buyer';
+    }
+  } else if (hasBuyerRole.value) {
+    currentRole.value = 'buyer';
+  } else if (hasSupplierRole.value) {
+    currentRole.value = 'supplier';
+  }
+});
+
+// currentRole 变化时更新 tagsView 标题
+watch(currentRole, (newRole) => {
+  updateTagsViewTitle(newRole);
+});
+
 store.fetchDashboard();
 </script>
 
@@ -37,8 +83,9 @@ store.fetchDashboard();
 .dashboard-index {
   padding: 20px;
   .role-select {
+    margin-bottom: 20px;
     .el-radio-group {
-      margin-bottom: 20px;
+      margin-bottom: 0;
     }
   }
 }

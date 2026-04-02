@@ -547,6 +547,15 @@ onBeforeMount(() => {
 			});
 		}
 	});
+	// 监听更新 tagsView 名称（如 dashboard 切换角色）
+	mittBus.on('onUpdateTagsViewName', (data: { path: string; title: string }) => {
+		const item = state.tagsViewList.find((v: RouteItem) => v.path === data.path);
+		if (item) {
+			item.meta.title = data.title;
+			// 同时更新 Session 缓存
+			addBrowserSetSession(state.tagsViewList);
+		}
+	});
 });
 // 页面卸载时
 onUnmounted(() => {
@@ -556,6 +565,8 @@ onUnmounted(() => {
 	mittBus.off('openOrCloseSortable', () => {});
 	// 取消监听布局配置开启 TagsView 共用
 	mittBus.off('openShareTagsView', () => {});
+	// 取消监听更新 tagsView 名称
+	mittBus.off('onUpdateTagsViewName', () => {});
 	// 取消窗口 resize 监听
 	window.removeEventListener('resize', onSortableResize);
 });

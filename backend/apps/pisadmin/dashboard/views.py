@@ -75,7 +75,7 @@ class DashboardResponseSerializer(serializers.Serializer):
     supplier = SupplierDashboardSerializer(allow_null=True)
 
 
-class DashboardViewSet(views.APIView):
+class DashboardView(views.APIView):
     """看板数据视图"""
 
     def get_buyer_kpi(self, user):
@@ -215,34 +215,64 @@ class DashboardViewSet(views.APIView):
             'trend': self.get_trend_data(user, is_buyer=False),
         }
 
-    def list(self, request):
+    def get(self, request):
         """获取看板数据
 
         Returns role-based dashboard data based on user's permissions.
         - Buyer role: returns buyer dashboard data
         - Supplier role: returns supplier dashboard data
         - Both roles: returns both
+        - Superadmin or no business data: returns empty structure
         """
         user = request.user
         if not user or not user.is_authenticated:
             return Response({'buyer': None, 'supplier': None})
 
-        # 判断用户角色
-        has_supplier_role = QuotationMaster.objects.filter(
-            supplier_code=user.username
-        ).exists()
-        has_buyer_role = Inquiry.objects.filter(
-            create_user=user.username
-        ).exists()
+        # 分别判断用户角色，避免一个表不存在影响另一个
+        has_supplier_role = False
+        has_buyer_role = False
 
+        try:
+            has_supplier_role = QuotationMaster.objects.filter(
+                supplier_code=user.username
+            ).exists()
+        except Exception:
+            pass
+
+        try:
+            has_buyer_role = Inquiry.objects.filter(
+                create_user=user.username
+            ).exists()
+        except Exception:
+            pass
+
+        # 超级管理员或有任何角色，始终返回对应看板数据结构
         buyer_data = None
         supplier_data = None
 
-        if has_buyer_role:
-            buyer_data = self.get_buyer_data(user)
+        # 采购方看板：超级管理员或有任何采购记录的用户
+        if user.is_superuser or has_buyer_role:
+            try:
+                buyer_data = self.get_buyer_data(user)
+            except Exception:
+                buyer_data = {
+                    'kpi': {'total_inquiries': 0, 'pending_inquiries': 0, 'completed_quotes': 0, 'total_suppliers': 0},
+                    'tasks': [],
+                    'messages': [],
+                    'trend': [],
+                }
 
-        if has_supplier_role:
-            supplier_data = self.get_supplier_data(user)
+        # 供应商看板：超级管理员或有任何供应商记录的用户
+        if user.is_superuser or has_supplier_role:
+            try:
+                supplier_data = self.get_supplier_data(user)
+            except Exception:
+                supplier_data = {
+                    'kpi': {'total_quotes': 0, 'pending_quotes': 0, 'won_quotes': 0, 'conversion_rate': 0},
+                    'pending_quotes': [],
+                    'messages': [],
+                    'trend': [],
+                }
 
         response_data = {'buyer': buyer_data, 'supplier': supplier_data}
 

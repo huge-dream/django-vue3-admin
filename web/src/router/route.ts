@@ -33,6 +33,14 @@ export const dynamicRoutes: Array<RouteRecordRaw> = [
 		children: [],
 	},
 	{
+		path: '/home',
+		name: 'home',
+		redirect: '/dashboard',
+		meta: {
+			isKeepAlive: false,
+		},
+	},
+	{
 		path: '/personal',
 		name: 'personal',
 		component: () => import('/@/views/system/personal/index.vue'),
