@@ -472,10 +472,18 @@
               </div>
               <el-table :data="operationLogsTableRows" border size="small" stripe empty-text="暂无操作记录">
                 <el-table-column prop="operation_time" label="操作时间" min-width="160" show-overflow-tooltip />
-                <el-table-column label="操作类型" min-width="120" show-overflow-tooltip>
+                <el-table-column label="操作类型" min-width="200" show-overflow-tooltip>
                   <template #default="{ row }">
-                    <span class="op-type-badge" :class="operationTypeBadgeClass(row.operation_type)">
-                      {{ operationTypeLabel(row.operation_type) }}
+                    <span class="op-type-cell">
+                      <span class="op-type-badge" :class="operationTypeBadgeClass(row.operation_type)">
+                        {{ operationTypeLabel(row.operation_type) }}
+                      </span>
+                      <span v-if="operationPublishSupplierSuffix(row)" class="op-type-suffix">{{
+                        operationPublishSupplierSuffix(row)
+                      }}</span>
+                      <span v-if="operationSupplierQuoteEndedSuffix(row)" class="op-type-suffix">{{
+                        operationSupplierQuoteEndedSuffix(row)
+                      }}</span>
                     </span>
                   </template>
                 </el-table-column>
@@ -575,6 +583,7 @@ const OPERATION_TYPE_LABELS: Record<number, string> = {
   2: '询价单确认',
   3: '询价单发布',
   4: '询价单还原',
+  5: '报价截止',
   6: '供应商报价',
   7: '比议价',
   8: '议价审核提交',
@@ -1068,6 +1077,11 @@ const skipTemplateWatch = ref(false)
 type RfqOperationLogRow = {
   id?: number
   operation_type?: number
+  /** 仅操作类型为「询价单发布」(3) 时后端返回受邀供应商家数 */
+  supplier_count?: number | null
+  /** 仅「供应商报价」且作业后为「报价结束」时：已提交报价(3)、已过期(4) 的供应商家数 */
+  quote_ended_submitted_supplier_count?: number | null
+  quote_ended_overdue_supplier_count?: number | null
   operation_user?: string | null
   operation_time?: string | null
   operation_desc?: string | null
@@ -1459,12 +1473,24 @@ const statusTagType = (s: unknown) => {
 }
 const statusLabel = (s: unknown) => statusDict.find((i) => i.value === getStatusCode(s))?.label || String(s ?? '')
 
+const toOptionalInt = (v: unknown): number | null => {
+  if (v === null || v === undefined || v === '') return null
+  const n = typeof v === 'number' ? v : Number(v)
+  return Number.isFinite(n) ? n : null
+}
+
 const normalizeOperationLogRow = (raw: Record<string, unknown>): RfqOperationLogRow => {
   const ot = raw.operation_type
   const opType = typeof ot === 'number' ? ot : Number(ot)
+  const supplierCount = toOptionalInt(raw.supplier_count)
+  const qSub = toOptionalInt(raw.quote_ended_submitted_supplier_count)
+  const qOvd = toOptionalInt(raw.quote_ended_overdue_supplier_count)
   return {
     ...raw,
-    operation_type: Number.isFinite(opType) ? opType : 0
+    operation_type: Number.isFinite(opType) ? opType : 0,
+    supplier_count: supplierCount,
+    quote_ended_submitted_supplier_count: qSub,
+    quote_ended_overdue_supplier_count: qOvd
   } as RfqOperationLogRow
 }
 
@@ -1548,6 +1574,25 @@ const operationTypeLabel = (t: unknown) => {
   return OPERATION_TYPE_LABELS[n] || `类型${n}`
 }
 
+/** 「询价单发布」时色块外展示受邀供应商家数（与后端 supplier_count 一致） */
+const operationPublishSupplierSuffix = (row: RfqOperationLogRow) => {
+  if (Number(row.operation_type) !== 3) return ''
+  const n = row.supplier_count
+  if (n === null || n === undefined || !Number.isFinite(Number(n))) return ''
+  return `（共 ${Number(n)} 家供应商）`
+}
+
+/** 「供应商报价」且状态变为「报价结束」时色块外展示提交数与逾期数（与后端两个 count 一致） */
+const operationSupplierQuoteEndedSuffix = (row: RfqOperationLogRow) => {
+  if (Number(row.operation_type) !== 6) return ''
+  if ((row.cur_status || '').trim() !== '报价结束') return ''
+  const s = row.quote_ended_submitted_supplier_count
+  const o = row.quote_ended_overdue_supplier_count
+  if (s === null || s === undefined || o === null || o === undefined) return ''
+  if (!Number.isFinite(Number(s)) || !Number.isFinite(Number(o))) return ''
+  return `（报价结束，共 ${Number(s)} 家供应商提交报价，${Number(o)} 家逾期未报价）`
+}
+
 /** 与参考稿 HTML 色块含义接近的样式类 */
 const operationTypeBadgeClass = (t: unknown) => {
   const n = typeof t === 'number' ? t : Number(t)
@@ -1555,6 +1600,7 @@ const operationTypeBadgeClass = (t: unknown) => {
   if (n === 2) return 'op-type--confirm'
   if (n === 3) return 'op-type--publish'
   if (n === 4) return 'op-type--restore'
+  if (n === 5) return 'op-type--deadline'
   if (n === 6) return 'op-type--quote'
   if (n === 7) return 'op-type--compare'
   if (n === 8 || n === 9) return 'op-type--audit'
@@ -2961,6 +3007,18 @@ onMounted(() => {
   font-size: 12px;
   color: var(--el-text-color-secondary);
 }
+.op-type-cell {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  line-height: 1.4;
+}
+.op-type-suffix {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--el-text-color-regular);
+}
 .op-type-badge {
   display: inline-block;
   padding: 2px 8px;
@@ -2981,6 +3039,9 @@ onMounted(() => {
 }
 .op-type--restore {
   background: #909399;
+}
+.op-type--deadline {
+  background: #b45309;
 }
 .op-type--quote {
   background: #e6a23c;
