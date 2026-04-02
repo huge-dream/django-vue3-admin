@@ -48,7 +48,7 @@ import { useThemeConfig } from '/@/stores/themeConfig';
 import { SITE_BRAND_TITLE } from '/@/config/brand';
 import { NextLoading } from '/@/utils/loading';
 import logoMini from '/@/assets/logo-mini.svg';
-import loginBg from '/@/assets/login-bg.png';
+import loginBg from '/@/assets/supplier-login-bg.jpg';
 import { SystemConfigStore } from '/@/stores/systemConfig'
 import { useUserInfo } from "/@/stores/userInfo";
 const Account = defineAsyncComponent(() => import('/@/views/system/login/component/account.vue'));
@@ -97,7 +97,7 @@ onMounted(() => {
 	.login-left {
 		flex: 1;
 		position: relative;
-		background-color: rgba(34, 139, 34, 1);  // 绿色主题区分采购方蓝色
+		background-color: rgba(34, 139, 34, 1);
 		margin-right: 100px;
 
 		.login-left-logo {
