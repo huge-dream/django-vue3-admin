@@ -32,7 +32,8 @@ from dvadmin.system.views.login import (
     CaptchaView,
     ApiLogin,
     LogoutView,
-    LoginTokenView
+    LoginTokenView,
+    SupplierLoginView,
 )
 from dvadmin.system.views.system_config import InitSettingsViewSet
 from dvadmin.utils.swagger import CustomOpenAPISchemaGenerator
@@ -107,6 +108,7 @@ urlpatterns = (
             path("api/pissupplier/", include("apps.pissupplier.urls")),
             path("api/system/", include("dvadmin.system.urls")),
             path("api/login/", LoginView.as_view(), name="token_obtain_pair"),
+            path("api/login/supplier/", SupplierLoginView.as_view(), name="supplier_login"),
             path("api/logout/", LogoutView.as_view(), name="token_obtain_pair"),
             path("token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
             re_path(
