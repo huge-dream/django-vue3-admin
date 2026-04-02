@@ -1,4 +1,4 @@
-# 企业内部 AI Agent 设计方案
+# AVC 内部 Agent 开发设计方案
 
 **日期**: 2026-04-02
 **状态**: 设计中
@@ -9,7 +9,7 @@
 
 ### 1.1 背景
 
-为企业内部设计开发 AI Agent 平台，用于：
+为 AVC 内部设计开发 AI Agent 平台，用于：
 - 智能助手/问答（查询政策、制度、流程文档）
 - 业务流程自动化（审批、数据录入、报表生成）
 - 数据分析/决策支持
@@ -19,7 +19,7 @@
 
 - 大型企业（500-2000人）
 - 完全私有化部署，数据不出公司
-- 开源 LLM（Qwen/LLaMA）在本地 GPU 运行
+- **国产 LLM**（通义千问/Qwen、智谱/ChatGLM 等）在本地 GPU 运行
 - 多端访问：网页 + 嵌入现有后台 + 企业IM + API
 - 全数据源接入：文档、数据库(SQL Server)、业务系统API、文件
 - 单租户架构（多租户后期考虑）
@@ -78,7 +78,7 @@
 | **RAG 引擎** | LangChain VectorStore + Embedding | 企业知识库检索 |
 | **向量数据库** | Milvus | 文本向量存储与检索 |
 | **Embedding 模型** | 本地 BGE / XInference | 文本向量化 |
-| **LLM 推理** | vLLM + 本地 Qwen/LLaMA | 大语言模型推理 |
+| **LLM 推理** | vLLM + 国产模型（Qwen/ChatGLM） | 大语言模型推理（国产化） |
 | **工具层** | LangChain Tools | DB查询、API调用、文件处理等 |
 | **API 服务** | FastAPI | 对外接口、多端接入 |
 | **任务队列** | Celery + Redis | 异步任务处理 |
@@ -206,7 +206,7 @@ class NewAgent(BaseAgent):
 │          LangGraph Agent                 │
 │                                         │
 │  ┌─────────────────────────────────┐   │
-│  │     LLM (Qwen/LLaMA)           │   │
+│  │     LLM (国产模型: Qwen/ChatGLM) │   │
 │  │     reasoning + tool calling    │   │
 │  └───────────────┬─────────────────┘   │
 │                  │                      │
@@ -292,7 +292,7 @@ class NewAgent(BaseAgent):
 │                                                              │
 │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐          │
 │  │   vLLM      │  │   Milvus   │  │ SQL Server  │          │
-│  │  (LLM推理)  │  │ (向量库)   │  │   (主库)   │          │
+│  │  (国产模型)  │  │ (向量库)   │  │   (主库)   │          │
 │  └─────────────┘  └─────────────┘  └─────────────┘          │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -308,7 +308,7 @@ class NewAgent(BaseAgent):
 | Agent 类型 | QA Agent、Automation Agent、Analysis Agent |
 | 工具层 | SQL Server 查询、HTTP API 调用、文件解析、RAG 检索、脚本执行、消息发送 |
 | 向量库 | Milvus |
-| LLM 推理 | vLLM + 本地 Qwen/LLaMA |
+| LLM 推理 | vLLM + 国产模型（Qwen 通义千问 / 智谱 ChatGLM） |
 | 主数据库 | SQL Server |
 | 任务队列 | Redis + Celery |
 | 访问端 | Web + 嵌入后台 + 钉钉/飞书 + API |
