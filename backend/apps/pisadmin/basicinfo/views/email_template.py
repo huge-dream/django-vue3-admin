@@ -23,6 +23,8 @@ TEMPLATE_RFS_PUBLISH = "RFS_publish"
 TEMPLATE_QUOTE_ENDED = "Quote_ended"
 # 报价截止后无待报价/报价中单 → 询价单收口为「报价结束」（典型：sync_expired）— 询价截止提醒
 TEMPLATE_QUOTE_TIMEOUT = "Quote_timeout"
+# 报价截止时间到期提醒（多个供应商合并一封邮件，按询价单维度）
+TEMPLATE_QUOTE_DEADLINE_EXPIRED = "Quote_deadline_expired"
 
 
 def _for_local_display(dt: Any):
@@ -309,6 +311,51 @@ def build_context_quote_timeout(inquiry: Any) -> Dict[str, Any]:
     }
 
 
+def build_context_quote_deadline_expired(
+    inquiry: Any,
+    expired_suppliers: list,
+) -> Dict[str, Any]:
+    """
+    报价截止到期提醒（采购端）：按询价单合并多个已到期未报价供应商，发送一封邮件。
+    expired_suppliers: list[{"supplier_name", "contact_person", "quote_deadline", "status"}, ...]
+    """
+    from apps.pisadmin.miscprocurement.models import InquirySupplier
+
+    inquiry_no = (getattr(inquiry, "inquiry_no", None) or "").strip()
+    title = (getattr(inquiry, "title", None) or "").strip()
+    inquiry_name = title or "—"
+
+    purchaser_name = _quote_ended_purchaser_name(inquiry)
+    material_or_project_name = _quote_ended_material_or_project_name(inquiry)
+
+    invited_count = (
+        InquirySupplier.objects.filter(inquiry_no=inquiry)
+        .values_list("supplier_code", flat=True)
+        .distinct()
+        .count()
+    )
+
+    base = admin_portal_base_url()
+    pk = getattr(inquiry, "pk", None) or getattr(inquiry, "id", None)
+    comparison_page_url = ""
+    if base and pk is not None:
+        comparison_page_url = f"{base}/pisadmin/miscprocurement/rfqmiscellaneous/comparePrice/{pk}"
+
+    return {
+        "purchaser_name": purchaser_name,
+        "inquiry_no": inquiry_no,
+        "inquiry_name": inquiry_name,
+        "material_or_project_name": material_or_project_name,
+        "supplier_count": len(expired_suppliers),
+        "expired_suppliers": expired_suppliers,
+        "invited_count": invited_count,
+        "comparison_page_url": comparison_page_url,
+        "current_date": _for_local_display(timezone.now()).strftime("%Y-%m-%d"),
+        "admin_link": comparison_page_url or base,
+        "system_name": system_brand_name(),
+    }
+
+
 # ---------------------------------------------------------------------------
 # 模板文件注册：template_key -> (subject 相对 templates/, body 相对 templates/)
 # 新增一类邮件时：在此增加一行，并放置对应 templates/emails/*.txt / *.html
@@ -316,6 +363,7 @@ def build_context_quote_timeout(inquiry: Any) -> Dict[str, Any]:
 EMAIL_TEMPLATE_FILES: Dict[str, Tuple[str, str]] = {
     TEMPLATE_QUOTE_ENDED: ("emails/quote_ended_subject.txt", "emails/quote_ended_body.html"),
     TEMPLATE_QUOTE_TIMEOUT: ("emails/quote_timeout_subject.txt", "emails/quote_timeout_body.html"),
+    TEMPLATE_QUOTE_DEADLINE_EXPIRED: ("emails/quote_deadline_expired_subject.txt", "emails/quote_deadline_expired_body.html"),
 }
 
 
