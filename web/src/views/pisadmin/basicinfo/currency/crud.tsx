@@ -66,6 +66,10 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           title: '货币代码',
           type: 'input',
           search: { show: true, component: { props: { placeholder: '请输入货币代码', clearable: true } } },
+          form: { rules: [{ required: true, message: '请输入货币代码' }] },
+          editForm: {
+            component: { props: { disabled: true } }
+          },
           column: { minWidth: 140, showOverflowTooltip: true }
         },
         currencysymbol: {
@@ -86,6 +90,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
             }
           }),
           search: { show: true },
+          form: { rules: [{ required: true, message: '请选择交易厂区' }] },
           column: { width: 160, showOverflowTooltip: true }
         },
         tax: {

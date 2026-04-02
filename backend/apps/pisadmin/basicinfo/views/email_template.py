@@ -2,14 +2,16 @@
 """邮件正文/主题模板：按业务场景 key 渲染，供询价发布、报价结束、询价截止提醒等流程调用。
 
 扩展方式：
-1. 在下方注册 ``EMAIL_TEMPLATE_FILES``（主题模板路径 + HTML 正文路径），
-   再实现 ``build_context_<场景>(...)``，通过 ``render_email(TEMPLATE_xxx, ctx)`` 调用。
-2. 若需完全自定义渲染逻辑（非一对 .txt/.html），将 ``TEMPLATE_xxx`` 登记到 ``_CUSTOM_RENDERERS``。
+1. 推荐：单文件 ``emails/<name>_template.html``，首行 ``<!-- email-subject: ... -->`` 为主题，
+   余下为 HTML 正文；在 ``_CUSTOM_RENDERERS`` 中注册渲染函数（通常调用 ``_split_combined_subject_html``）。
+2. 或：在 ``EMAIL_TEMPLATE_FILES`` 登记 (subject.txt, body.html) 路径对，由 ``render_template_pair`` 渲染。
+3. 运行时注册：``register_email_template(..., renderer=...)`` 或 ``register_email_template(..., sub, body)``。
 """
 
 from __future__ import annotations
 
 import os
+import re
 from typing import Any, Callable, Dict, Optional, Tuple
 
 from django.conf import settings
@@ -19,6 +21,8 @@ from django.utils import timezone
 
 # 杂采询价单发布通知（新询价邀请）
 TEMPLATE_RFS_PUBLISH = "RFS_publish"
+# 招标方式发布通知（单文件 HTML：首行注释解析主题 + 正文）
+TEMPLATE_BIDS_PUBLISH = "Bids_publish"
 # 全部供应商已报价 → 询价单进入「报价结束」— 通知采购负责人
 TEMPLATE_QUOTE_ENDED = "Quote_ended"
 # 报价截止后无待报价/报价中单 → 询价单收口为「报价结束」（典型：sync_expired）— 询价截止提醒
@@ -125,6 +129,56 @@ def build_context_rfs_publish(
         "contact_phone": contact_phone,
         "current_date": current_date,
     }
+
+
+def build_context_bids_publish(
+    inquiry: Any,
+    supplier_group: Dict[str, Any],
+    *,
+    purchaser_company_name: str = "",
+) -> Dict[str, Any]:
+    """
+    招标邀请邮件（``bids_publish_template.html``）：在 ``build_context_rfs_publish`` 基础上增加
+    ``bid_time_range``、``material_short``、``portal_url``、``purchaser_name`` 等变量。
+    """
+    ctx = build_context_rfs_publish(inquiry, supplier_group, purchaser_company_name=purchaser_company_name)
+
+    bs = getattr(inquiry, "bid_start_time", None)
+    be = getattr(inquiry, "bid_end_time", None)
+    if bs and be:
+        bsl = _for_local_display(bs)
+        bel = _for_local_display(be)
+        if bsl and bel and bsl.date() == bel.date():
+            bid_time_range = f"{bsl.strftime('%Y-%m-%d %H:%M')}~{bel.strftime('%H:%M')}"
+        elif bsl and bel:
+            bid_time_range = f"{bsl.strftime('%Y-%m-%d %H:%M')} ~ {bel.strftime('%Y-%m-%d %H:%M')}"
+        else:
+            bid_time_range = "—"
+    elif be:
+        bel = _for_local_display(be)
+        bid_time_range = bel.strftime("%Y-%m-%d %H:%M") if bel else "请登录系统查看"
+    elif bs:
+        bsl = _for_local_display(bs)
+        bid_time_range = (bsl.strftime("%Y-%m-%d %H:%M") + " 起") if bsl else "请登录系统查看"
+    else:
+        bid_time_range = str(ctx.get("deadline_time") or "请登录系统查看")
+
+    mat_plain = str(ctx.get("material_info") or "")
+    material_short = mat_plain[:120] + ("…" if len(mat_plain) > 120 else "")
+
+    purchaser_name = _quote_ended_purchaser_name(inquiry)
+    portal_url = str(ctx.get("system_link") or "").strip()
+
+    ctx.update(
+        {
+            "bid_time_range": bid_time_range,
+            "material_short": material_short,
+            "portal_url": portal_url,
+            "purchaser_name": purchaser_name,
+            "purchaser_phone": str(ctx.get("contact_phone") or "").strip(),
+        }
+    )
+    return ctx
 
 
 def _quote_ended_purchaser_name(inquiry: Any) -> str:
@@ -310,13 +364,10 @@ def build_context_quote_timeout(inquiry: Any) -> Dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# 模板文件注册：template_key -> (subject 相对 templates/, body 相对 templates/)
-# 新增一类邮件时：在此增加一行，并放置对应 templates/emails/*.txt / *.html
+# 可选：template_key -> (subject 相对 templates/, body 相对 templates/)，由 render_template_pair 渲染。
+# 内置场景均已改为单文件 *_template.html，见 _CUSTOM_RENDERERS。
 # ---------------------------------------------------------------------------
-EMAIL_TEMPLATE_FILES: Dict[str, Tuple[str, str]] = {
-    TEMPLATE_QUOTE_ENDED: ("emails/quote_ended_subject.txt", "emails/quote_ended_body.html"),
-    TEMPLATE_QUOTE_TIMEOUT: ("emails/quote_timeout_subject.txt", "emails/quote_timeout_body.html"),
-}
+EMAIL_TEMPLATE_FILES: Dict[str, Tuple[str, str]] = {}
 
 
 def render_template_pair(
@@ -334,7 +385,7 @@ def render_template_pair(
 
 
 def _render_rfs_publish_body(ctx: Dict[str, Any]) -> Tuple[str, str]:
-    """RFS_publish：主题需 material_short，在渲染前注入。"""
+    """RFS_publish：单文件 ``rfs_publish_template.html``；主题需 material_short，在渲染前注入。"""
     mat_plain = str(ctx.get("material_info") or "")
     material_short = mat_plain[:120] + ("…" if len(mat_plain) > 120 else "")
 
@@ -342,15 +393,52 @@ def _render_rfs_publish_body(ctx: Dict[str, Any]) -> Tuple[str, str]:
         **ctx,
         "material_short": material_short,
     }
-    return render_template_pair(
-        "emails/rfs_publish_subject.txt",
-        "emails/rfs_publish_body.html",
-        render_ctx,
-    )
+    html = render_to_string("emails/rfs_publish_template.html", render_ctx)
+    return _split_combined_subject_html(html)
+
+
+def _render_quote_ended_combined(ctx: Dict[str, Any]) -> Tuple[str, str]:
+    """Quote_ended：单文件 ``quote_ended_template.html``。"""
+    html = render_to_string("emails/quote_ended_template.html", ctx)
+    return _split_combined_subject_html(html)
+
+
+def _render_quote_timeout_combined(ctx: Dict[str, Any]) -> Tuple[str, str]:
+    """Quote_timeout：单文件 ``quote_timeout_template.html``。"""
+    html = render_to_string("emails/quote_timeout_template.html", ctx)
+    return _split_combined_subject_html(html)
+
+
+# 首行必须为：<!-- email-subject: 纯文本主题 -->（主题内勿含连续两个减号 ``--``，以免破坏 HTML 注释）
+_COMBINED_EMAIL_SUBJECT_RE = re.compile(
+    r"^\s*<!--\s*email-subject:\s*(.+?)\s*-->\s*",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def _split_combined_subject_html(html: str) -> Tuple[str, str]:
+    """从合并模板中解析 (subject, body_html)。"""
+    m = _COMBINED_EMAIL_SUBJECT_RE.match(html)
+    if not m:
+        raise ValueError(
+            "合并邮件模板必须以 <!-- email-subject: ... --> 开头（首行），参见 emails/*_template.html"
+        )
+    subject = m.group(1).replace("\r", " ").replace("\n", " ").strip()
+    body = html[m.end() :].lstrip()
+    return subject, body
+
+
+def _render_bids_publish_combined(ctx: Dict[str, Any]) -> Tuple[str, str]:
+    """Bids_publish：单文件 HTML，首行注释为主题。"""
+    html = render_to_string("emails/bids_publish_template.html", ctx)
+    return _split_combined_subject_html(html)
 
 
 _CUSTOM_RENDERERS: Dict[str, Callable[[Dict[str, Any]], Tuple[str, str]]] = {
     TEMPLATE_RFS_PUBLISH: _render_rfs_publish_body,
+    TEMPLATE_BIDS_PUBLISH: _render_bids_publish_combined,
+    TEMPLATE_QUOTE_ENDED: _render_quote_ended_combined,
+    TEMPLATE_QUOTE_TIMEOUT: _render_quote_timeout_combined,
 }
 
 
@@ -359,7 +447,7 @@ def render_email(template_key: str, context: Dict[str, Any]) -> Tuple[str, str]:
     按模板类型渲染邮件。
 
     解析顺序：
-    1. ``_CUSTOM_RENDERERS`` 中注册的完全自定义渲染器；
+    1. ``_CUSTOM_RENDERERS``（单文件 ``*_template.html`` 等）；
     2. ``EMAIL_TEMPLATE_FILES`` 中的 (subject, body) 路径对；
     否则抛出 ``ValueError``。
 

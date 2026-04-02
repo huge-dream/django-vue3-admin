@@ -4,13 +4,15 @@ import tempfile
 import urllib.parse
 import urllib.request
 from datetime import timedelta
-from typing import Tuple, Dict, Any, List
+from typing import Any, Dict, List, Tuple
 from rest_framework import serializers
 from rest_framework.decorators import action
+from rest_framework.response import Response
 
 from django.conf import settings
 from django.core.mail import EmailMessage, get_connection
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.viewset import CustomModelViewSet
 from django.contrib.auth import get_user_model
@@ -85,6 +87,7 @@ def resolve_inquiry_purchaser_emails(inquiry) -> list:
 def send_quote_ended_notice_to_purchaser(inquiry, *, last_quotation_no: str = "") -> bool:
     """
     询价单进入「报价结束」时通知采购负责人（HTML 邮件 + EmailNotice 记录）。
+    正文与主题由 ``emails/quote_ended_template.html`` 首行 ``<!-- email-subject: ... -->`` 解析。
     无有效收件人时跳过发送，返回 False。
     """
     from apps.pisadmin.basicinfo.views.email_template import (
@@ -155,6 +158,7 @@ def send_quote_timeout_notice_to_purchaser(inquiry) -> bool:
     """
     询价截止提醒（HTML + EmailNotice）：由 ``notify_purchasers_quote_timeout_for_inquiries`` 在
     供应商端 ``POST .../quotation_master/sync_expired/`` 将超期未报价单置为已过期之后按需调用。
+    正文与主题由 ``emails/quote_timeout_template.html`` 首行 ``<!-- email-subject: ... -->`` 解析。
     无有效收件人时跳过发送，返回 False。
     """
     from apps.pisadmin.basicinfo.views.email_template import (
@@ -227,6 +231,76 @@ def notify_purchasers_quote_timeout_for_inquiries(inquiry_nos: List[str]) -> int
         except Exception:
             logger.exception("询价截止提醒邮件发送失败 inquiry_no=%s", inq_no)
     return sent
+
+
+def send_bids_publish_notice_to_supplier(
+    inquiry,
+    supplier_group: Dict[str, Any],
+    *,
+    purchaser_company_name: str = "",
+) -> Tuple[bool, EmailNotice]:
+    """
+    招标邀请邮件（单文件 ``bids_publish_template.html``）：向单个供应商分组发送 HTML 邮件并写入 EmailNotice。
+
+    无有效收件人时仍创建 notice 并标记失败，返回 (False, notice)；成功发送返回 (True, notice)。
+    """
+    from apps.pisadmin.basicinfo.views.email_template import (
+        TEMPLATE_BIDS_PUBLISH,
+        build_context_bids_publish,
+        render_email,
+    )
+
+    email = (supplier_group.get("contact_email") or "").strip()
+    to_list = [email] if email else []
+
+    ctx = build_context_bids_publish(
+        inquiry,
+        supplier_group,
+        purchaser_company_name=purchaser_company_name or "",
+    )
+    subject, body = render_email(TEMPLATE_BIDS_PUBLISH, ctx)
+
+    notice = EmailNotice.objects.create(
+        subject=subject,
+        body=body,
+        to_emails=to_list,
+        cc_emails=[],
+        bcc_emails=[],
+        attachments=[],
+        biz_type="inquiry_bids_publish",
+        biz_id=getattr(inquiry, "inquiry_no", None) or "",
+        status="pending",
+        payload={
+            "template_key": TEMPLATE_BIDS_PUBLISH,
+            "is_html": True,
+            "inquiry_no": ctx.get("rfq_number"),
+            "inquiry_title": ctx.get("inquiry_title"),
+            "bid_time_range": ctx.get("bid_time_range"),
+            "supplier_name": (supplier_group.get("supplier_name") or "").strip(),
+        },
+    )
+
+    if not to_list:
+        notice.status = "failed"
+        notice.last_error = "缺少供应商邮箱"
+        notice.save(update_fields=["status", "last_error", "update_datetime"])
+        return False, notice
+
+    notice.status = "sending"
+    notice.save(update_fields=["status", "update_datetime"])
+
+    success, detail = send_email_notice(notice)
+    notice.response = detail or {}
+    if success:
+        notice.status = "success"
+        notice.sent_at = timezone.now()
+        notice.last_error = None
+    else:
+        notice.status = "failed"
+        notice.last_error = detail.get("error") if isinstance(detail, dict) else str(detail)
+
+    notice.save(update_fields=["status", "sent_at", "response", "last_error", "update_datetime"])
+    return success, notice
 
 
 def send_email_notice(notice) -> Tuple[bool, Dict[str, Any]]:

@@ -16,7 +16,7 @@ from apps.pisadmin.basicinfo.views.email_template import (
     build_context_rfs_publish,
     render_email,
 )
-from apps.pisadmin.basicinfo.views.email_utils import send_email_notice
+from apps.pisadmin.basicinfo.views.email_utils import send_bids_publish_notice_to_supplier, send_email_notice
 
 from apps.pissupplier.models import (
     QuotationMaster,
@@ -150,12 +150,13 @@ def _rfq_qty_decimal(inquiry: Inquiry, pid: str) -> Optional[Decimal]:
 def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
     """
     制程最低价落库（与比价展开明细一致）：
+    - 前端比价展开不依赖成本结构模板：材料按材质分组仅展示重量/单价/材料费用，加工按工站分组仅展示加工费；落库口径仍按下列规则。
     - 询价单下**每个上阶物料料号**单独一套主/次表数据（多料号互不合并）。
     - **材料**：次表两行分别记录最低重量、最低单价；souce_no 为取得该最小值对应的报价单单号，单价若来自「杂采材料信息」
       则存交易厂区（factory）；主表材料行 souce_no 聚合为 W:…;U:…（重量来源与单价来源可能不同）。
     - **加工**：仅主表一行（无次表、不按工站）；每报价单合计加工费后取最小，全空/全 0 仍写入 MinPrice=0。
     - 注意：材料行必须用 quotation_no__in=报价单号列表 过滤，勿用 QuerySet(QuotationMaster) 作 __in，否则 ORM 按主键匹配会查不到材料行。
-    - **其它**：包装费、运输费分列取 min（优先 sup_quotation_other；无则用上阶物料 total_other_expense 回退）。
+    - **其它**：包装费、运输费分列取 min（优先 sup_quotation_other；无则用上阶物料 total_other_expense 回退）。采购端比价主表「其它成本」行制程最低价列与「加工成本」相同，可链向合计最低的报价单详情。
     - **利润率**：cost_type=6，各报价单该料号利润率取 min。杂采不落库管销研（cost_type=5）。
     """
     inquiry_no = (inquiry.inquiry_no or "").strip()
@@ -363,6 +364,8 @@ class MiscMaterialViewSet(CustomModelViewSet):
     update_serializer_class = MiscMaterialCreateUpdateSerializer
     search_fields = ["materialtype", "factory"]
     ordering = ["-create_datetime"]
+    # 与询价单 `Inquiry.company_code` 一致，须精确匹配 `factory`，避免 sz_avc 与 sz_avcx 串数据
+    filter_fields = ("factory", "status", "materialtype")
 
 
 class MiscStationViewSet(CustomModelViewSet):
@@ -372,6 +375,7 @@ class MiscStationViewSet(CustomModelViewSet):
     update_serializer_class = MiscStationCreateUpdateSerializer
     search_fields = ["stationname", "stationcode", "company_code"]
     ordering = ["-create_datetime"]
+    filter_fields = ("company_code", "status", "stationcode", "stationname")
 
 
 class MiscPartViewSet(CustomModelViewSet):
@@ -783,6 +787,7 @@ class InquiryViewSet(CustomModelViewSet):
         按询价单供应商子表 `InquirySupplier` 汇总：同一 `supplier_code`（空代码时用行级占位）合并多料号 `part_id`，
         供 `_create_supplier_quotations` 为每个供应商生成一份 `QuotationMaster`。
         返回条目的 supplier_code / supplier_name / 联系人字段均来自子表行数据（截断至报价主表字段长度）。
+        采购端保存时，联系人/邮箱/电话由前端在「供应商用户信息」表中按 supplier_id 选择后写入子表，此处不再与主档做 ORM 关联校验。
         """
         supplier_map = {}
         for row in inquiry.suppliers.all():
@@ -1320,9 +1325,18 @@ class InquiryViewSet(CustomModelViewSet):
             return
 
         purchaser_company_name = self._resolve_purchaser_company_name(inquiry)
+        is_bidding = int(getattr(inquiry, "buying_method", 1) or 1) == 2
 
         for vendor in supplier_groups:
             if not isinstance(vendor, dict):
+                continue
+
+            if is_bidding:
+                send_bids_publish_notice_to_supplier(
+                    inquiry,
+                    vendor,
+                    purchaser_company_name=purchaser_company_name,
+                )
                 continue
 
             supplier_name = (vendor.get("supplier_name") or "").strip()

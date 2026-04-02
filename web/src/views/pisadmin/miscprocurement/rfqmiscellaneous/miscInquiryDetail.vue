@@ -381,7 +381,34 @@
         </el-tab-pane>
 
         <el-tab-pane label="附件" name="attachments">
-          <div class="attach-grid">
+          <div v-if="isViewMode" class="inquiry-attachments inquiry-attachments--rfq-detail">
+            <div
+              v-for="group in inquiryAttachmentDisplayGroups"
+              :key="group.key"
+              class="inquiry-attachments__block"
+            >
+              <div class="inquiry-attachments__type">{{ group.label }}</div>
+              <div class="inquiry-attachments__links">
+                <template v-for="(file, idx) in group.files" :key="`${group.key}-${idx}-${file.name || ''}`">
+                  <el-link
+                    v-if="attachmentFileHref(file) !== '#'"
+                    type="primary"
+                    :href="attachmentFileHref(file)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inquiry-attachments__link"
+                  >
+                    {{ file.name || '（未命名）' }}
+                  </el-link>
+                  <span v-else class="inquiry-attachments__link inquiry-attachments__link--text">
+                    {{ file.name || '（未命名）' }}
+                  </span>
+                </template>
+                <span v-if="!group.files.length" class="inquiry-attachments__empty-inline">暂无附件</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="attach-grid">
             <div class="attach-block">
               <div class="attach-title">产品图纸</div>
               <el-upload
@@ -389,12 +416,27 @@
                 :auto-upload="false"
                 multiple
                 list-type="text"
-                :disabled="isViewMode"
                 :file-list="form.attachments.drawing"
                 :on-change="(file, list) => onAttachmentChange('drawing', list)"
                 :on-remove="(file, list) => onAttachmentChange('drawing', list)"
               >
-                <el-button v-if="!isViewMode" size="small" type="primary">上传图纸</el-button>
+                <template #file="{ file }">
+                  <div class="attach-upload-file-row">
+                    <el-link
+                      v-if="attachmentFileHref(file) !== '#'"
+                      type="primary"
+                      :href="attachmentFileHref(file)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inquiry-attachments__link"
+                    >
+                      {{ file.name }}
+                    </el-link>
+                    <span v-else class="attach-upload-file-name">{{ file.name }}</span>
+                    <el-button type="danger" link size="small" @click="removeAttachmentFile('drawing', file)">删除</el-button>
+                  </div>
+                </template>
+                <el-button size="small" type="primary">上传图纸</el-button>
               </el-upload>
             </div>
             <div class="attach-block">
@@ -404,12 +446,27 @@
                 :auto-upload="false"
                 multiple
                 list-type="text"
-                :disabled="isViewMode"
                 :file-list="form.attachments.tender"
                 :on-change="(file, list) => onAttachmentChange('tender', list)"
                 :on-remove="(file, list) => onAttachmentChange('tender', list)"
               >
-                <el-button v-if="!isViewMode" size="small" type="primary">上传文件</el-button>
+                <template #file="{ file }">
+                  <div class="attach-upload-file-row">
+                    <el-link
+                      v-if="attachmentFileHref(file) !== '#'"
+                      type="primary"
+                      :href="attachmentFileHref(file)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inquiry-attachments__link"
+                    >
+                      {{ file.name }}
+                    </el-link>
+                    <span v-else class="attach-upload-file-name">{{ file.name }}</span>
+                    <el-button type="danger" link size="small" @click="removeAttachmentFile('tender', file)">删除</el-button>
+                  </div>
+                </template>
+                <el-button size="small" type="primary">上传文件</el-button>
               </el-upload>
             </div>
             <div class="attach-block">
@@ -419,12 +476,27 @@
                 :auto-upload="false"
                 multiple
                 list-type="text"
-                :disabled="isViewMode"
                 :file-list="form.attachments.other"
                 :on-change="(file, list) => onAttachmentChange('other', list)"
                 :on-remove="(file, list) => onAttachmentChange('other', list)"
               >
-                <el-button v-if="!isViewMode" size="small" type="primary">上传文件</el-button>
+                <template #file="{ file }">
+                  <div class="attach-upload-file-row">
+                    <el-link
+                      v-if="attachmentFileHref(file) !== '#'"
+                      type="primary"
+                      :href="attachmentFileHref(file)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inquiry-attachments__link"
+                    >
+                      {{ file.name }}
+                    </el-link>
+                    <span v-else class="attach-upload-file-name">{{ file.name }}</span>
+                    <el-button type="danger" link size="small" @click="removeAttachmentFile('other', file)">删除</el-button>
+                  </div>
+                </template>
+                <el-button size="small" type="primary">上传文件</el-button>
               </el-upload>
             </div>
           </div>
@@ -525,7 +597,7 @@
 </template>
 
 <script setup lang="ts" name="RfqMiscInquiryDetail">
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Clock, Document } from '@element-plus/icons-vue'
@@ -539,6 +611,7 @@ import { GetList as GetSuppliers } from '../../basicinfo/supplier/api'
 import { GetList as GetStations } from '../misc_stations/api'
 import { GetList as GetUnits } from '../../basicinfo/unit/api'
 import { useUserInfo } from '/@/stores/userInfo'
+import { getBaseURL } from '/@/utils/baseUrl'
 
 const route = useRoute()
 const router = useRouter()
@@ -2094,14 +2167,75 @@ const removeCostRow = (row: CostRow) => {
   costRows.value = costRows.value.filter((r) => r !== row)
 }
 
+/** text 类型 el-upload 不会给本地文件生成 blob url，预览链接需在下方 attachmentFileHref 中补全 */
+const attachmentBlobUrlCache = new Map<string, string>()
+
+const blobCacheKey = (file: any) =>
+  String(file?.uid ?? `${file?.name ?? ''}-${(file?.raw as File | undefined)?.size ?? 0}`)
+
+const revokeAttachmentBlobUrl = (file: any) => {
+  const key = blobCacheKey(file)
+  const u = attachmentBlobUrlCache.get(key)
+  if (u) {
+    URL.revokeObjectURL(u)
+    attachmentBlobUrlCache.delete(key)
+  }
+}
+
 const onAttachmentChange = (type: 'drawing' | 'tender' | 'other', list: any[]) => {
+  const prev = form.attachments[type] || []
+  const nextUids = new Set(list.map((item: any) => blobCacheKey(item)))
+  for (const f of prev) {
+    if (!nextUids.has(blobCacheKey(f))) revokeAttachmentBlobUrl(f)
+  }
   form.attachments[type] = list.map((item: any) => ({
     uid: item.uid,
     name: item.name,
-    url: item.url || item.response?.url || '',
+    url: item.url || item.file_path || item.response?.data?.url || item.response?.url || '',
+    file_path: item.file_path || item.url || '',
     raw: item.raw,
     status: item.status || 'ready'
   }))
+}
+
+/** 附件 tab：查看模式下列表分组（与供应商端询价附件展示一致） */
+const inquiryAttachmentDisplayGroups = computed(() => [
+  { key: 'drawing', label: '产品图纸', files: form.attachments.drawing || [] },
+  { key: 'tender', label: '招标文件', files: form.attachments.tender || [] },
+  { key: 'other', label: '其它文件', files: form.attachments.other || [] }
+])
+
+const attachmentFileHref = (file: any) => {
+  const p = String(
+    file?.url ??
+      file?.file_path ??
+      file?.response?.data?.url ??
+      file?.response?.data?.file_path ??
+      file?.response?.url ??
+      ''
+  ).trim()
+  if (p && p !== 'undefined') {
+    if (/^blob:/i.test(p) || /^https?:\/\//i.test(p)) return p
+    return getBaseURL(p)
+  }
+  const raw = file?.raw
+  if (raw instanceof Blob) {
+    const key = blobCacheKey(file)
+    let blobUrl = attachmentBlobUrlCache.get(key)
+    if (!blobUrl) {
+      blobUrl = URL.createObjectURL(raw)
+      attachmentBlobUrlCache.set(key, blobUrl)
+    }
+    return blobUrl
+  }
+  return '#'
+}
+
+const removeAttachmentFile = (type: 'drawing' | 'tender' | 'other', file: any) => {
+  revokeAttachmentBlobUrl(file)
+  const uid = file?.uid
+  const list = (form.attachments[type] || []).filter((f: any) => f.uid !== uid)
+  onAttachmentChange(type, list)
 }
 
 const unwrapResponseData = (res: any) => res?.data?.data ?? res?.data ?? res
@@ -2533,6 +2667,13 @@ watch(
   { immediate: true }
 )
 
+onBeforeUnmount(() => {
+  for (const url of attachmentBlobUrlCache.values()) {
+    URL.revokeObjectURL(url)
+  }
+  attachmentBlobUrlCache.clear()
+})
+
 onMounted(() => {
   fetchTemplates()
   Promise.all([loadCompanyOptions(), loadPartOptions(), loadMaterialOptions(), loadSupplierOptions(), loadStationOptions(), loadUnitOptions()]).then(() => {
@@ -2722,6 +2863,57 @@ onMounted(() => {
   font-weight: 600;
   font-size: 13px;
   color: var(--el-text-color-primary);
+}
+/* 询价附件：与供应商端 quotation/detail 一致，支持点击预览 */
+.inquiry-attachments--rfq-detail {
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+}
+.inquiry-attachments--rfq-detail .inquiry-attachments__block + .inquiry-attachments__block {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+}
+.inquiry-attachments--rfq-detail .inquiry-attachments__type {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.inquiry-attachments--rfq-detail .inquiry-attachments__links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.inquiry-attachments--rfq-detail .inquiry-attachments__link {
+  font-size: 13px;
+}
+.inquiry-attachments--rfq-detail .inquiry-attachments__link--text {
+  color: var(--el-text-color-regular);
+}
+.inquiry-attachments__empty-inline {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+.attach-upload-file-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.attach-upload-file-name {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.attach-upload-file-row .el-link.el-link--primary {
+  color: var(--el-color-primary);
+}
+.attach-block :deep(.el-upload-list) {
+  margin-top: 4px;
 }
 .mb8 {
   margin-bottom: 8px;

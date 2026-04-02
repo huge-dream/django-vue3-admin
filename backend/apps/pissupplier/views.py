@@ -43,8 +43,8 @@ def _supplier_bidding_window_error(instance: QuotationMaster):
     be = getattr(instance, "bid_end_time", None)
     if bs is None or be is None:
         return ErrorResponse(msg="招标项目未设置投标开始或截止时间，无法报价或提交")
-    if now < bs:
-        return ErrorResponse(msg="投标尚未开始")
+    # if now < bs:
+    #     return ErrorResponse(msg="投标尚未开始")
     if now > be:
         return ErrorResponse(msg="已超过投标截止时间")
     return None
@@ -53,7 +53,7 @@ def _supplier_bidding_window_error(instance: QuotationMaster):
 class QuotationMasterViewSet(CustomModelViewSet):
     """杂采报价单主表管理接口
 
-    详情 GET 与采购端比价弹窗「供应商报价预览」共用：返回 `QuotationMasterSerializer` 及嵌套材料/加工/其它/利润/上阶物料等。
+    详情 GET 与采购端比价弹窗「供应商报价预览」共用：返回 `QuotationMasterSerializer` 及嵌套材料/加工/其它（包装费、运输费）/利润/上阶物料等。
     """
 
     queryset = QuotationMaster.objects.prefetch_related(

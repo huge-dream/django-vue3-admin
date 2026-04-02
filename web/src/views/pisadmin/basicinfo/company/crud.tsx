@@ -88,6 +88,9 @@ export const createCrudOptions = function ({ crudExpose }: Partial<CreateCrudOpt
           type: 'input',
           search: { show: true, component: { props: { placeholder: '请输入公司代码', clearable: true } } },
           form: { rules: [{ required: true, message: '请输入公司代码' }] },
+          editForm: {
+            component: { props: { disabled: true } }
+          },
           column: { minWidth: 140, showOverflowTooltip: true }
         },
         company_name: {
