@@ -103,10 +103,23 @@ class QuotationMasterViewSet(CustomModelViewSet):
             quote_deadline__isnull=False,
             quote_deadline__lt=now,
         )
-        inquiry_nos = list(qs.values_list("inquiry_no", flat=True).distinct())
+        quotation_rows = list(qs.values("quotation_no", "inquiry_no", "status", "supplier_name"))
+        inquiry_nos = list({str(r.get("inquiry_no") or "").strip() for r in quotation_rows if r.get("inquiry_no")})
+        inquiry_purchase_type = {}
+        if inquiry_nos:
+            inquiry_purchase_type = {
+                x.inquiry_no: int(x.purchase_type)
+                for x in Inquiry.objects.filter(inquiry_no__in=inquiry_nos).only("inquiry_no", "purchase_type")
+            }
         username = getattr(getattr(request, "user", None), "username", None)
         with transaction.atomic():
             updated = qs.update(status=4)
+            if quotation_rows:
+                RFQOperationLogs.bulk_append_quote_deadline_expired(
+                    quotation_rows,
+                    inquiry_purchase_type,
+                    operation_user=username,
+                )
             inquiries_closed = Inquiry.sync_to_quote_closed_when_no_open_quotations(
                 inquiry_nos,
                 actor_username=username,

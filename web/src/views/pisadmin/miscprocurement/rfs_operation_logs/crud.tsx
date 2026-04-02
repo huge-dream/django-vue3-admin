@@ -7,6 +7,7 @@ const OPERATION_TYPE_LABELS: Record<number, string> = {
   2: '询价单确认',
   3: '询价单发布',
   4: '询价单还原',
+  5: '报价截止',
   6: '供应商报价',
   7: '比议价',
   8: '议价审核提交',
