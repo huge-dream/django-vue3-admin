@@ -147,7 +147,10 @@ export default defineComponent({
 			await formRef.value.validate(async (valid: any) => {
 				if (valid) {
 					try {
-						const res = await loginApi.login({ ...state.ruleForm, password: Md5.hashStr(state.ruleForm.password) });
+						// 根据当前 URL 判断使用哪个登录 API
+						const isSupplierPortal = window.location.href.includes('/login/supplier');
+						const loginMethod = isSupplierPortal ? loginApi.supplierLogin : loginApi.login;
+						const res = await loginMethod({ ...state.ruleForm, password: Md5.hashStr(state.ruleForm.password) });
 						if (res.code === 2000) {
 							const { data } = res;
 							console.log('[DEBUG loginClick] res.data.access:', res.data.access);
