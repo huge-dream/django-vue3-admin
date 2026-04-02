@@ -1,6 +1,12 @@
 # ============================================================
 # Start Backend Service (Windows PowerShell)
 # Usage: .\start-backend.ps1 [dev|prod]
+#
+# NOTE: For best compatibility on Windows, consider using Git Bash:
+#   bash scripts/start-backend.sh
+#
+# The PowerShell version uses Start-Process which may have issues
+# with some Python servers on Windows.
 # ============================================================
 
 $ErrorActionPreference = "Stop"
@@ -32,7 +38,6 @@ if (Test-Path $PID_FILE) {
     }
 }
 
-Set-Location $BackendDir
 
 # Check dependencies
 try {

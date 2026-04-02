@@ -1,6 +1,12 @@
 # ============================================================
 # Start Frontend Service (Windows PowerShell)
 # Usage: .\start-frontend.ps1 [dev|prod]
+#
+# NOTE: For best compatibility on Windows, consider using Git Bash:
+#   bash scripts/start-frontend.sh
+#
+# The PowerShell version uses Start-Process which may have issues
+# with some Node.js development servers.
 # ============================================================
 
 $ErrorActionPreference = "Stop"
@@ -33,7 +39,6 @@ if (Test-Path $PID_FILE) {
     }
 }
 
-Set-Location $FrontendDir
 
 # Check if yarn is available
 $yarnCmd = Get-Command yarn -ErrorAction SilentlyContinue
