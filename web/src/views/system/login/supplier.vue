@@ -72,7 +72,7 @@ watch(()=>userInfos.value.pwd_change_count,(val)=>{
   }
 },{deep:true,immediate:true})
 
-const siteBrandTitle = 'PIS';
+const siteBrandTitle = SITE_BRAND_TITLE;
 const getThemeConfig = computed(() => themeConfig.value);
 const systemConfigStore = SystemConfigStore()
 const { systemConfig } = storeToRefs(systemConfigStore)

@@ -105,7 +105,7 @@ watch(()=>userInfos.value.pwd_change_count,(val)=>{
 },{deep:true,immediate:true})
 
 
-const siteBrandTitle = 'PIS';
+const siteBrandTitle = SITE_BRAND_TITLE;
 
 // 获取布局配置信息
 const getThemeConfig = computed(() => {
