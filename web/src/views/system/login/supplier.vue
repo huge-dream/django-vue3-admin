@@ -44,6 +44,7 @@
 <script setup lang="ts" name="supplierLoginIndex">
 import {defineAsyncComponent, onMounted, reactive, computed, watch} from 'vue';
 import { storeToRefs } from 'pinia';
+import _ from "lodash-es";
 import { useThemeConfig } from '/@/stores/themeConfig';
 import { SITE_BRAND_TITLE } from '/@/config/brand';
 import { NextLoading } from '/@/utils/loading';
