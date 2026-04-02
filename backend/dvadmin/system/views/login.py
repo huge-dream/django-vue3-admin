@@ -140,11 +140,112 @@ class LoginSerializer(TokenObtainPairSerializer):
         return {"code": 2000, "msg": "请求成功", "data": data}
 
 
+class SupplierLoginSerializer(TokenObtainPairSerializer):
+    """
+    供应商登录的序列化器
+    复用 LoginSerializer 的验证逻辑，额外校验 role.key = 'supplier'
+    """
+    captcha = serializers.CharField(
+        max_length=6, required=False, allow_null=True, allow_blank=True
+    )
+
+    class Meta:
+        model = Users
+        fields = "__all__"
+        read_only_fields = ["id"]
+
+    default_error_messages = {"no_active_account": _("账号/密码错误")}
+
+    def validate(self, attrs):
+        captcha = self.initial_data.get("captcha", None)
+        if dispatch.get_system_config_values("base.captcha_state"):
+            if captcha is None:
+                raise CustomValidationError("验证码不能为空")
+            self.image_code = CaptchaStore.objects.filter(
+                id=self.initial_data["captchaKey"]
+            ).first()
+            five_minute_ago = datetime.now() - timedelta(hours=0, minutes=5, seconds=0)
+            if self.image_code and five_minute_ago > self.image_code.expiration:
+                self.image_code and self.image_code.delete()
+                raise CustomValidationError("验证码过期")
+            else:
+                if self.image_code and (
+                    self.image_code.response == captcha
+                    or self.image_code.challenge == captcha
+                ):
+                    self.image_code and self.image_code.delete()
+                else:
+                    self.image_code and self.image_code.delete()
+                    raise CustomValidationError("图片验证码错误")
+        try:
+            user = Users.objects.get(
+                Q(username=attrs['username']) | Q(email=attrs['username']) | Q(mobile=attrs['username']))
+        except Users.DoesNotExist:
+            raise CustomValidationError("您登录的账号不存在")
+        except Users.MultipleObjectsReturned:
+            raise CustomValidationError("您登录的账号存在多个,请联系管理员检查登录账号唯一性")
+        if not user.is_active:
+            raise CustomValidationError("账号已被锁定,联系管理员解锁")
+        # 必须重置用户名为username,否则使用邮箱手机号登录会提示密码错误
+        attrs['username'] = user.username
+
+        # 校验用户角色是否为供应商
+        user_roles = user.role.all()
+        role_keys = [r.key for r in user_roles]
+        if 'supplier' not in role_keys:
+            raise CustomValidationError("该账号不是供应商账号，请使用采购方入口登录")
+
+        try:
+            data = super().validate(attrs)
+        except Exception as e:
+            user.login_error_count += 1
+            if user.login_error_count >= 5:
+                user.is_active = False
+                user.save()
+                raise CustomValidationError("账号已被锁定,联系管理员解锁")
+            user.save()
+            count = 5 - user.login_error_count
+            raise CustomValidationError(f"账号/密码错误;重试{count}次后将被锁定~")
+        data["username"] = self.user.username
+        data["name"] = self.user.name
+        data["userId"] = self.user.id
+        data["avatar"] = self.user.avatar
+        data['user_type'] = self.user.user_type
+        data['pwd_change_count'] = self.user.pwd_change_count
+        dept = Dept.objects.filter(id=self.user.dept_id).values("id", "name").first() if self.user.dept_id else None
+        if dept:
+            data['dept_info'] = {
+                'dept_id': dept["id"],
+                'dept_name': dept["name"],
+            }
+        role = getattr(self.user, 'role', None)
+        if role:
+            data['role_info'] = role.values('id', 'name', 'key')
+        request = self.context.get("request")
+        if request is not None:
+            request.user = self.user
+            try:
+                save_login_log(request=request)
+            except Exception:
+                logger.exception("记录登录日志失败: %s", self.user.username)
+        user.login_error_count = 0
+        user.save()
+        return {"code": 2000, "msg": "请求成功", "data": data}
+
+
 class LoginView(TokenObtainPairView):
     """
     登录接口
     """
     serializer_class = LoginSerializer
+    permission_classes = []
+
+
+class SupplierLoginView(TokenObtainPairView):
+    """
+    供应商登录接口
+    """
+    serializer_class = SupplierLoginSerializer
     permission_classes = []
 
     # def post(self, request, *args, **kwargs):
