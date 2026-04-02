@@ -196,6 +196,38 @@ PID 文件存储在 `.pids/`：
 - 使用 `pgrep` 和 `pkill` 管理进程
 - 输出使用中文
 
+### Windows PowerShell Celery 已知问题
+
+**Celery 在 Windows PowerShell 上有已知的兼容性问题。**
+
+问题原因：PowerShell 的 `Start-Process` 与 Celery 的多进程池（billiard）不兼容，导致以下错误：
+- `PermissionError: [WinError 5] 拒绝访问`
+- `OSError: [WinError 6] 句柄无效`
+
+**推荐解决方案：使用 Git Bash**
+
+在 Windows 上，推荐使用 Git Bash 运行 Celery 脚本：
+
+```bash
+# 启动 Celery (推荐)
+bash scripts/start-celery.sh
+
+# 停止 Celery
+bash scripts/stop-celery.sh
+```
+
+Git Bash 使用 `nohup` 和 `&` 后台运行，与 Celery 的多进程机制完全兼容。
+
+**如需使用 PowerShell：**
+
+可以尝试使用 `--pool solo` 参数（单进程模式）：
+
+```powershell
+.\scripts\start-celery.ps1
+```
+
+但这可能会影响 Celery 的性能和稳定性。
+
 ## 依赖要求
 
 ### 后端
@@ -228,6 +260,11 @@ PID 文件存储在 `.pids/`：
 1. 检查 Redis 是否运行
 2. 执行数据库迁移：`python manage.py migrate`
 3. 查看 Celery 日志
+4. **Windows 用户**：如果使用 PowerShell 启动失败，请改用 Git Bash：
+   ```bash
+   bash scripts/start-celery.sh
+   ```
+   这是 Windows 上的已知问题，PowerShell 的进程管理机制与 Celery 不兼容。
 
 ### 编码问题
 如果 PowerShell 显示乱码，确保使用 UTF-8 with BOM 编码保存的脚本文件。
@@ -255,3 +292,4 @@ scripts/
 - 停止时会清理残留进程
 - PowerShell 脚本输出使用英文，避免编码问题
 - Bash 脚本输出使用中文
+- **Windows 用户**：建议使用 Git Bash 运行 Celery 脚本，以避免进程兼容性问题
