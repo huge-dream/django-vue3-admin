@@ -14,7 +14,7 @@
 <!--				<span class="login-right-warp-two"></span>-->
 				<div class="login-right-warp-mian">
 					<div class="login-right-warp-main-title">
-            <span>采购方登录</span>
+            <span>采购询报价系统 - 采购端</span>
             <br>
             <span>{{userInfos.pwd_change_count===0?'初次登录请修改密码':'欢迎登录'}}</span>
           </div>
