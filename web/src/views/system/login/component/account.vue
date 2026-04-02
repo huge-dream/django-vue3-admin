@@ -153,18 +153,14 @@ export default defineComponent({
 						const res = await loginMethod({ ...state.ruleForm, password: Md5.hashStr(state.ruleForm.password) });
 						if (res.code === 2000) {
 							const { data } = res;
-							console.log('[DEBUG loginClick] res.data.access:', res.data.access);
 							Cookies.set('username', res.data.username);
 							Session.set('token', res.data.access);
-							console.log('[DEBUG loginClick] after Session.set, token:', Session.get('token'));
 							useUserInfo().setPwdChangeCount(data.pwd_change_count);
 							if (!themeConfig.value.isRequestRoutes) {
 								initFrontEndControlRoutes();
 								loginSuccess(data.pwd_change_count);
 							} else {
-								console.log('[DEBUG loginClick] calling initBackEndControlRoutes');
 								await initBackEndControlRoutes();
-								console.log('[DEBUG loginClick] after initBackEndControlRoutes');
 								loginSuccess(data.pwd_change_count);
 							}
 						}
