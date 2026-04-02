@@ -3,6 +3,17 @@ from apps.pisadmin.basicinfo.factories import CurrencyFactory
 from apps.pisadmin.basicinfo.views.currency import CurrencySerializer, CurrencyCreateUpdateSerializer
 
 
+# DRF 的 django_restql DynamicFieldsMixin 使用 model verbose_name 作为 error key
+# 例如 currencyname 字段的 error key 是 "货币名称"（模型的 verbose_name）
+# 以下是字段名到 error key 的映射
+FIELD_ERROR_KEYS = {
+    "currencyname": "货币名称",
+    "currencycode": "货币代码",
+    "currencysymbol": "货币符号",
+    "tax": "税率",
+}
+
+
 @pytest.mark.django_db
 class TestCurrencyCreateUpdateSerializer:
 
@@ -29,7 +40,7 @@ class TestCurrencyCreateUpdateSerializer:
         }
         serializer = CurrencyCreateUpdateSerializer(data=data)
         assert not serializer.is_valid()
-        assert "currencyname" in serializer.errors
+        assert FIELD_ERROR_KEYS["currencyname"] in serializer.errors
 
     def test_currencysymbol_required(self):
         """currencysymbol 必填"""
@@ -40,7 +51,7 @@ class TestCurrencyCreateUpdateSerializer:
         }
         serializer = CurrencyCreateUpdateSerializer(data=data)
         assert not serializer.is_valid()
-        assert "currencysymbol" in serializer.errors
+        assert FIELD_ERROR_KEYS["currencysymbol"] in serializer.errors
 
     def test_tax_required(self):
         """tax 必填"""
@@ -51,7 +62,7 @@ class TestCurrencyCreateUpdateSerializer:
         }
         serializer = CurrencyCreateUpdateSerializer(data=data)
         assert not serializer.is_valid()
-        assert "tax" in serializer.errors
+        assert FIELD_ERROR_KEYS["tax"] in serializer.errors
 
     @pytest.mark.parametrize(
         "field,invalid_value",
@@ -73,7 +84,7 @@ class TestCurrencyCreateUpdateSerializer:
         data[field] = invalid_value
         serializer = CurrencyCreateUpdateSerializer(data=data)
         assert not serializer.is_valid()
-        assert field in serializer.errors
+        assert FIELD_ERROR_KEYS[field] in serializer.errors
 
     def test_update_currency_success(self, db):
         """更新已有记录"""
