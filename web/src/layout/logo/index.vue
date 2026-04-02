@@ -21,7 +21,7 @@ const storesThemeConfig = useThemeConfig();
 const { themeConfig } = storeToRefs(storesThemeConfig);
 
 // 与 themeConfig 本地缓存无关，始终使用品牌常量
-const siteBrandTitle = SITE_BRAND_TITLE;
+const siteBrandTitle = 'PIS';
 
 // 设置 logo 的显示。classic 经典布局默认显示 logo
 const setShowLogo = computed(() => {
