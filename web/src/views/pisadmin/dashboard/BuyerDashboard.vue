@@ -32,7 +32,7 @@
       <div class="card task-card">
         <div class="card-header">
           <div class="card-title">
-            <i class="fa fa-tasks" style="color: #2E5BFF;"></i> 我的待办任务
+            <i class="fa fa-tasks" style="color: #2E5BFF;"></i> 我的待办任务(<span style="color: #EF4444; font-weight: 600;">{{ tasks.length }}</span>)
           </div>
           <a href="#" class="view-all">查看全部 <i class="fa fa-arrow-right"></i></a>
         </div>

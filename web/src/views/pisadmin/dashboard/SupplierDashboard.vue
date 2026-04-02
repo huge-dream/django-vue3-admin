@@ -40,7 +40,7 @@
       <div class="card task-card">
         <div class="card-header">
           <div class="card-title">
-            <i class="fa fa-file-invoice" style="color: #2E5BFF;"></i> 待报价清单
+            <i class="fa fa-file-invoice" style="color: #2E5BFF;"></i> 待报价清单(<span style="color: #EF4444; font-weight: 600;">{{ pendingQuotes.length }}</span>)
           </div>
           <a href="#" class="view-all">查看全部 <i class="fa fa-arrow-right"></i></a>
         </div>
