@@ -35,3 +35,11 @@ export function getBackends() {
         method: 'get',
     });
 }
+
+export function supplierLogin(params: object) {
+    return request({
+        url: '/api/login/supplier/',
+        method: 'post',
+        data: params
+    });
+}
