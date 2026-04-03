@@ -9,6 +9,7 @@
 - [ ] Bugfix
 - [ ] Hotfix
 - [ ] Refactor
+- [ ] Docs
 
 ## 自检清单
 - [ ] 代码已通过 Pre-commit 检查（后端 ruff / 前端 lint-staged）
