@@ -12,5 +12,7 @@ web/package-lock.json
 .planning/
 
 # Superpowers files
+.claude/
 docs/superpowers/
+docs/scripts-documentation.md
 .pids/

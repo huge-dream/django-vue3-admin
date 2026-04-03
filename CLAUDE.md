@@ -103,3 +103,10 @@ Backend settings are split:
 - The `miscprocurement` app handles询价 (RFQ) and cost template building
 - Supplier quotations are managed in `pissupplier` app
 - Default demo credentials: `superadmin` / `admin123456`
+
+## Git 注意事项
+
+**不要提交本地文档和 superpowers 相关文件**：
+- `.claude/` 目录下的 superpowers 相关文件（`.planning/`、skills 等）
+- `docs/` 目录下的本地文档
+- 这些文件每个人开发任务不同，不应提交到仓库
