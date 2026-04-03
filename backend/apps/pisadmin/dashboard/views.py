@@ -138,12 +138,10 @@ class DashboardView(views.APIView):
     def get_supplier_kpi(self, user):
         """供应商 KPI 计算"""
         # 超级管理员看到所有供应商汇总数据
-        print(f"[DEBUG] get_supplier_kpi: is_superuser={user.is_superuser}, username={user.username}")
         if user.is_superuser:
             total_quotes = QuotationMaster.objects.count()
             pending_quotes = QuotationMaster.objects.filter(status__in=[1, 2]).count()
             won_quotes = QuotationMaster.objects.filter(is_awarded=1).count()
-            print(f"[DEBUG] superadmin KPI: total={total_quotes}, pending={pending_quotes}, won={won_quotes}")
         else:
             total_quotes = QuotationMaster.objects.filter(supplier_code=user.username).count()
             pending_quotes = QuotationMaster.objects.filter(
@@ -349,13 +347,10 @@ class DashboardView(views.APIView):
                 }
 
         # 供应商看板：超级管理员或有任何供应商记录的用户
-        print(f"[DEBUG] user.is_superuser={user.is_superuser}, has_supplier_role={has_supplier_role}")
         if user.is_superuser or has_supplier_role:
-            print(f"[DEBUG] 进入供应商看板分支")
             try:
                 supplier_data = self.get_supplier_data(user)
-            except Exception as e:
-                print(f"[DEBUG] 供应商看板异常: {e}")
+            except Exception:
                 supplier_data = {
                     'kpi': {'total_quotes': 0, 'pending_quotes': 0, 'won_quotes': 0, 'conversion_rate': 0},
                     'pending_quotes': [],
