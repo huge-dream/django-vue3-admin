@@ -1,0 +1,79 @@
+{
+  "id": "3882322",
+  "name": "dvadmin3",
+  "font_family": "iconfont",
+  "css_prefix_text": "icon-",
+  "description": "dvadmin3前端项目icon",
+  "glyphs": [
+    {
+      "icon_id": "630252",
+      "name": "消息中心",
+      "font_class": "xiaoxizhongxin",
+      "unicode": "e665",
+      "unicode_decimal": 58981
+    },
+    {
+      "icon_id": "10465939",
+      "name": "系统设置",
+      "font_class": "xitongshezhi",
+      "unicode": "e7ba",
+      "unicode_decimal": 59322
+    },
+    {
+      "icon_id": "13952258",
+      "name": "操作日志",
+      "font_class": "caozuorizhi",
+      "unicode": "e611",
+      "unicode_decimal": 58897
+    },
+    {
+      "icon_id": "26876046",
+      "name": "管理登录日志",
+      "font_class": "guanlidenglurizhi",
+      "unicode": "ea45",
+      "unicode_decimal": 59973
+    },
+    {
+      "icon_id": "4520330",
+      "name": "日志",
+      "font_class": "rizhi",
+      "unicode": "e60c",
+      "unicode_decimal": 58892
+    },
+    {
+      "icon_id": "11686866",
+      "name": "system",
+      "font_class": "system",
+      "unicode": "e684",
+      "unicode_decimal": 59012
+    },
+    {
+      "icon_id": "12004865",
+      "name": "Area",
+      "font_class": "Area",
+      "unicode": "eaa2",
+      "unicode_decimal": 60066
+    },
+    {
+      "icon_id": "15838480",
+      "name": "file",
+      "font_class": "file",
+      "unicode": "e671",
+      "unicode_decimal": 58993
+    },
+    {
+      "icon_id": "16880980",
+      "name": "dict",
+      "font_class": "dict",
+      "unicode": "e626",
+      "unicode_decimal": 58918
+    },
+    {
+      "icon_id": "32434794",
+      "name": "configure",
+      "font_class": "configure",
+      "unicode": "e733",
+      "unicode_decimal": 59187
+    }
+  ]
+}

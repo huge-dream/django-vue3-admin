@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="font-family:'Microsoft YaHei',SimHei,sans-serif;font-size:14px;color:#1e293b;line-height:1.7;">
+  <p>尊敬的 {{ purchaser_name }}：</p>
+  <p>您好！</p>
+  <p>您负责的询价单（编号：{{ inquiry_no }}）的所有供应商已完成报价，具体信息如下：</p>
+
+  <ul style="margin:12px 0;padding-left:22px;">
+    <li><strong>询价单名称：</strong>{{ inquiry_name }}</li>
+    <li><strong>物料/项目名称：</strong>{{ material_or_project_name }}</li>
+    <li><strong>报价供应商数量：</strong>{{ supplier_count }}家</li>
+    <li><strong>报价完成时间：</strong>{{ completion_time }}</li>
+  </ul>
+
+  <p>请您及时登录系统进行比价操作，确保采购流程顺利推进。</p>
+
+  {% if comparison_page_url %}
+  <p style="margin:16px 0;">
+    <a href="{{ comparison_page_url }}" style="color:#0f766e;font-weight:600;">点击此处进入比价页面</a>
+  </p>
+  <p style="margin:8px 0 0;font-size:13px;color:#64748b;">若链接无法打开，请复制以下地址到浏览器：</p>
+  <p style="margin:4px 0 16px;word-break:break-all;font-size:13px;"><a href="{{ comparison_page_url }}">{{ comparison_page_url }}</a></p>
+  {% else %}
+  <p style="margin:16px 0;color:#b45309;">系统未配置采购端门户地址（PIS_ADMIN_PORTAL_URL），请登录系统进入「比价/议价」页面处理。</p>
+  {% endif %}
+
+  <p style="margin:20px 0 8px;">如有疑问，请联系系统支持团队。</p>
+  <p style="font-size:12px;color:#94a3b8;">此邮件由系统自动发送，请勿直接回复。</p>
+</body>
+</html>

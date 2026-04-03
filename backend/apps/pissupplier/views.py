@@ -1,0 +1,388 @@
+import logging
+from typing import Optional
+
+from django.db import transaction
+from django.utils import timezone
+from rest_framework.decorators import action
+
+from dvadmin.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
+from dvadmin.utils.viewset import CustomModelViewSet
+
+from apps.pisadmin.miscprocurement.models import Inquiry, RFQOperationLogs
+from apps.pissupplier.models import (
+    QuotationMaster,
+    QuotationAttachment,
+    QuotationMaterial,
+    QuotationProcess,
+    QuotationOther,
+    QuotationProfit,
+    QuotationItem,
+)
+from apps.pisadmin.basicinfo.views.email_utils import notify_purchasers_quote_timeout_for_inquiries
+from apps.pissupplier.serializers import (
+    QuotationMasterSerializer,
+    QuotationMasterCreateUpdateSerializer,
+    QuotationAttachmentSerializer,
+    QuotationMaterialSerializer,
+    QuotationProcessSerializer,
+    QuotationOtherSerializer,
+    QuotationProfitSerializer,
+    QuotationItemSerializer,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def _supplier_bidding_window_error(instance: QuotationMaster):
+    """招标：报价/提交仅允许在投标开始时间～投标截止时间（含端点）内。"""
+    bm = getattr(instance, "buying_method", None)
+    if bm != 2:
+        return None
+    now = timezone.now()
+    bs = getattr(instance, "bid_start_time", None)
+    be = getattr(instance, "bid_end_time", None)
+    if bs is None or be is None:
+        return ErrorResponse(msg="招标项目未设置投标开始或截止时间，无法报价或提交")
+    if now < bs:
+        return ErrorResponse(msg="投标尚未开始")
+    if now > be:
+        return ErrorResponse(msg="已超过投标截止时间")
+    return None
+
+
+class QuotationMasterViewSet(CustomModelViewSet):
+    """杂采报价单主表管理接口
+
+    详情 GET 与采购端比价弹窗「供应商报价预览」共用：返回 `QuotationMasterSerializer` 及嵌套材料/加工/其它/利润/上阶物料等。
+    """
+
+    queryset = QuotationMaster.objects.prefetch_related(
+        "rfq_items",
+        "material_costs",
+        "process_costs",
+        "other_costs",
+        "profit_costs",
+    )
+    serializer_class = QuotationMasterSerializer
+    create_serializer_class = QuotationMasterCreateUpdateSerializer
+    update_serializer_class = QuotationMasterCreateUpdateSerializer
+
+    def get_serializer_context(self):
+        ctx = super().get_serializer_context()
+        ctx["view_action"] = getattr(self, "action", None)
+        return ctx
+    filter_fields = (
+        "quotation_no",
+        "inquiry_no",
+        "supplier_code",
+        "supplier_name",
+        "status",
+        "is_awarded",
+    )
+    search_fields = (
+        "quotation_no",
+        "inquiry_no",
+        "supplier_code",
+        "supplier_name",
+        "contact_person",
+        "quoteuser",
+        "remark",
+    )
+    ordering = ("-creattime", "-autoid")
+
+    @action(methods=["post"], detail=False, url_path="sync_expired")
+    def sync_expired(self, request):
+        """
+        将当前用户数据权限范围内、状态为待报价(1)或报价中(2)、且已超过报价截止时间的报价单
+        更新为已过期(4)。若某询价单下已无任何待报价/报价中的报价单，且询价单仍为「发布」或「报价中」，
+        则将该询价单置为「报价结束」(5)。供供应商端列表加载前调用。
+        """
+        now = timezone.now()
+        qs = self.filter_queryset(self.get_queryset()).filter(
+            status__in=(1, 2),
+            quote_deadline__isnull=False,
+            quote_deadline__lt=now,
+        )
+        quotation_rows = list(qs.values("quotation_no", "inquiry_no", "status", "supplier_name"))
+        inquiry_nos = list({str(r.get("inquiry_no") or "").strip() for r in quotation_rows if r.get("inquiry_no")})
+        inquiry_purchase_type = {}
+        if inquiry_nos:
+            inquiry_purchase_type = {
+                x.inquiry_no: int(x.purchase_type)
+                for x in Inquiry.objects.filter(inquiry_no__in=inquiry_nos).only("inquiry_no", "purchase_type")
+            }
+        username = getattr(getattr(request, "user", None), "username", None)
+        with transaction.atomic():
+            updated = qs.update(status=4)
+            if quotation_rows:
+                RFQOperationLogs.bulk_append_quote_deadline_expired(
+                    quotation_rows,
+                    inquiry_purchase_type,
+                    operation_user=username,
+                )
+            inquiries_closed = Inquiry.sync_to_quote_closed_when_no_open_quotations(
+                inquiry_nos,
+                actor_username=username,
+            )
+        quote_timeout_emails_sent = 0
+        if updated:
+            try:
+                quote_timeout_emails_sent = notify_purchasers_quote_timeout_for_inquiries(inquiry_nos)
+            except Exception:
+                logger.exception("询价截止提醒邮件批量通知失败")
+        return SuccessResponse(
+            data={
+                "updated": updated,
+                "inquiries_closed": inquiries_closed,
+                "quote_timeout_emails_sent": quote_timeout_emails_sent,
+            },
+            msg="同步成功",
+        )
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # if instance.status not in (1, 2):
+        #     return ErrorResponse(msg="仅未报价/报价中状态可保存报价内容")
+        # 含已报价(3)：采购端比价窗口可回写中标/议价等（仍不可改 status/quotetime，由序列化器剥离）
+        if instance.status not in (1, 2, 3):
+            return ErrorResponse(msg="当前报价单状态不允许保存")
+        return super().update(request, *args, **kwargs)
+
+    def partial_update(self, request, *args, **kwargs):
+        instance = self.get_object()
+        # if instance.status not in (1, 2):
+        #     return ErrorResponse(msg="仅未报价/报价中状态可保存报价内容")
+        if instance.status not in (1, 2, 3):
+            return ErrorResponse(msg="当前报价单状态不允许保存")
+        return super().partial_update(request, *args, **kwargs)
+
+    @staticmethod
+    def _sync_inquiry_when_quotation_quoting(
+        inquiry_no: str,
+        *,
+        actor_username: Optional[str] = None,
+        quotation_no: Optional[str] = None,
+    ):
+        """
+        任意报价单进入「报价中」(status=2) 时，若询价单仍为「发布」(3)，同步为「报价中」(4)。
+        已进入报价中(4) 的询价单无需再改；不回退报价结束及之后状态。
+        """
+        inq_no = (inquiry_no or "").strip()
+        if not inq_no:
+            return
+        inq = Inquiry.objects.filter(inquiry_no=inq_no, status=3).first()
+        if not inq:
+            return
+        old_status = int(inq.status if inq.status is not None else 0)
+        now = timezone.now()
+        update_user = (str(actor_username).strip()[:20] if actor_username else None) or None
+        inq.status = 4
+        inq.update_time = now
+        inq.update_datetime = now
+        if update_user:
+            inq.update_user = update_user
+        inq.save(update_fields=["status", "update_time", "update_user", "update_datetime"])
+        RFQOperationLogs.try_append(
+            inquiry_no=inq.inquiry_no,
+            purchase_type=int(inq.purchase_type),
+            operation_type=6,
+            operation_user=update_user,
+            quotation_no=(quotation_no or "-")[:20],
+            per_status=old_status,
+            cur_status=4,
+            operation_desc="供应商进入报价中，询价单同步为报价中",
+        )
+
+    @action(methods=["post"], detail=True, url_path="quote")
+    def quote(self, request, pk=None):
+        """进入报价中：写入当前时间为报价时间，状态为报价中(2)。仅未报价(status=1)可报价。"""
+        instance = self.get_object()
+        if instance.status not in (1, 2):
+            return ErrorResponse(msg="仅未报价状态可进入报价中")
+        dl = getattr(instance, "quote_deadline", None)
+        if dl is not None and dl < timezone.now():
+            return ErrorResponse(msg="已超过报价截止时间")
+        bid_err = _supplier_bidding_window_error(instance)
+        if bid_err is not None:
+            return bid_err
+        instance.status = 2
+        instance.quotetime = timezone.now()
+        username = getattr(getattr(request, "user", None), "username", None)
+        if username:
+            instance.quoteuser = username
+        with transaction.atomic():
+            instance.save(update_fields=["status", "quotetime", "quoteuser"])
+            self._sync_inquiry_when_quotation_quoting(
+                instance.inquiry_no,
+                actor_username=username,
+                quotation_no=getattr(instance, "quotation_no", None),
+            )
+        serializer = self.get_serializer(instance)
+        return DetailResponse(data=serializer.data, msg="报价中状态更新成功")
+
+    @action(methods=["post"], detail=True, url_path="submit")
+    def submit(self, request, pk=None):
+        """正式提交报价：写入当前时间为报价时间，状态为已报价(3)。仅报价中(status=2)可提交。
+
+        若本次提交后，询价单下受邀供应商均已「已报价」，则 ``Inquiry.sync_to_quote_closed_when_all_suppliers_quoted``
+        将询价单置为「报价结束」，并由该同步逻辑向采购负责人发送 HTML 邮件（模板 ``Quote_ended``），
+        不在本 action 内重复发信。
+
+        若本次提交**未**触发询价单收口为「报价结束」，则单独写一条操作日志（描述「{供应商名称}供应商提交报价」、询价单前后状态均为报价中）；
+        若已收口，则仅由 ``sync_to_quote_closed_when_all_suppliers_quoted`` 写一条合并描述（含提交与报价结束），本处不再重复记日志。
+        """
+        instance = self.get_object()
+        if instance.status != 2:
+            return ErrorResponse(msg="仅报价中状态可提交报价")
+        dl = getattr(instance, "quote_deadline", None)
+        if dl is not None and dl < timezone.now():
+            return ErrorResponse(msg="已超过报价截止时间")
+        bid_err = _supplier_bidding_window_error(instance)
+        if bid_err is not None:
+            return bid_err
+        instance.status = 3
+        instance.quotetime = timezone.now()
+        username = getattr(getattr(request, "user", None), "username", None)
+        if username:
+            instance.quoteuser = username
+        inquiry_quote_closed = False
+        with transaction.atomic():
+            instance.save(update_fields=["status", "quotetime", "quoteuser"])
+            inquiry_quote_closed = Inquiry.sync_to_quote_closed_when_all_suppliers_quoted(
+                instance.inquiry_no,
+                actor_username=username,
+                quotation_no=getattr(instance, "quotation_no", None),
+            )
+            if not inquiry_quote_closed:
+                inq = Inquiry.objects.filter(inquiry_no=instance.inquiry_no).only("purchase_type").first()
+                purchase_type = int(inq.purchase_type) if inq else 2
+                supplier_name = (getattr(instance, "supplier_name", None) or "").strip() or "—"
+                RFQOperationLogs.try_append(
+                    inquiry_no=instance.inquiry_no,
+                    purchase_type=purchase_type,
+                    operation_type=6,
+                    operation_user=username,
+                    quotation_no=getattr(instance, "quotation_no", None),
+                    per_status=4,
+                    cur_status=4,
+                    operation_desc=f"供应商（{supplier_name}）提交报价",
+                )
+        serializer = self.get_serializer(instance)
+        payload = dict(serializer.data)
+        payload["inquiry_quote_closed"] = inquiry_quote_closed
+        msg = "提交成功" + ("，询价单已进入报价结束" if inquiry_quote_closed else "")
+        return DetailResponse(data=payload, msg=msg)
+
+
+class QuotationAttachmentViewSet(CustomModelViewSet):
+    """杂采报价单附件管理接口"""
+
+    queryset = QuotationAttachment.objects.all()
+    serializer_class = QuotationAttachmentSerializer
+    create_serializer_class = QuotationAttachmentSerializer
+    update_serializer_class = QuotationAttachmentSerializer
+    filter_fields = ("quotation_no", "part_id", "file_name")
+    search_fields = ("quotation_no", "part_id", "file_name", "uploaduser")
+    ordering = ("-autoid",)
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+
+class QuotationMaterialViewSet(CustomModelViewSet):
+    """杂采报价单材料成本明细管理接口"""
+
+    queryset = QuotationMaterial.objects.all()
+    serializer_class = QuotationMaterialSerializer
+    create_serializer_class = QuotationMaterialSerializer
+    update_serializer_class = QuotationMaterialSerializer
+    filter_fields = ("quotation_no", "part_id", "material_spec")
+    search_fields = ("quotation_no", "part_id", "material_spec", "remark")
+    ordering = ("autoid",)
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+
+class QuotationProcessViewSet(CustomModelViewSet):
+    """杂采报价单加工成本明细管理接口"""
+
+    queryset = QuotationProcess.objects.all()
+    serializer_class = QuotationProcessSerializer
+    create_serializer_class = QuotationProcessSerializer
+    update_serializer_class = QuotationProcessSerializer
+    filter_fields = ("quotation_no", "part_id", "process_station")
+    search_fields = ("quotation_no", "part_id", "process_station", "remark")
+    ordering = ("autoid",)
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+
+class QuotationOtherViewSet(CustomModelViewSet):
+    """杂采报价单其他费用明细管理接口"""
+
+    queryset = QuotationOther.objects.all()
+    serializer_class = QuotationOtherSerializer
+    create_serializer_class = QuotationOtherSerializer
+    update_serializer_class = QuotationOtherSerializer
+    filter_fields = ("quotation_no", "part_id")
+    search_fields = ("quotation_no", "part_id")
+    ordering = ("autoid",)
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+
+class QuotationProfitViewSet(CustomModelViewSet):
+    """杂采报价单税率利润明细管理接口"""
+
+    queryset = QuotationProfit.objects.all()
+    serializer_class = QuotationProfitSerializer
+    create_serializer_class = QuotationProfitSerializer
+    update_serializer_class = QuotationProfitSerializer
+    filter_fields = ("quotation_no", "part_id")
+    search_fields = ("quotation_no", "part_id")
+    ordering = ("autoid",)
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+
+class QuotationItemViewSet(CustomModelViewSet):
+    """杂采报价单上阶物料明细管理接口"""
+
+    queryset = QuotationItem.objects.all()
+    serializer_class = QuotationItemSerializer
+    create_serializer_class = QuotationItemSerializer
+    update_serializer_class = QuotationItemSerializer
+    filter_fields = ("quotation_no", "part_id", "product_name")
+    search_fields = ("quotation_no", "part_id", "product_name")
+    ordering = ("autoid",)
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    def perform_update(self, serializer):
+        serializer.save()

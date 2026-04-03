@@ -6,9 +6,9 @@
 
 💡 **「About」**
 
-It is a completely open-source rapid development platform, provided free for personal use and authorized for group use.
-Django-Vue3-Admin is a comprehensive basic development platform based on the RBAC (Role-Based Access Control) model for permission control, with column-level granularity. It follows a frontend-backend separation architecture, with Django and Django Rest Framework used for the backend, and Vue3, Composition API, TypeScript, Vite, and Element Plus used for the frontend.
+We are a group of young people who love Code. In this hot era, we hope to calm down and bring some of our colors and colors through code.
 
+Because of love, so embrace the future
 
 ## framework introduction
 
@@ -18,9 +18,8 @@ Django-Vue3-Admin is a comprehensive basic development platform based on the RBA
 * 👭The backend uses the Python language Django framework as well as the powerful[Django REST Framework](https://pypi.org/project/djangorestframework)。
 * 👫Permission authentication use[Django REST Framework SimpleJWT](https://pypi.org/project/djangorestframework-simplejwt)，Supports the multi-terminal authentication system.
 * 👬Support loading dynamic permission menu, multi - way easy permission control.
-* 👬Enhanced Column Permission Control, with granularity down to each column.
-* 💏Special thanks: [vue-next-admin](https://lyt-top.gitee.io/vue-next-admin-doc-preview/).
-* 💡Special thanks:[jetbrains](https://www.jetbrains.com/) To provide a free IntelliJ IDEA license for this open source project.
+* 💏 Special thanks: [vue-next-admin](https://lyt-top.gitee.io/vue-next-admin-doc-preview/).
+* 💡 💏 Special thanks:[jetbrains](https://www.jetbrains.com/) To provide a free IntelliJ IDEA license for this open source project.
 
 ## Online experience
 
@@ -42,38 +41,35 @@ Django-Vue3-Admin is a comprehensive basic development platform based on the RBA
 
 gitee(Main push)：[https://gitee.com/huge-dream/django-vue3-admin](https://gitee.com/huge-dream/django-vue3-admin)👩‍👦‍👦
 
-github：[https://github.com/huge-dream/django-vue3-admin](https://github.com/huge-dream/django-vue3-admin)👩‍👦‍👦
+github：no data
 
 ## core function
 
-1. 👨‍⚕️Menu Management: Configure system menus, operation permissions, button permission flags, backend interface permissions, etc.
-2. 🧑‍⚕️Department Management: Configure system organizational structure (company, department, role).
-3. 👩‍⚕️Role Management: Role menu permission assignment, data permission assignment, set role-based data scope permissions by department.
-4. 🧑‍🎓Button Permission Control: Authorize role-specific button permissions and interface permissions, enabling authorization of data scope for each interface.
-5. 🧑‍🎓Field Column Permission Control: Authorize page field display permissions, specifically for the display permissions of a certain column.
-6. 👨‍🎓User Management: Users are system operators, and this function is mainly used for system user configuration.
-7. 👬API Whitelist: Configure interfaces that do not require permission verification.
-8. 🧑‍🔧Dictionary Management: Maintain frequently used and relatively fixed data in the system.
-9. 🧑‍🔧Region Management: Manage provinces, cities, counties, and districts.
-10. 📁File Management: Unified management of all files, images, etc., on the platform.
-11. 🗓️Operation Logs: Record and query logs for normal system operations and exceptional system information.
-12. 🔌[Plugin Market](https://bbs.django-vue-admin.com/plugMarket.html): Applications and plugins developed based on the Django-Vue-Admin framework.
+1. 👨‍⚕️ Menu management: Configure the system menu, operation permissions, button permissions, back-end interface permissions, etc.
+2. 🧑‍⚕️ Department management: Configure the system organization (company, department, role).
+3. 👩‍⚕️ Role management: role menu permission allocation, data permission allocation, set roles according to the department for data range permission division.
+4. 🧑‍🎓 Rights Specifies the rights of the authorization role.
+5. 👨‍🎓 User management: The user is the system operator, this function mainly completes the system user configuration.
+6. 👬 Interface whitelist: specifies the interface that does not need permission verification.
+7. 🧑‍🔧 Dictionary management: Maintenance of some fixed data frequently used in the system.
+8. 🧑‍🔧 Regional management: to manage provinces, cities, counties and regions.
+9. 📁 Attachment management: Unified management of all files and pictures on the platform.
+10. 🗓 ️operation logs: log and query the system normal operation; Log and query system exception information.
+    11.🔌 [plugins market] (<https://bbs.django-vue-admin.com/plugMarket.html>) : based on the Django framework - Vue - Admin application and plug-in development.
 
 ## plugins market 🔌
 
-Updating...
-
-## Repository Branch Explanation 💈
-Main Branch: master (stable version)
-Development Branch: develop
+* Celery Asynchronous task：[dvadmin-celery](https://gitee.com/huge-dream/dvadmin-celery)
+* Upgrade center backend：[dvadmin-upgrade-center](https://gitee.com/huge-dream/dvadmin-upgrade-center)
+* Upgrade center front：[dvadmin-upgrade-center-web](https://gitee.com/huge-dream/dvadmin-upgrade-center-web)
 
 ## before start project you need:
 
 ~~~
-Python >= 3.11.0 (Minimum version 3.9+)
-Node.js >= 16.0
-Mysql >= 8.0 (Optional, default database: SQLite3, supports 5.7+, recommended version: 8.0)
-Redis (Optional, latest version)
+Python >= 3.8.0 
+nodejs >= 14.0
+Mysql >= 5.7.0 (Optional. The default database is sqlite3. 8.0 is recommended)
+Redis(Optional, the latest edition)
 ~~~
 
 ## frontend♝
@@ -86,15 +82,14 @@ git clone https://gitee.com/huge-dream/django-vue3-admin.git
 cd web
 
 # install dependence
-npm install yarn
-yarn install --registry=https://registry.npm.taobao.org
+npm install --registry=https://registry.npm.taobao.org
 
 # Start service
-yarn run dev
+npm run dev
 # Visit http://localhost:8080 in your browser
 # Parameters such as boot port can be configured in the #.env.development file
 # Build the production environment
-# yarn run build
+# npm run build
 ```
 
 ## backend💈
@@ -116,8 +111,8 @@ yarn run dev
  python3 manage.py init_area
 8. start backend
  python3 manage.py runserver 0.0.0.0:8000
-or uvicorn :
-  uvicorn application.asgi:application --port 8000 --host 0.0.0.0 --workers 8
+or daphne :
+  daphne -b 0.0.0.0 -p 8000 application.asgi:application
 ~~~
 
 ### visit backend swagger
@@ -130,7 +125,7 @@ or uvicorn :
 ~~~shell
 docker-compose up -d
 # Initialize backend data (first execution only)
-docker exec -ti dvadmin3-django bash
+docker exec -ti dvadmin-django bash
 python manage.py makemigrations 
 python manage.py migrate
 python manage.py init_area
@@ -152,24 +147,22 @@ docker-compose up -d --build
 
 ## Demo screenshot✅
 
-![image-01](https://foruda.gitee.com/images/1701348994587355489/1bc749e7_5074988.png)
+![image-01](https://images.gitee.com/uploads/images/2022/0530/234137_b58c8f98_5074988.png)
 
-![image-02](https://foruda.gitee.com/images/1701349037811908960/80d361db_5074988.png)
+![image-02](https://images.gitee.com/uploads/images/2022/0530/234240_39834603_5074988.png)
 
-![image-03](https://foruda.gitee.com/images/1701349224478845203/954f0a7b_5074988.png)
+![image-03](https://images.gitee.com/uploads/images/2022/0530/234339_35e728a0_5074988.png)
 
-![image-04](https://foruda.gitee.com/images/1701349248928658877/64926724_5074988.png)
+![image-04](https://images.gitee.com/uploads/images/2022/0530/234426_957036b0_5074988.png)
 
-![image-05](https://foruda.gitee.com/images/1701349259068943299/1306ba40_5074988.png)
+![image-05](https://images.gitee.com/uploads/images/2022/0530/234458_898be492_5074988.png)
 
-![image-06](https://foruda.gitee.com/images/1701349294894429495/e3b3a8cf_5074988.png)
+![image-06](https://images.gitee.com/uploads/images/2022/0530/234521_35b40076_5074988.png)
 
-![image-07](https://foruda.gitee.com/images/1701350432536247561/3b26685e_5074988.png)
+![image-07](https://images.gitee.com/uploads/images/2022/0530/234615_c2325639_5074988.png)
 
-![image-08](https://foruda.gitee.com/images/1701350455264771992/b364c57f_5074988.png)
+![image-08](https://images.gitee.com/uploads/images/2022/0530/234639_1ed6cc93_5074988.png)
 
-![image-09](https://foruda.gitee.com/images/1701350479266000753/e4e4f7c5_5074988.png)
+![image-09](https://images.gitee.com/uploads/images/2022/0530/234815_cea2c53f_5074988.png)
 
-![image-10](https://foruda.gitee.com/images/1701350501421625746/f8dd215e_5074988.png)
-
-
+![image-10](https://images.gitee.com/uploads/images/2022/0530/234840_5f3e5f53_5074988.png)

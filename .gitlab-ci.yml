@@ -1,0 +1,4 @@
+# Jenkins 接管 CI/CD，禁用 GitLab CI
+workflow:
+  rules:
+    - when: never

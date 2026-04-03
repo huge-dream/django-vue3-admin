@@ -1,0 +1,60 @@
+pipeline {
+    agent any
+
+    environment {
+        HARBOR_URL = '192.168.80.90:8090'
+        HARBOR_PROJECT = 'pis'
+        IMAGE_NAME = 'pis-web'
+        CREDENTIALS_ID = 'harbor-credentials'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Image') {
+            steps {
+                script {
+                    def imageTag = "${HARBOR_URL}/${HARBOR_PROJECT}/${IMAGE_NAME}:${BUILD_NUMBER}"
+                    env.IMAGE_TAG = imageTag
+                    sh """
+                        docker build -f web/Dockerfile \
+                            -t ${imageTag} .
+                    """
+                }
+            }
+        }
+
+        stage('Push to Harbor') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(
+                        credentialsId: CREDENTIALS_ID,
+                        usernameVariable: 'HARBOR_USER',
+                        passwordVariable: 'HARBOR_PASS'
+                    )]) {
+                        sh """
+                            echo ${HARBOR_PASS} | docker login ${HARBOR_URL} -u ${HARBOR_USER} --password-stdin
+                            docker push ${IMAGE_TAG} || true
+                            docker tag ${IMAGE_TAG} ${HARBOR_URL}/${HARBOR_PROJECT}/${IMAGE_NAME}:latest
+                            docker push ${HARBOR_URL}/${HARBOR_PROJECT}/${IMAGE_NAME}:latest || true
+                            docker logout ${HARBOR_URL}
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo "Frontend Pipeline failed! Check Jenkins logs."
+        }
+        success {
+            echo "Frontend image pushed to Harbor: ${IMAGE_TAG}"
+        }
+    }
+}

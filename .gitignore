@@ -1,0 +1,16 @@
+/backend/venv
+/backend/.idea
+.idea
+
+.history/
+.vscode/
+web/package-lock.json
+
+*.bat
+
+# GSD planning files
+.planning/
+
+# Superpowers files
+docs/superpowers/
+.pids/
