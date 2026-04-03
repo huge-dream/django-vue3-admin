@@ -1,7 +1,7 @@
 from datetime import timedelta
 
 from django.utils import timezone
-from django.db.models import Count
+from django.db.models import Count, F
 from django.db.models.functions import TruncMonth
 from rest_framework import serializers, views
 from rest_framework.response import Response
@@ -16,6 +16,7 @@ class BuyerKPISerializer(serializers.Serializer):
     pending_inquiries = serializers.IntegerField()
     completed_quotes = serializers.IntegerField()
     total_suppliers = serializers.IntegerField()
+    quote_timely_rate = serializers.FloatField()
 
 
 class BuyerTaskSerializer(serializers.Serializer):
@@ -31,6 +32,9 @@ class SupplierKPISerializer(serializers.Serializer):
     pending_quotes = serializers.IntegerField()
     won_quotes = serializers.IntegerField()
     conversion_rate = serializers.FloatField()
+    quote_timely_rate = serializers.FloatField()
+    on_time_quotes = serializers.IntegerField()
+    overdue_quotes = serializers.IntegerField()
 
 
 class SupplierQuoteSerializer(serializers.Serializer):
@@ -39,6 +43,7 @@ class SupplierQuoteSerializer(serializers.Serializer):
     item_name = serializers.CharField()
     unit = serializers.CharField()
     deadline = serializers.DateTimeField()
+    status = serializers.IntegerField()
 
 
 class MessageSerializer(serializers.Serializer):
@@ -90,11 +95,27 @@ class DashboardView(views.APIView):
             ).values('inquiry_no')
         ).count()
         total_suppliers = Supplier.objects.count()
+
+        # 供应商报价及时率 = 在截止时间前提交的报价数 / 总报价数
+        buyer_quotations = QuotationMaster.objects.filter(
+            inquiry_no__in=Inquiry.objects.filter(
+                create_user=user.username
+            ).values('inquiry_no')
+        )
+        total_quotes = buyer_quotations.count()
+        timely_quotes = buyer_quotations.filter(
+            quotetime__isnull=False,
+            quote_deadline__isnull=False,
+            quotetime__lte=F('quote_deadline')
+        ).count()
+        quote_timely_rate = round(timely_quotes / total_quotes * 100, 1) if total_quotes > 0 else 0.0
+
         return {
             'total_inquiries': total_inquiries,
             'pending_inquiries': pending_inquiries,
             'completed_quotes': completed_quotes,
             'total_suppliers': total_suppliers,
+            'quote_timely_rate': quote_timely_rate,
         }
 
     def get_buyer_tasks(self, user):
@@ -116,36 +137,78 @@ class DashboardView(views.APIView):
 
     def get_supplier_kpi(self, user):
         """供应商 KPI 计算"""
-        total_quotes = QuotationMaster.objects.filter(supplier_code=user.username).count()
-        pending_quotes = QuotationMaster.objects.filter(
-            supplier_code=user.username, status__in=[1, 2]
-        ).count()
-        won_quotes = QuotationMaster.objects.filter(
-            supplier_code=user.username, is_awarded=1
-        ).count()
+        # 超级管理员看到所有供应商汇总数据
+        print(f"[DEBUG] get_supplier_kpi: is_superuser={user.is_superuser}, username={user.username}")
+        if user.is_superuser:
+            total_quotes = QuotationMaster.objects.count()
+            pending_quotes = QuotationMaster.objects.filter(status__in=[1, 2]).count()
+            won_quotes = QuotationMaster.objects.filter(is_awarded=1).count()
+            print(f"[DEBUG] superadmin KPI: total={total_quotes}, pending={pending_quotes}, won={won_quotes}")
+        else:
+            total_quotes = QuotationMaster.objects.filter(supplier_code=user.username).count()
+            pending_quotes = QuotationMaster.objects.filter(
+                supplier_code=user.username, status__in=[1, 2]
+            ).count()
+            won_quotes = QuotationMaster.objects.filter(
+                supplier_code=user.username, is_awarded=1
+            ).count()
         conversion_rate = (won_quotes / total_quotes * 100) if total_quotes > 0 else 0.0
+
+        # 及时率计算
+        if user.is_superuser:
+            all_quotes = QuotationMaster.objects.all()
+        else:
+            all_quotes = QuotationMaster.objects.filter(supplier_code=user.username)
+        total_with_deadline = all_quotes.filter(quote_deadline__isnull=False).count()
+        on_time_quotes = all_quotes.filter(
+            quotetime__isnull=False,
+            quote_deadline__isnull=False,
+            quotetime__lte=F('quote_deadline')
+        ).count()
+        overdue_quotes = total_with_deadline - on_time_quotes
+        quote_timely_rate = round(on_time_quotes / total_with_deadline * 100, 1) if total_with_deadline > 0 else 0.0
+
         return {
             'total_quotes': total_quotes,
             'pending_quotes': pending_quotes,
             'won_quotes': won_quotes,
             'conversion_rate': round(conversion_rate, 2),
+            'quote_timely_rate': quote_timely_rate,
+            'on_time_quotes': on_time_quotes,
+            'overdue_quotes': overdue_quotes,
         }
 
     def get_supplier_pending_quotes(self, user):
         """供应商待报价清单"""
-        quotes = QuotationMaster.objects.filter(
-            supplier_code=user.username,
-            status__in=[1, 2]
-        ).order_by('-creattime')[:10]
+        # 超级管理员看到所有待报价，供应商只看自己的
+        if user.is_superuser:
+            quotes = QuotationMaster.objects.filter(status__in=[1, 2]).order_by('-creattime')[:10]
+        else:
+            quotes = QuotationMaster.objects.filter(
+                supplier_code=user.username,
+                status__in=[1, 2]
+            ).order_by('-creattime')[:10]
         result = []
         for q in quotes:
             inquiry = Inquiry.objects.filter(inquiry_no=q.inquiry_no).first()
+            # 获取询价单中的数量
+            quantity = ''
+            quantity = ''
+            unit = ''
+            if inquiry:
+                from apps.pisadmin.miscprocurement.models import InquiryRfqItem
+                item = InquiryRfqItem.objects.filter(inquiry_no=q.inquiry_no).first()
+                if item:
+                    quantity = item.qty
+                    unit = item.unit or ''
             result.append({
                 'id': q.autoid,
                 'inquiry_no': q.inquiry_no,
                 'item_name': inquiry.title if inquiry else '',
-                'unit': '',
+                'quantity': quantity,
+                'unit': unit,
                 'deadline': q.quote_deadline,
+                'status': q.status,
             })
         return result
 
@@ -168,30 +231,53 @@ class DashboardView(views.APIView):
                 for d in data
             ]
         else:
-            data = (
-                QuotationMaster.objects.filter(
-                    supplier_code=user.username,
-                    creattime__gte=six_months_ago
+            # 超级管理员看到所有供应商汇总趋势
+            if user.is_superuser:
+                data = (
+                    QuotationMaster.objects.filter(creattime__gte=six_months_ago)
+                    .annotate(month=TruncMonth('creattime'))
+                    .values('month')
+                    .annotate(quotes=Count('autoid'))
+                    .order_by('month')
                 )
-                .annotate(month=TruncMonth('creattime'))
-                .values('month')
-                .annotate(quotes=Count('id'))
-                .order_by('month')
-            )
-            result = []
-            for d in data:
-                won = QuotationMaster.objects.filter(
-                    supplier_code=user.username,
-                    creattime__month=d['month'].month,
-                    creattime__year=d['month'].year,
-                    is_awarded=1
-                ).count()
-                result.append({
-                    'month': d['month'].strftime('%Y-%m'),
-                    'quotes': d['quotes'],
-                    'won': won,
-                })
-            return result
+                result = []
+                for d in data:
+                    won = QuotationMaster.objects.filter(
+                        creattime__month=d['month'].month,
+                        creattime__year=d['month'].year,
+                        is_awarded=1
+                    ).count()
+                    result.append({
+                        'month': d['month'].strftime('%Y-%m'),
+                        'quotes': d['quotes'],
+                        'won': won,
+                    })
+                return result
+            else:
+                data = (
+                    QuotationMaster.objects.filter(
+                        supplier_code=user.username,
+                        creattime__gte=six_months_ago
+                    )
+                    .annotate(month=TruncMonth('creattime'))
+                    .values('month')
+                    .annotate(quotes=Count('autoid'))
+                    .order_by('month')
+                )
+                result = []
+                for d in data:
+                    won = QuotationMaster.objects.filter(
+                        supplier_code=user.username,
+                        creattime__month=d['month'].month,
+                        creattime__year=d['month'].year,
+                        is_awarded=1
+                    ).count()
+                    result.append({
+                        'month': d['month'].strftime('%Y-%m'),
+                        'quotes': d['quotes'],
+                        'won': won,
+                    })
+                return result
 
     def get_messages(self, user):
         """消息通知 - 占位实现，后续接入通知系统"""
@@ -256,17 +342,20 @@ class DashboardView(views.APIView):
                 buyer_data = self.get_buyer_data(user)
             except Exception:
                 buyer_data = {
-                    'kpi': {'total_inquiries': 0, 'pending_inquiries': 0, 'completed_quotes': 0, 'total_suppliers': 0},
+                    'kpi': {'total_inquiries': 0, 'pending_inquiries': 0, 'completed_quotes': 0, 'total_suppliers': 0, 'quote_timely_rate': 0},
                     'tasks': [],
                     'messages': [],
                     'trend': [],
                 }
 
         # 供应商看板：超级管理员或有任何供应商记录的用户
+        print(f"[DEBUG] user.is_superuser={user.is_superuser}, has_supplier_role={has_supplier_role}")
         if user.is_superuser or has_supplier_role:
+            print(f"[DEBUG] 进入供应商看板分支")
             try:
                 supplier_data = self.get_supplier_data(user)
-            except Exception:
+            except Exception as e:
+                print(f"[DEBUG] 供应商看板异常: {e}")
                 supplier_data = {
                     'kpi': {'total_quotes': 0, 'pending_quotes': 0, 'won_quotes': 0, 'conversion_rate': 0},
                     'pending_quotes': [],
