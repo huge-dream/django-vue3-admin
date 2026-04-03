@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from decimal import Decimal
 from datetime import datetime
 from typing import Optional
@@ -217,8 +218,9 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
     制程最低价落库（与比价展开明细一致）：
     - 前端比价展开不依赖成本结构模板：材料按材质分组仅展示重量/单价/材料费用，加工按工站分组仅展示加工费；落库口径仍按下列规则。
     - 询价单下**每个上阶物料料号**单独一套主/次表数据（多料号互不合并）。
-    - **材料**：次表两行分别记录最低重量、最低单价；souce_no 为取得该最小值对应的报价单单号，单价若来自「杂采材料信息」
+    - **材料**：次表按材质分组记录，每组两行（最低重量、最低单价）；souce_no 为取得该最小值对应的报价单单号，单价若来自「杂采材料信息」
       则存交易厂区（factory）；主表材料行 souce_no 聚合为 W:…;U:…（重量来源与单价来源可能不同）。
+      主表材料行的 min_price 是所有材质分组的（最低重量×最低单价×数量）之和。
     - **加工**：仅主表一行（无次表、不按工站）；每报价单合计加工费后取最小，全空/全 0 仍写入 MinPrice=0。
     - 注意：材料行必须用 quotation_no__in=报价单号列表 过滤，勿用 QuerySet(QuotationMaster) 作 __in，否则 ORM 按主键匹配会查不到材料行。
     - **其它**：包装费、运输费分列取 min（优先 sup_quotation_other；无则用上阶物料 total_other_expense 回退）。采购端比价主表「其它成本」行制程最低价列与「加工成本」相同，可链向合计最低的报价单详情。
@@ -248,74 +250,118 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
         MiscLowPriceHeader.objects.filter(inquiry_no=inquiry_no, part_id=pid).delete()
         MiscLowPriceDetail.objects.filter(inquiry_no=inquiry_no, part_id=pid).delete()
 
-        # —— 材料：次表两行（重量、单价）；主表 = 最低重量×最低单价×数量。
+        # —— 材料：按材质规格分组，每组次表两行（重量、单价）；主表 = 所有分组的（最低重量×最低单价×数量）之和。
         # FK 须用报价单单号列表：quotation_no__in=QuerySet(QuotationMaster) 会按主键匹配，导致材料行查不到。
         materials = QuotationMaterial.objects.filter(quotation_no__in=qn_list, part_id=pid)
-        weight_candidates: list[tuple[Decimal, str]] = []
-        unit_candidates: list[tuple[Decimal, str]] = []
+
+        # 按材质规格分组收集候选值
+        from collections import defaultdict
+        spec_weight_candidates: dict[str, list[tuple[Decimal, str]]] = defaultdict(list)
+        spec_unit_candidates: dict[str, list[tuple[Decimal, str]]] = defaultdict(list)
+
         for m in materials:
             qn_src = getattr(m, "quotation_no_id", None) or ""
             qn_src = str(qn_src).strip()
+            spec = (getattr(m, "material_spec", None) or "").strip() or "-"
             if m.weight is not None:
                 try:
                     w = Decimal(str(m.weight))
-                    weight_candidates.append((w, qn_src))
+                    spec_weight_candidates[spec].append((w, qn_src))
                 except Exception:
                     pass
             if m.unit_price is not None:
                 try:
                     up = Decimal(str(m.unit_price))
-                    unit_candidates.append((up, qn_src))
+                    spec_unit_candidates[spec].append((up, qn_src))
                 except Exception:
                     pass
+
+        # 杂采材料信息：单价适用于所有材质分组
+        misc_unit_candidates: list[tuple[Decimal, str]] = []
         for mi in MiscProcurementMaterialInfo.objects.filter(status=1).only("price", "factory"):
             if mi.price is not None:
                 try:
                     up = Decimal(str(mi.price))
                     fac = (getattr(mi, "factory", None) or "").strip() or "MISC"
-                    unit_candidates.append((up, fac))
+                    misc_unit_candidates.append((up, fac))
                 except Exception:
                     pass
 
-        detail_spec = "-"
-        min_w_row = min(weight_candidates, key=lambda t: (t[0], t[1])) if weight_candidates else None
-        min_up_row = min(unit_candidates, key=lambda t: (t[0], t[1])) if unit_candidates else None
-        min_w = min_w_row[0] if min_w_row else None
-        min_up = min_up_row[0] if min_up_row else None
-        src_w = min_w_row[1] if min_w_row else None
-        src_up = min_up_row[1] if min_up_row else None
         qty_dec = _rfq_qty_decimal(inquiry, pid)
+        total_material_low = Decimal("0")
+        all_src_w_list: list[str] = []
+        all_src_up_list: list[str] = []
 
-        if min_w is not None:
-            MiscLowPriceDetail.objects.create(
-                inquiry_no=inquiry_no,
-                part_id=pid,
-                cost_type="1",
-                material_spec=detail_spec[:50],
-                item_no="1",
-                value=_clip_price_str(min_w),
-                souce_no=_norm_low_price_src((src_w or souce_ref)),
-            )
-        if min_up is not None:
-            MiscLowPriceDetail.objects.create(
-                inquiry_no=inquiry_no,
-                part_id=pid,
-                cost_type="1",
-                material_spec=detail_spec[:50],
-                item_no="2",
-                value=_clip_price_str(min_up),
-                souce_no=_norm_low_price_src((src_up or souce_ref)),
-            )
+        # 获取所有材质规格（有重量或单价数据的）
+        all_specs = set(spec_weight_candidates.keys()) | set(spec_unit_candidates.keys())
 
-        if min_w is not None and min_up is not None and qty_dec is not None and qty_dec > 0:
-            material_low = min_w * min_up * qty_dec
+        for spec in all_specs:
+            weight_candidates = spec_weight_candidates.get(spec, [])
+            unit_candidates = spec_unit_candidates.get(spec, [])
+
+            # 杂采单价也加入该分组的单价候选
+            unit_candidates = unit_candidates + misc_unit_candidates
+
+            min_w_row = min(weight_candidates, key=lambda t: (t[0], t[1])) if weight_candidates else None
+            min_up_row = min(unit_candidates, key=lambda t: (t[0], t[1])) if unit_candidates else None
+            min_w = min_w_row[0] if min_w_row else None
+            min_up = min_up_row[0] if min_up_row else None
+            src_w = min_w_row[1] if min_w_row else None
+            src_up = min_up_row[1] if min_up_row else None
+
+            # 判断是否来自杂采材料信息
+            is_misc_src = False
+            if min_up is not None and misc_unit_candidates:
+                for misc_up, misc_fac in misc_unit_candidates:
+                    if abs(min_up - misc_up) < Decimal("0.0001"):
+                        is_misc_src = True
+                        break
+
+            # 写入次表：最低重量
+            if min_w is not None:
+                MiscLowPriceDetail.objects.create(
+                    inquiry_no=inquiry_no,
+                    part_id=pid,
+                    cost_type="1",
+                    material_spec=spec[:50],
+                    item_no="1",
+                    value=_clip_price_str(min_w),
+                    souce_no=_norm_low_price_src((src_w or souce_ref)),
+                )
+                if src_w:
+                    all_src_w_list.append(src_w)
+
+            # 写入次表：最低单价
+            if min_up is not None:
+                MiscLowPriceDetail.objects.create(
+                    inquiry_no=inquiry_no,
+                    part_id=pid,
+                    cost_type="1",
+                    material_spec=spec[:50],
+                    item_no="2",
+                    value=_clip_price_str(min_up),
+                    souce_no=_norm_low_price_src((src_up or souce_ref)) if not is_misc_src else _norm_low_price_src(src_up or souce_ref),
+                )
+                if src_up:
+                    all_src_up_list.append(src_up)
+
+            # 累加到总材料费用
+            if min_w is not None and min_up is not None and qty_dec is not None and qty_dec > 0:
+                spec_material_low = min_w * min_up * qty_dec
+                total_material_low += spec_material_low
+
+        # 写入主表材料行：所有分组的材料费用总和
+        if total_material_low > 0:
+            # 聚合来源：W:所有重量来源; U:所有单价来源
+            aggregated_src_w = ",".join(sorted(set(all_src_w_list))) if all_src_w_list else None
+            aggregated_src_up = ",".join(sorted(set(all_src_up_list))) if all_src_up_list else None
             MiscLowPriceHeader.objects.create(
                 inquiry_no=inquiry_no,
                 part_id=pid,
-                souce_no=_material_cost_header_souce_no(src_w, src_up) or None,
+                souce_no=_material_cost_header_souce_no(aggregated_src_w, aggregated_src_up) or None,
                 cost_type="1",
                 item_no="材料",
-                min_price=_clip_price_str(material_low),
+                min_price=_clip_price_str(total_material_low),
             )
 
         # —— 加工：仅主表一行，无次表、不按工站。每份报价单对该料号加工费合计（空/缺省按 0），再取最小；

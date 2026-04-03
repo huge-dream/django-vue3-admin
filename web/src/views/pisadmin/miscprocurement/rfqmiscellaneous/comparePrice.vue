@@ -742,7 +742,7 @@ const findProcessRowByStation = (q: any, station: string) => {
   return (q.process_costs || []).find((r: any) => String(r.process_station || '').trim() === t)
 }
 
-/** 材料成本展开：按材料规格分组；「制程最低价」列对重量/单价/材料费用行使用全局口径（与后端落库一致） */
+/** 材料成本展开：按材料规格分组；「制程最低价」列对每个材质分组单独计算最低价 */
 const buildMaterialDetailGroups = (
   quotes: any[],
   supplierKeys: string[],
@@ -770,7 +770,8 @@ const buildMaterialDetailGroups = (
       const allDash = supplierKeys.every((sup) => values[sup] === '-')
       if (allDash) continue
       const line: ComparisonDetailRow = { label: m.label, values, isText: m.isText, ...calcCompareStats(values) }
-      if (lowPriceCtx) applyMaterialDetailLowPriceMin(line, m, lowPriceCtx, supplierKeys)
+      // 传入当前材质规格，使每个分组使用各自的最低价数据
+      if (lowPriceCtx) applyMaterialDetailLowPriceMin(line, m, lowPriceCtx, supplierKeys, spec)
       lines.push(line)
     }
     if (lines.length) groups.push({ title: spec || '材料', lines })
@@ -939,8 +940,9 @@ const buildComparisonRowsFromPisQuotes = (
 
   const matRow = rows.find((r) => r.key === 'material')
   if (matRow && materialGroups.length) matRow.detailGroups = materialGroups
-  if (matRow && lp?.materialProduct != null) {
-    matRow.min = lp.materialProduct
+  // 材料成本行的制程最低价是所有材质分组材料费用的总和
+  if (matRow && lp?.totalMaterialProduct != null) {
+    matRow.min = lp.totalMaterialProduct
     matRow.minLink = buildMaterialCostMinLink(lp, quotes, {
       materialRowValues: matRow.values,
       supplierKeys

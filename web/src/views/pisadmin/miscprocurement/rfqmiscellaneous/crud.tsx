@@ -314,20 +314,35 @@ export type CompareMinLink =
       unitPriceSource: string
     }
 
+/** 单个材质分组的最低价数据 */
+export type MaterialSpecLowPrice = {
+  /** 材质规格名称 */
+  spec: string
+  /** 最低重量 */
+  minW?: number
+  /** 最低单价 */
+  minUp?: number
+  /** 材料费用 = 最低重量 × 最低单价 × 数量 */
+  materialProduct?: number
+  /** 最低重量所在报价单主键 */
+  minWeightQuotationId?: string | number
+  /** 最低单价所在报价单主键（若最低单价由杂采材料信息决定则为空） */
+  minUnitPriceQuotationId?: string | number
+  /** 仅当杂采单价严格低于所有报价单价时，单价/材料成本链向杂采材料管理 */
+  minUnitPriceFromMisc?: boolean
+  /** 杂采材料最低价对应交易厂区 */
+  miscMinFactory?: string
+}
+
 /** 与后端制程最低价落库一致：全报价最低重量/最低单价（单价含杂采材料信息）、材料费=三者乘积；加工费=各报价单加工费合计之最小值 */
 export type LowPriceMinContext = {
-  minW?: number
-  minUp?: number
-  materialProduct?: number
+  /** 按材质规格分组的最低价数据（每个材质单独计算最低价） */
+  materialSpecs: MaterialSpecLowPrice[]
+  /** 所有材质分组的材料费用总和（用于材料成本行的制程最低价） */
+  totalMaterialProduct?: number
   minProcessTotal?: number
   pid: string
-  /** 全报价中材料明细最低重量所在报价单主键 */
-  minWeightQuotationId?: string | number
-  /** 全报价中材料明细最低单价所在报价单主键（若最低单价由杂采材料信息决定则为空） */
-  minUnitPriceQuotationId?: string | number
-  /** 仅当杂采单价严格低于所有报价单价时，单价/材料成本链向杂采材料管理；与报价持平或更高则链向报价单 */
-  minUnitPriceFromMisc?: boolean
-  /** 杂采材料最低价对应交易厂区（与杂采材料表 factory 等字段一致，供浮窗） */
+  /** 杂采材料最低价对应交易厂区（全局，供浮窗） */
   miscMinFactory?: string
 }
 
@@ -359,64 +374,99 @@ export function computeLowPriceMinContext(
 ): LowPriceMinContext {
   const pid = String(quotes[0]?.rfq_items?.[0]?.part_id || '').trim()
   const qty = Number(quotes[0]?.rfq_items?.[0]?.qty)
-  let minW: number | undefined
-  /** 各报价单材料行单价之最小值（不含杂采） */
-  let minQuoteUp: number | undefined
-  let minWeightQuotationId: string | number | undefined
-  let minUnitPriceQuotationId: string | number | undefined
   const qid = (q: any) => q?.autoid ?? q?.id
 
-  for (const q of quotes) {
-    for (const r of q.material_costs || []) {
-      if (pid && String(r.part_id || '').trim() !== pid) continue
-      const w = Number(r.weight)
-      if (Number.isFinite(w)) {
-        if (minW === undefined || w < minW) {
-          minW = w
-          minWeightQuotationId = qid(q)
+  // 收集所有材质规格
+  const specs = new Set<string>()
+  quotes.forEach((q) => {
+    ;(q.material_costs || []).forEach((r: any) => {
+      if (pid && String(r.part_id || '').trim() !== pid) return
+      const spec = String(r.material_spec || '').trim() || '材料'
+      specs.add(spec)
+    })
+  })
+
+  // 为每个材质规格计算最低价
+  const materialSpecs: MaterialSpecLowPrice[] = []
+  let totalMaterialProduct = 0
+
+  for (const spec of specs) {
+    let specMinW: number | undefined
+    let specMinQuoteUp: number | undefined
+    let specMinWeightQuotationId: string | number | undefined
+    let specMinUnitPriceQuotationId: string | number | undefined
+
+    // 遍历所有报价单，找出该材质规格的最低重量和最低单价
+    for (const q of quotes) {
+      for (const r of q.material_costs || []) {
+        if (pid && String(r.part_id || '').trim() !== pid) continue
+        const rSpec = String(r.material_spec || '').trim() || '材料'
+        if (rSpec !== spec) continue
+
+        const w = Number(r.weight)
+        if (Number.isFinite(w)) {
+          if (specMinW === undefined || w < specMinW) {
+            specMinW = w
+            specMinWeightQuotationId = qid(q)
+          }
         }
-      }
-      const up = Number(r.unit_price)
-      if (Number.isFinite(up)) {
-        if (minQuoteUp === undefined || up < minQuoteUp) {
-          minQuoteUp = up
-          minUnitPriceQuotationId = qid(q)
+        const up = Number(r.unit_price)
+        if (Number.isFinite(up)) {
+          if (specMinQuoteUp === undefined || up < specMinQuoteUp) {
+            specMinQuoteUp = up
+            specMinUnitPriceQuotationId = qid(q)
+          }
         }
       }
     }
-  }
 
-  let minUp: number | undefined = minQuoteUp
-  let minUnitPriceFromMisc = false
-  let miscFactoryOut: string | undefined
-  const pickMiscFactory = () => {
-    const f = miscMinFactory != null && String(miscMinFactory).trim() !== '' ? String(miscMinFactory).trim() : ''
-    if (f) miscFactoryOut = f
-  }
+    // 考虑杂采材料信息的单价
+    let specMinUp = specMinQuoteUp
+    let specMinUnitPriceFromMisc = false
+    let specMiscMinFactory: string | undefined
 
-  if (miscMinUnitPrice != null && Number.isFinite(miscMinUnitPrice)) {
-    const misc = miscMinUnitPrice
-    if (minQuoteUp === undefined) {
-      minUp = misc
-      minUnitPriceFromMisc = true
-      minUnitPriceQuotationId = undefined
-      pickMiscFactory()
-    } else if (misc < minQuoteUp && !_nearlyEqualMin(misc, minQuoteUp)) {
-      /** 仅当杂采单价严格低于所有报价单价时，制程最低价单价才记为来自杂采 */
-      minUp = misc
-      minUnitPriceFromMisc = true
-      minUnitPriceQuotationId = undefined
-      pickMiscFactory()
-    } else {
-      /** 杂采高于或与最低报价持平：取 min(报价最低, 杂采)，来源优先报价单（含持平） */
-      minUp = Math.min(minQuoteUp, misc)
-      minUnitPriceFromMisc = false
+    if (miscMinUnitPrice != null && Number.isFinite(miscMinUnitPrice)) {
+      const misc = miscMinUnitPrice
+      if (specMinQuoteUp === undefined) {
+        specMinUp = misc
+        specMinUnitPriceFromMisc = true
+        specMinUnitPriceQuotationId = undefined
+        specMiscMinFactory = miscMinFactory != null && String(miscMinFactory).trim() !== ''
+          ? String(miscMinFactory).trim()
+          : undefined
+      } else if (misc < specMinQuoteUp && !_nearlyEqualMin(misc, specMinQuoteUp)) {
+        specMinUp = misc
+        specMinUnitPriceFromMisc = true
+        specMinUnitPriceQuotationId = undefined
+        specMiscMinFactory = miscMinFactory != null && String(miscMinFactory).trim() !== ''
+          ? String(miscMinFactory).trim()
+          : undefined
+      } else {
+        specMinUp = Math.min(specMinQuoteUp, misc)
+        specMinUnitPriceFromMisc = false
+      }
     }
+
+    // 计算该材质的材料费用（最低重量 × 最低单价 × 数量）
+    let specMaterialProduct: number | undefined
+    if (specMinW !== undefined && specMinUp !== undefined && Number.isFinite(qty) && qty > 0) {
+      specMaterialProduct = specMinW * specMinUp * qty
+      totalMaterialProduct += specMaterialProduct
+    }
+
+    materialSpecs.push({
+      spec,
+      minW: specMinW,
+      minUp: specMinUp,
+      materialProduct: specMaterialProduct,
+      minWeightQuotationId: specMinWeightQuotationId,
+      minUnitPriceQuotationId: specMinUnitPriceQuotationId,
+      minUnitPriceFromMisc: specMinUnitPriceFromMisc,
+      miscMinFactory: specMiscMinFactory
+    })
   }
-  let materialProduct: number | undefined
-  if (minW !== undefined && minUp !== undefined && Number.isFinite(qty) && qty > 0) {
-    materialProduct = minW * minUp * qty
-  }
+
+  // 加工成本：各报价单加工费合计之最小值（不按工站分组）
   let minProcessTotal: number | undefined
   for (const q of quotes) {
     let s = 0
@@ -431,20 +481,19 @@ export function computeLowPriceMinContext(
     }
     if (ok) minProcessTotal = minProcessTotal === undefined ? s : Math.min(minProcessTotal, s)
   }
+
   return {
-    minW,
-    minUp,
-    materialProduct,
+    materialSpecs,
+    totalMaterialProduct: totalMaterialProduct || undefined,
     minProcessTotal,
     pid,
-    minWeightQuotationId,
-    minUnitPriceQuotationId,
-    minUnitPriceFromMisc,
-    miscMinFactory: miscFactoryOut
+    miscMinFactory: miscMinFactory != null && String(miscMinFactory).trim() !== ''
+      ? String(miscMinFactory).trim()
+      : undefined
   }
 }
 
-/** 主表「材料成本」制程最低价：同源则链向报价单详情，异源则链样式 + 浮窗说明分项来源 */
+/** 主表「材料成本」制程最低价：材料成本行的最低价是所有材质分组材料费用的总和 */
 export function buildMaterialCostMinLink(
   ctx: LowPriceMinContext,
   quotes: any[],
@@ -455,65 +504,103 @@ export function buildMaterialCostMinLink(
     !!opts.supplierKeys?.length &&
     allCompareSupplierValuesEqual(opts.materialRowValues, opts.supplierKeys)
 
-  /** 各报价一致且杂采单价严格低于所有报价：制程最低价指向杂采材料管理 */
-  if (materialAllEqual && ctx.minUnitPriceFromMisc) {
-    return {
-      kind: 'misc_materials',
-      sourceFactory: ctx.miscMinFactory
-    }
-  }
   if (materialAllEqual) {
     return null
   }
-  if (ctx.materialProduct === undefined) return null
-  const w = ctx.minW
-  const up = ctx.minUp
-  if (w === undefined || up === undefined || !Number.isFinite(w) || !Number.isFinite(up)) return null
 
-  const wid = ctx.minWeightQuotationId
-  const uid = ctx.minUnitPriceQuotationId
-  const misc = ctx.minUnitPriceFromMisc
+  // 材料成本行使用 totalMaterialProduct（所有材质分组的材料费用总和）
+  if (ctx.totalMaterialProduct === undefined) return null
 
-  const quoteLabel = (qid: string | number | undefined) => {
-    if (qid == null || qid === '') return ''
-    const q = quotes.find((x) => String(x.autoid ?? x.id) === String(qid))
-    const name = String(q?.supplier_name || q?.supplierName || '').trim()
-    const code = String(q?.supplier_code || q?.supplierCode || '').trim()
-    const label = name || code
-    return label || `报价单 #${qid}`
+  // 如果只有一个材质分组，可以链向该分组的来源
+  if (ctx.materialSpecs.length === 1) {
+    const spec = ctx.materialSpecs[0]
+    if (spec.minUnitPriceFromMisc) {
+      return {
+        kind: 'misc_materials',
+        sourceFactory: spec.miscMinFactory
+      }
+    }
+    // 如果重量和单价来自同一个报价单，链向该报价单
+    const wid = spec.minWeightQuotationId
+    const uid = spec.minUnitPriceQuotationId
+    if (wid != null && wid !== '' && uid != null && uid !== '' && String(wid) === String(uid)) {
+      return { kind: 'quotation', id: wid }
+    }
+    // 否则显示拆分来源
+    const quoteLabel = (qid: string | number | undefined) => {
+      if (qid == null || qid === '') return ''
+      const q = quotes.find((x) => String(x.autoid ?? x.id) === String(qid))
+      const name = String(q?.supplier_name || q?.supplierName || '').trim()
+      const code = String(q?.supplier_code || q?.supplierCode || '').trim()
+      return name || code || `报价单 #${qid}`
+    }
+    return {
+      kind: 'material_cost_split',
+      weight: spec.minW ?? 0,
+      unitPrice: spec.minUp ?? 0,
+      weightSource: quoteLabel(wid) || '—',
+      unitPriceSource: spec.minUnitPriceFromMisc ? '杂采材料信息' : quoteLabel(uid) || '—'
+    }
   }
 
-  const weightSrc = quoteLabel(wid)
-  const unitSrc = misc ? '杂采材料信息' : quoteLabel(uid)
-
-  const sameQuotation =
-    !misc && wid != null && wid !== '' && uid != null && uid !== '' && String(wid) === String(uid)
-
-  if (sameQuotation) {
-    return { kind: 'quotation', id: wid }
+  // 多个材质分组时，如果有任何一个分组使用了杂采材料信息，显示杂采来源
+  const hasMiscSource = ctx.materialSpecs.some((s) => s.minUnitPriceFromMisc)
+  if (hasMiscSource) {
+    // 找到第一个使用杂采的分组的厂区信息
+    const miscSpec = ctx.materialSpecs.find((s) => s.minUnitPriceFromMisc)
+    if (miscSpec) {
+      return {
+        kind: 'misc_materials',
+        sourceFactory: miscSpec.miscMinFactory
+      }
+    }
   }
 
-  return {
-    kind: 'material_cost_split',
-    weight: w,
-    unitPrice: up,
-    weightSource: weightSrc || '—',
-    unitPriceSource: unitSrc || '—'
+  // 多个材质分组，显示拆分来源（使用第一个分组的来源信息作为代表）
+  const firstSpec = ctx.materialSpecs[0]
+  if (firstSpec) {
+    const quoteLabel = (qid: string | number | undefined) => {
+      if (qid == null || qid === '') return ''
+      const q = quotes.find((x) => String(x.autoid ?? x.id) === String(qid))
+      const name = String(q?.supplier_name || q?.supplierName || '').trim()
+      const code = String(q?.supplier_code || q?.supplierCode || '').trim()
+      return name || code || `报价单 #${qid}`
+    }
+    return {
+      kind: 'material_cost_split',
+      weight: firstSpec.minW ?? 0,
+      unitPrice: firstSpec.minUp ?? 0,
+      weightSource: quoteLabel(firstSpec.minWeightQuotationId) || '—',
+      unitPriceSource: quoteLabel(firstSpec.minUnitPriceQuotationId) || '—'
+    }
   }
+
+  return null
 }
 
-/** 展开仍按规格分行时，「制程最低价」列用全局口径覆盖该行 min */
+/** 展开仍按规格分行时，「制程最低价」列按材质分组口径覆盖该行 min */
 export function applyMaterialDetailLowPriceMin(
   line: { min?: number; minLink?: CompareMinLink | null; values: Record<string, any> },
   m: ComparisonDetailMetric,
   ctx: LowPriceMinContext,
-  supplierKeys?: string[]
+  supplierKeys?: string[],
+  /** 当前行的材质规格，用于查找对应分组的最低价数据 */
+  spec?: string
 ): void {
   const fk = m.fieldKey ? normCmpTplKey(m.fieldKey) : ''
   const label = String(m.label || '').trim()
-  if (ctx.minW !== undefined && (fk === 'weight' || /用量|重量/.test(label))) {
-    line.min = ctx.minW
-    const qid = ctx.minWeightQuotationId
+
+  // 找到当前材质规格对应的最低价数据
+  const specData = spec
+    ? ctx.materialSpecs.find((s) => s.spec === spec)
+    : ctx.materialSpecs[0]
+
+  if (!specData) return
+
+  // 重量行：使用该材质分组的最低重量
+  if (specData.minW !== undefined && (fk === 'weight' || /用量|重量/.test(label))) {
+    line.min = specData.minW
+    const qid = specData.minWeightQuotationId
     line.minLink =
       qid != null && qid !== ''
         ? { kind: 'quotation', id: qid }
@@ -523,17 +610,19 @@ export function applyMaterialDetailLowPriceMin(
     }
     return
   }
+
+  // 单价行：使用该材质分组的最低单价
   const isUnitPriceRow =
     fk === 'unitprice' || /材料单价/.test(label) || label === '单价'
-  if (ctx.minUp !== undefined && isUnitPriceRow) {
-    line.min = ctx.minUp
-    if (ctx.minUnitPriceFromMisc) {
+  if (specData.minUp !== undefined && isUnitPriceRow) {
+    line.min = specData.minUp
+    if (specData.minUnitPriceFromMisc) {
       line.minLink = {
         kind: 'misc_materials',
-        sourceFactory: ctx.miscMinFactory
+        sourceFactory: specData.miscMinFactory
       }
     } else {
-      const qid = ctx.minUnitPriceQuotationId
+      const qid = specData.minUnitPriceQuotationId
       line.minLink =
         qid != null && qid !== ''
           ? { kind: 'quotation', id: qid }
@@ -542,14 +631,16 @@ export function applyMaterialDetailLowPriceMin(
     if (
       supplierKeys?.length &&
       allCompareSupplierValuesEqual(line.values, supplierKeys) &&
-      !ctx.minUnitPriceFromMisc
+      !specData.minUnitPriceFromMisc
     ) {
       line.minLink = null
     }
     return
   }
-  if (ctx.materialProduct !== undefined && (fk === 'materialcost' || /材料费用|材料费/.test(label))) {
-    line.min = ctx.materialProduct
+
+  // 材料费用行：使用该材质分组的材料费用（最低重量 × 最低单价 × 数量）
+  if (specData.materialProduct !== undefined && (fk === 'materialcost' || /材料费用|材料费/.test(label))) {
+    line.min = specData.materialProduct
     line.minLink = null
   }
 }
