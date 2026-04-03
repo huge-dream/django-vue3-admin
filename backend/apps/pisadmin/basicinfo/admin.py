@@ -25,7 +25,7 @@ class SupplierAdmin(admin.ModelAdmin):
 
 @admin.register(SupplierUser)
 class SupplierUserAdmin(admin.ModelAdmin):
-    list_display = ['supplier_id', 'supplier_name', 'user_email', 'user_name', 'company_code', 'status']
+    list_display = ['supplier_id', 'supplier_name', 'user_email', 'user_name', 'status']
     search_fields = ['supplier_id', 'supplier_name', 'user_email', 'user_name']
 
 

@@ -18,11 +18,11 @@
           <div class="info-item"><span class="label">询价单号</span><span class="value">{{ displayTextEmpty(comparisonDialog.baseInfo.code) }}</span></div>
           <div class="info-item"><span class="label">采购件料号</span><span class="value">{{ displayTextEmpty(comparisonDialog.baseInfo.partNo) }}</span></div>
           <div class="info-item"><span class="label">采购件名称</span><span class="value">{{ displayTextEmpty(comparisonDialog.baseInfo.partName) }}</span></div>
-          <div class="info-item"><span class="label">目标价格</span><span class="value">{{ displayNumericEmpty(comparisonDialog.baseInfo.targetPrice) }}</span></div>
+          <div class="info-item"><span class="label">目标价格</span><span class="value">{{ compareNumericDisplay(comparisonDialog.baseInfo.targetPrice) }}</span></div>
           <div class="info-item"><span class="label">交易币别</span><span class="value">{{ displayTextEmpty(comparisonDialog.baseInfo.currency) }}</span></div>
           <div class="info-item"><span class="label">税率</span><span class="value">{{ displayPercentRate(comparisonDialog.baseInfo.taxRate) }}</span></div>
-          <div class="info-item"><span class="label">当前成交价</span><span class="value">{{ displayNumericEmpty(comparisonDialog.baseInfo.dealPrice) }}</span></div>
-          <div class="info-item"><span class="label">制程最低价</span><span class="value">{{ displayNumericEmpty(comparisonDialog.baseInfo.lowestProcessPrice) }}</span></div>
+          <div class="info-item"><span class="label">当前成交价</span><span class="value">{{ compareNumericDisplay(comparisonDialog.baseInfo.dealPrice) }}</span></div>
+          <div class="info-item"><span class="label">制程最低价</span><span class="value">{{ compareNumericDisplay(comparisonDialog.baseInfo.lowestProcessPrice) }}</span></div>
         </div>
 
         <el-table
@@ -37,12 +37,12 @@
           @expand-change="handleComparisonExpandChange"
         >
           <el-table-column type="expand" width="1" class-name="hidden-expand" header-class-name="hidden-expand">
-            <template #default="{ row }">
+            <template #default="{ row: parentRow }">
               <div class="compare-detail">
-                <template v-if="row.detailGroups && row.detailGroups.length">
-                  <div v-for="grp in row.detailGroups" :key="grp.title" class="compare-detail-group">
+                <template v-if="parentRow.detailGroups && parentRow.detailGroups.length">
+                  <div v-for="grp in parentRow.detailGroups" :key="grp.title" class="compare-detail-group">
                     <div class="compare-detail-group-title">{{ grp.title }}</div>
-                    <el-table :data="grp.lines" size="small" border class="compare-detail-table">
+                    <el-table :data="grp.lines" size="small" border class="compare-detail-table" :show-header="false" >
                       <el-table-column label="明细" prop="label" min-width="140" />
                       <el-table-column
                         v-for="(sup, supIdx) in comparisonDialog.suppliers"
@@ -62,33 +62,41 @@
                         </template>
                       </el-table-column>
                       <el-table-column prop="avg" label="平均价" width="100">
-                        <template #default="{ row: line }">{{ formatCompareAvg(line.avg, row.key) }}</template>
+                        <template #default="{ row: line }">
+                          <span v-if="parentRow.key === 'process'"> </span>
+                          <span v-else>{{ formatCompareAvg(line.avg, parentRow.key, line.label) }}</span>
+                        </template>
                       </el-table-column>
                       <el-table-column prop="min" label="制程最低价" width="110">
                         <template #default="{ row: line }">
-                          <el-tooltip
-                            v-if="
-                              line.minLink?.kind === 'misc_materials' &&
-                              line.minLink.sourceFactory
-                            "
-                            placement="top"
-                            effect="dark"
-                          >
-                            <template #content>
-                              <div class="material-min-split-tooltip">来源厂区：{{ line.minLink.sourceFactory }}</div>
-                            </template>
-                            <span class="compare-min-link" @click.stop="openCompareMinLink(line.minLink)">
-                              {{ formatCompareMin(line.min, row.key) }}
+                          <template v-if="parentRow.key === 'process'">
+                            <span> </span>
+                          </template>
+                          <template v-else>
+                            <el-tooltip
+                              v-if="
+                                line.minLink?.kind === 'misc_materials' &&
+                                line.minLink.sourceFactory
+                              "
+                              placement="top"
+                              effect="dark"
+                            >
+                              <template #content>
+                                <div class="material-min-split-tooltip">来源厂区：{{ line.minLink.sourceFactory }}</div>
+                              </template>
+                              <span class="compare-min-link" @click.stop="openCompareMinLink(line.minLink)">
+                                {{ formatCompareMin(line.min, parentRow.key, line.label) }}
+                              </span>
+                            </el-tooltip>
+                            <span
+                              v-else-if="line.minLink?.kind === 'quotation' || line.minLink?.kind === 'misc_materials'"
+                              class="compare-min-link"
+                              @click.stop="openCompareMinLink(line.minLink)"
+                            >
+                              {{ formatCompareMin(line.min, parentRow.key, line.label) }}
                             </span>
-                          </el-tooltip>
-                          <span
-                            v-else-if="line.minLink?.kind === 'quotation' || line.minLink?.kind === 'misc_materials'"
-                            class="compare-min-link"
-                            @click.stop="openCompareMinLink(line.minLink)"
-                          >
-                            {{ formatCompareMin(line.min, row.key) }}
-                          </span>
-                          <span v-else>{{ formatCompareMin(line.min, row.key) }}</span>
+                            <span v-else>{{ formatCompareMin(line.min, parentRow.key, line.label) }}</span>
+                          </template>
                         </template>
                       </el-table-column>
                     </el-table>
@@ -189,6 +197,11 @@
                   inactive-text="否"
                 />
               </template>
+              <template v-else-if="row.key === 'profit'">
+                <span :class="['compare-value', row.min === row.values[sup.name] ? 'is-min' : '']">
+                  {{ formatComparisonMainCell(row, row.values[sup.name]) }}<template v-if="row.profitMarginPctBySupplier?.[sup.name]">（利润率：{{ row.profitMarginPctBySupplier[sup.name] }}）</template>
+                </span>
+              </template>
               <template v-else>
                 <span :class="['compare-value', row.min === row.values[sup.name] ? 'is-min' : '']">
                   {{ formatComparisonMainCell(row, row.values[sup.name]) }}
@@ -202,37 +215,12 @@
           <el-table-column prop="min" label="制程最低价" width="120">
             <template #default="{ row }">
               <template v-if="row.key === 'bargain'">-</template>
-              <template v-else-if="row.key === 'material' && row.minLink">
-                <el-tooltip
-                  v-if="row.minLink.kind === 'material_cost_split'"
-                  placement="top"
-                  effect="dark"
-                >
-                  <template #content>
-                    <div class="material-min-split-tooltip">
-                      <div>
-                        最小重量：{{ formatMaterialSplitTooltipNumber(row.minLink.weight) }}（{{ row.minLink.weightSource }}）
-                      </div>
-                      <div>
-                        最小单价：{{ formatMaterialSplitTooltipNumber(row.minLink.unitPrice) }}（{{ row.minLink.unitPriceSource }}）
-                      </div>
-                    </div>
-                  </template>
-                  <span class="compare-min-link" @click.stop>{{ formatCompareMin(row.min, row.key) }}</span>
-                </el-tooltip>
-                <el-tooltip
-                  v-else-if="row.minLink.kind === 'misc_materials' && row.minLink.sourceFactory"
-                  placement="top"
-                  effect="dark"
-                >
-                  <template #content>
-                    <div class="material-min-split-tooltip">最低单价来源厂区：{{ row.minLink.sourceFactory }}</div>
-                  </template>
-                  <span class="compare-min-link" @click.stop="openCompareMinLink(row.minLink)">
-                    {{ formatCompareMin(row.min, row.key) }}
-                  </span>
-                </el-tooltip>
-                <span v-else class="compare-min-link" @click.stop="openCompareMinLink(row.minLink)">
+              <template
+                v-else-if="
+                  (row.key === 'process' || row.key === 'other') && row.minLink?.kind === 'quotation'
+                "
+              >
+                <span class="compare-min-link" @click.stop="openCompareMinLink(row.minLink)">
                   {{ formatCompareMin(row.min, row.key) }}
                 </span>
               </template>
@@ -269,7 +257,7 @@
 
 <script setup lang="ts" name="RfqMiscComparePrice">
 import { ArrowLeft } from '@element-plus/icons-vue'
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -279,24 +267,24 @@ import {
 } from '../../../pissupplier/quotation/api'
 import {
   formatRfqApiErrorMessage,
-  displayNumericEmpty,
   displayTextEmpty,
   displayPercentRate,
-  buildMaterialComparisonMetricsFromTemplateFields,
-  buildProcessComparisonMetricsFromTemplateFields,
+  COMPARE_PRICE_MATERIAL_DETAIL_METRICS,
+  COMPARE_PRICE_PROCESS_DETAIL_METRICS,
   shouldSkipMaterialDetailMetric,
   shouldSkipProcessDetailMetric,
   computeLowPriceMinContext,
   applyMaterialDetailLowPriceMin,
-  applyProcessDetailLowPriceMin,
   buildMaterialCostMinLink,
+  allCompareSupplierValuesEqual,
+  formatQuotationProfitMarginForCompare,
   type CompareMinLink,
   type ComparisonDetailMetric,
   type LowPriceMinContext
 } from './crud'
 import * as api from './api'
-import * as costTemplateApi from '../cost_template/api'
 import { GetList as GetMaterials } from '../misc_materials/api'
+import { GetList as GetStations } from '../misc_stations/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -305,132 +293,6 @@ const unwrapInquiryDetail = (res: any) => res?.data?.data ?? res?.data ?? res
 
 const goBack = () => {
   router.back()
-}
-
-/** 比价页：按模板编号拉取成本结构（与询价详情页共用逻辑） */
-const templates = ref<any[]>([])
-const templateLoading = ref(false)
-const templatesLoaded = ref(false)
-
-const normalizeSections = (sections: any) => {
-  if (typeof sections === 'string') {
-    try {
-      const parsed = JSON.parse(sections)
-      return Array.isArray(parsed) ? parsed : []
-    } catch (e) {
-      console.warn('模版 sections 解析失败', e)
-      return []
-    }
-  }
-  return Array.isArray(sections) ? sections : []
-}
-
-const hasTemplateSections = (tpl: any) => {
-  const sections = normalizeSections(tpl?.sections)
-  return Array.isArray(sections) && sections.length > 0
-}
-
-const costCategoryToTitle: Record<string, string> = {
-  '1': '材料成本',
-  '2': '加工成本',
-  '3': '其它成本',
-  '4': '管销研费用',
-  '5': '利润',
-  '6': '税金',
-  '7': '产品明细'
-}
-
-const normalizeSupplierRequiredCodeField = (r: any) => {
-  const raw = r?.supplier_required ?? r?.supplierRequiredCode ?? r?.supplier_behavior ?? r?.supplierBehavior
-  const code = Number(raw)
-  if (Number.isInteger(code) && code >= 0 && code <= 6) return code
-  return 0
-}
-
-const buildSectionsFromCostTemplate = (head: any) => {
-  const items = Array.isArray(head?.items) ? head.items : []
-  if (!items.length) return []
-  const group = new Map<string, any[]>()
-  items.forEach((it: any) => {
-    const cat = String(it.cost_category ?? '')
-    const title = costCategoryToTitle[cat] || '其它成本'
-    if (!group.has(title)) group.set(title, [])
-    group.get(title)!.push(it)
-  })
-  const order = ['产品明细', '材料成本', '加工成本', '其它成本', '管销研费用', '利润', '税金']
-  return order
-    .filter((t) => group.has(t))
-    .map((title) => {
-      const rows = (group.get(title) || []).slice().sort((a: any, b: any) => (a.item_order || 0) - (b.item_order || 0))
-      return {
-        id: title,
-        title,
-        enabled: true,
-        fields: rows.map((r: any) => ({
-          key: r.item_no || '',
-          label: r.item_name_cn || r.item_no || '',
-          autoFill: Number(r.is_computed || 0) === 1,
-          purchaserRequired: Number(r.purchaser_required || 0) === 1,
-          supplierRequiredCode: normalizeSupplierRequiredCodeField(r)
-        }))
-      }
-    })
-}
-
-const fetchTemplateDetailIfNeeded = async (tpl: any) => {
-  if (!tpl) return tpl
-  if (hasTemplateSections(tpl)) return tpl
-  if (!tpl?.id) return tpl
-  try {
-    const res = await costTemplateApi.GetObj(tpl.id)
-    const head = res?.data?.data || res?.data || res
-    if (head && typeof head === 'object') {
-      const sections = buildSectionsFromCostTemplate(head)
-      const merged = { ...tpl, ...head, sections }
-      const idx = templates.value.findIndex((t: any) => t.id === tpl.id)
-      if (idx >= 0) templates.value[idx] = merged
-      return merged
-    }
-  } catch (e) {
-    console.warn('加载成本结构模板详情失败', e)
-  }
-  return tpl
-}
-
-const fetchTemplates = async () => {
-  templateLoading.value = true
-  try {
-    const res = await costTemplateApi.GetList({
-      procurement_category: '2',
-      acti: 'Y',
-      status: 1,
-      page: 1,
-      pageSize: 200,
-      page_size: 200
-    } as Record<string, unknown>)
-    const list =
-      res?.data?.results ||
-      res?.data?.data ||
-      res?.data?.list ||
-      res?.results ||
-      res?.list ||
-      res?.data ||
-      []
-    templates.value = Array.isArray(list) ? list : []
-    templatesLoaded.value = true
-  } catch (e) {
-    console.warn('加载询价模版失败', e)
-    templates.value = []
-    templatesLoaded.value = true
-  } finally {
-    templateLoading.value = false
-  }
-}
-
-const ensureTemplatesLoaded = async () => {
-  if (!templatesLoaded.value) {
-    await fetchTemplates()
-  }
 }
 
 type ComparisonDetailRow = {
@@ -449,6 +311,8 @@ type ComparisonRow = ComparisonDetailRow & {
   key: string
   details?: ComparisonDetailRow[]
   detailGroups?: ComparisonDetailGroup[]
+  /** 利润行：各供应商列括号内利润率文案（与 QuotationProfit.profit_rate 一致） */
+  profitMarginPctBySupplier?: Record<string, string>
 }
 
 const compareTableRef = ref()
@@ -510,41 +374,96 @@ const openCompareMinLink = (link: CompareMinLink) => {
 
 const comparisonInquiryStatus = computed(() => Number(comparisonDialog.currentRow?.status))
 
-/** 比价主表：利润/税金行为金额合计，与材料成本等同用两位小数，不加 %（仅表头「税率」用 displayPercentRate） */
+/** 比价页数值统一保留小数位（表头、主表、展开明细）；「比重」明细除外 */
+const COMPARE_DECIMAL_PLACES = 4
+
+const compareNumericDisplay = (v: unknown): string => {
+  if (v === null || v === undefined || v === '' || v === '-') return `0.${'0'.repeat(COMPARE_DECIMAL_PLACES)}`
+  const n = Number(v)
+  if (Number.isFinite(n)) return n.toFixed(COMPARE_DECIMAL_PLACES)
+  const s = String(v).trim()
+  return s === '' ? `0.${'0'.repeat(COMPARE_DECIMAL_PLACES)}` : s
+}
+
+const isSpecificGravityDetailLabel = (label: unknown) => String(label ?? '').trim() === '比重'
+
+/** 「比重」：不四舍五入补位，直接展示接口/库中原样（字符串或数字转字符串） */
+const formatSpecificGravityRaw = (v: unknown): string => {
+  if (v === null || v === undefined || v === '') return '-'
+  const s = String(v).trim()
+  return s === '' ? '-' : s
+}
+
+/** 比价主表：利润/税金等为数值；不加 %（表头「税率」用 displayPercentRate） */
 const formatComparisonMainCell = (row: ComparisonRow, v: unknown) => {
   if (row.key === 'rank') {
     if (v === null || v === undefined || v === '') return '-'
     return String(v)
   }
-  if (v === null || v === undefined || v === '' || v === '-') return '0.00'
+  if (v === null || v === undefined || v === '' || v === '-') return `0.${'0'.repeat(COMPARE_DECIMAL_PLACES)}`
   const n = Number(v)
-  if (Number.isFinite(n)) return n.toFixed(2)
+  if (Number.isFinite(n)) return n.toFixed(COMPARE_DECIMAL_PLACES)
   return String(v)
 }
 
-const formatCompareAvg = (v: unknown, _rowKey?: string) => {
-  if (v === undefined || v === null) return '0.00'
+const formatCompareAvg = (v: unknown, _rowKey?: string, detailLabel?: string) => {
+  if (isSpecificGravityDetailLabel(detailLabel)) {
+    if (v === undefined || v === null) return '-'
+    const n = Number(v)
+    return Number.isFinite(n) ? n.toFixed(COMPARE_DECIMAL_PLACES) : String(v)
+  }
+  if (v === undefined || v === null) return `0.${'0'.repeat(COMPARE_DECIMAL_PLACES)}`
   const n = Number(v)
-  if (Number.isFinite(n)) return n.toFixed(2)
+  if (Number.isFinite(n)) return n.toFixed(COMPARE_DECIMAL_PLACES)
   return String(v)
 }
 
-const formatCompareMin = (v: unknown, _rowKey?: string) => {
-  if (v === undefined || v === null) return '0.00'
+const formatCompareMin = (v: unknown, _rowKey?: string, detailLabel?: string) => {
+  if (isSpecificGravityDetailLabel(detailLabel)) {
+    if (v === undefined || v === null) return '-'
+    const n = Number(v)
+    return Number.isFinite(n) ? n.toFixed(COMPARE_DECIMAL_PLACES) : String(v)
+  }
+  if (v === undefined || v === null) return `0.${'0'.repeat(COMPARE_DECIMAL_PLACES)}`
   const n = Number(v)
-  if (Number.isFinite(n)) return n.toFixed(2)
+  if (Number.isFinite(n)) return n.toFixed(COMPARE_DECIMAL_PLACES)
   return String(v)
 }
 
 /** 材料成本分项浮窗：与制程最低价列数字格式一致 */
 const formatMaterialSplitTooltipNumber = (v: number) => {
   if (!Number.isFinite(v)) return '—'
-  return v.toFixed(2)
+  return v.toFixed(COMPARE_DECIMAL_PLACES)
 }
 
 const extractQuotationList = (res: any): any[] => {
   const raw = res?.data?.results ?? res?.data?.data?.results ?? res?.data?.list ?? res?.data
   return Array.isArray(raw) ? raw : []
+}
+
+/** 工站代码 → 工站名称（与 pis_misc_procurement_station_info 一致） */
+const fetchStationCodeToNameMap = async (): Promise<Record<string, string>> => {
+  const map: Record<string, string> = {}
+  try {
+    const res = await GetStations({ page: 1, page_size: 5000, pageSize: 5000 })
+    const list = extractQuotationList(res)
+    for (const row of list) {
+      const code = String(row.stationcode ?? row.station_code ?? '').trim()
+      const name = String(row.stationname ?? row.station_name ?? '').trim()
+      if (code && name) map[code] = name
+    }
+  } catch {
+    /* 主数据不可用时仍显示库中工站代码 */
+  }
+  return map
+}
+
+const processStationGroupTitle = (stationKey: string, stationNameByCode?: Record<string, string>) => {
+  const t = String(stationKey || '').trim()
+  if (t === '工站') return '工站'
+  if (!t) return '工站'
+  const name = stationNameByCode?.[t]
+  return name || t
 }
 
 const unwrapQuotationDetail = (res: any) => {
@@ -737,6 +656,18 @@ const firstRfqField = (q: any, field: string) => {
   return v !== undefined && v !== null && v !== '' ? v : undefined
 }
 
+/** 与上阶物料料号对齐的 `profit_costs` 行，供利润率括号展示 */
+const profitCostRowForQuote = (q: any) => {
+  const it = (q.rfq_items || [])[0]
+  const pid = it ? String(it.part_id ?? '').trim() : ''
+  const list = Array.isArray(q.profit_costs) ? q.profit_costs : []
+  if (pid) {
+    const hit = list.find((p: any) => String(p.part_id ?? '').trim() === pid)
+    if (hit) return hit
+  }
+  return list[0]
+}
+
 /** 与比价表「总价」行一致，用于按含税总价排名（价低名次靠前） */
 const getQuoteTotalNumeric = (q: any): number | null => {
   const a = q?.quote_amount
@@ -788,14 +719,17 @@ const mergeOptionJsonIntoRow = (row: any): any => {
   return { ...row, ...extra }
 }
 
-/** 比价展开明细：按行标签区分数值(空→0.00)与文本(空→-) */
+/** 比价展开明细：按行标签区分数值与文本；比重行展示库表原值 */
 const formatMetricDetailCell = (v: unknown, label: string, isText?: boolean) => {
   if (isText === true || label === '备注') return displayTextEmpty(v)
-  return displayNumericEmpty(v)
+  if (isSpecificGravityDetailLabel(label)) return formatSpecificGravityRaw(v)
+  return compareNumericDisplay(v)
 }
 
-const formatMetricCell = (v: unknown, isText: boolean) => {
-  return isText ? displayTextEmpty(v) : displayNumericEmpty(v)
+const formatMetricCell = (v: unknown, isText: boolean, metricLabel?: string) => {
+  if (isText) return displayTextEmpty(v)
+  if (isSpecificGravityDetailLabel(metricLabel)) return formatSpecificGravityRaw(v)
+  return compareNumericDisplay(v)
 }
 
 const findMaterialRowBySpec = (q: any, spec: string) => {
@@ -808,33 +742,11 @@ const findProcessRowByStation = (q: any, station: string) => {
   return (q.process_costs || []).find((r: any) => String(r.process_station || '').trim() === t)
 }
 
-/** 无模板或模板无字段时的回退顺序（与旧版硬编码一致） */
-const DEFAULT_MATERIAL_COMPARISON_METRICS: ComparisonDetailMetric[] = [
-  { label: '用量(重量)', get: (r) => r?.weight, isText: false },
-  { label: '长', get: (r) => r?.length, isText: false },
-  { label: '宽', get: (r) => r?.width, isText: false },
-  { label: '高', get: (r) => r?.height, isText: false },
-  { label: '材料单价', get: (r) => r?.unit_price, isText: false },
-  { label: '比重', get: (r) => r?.specific_gravity, isText: false },
-  { label: '数量', get: (r) => r?.qty, isText: false },
-  { label: '材料费用', get: (r) => r?.material_cost, isText: false },
-  { label: '备注', get: (r) => r?.remark, isText: true }
-]
-
-const DEFAULT_PROCESS_COMPARISON_METRICS: ComparisonDetailMetric[] = [
-  { label: '加工计量', get: (r) => r?.process_qty, isText: false },
-  { label: '单位', get: (r) => r?.unit, isText: true },
-  { label: '费率', get: (r) => r?.unit_rate, isText: false },
-  { label: '加工时间', get: (r) => r?.process_time ?? r?.processTime, isText: false },
-  { label: '加工费用', get: (r) => r?.process_price, isText: false },
-  { label: '备注', get: (r) => r?.remark, isText: true }
-]
-
 /** 材料成本展开：按材料规格分组；「制程最低价」列对重量/单价/材料费用行使用全局口径（与后端落库一致） */
 const buildMaterialDetailGroups = (
   quotes: any[],
   supplierKeys: string[],
-  metrics: ComparisonDetailMetric[] = DEFAULT_MATERIAL_COMPARISON_METRICS,
+  metrics: ComparisonDetailMetric[] = COMPARE_PRICE_MATERIAL_DETAIL_METRICS,
   lowPriceCtx: LowPriceMinContext | null = null
 ): ComparisonDetailGroup[] => {
   const specs = new Set<string>()
@@ -853,7 +765,7 @@ const buildMaterialDetailGroups = (
       supplierKeys.forEach((sup, idx) => {
         const raw = findMaterialRowBySpec(quotes[idx], spec)
         const merged = mergeOptionJsonIntoRow(raw || {})
-        values[sup] = formatMetricCell(m.get(merged), m.isText)
+        values[sup] = formatMetricCell(m.get(merged), m.isText, m.label)
       })
       const allDash = supplierKeys.every((sup) => values[sup] === '-')
       if (allDash) continue
@@ -866,12 +778,12 @@ const buildMaterialDetailGroups = (
   return groups
 }
 
-/** 加工成本展开：按工站分组；「加工费用」行制程最低价为各报价单加工费合计之最小值 */
+/** 加工成本展开：按工站分组；仅展示各供应商「加工费」；平均价/制程最低价只在主表「加工成本」行展示 */
 const buildProcessDetailGroups = (
   quotes: any[],
   supplierKeys: string[],
-  metrics: ComparisonDetailMetric[] = DEFAULT_PROCESS_COMPARISON_METRICS,
-  lowPriceCtx: LowPriceMinContext | null = null
+  metrics: ComparisonDetailMetric[] = COMPARE_PRICE_PROCESS_DETAIL_METRICS,
+  stationNameByCode?: Record<string, string>
 ): ComparisonDetailGroup[] => {
   const stations = new Set<string>()
   quotes.forEach((q) => {
@@ -889,45 +801,51 @@ const buildProcessDetailGroups = (
       supplierKeys.forEach((sup, idx) => {
         const raw = findProcessRowByStation(quotes[idx], station)
         const merged = mergeOptionJsonIntoRow(raw || {})
-        values[sup] = formatMetricCell(m.get(merged), m.isText)
+        values[sup] = formatMetricCell(m.get(merged), m.isText, m.label)
       })
       const allDash = supplierKeys.every((s) => values[s] === '-')
       if (allDash) continue
-      const line: ComparisonDetailRow = { label: m.label, values, isText: m.isText, ...calcCompareStats(values) }
-      if (lowPriceCtx) applyProcessDetailLowPriceMin(line, m, lowPriceCtx)
+      const line: ComparisonDetailRow = { label: m.label, values, isText: m.isText }
       lines.push(line)
     }
-    if (lines.length) groups.push({ title: station || '工站', lines })
+    if (lines.length) {
+      groups.push({ title: processStationGroupTitle(station, stationNameByCode), lines })
+    }
   }
   return groups
 }
 
-/** 其它成本：包装费 / 运输费（保持原单层表） */
+/** 其它成本：包装费、运输费；与报价单 `other_costs` 一致，多行按供应商汇总 */
+const OTHER_COST_DETAIL_ROWS: Array<{ label: string; field: 'packaging_cost' | 'transportation_cost' }> = [
+  { label: '包装费', field: 'packaging_cost' },
+  { label: '运输费', field: 'transportation_cost' }
+]
+
 const buildOtherCostDetails = (quotes: any[], supplierKeys: string[]): ComparisonDetailRow[] => {
-  const map = new Map<string, ComparisonDetailRow>()
-  quotes.forEach((q, idx) => {
-    const sup = supplierKeys[idx]
-    for (const r of q.other_costs || []) {
-      const pkg = r.packaging_cost
-      const tr = r.transportation_cost
-      if (pkg !== undefined && pkg !== null && pkg !== '') {
-        const label = '包装费'
-        if (!map.has(label)) map.set(label, { label, values: {} })
-        const n = Number(pkg)
-        map.get(label)!.values[sup] = Number.isFinite(n) ? n : pkg
+  const lines: ComparisonDetailRow[] = []
+  for (const { label, field } of OTHER_COST_DETAIL_ROWS) {
+    const values: Record<string, any> = {}
+    supplierKeys.forEach((sup, idx) => {
+      let sum = 0
+      let ok = false
+      for (const r of quotes[idx].other_costs || []) {
+        const raw = r[field]
+        if (raw !== undefined && raw !== null && raw !== '') {
+          const n = Number(raw)
+          if (Number.isFinite(n)) {
+            sum += n
+            ok = true
+          }
+        }
       }
-      if (tr !== undefined && tr !== null && tr !== '') {
-        const label = '运输费'
-        if (!map.has(label)) map.set(label, { label, values: {} })
-        const n = Number(tr)
-        map.get(label)!.values[sup] = Number.isFinite(n) ? n : tr
-      }
+      values[sup] = ok ? sum : '-'
+    })
+    const allDash = supplierKeys.every((sup) => values[sup] === '-')
+    if (!allDash) {
+      lines.push({ label, values, ...calcCompareStats(values) })
     }
-  })
-  return Array.from(map.values()).map((d) => ({
-    ...d,
-    ...calcCompareStats(d.values)
-  }))
+  }
+  return lines
 }
 
 const buildComparisonRowsFromPisQuotes = (
@@ -936,6 +854,8 @@ const buildComparisonRowsFromPisQuotes = (
     materialMetrics?: ComparisonDetailMetric[]
     processMetrics?: ComparisonDetailMetric[]
     lowPriceCtx?: LowPriceMinContext | null
+    /** 加工工站代码 → 名称，用于展开表分组标题 */
+    stationNameByCode?: Record<string, string>
   }
 ) => {
   const supplierKeys = quotes.map((q, idx) => quotationSupplierKey(q, idx))
@@ -953,7 +873,7 @@ const buildComparisonRowsFromPisQuotes = (
   pushRow('material', '材料成本', (q) => sumMaterialCost(q))
   pushRow('process', '加工成本', (q) => sumProcessCost(q))
   pushRow('other', '其它成本', (q) => sumOtherCost(q))
-  pushRow('overhead', '管销研费用', (q) => sumRfqField(q, 'total_opex_amt'))
+  // pushRow('overhead', '管销研费用', (q) => sumRfqField(q, 'total_opex_amt'))
 
   const profitValues: Record<string, any> = {}
   supplierKeys.forEach((name, idx) => {
@@ -1009,7 +929,12 @@ const buildComparisonRowsFromPisQuotes = (
 
   const lp = detailOpts?.lowPriceCtx ?? null
   const materialGroups = buildMaterialDetailGroups(quotes, supplierKeys, detailOpts?.materialMetrics, lp)
-  const processGroups = buildProcessDetailGroups(quotes, supplierKeys, detailOpts?.processMetrics, lp)
+  const processGroups = buildProcessDetailGroups(
+    quotes,
+    supplierKeys,
+    detailOpts?.processMetrics,
+    detailOpts?.stationNameByCode
+  )
   const otherDetails = buildOtherCostDetails(quotes, supplierKeys)
 
   const matRow = rows.find((r) => r.key === 'material')
@@ -1023,9 +948,51 @@ const buildComparisonRowsFromPisQuotes = (
   }
   const procRow = rows.find((r) => r.key === 'process')
   if (procRow && processGroups.length) procRow.detailGroups = processGroups
-  if (procRow && lp?.minProcessTotal != null) procRow.min = lp.minProcessTotal
   const otherRow = rows.find((r) => r.key === 'other')
-  if (otherRow && otherDetails.length) otherRow.details = otherDetails
+  if (otherRow && otherDetails.length) {
+    otherRow.detailGroups = [{ title: '其它成本明细', lines: otherDetails }]
+  }
+
+  const nearlyEqMin = (a: number, b: number) => Math.abs(a - b) < 1e-6
+  /** 主表「加工成本」「其它成本」制程最低价：列最小值对应报价单，可点击跳转 */
+  const setRowMinLinkToLowestQuotation = (
+    row: ComparisonRow | undefined,
+    sumForQuote: (q: any) => number | null
+  ) => {
+    if (!row) return
+    const targetMin = row.min
+    if (
+      !allCompareSupplierValuesEqual(row.values, supplierKeys) &&
+      typeof targetMin === 'number' &&
+      Number.isFinite(targetMin)
+    ) {
+      for (let i = 0; i < quotes.length; i++) {
+        const v = sumForQuote(quotes[i])
+        if (v != null && Number.isFinite(v) && nearlyEqMin(v, targetMin)) {
+          const id = quotes[i].autoid ?? quotes[i].id
+          if (id != null && id !== '') {
+            row.minLink = { kind: 'quotation', id }
+          }
+          break
+        }
+      }
+    } else {
+      row.minLink = null
+    }
+  }
+  setRowMinLinkToLowestQuotation(procRow, sumProcessCost)
+  setRowMinLinkToLowestQuotation(otherRow, sumOtherCost)
+
+  const profitRow = rows.find((r) => r.key === 'profit')
+  if (profitRow) {
+    const marginMap: Record<string, string> = {}
+    supplierKeys.forEach((name, idx) => {
+      const pc = profitCostRowForQuote(quotes[idx])
+      const s = formatQuotationProfitMarginForCompare(pc?.profit_rate)
+      if (s) marginMap[name] = s
+    })
+    profitRow.profitMarginPctBySupplier = marginMap
+  }
 
   const suppliers = supplierKeys.map((name, idx) => ({
     name: name || `供应商${idx + 1}`,
@@ -1046,7 +1013,7 @@ const firstNonEmptyString = (...vals: unknown[]) => {
       if (isNaN(num)) {
         return s
       }
-      return `${num.toFixed(2)}%`
+      return `${num.toFixed(COMPARE_DECIMAL_PLACES)}%`
     }
   }
   return ''
@@ -1079,28 +1046,6 @@ const loadComparisonPage = async (row: any) => {
       list.map((q: any) => getQuotationDetail(q.autoid ?? q.id))
     )
     const quotes = details.map((r: any) => unwrapQuotationDetail(r)).filter(Boolean)
-    await ensureTemplatesLoaded()
-    const tplCode = String(row?.template_code || row?.template || '').trim()
-    let tplResolved: any = null
-    if (tplCode) {
-      tplResolved = templates.value.find((t: any) => t.template_no === tplCode) ?? null
-      if (tplResolved) tplResolved = await fetchTemplateDetailIfNeeded(tplResolved)
-    }
-    let materialMetrics: ComparisonDetailMetric[] | undefined
-    let processMetrics: ComparisonDetailMetric[] | undefined
-    if (tplResolved) {
-      const secs = normalizeSections(tplResolved.sections)
-      const matSec = secs.find((s: any) => (s.title || s.name) === '材料成本')
-      const procSec = secs.find((s: any) => (s.title || s.name) === '加工成本')
-      if (matSec?.fields?.length) {
-        const built = buildMaterialComparisonMetricsFromTemplateFields(matSec.fields)
-        if (built.length) materialMetrics = built
-      }
-      if (procSec?.fields?.length) {
-        const built = buildProcessComparisonMetricsFromTemplateFields(procSec.fields)
-        if (built.length) processMetrics = built
-      }
-    }
     let miscMinUnitPrice: number | undefined
     let miscMinFactory: string | undefined
     try {
@@ -1119,11 +1064,13 @@ const loadComparisonPage = async (row: any) => {
     } catch {
       /* 杂采材料信息不可用则制程最低价单价仅来自报价 */
     }
+    const stationNameByCode = await fetchStationCodeToNameMap()
     const lowPriceCtx = computeLowPriceMinContext(quotes, miscMinUnitPrice, miscMinFactory)
     const { suppliers, rows } = buildComparisonRowsFromPisQuotes(quotes, {
-      materialMetrics,
-      processMetrics,
-      lowPriceCtx
+      materialMetrics: COMPARE_PRICE_MATERIAL_DETAIL_METRICS,
+      processMetrics: COMPARE_PRICE_PROCESS_DETAIL_METRICS,
+      lowPriceCtx,
+      stationNameByCode
     })
     comparisonDialog.quotes = quotes
     comparisonDialog.suppliers = suppliers
@@ -1420,9 +1367,6 @@ watch(
   { immediate: true }
 )
 
-onMounted(() => {
-  fetchTemplates()
-})
 </script>
 
 <style scoped>

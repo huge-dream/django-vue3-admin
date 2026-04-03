@@ -362,14 +362,55 @@
                 </el-select>
               </template>
             </el-table-column>
-            <el-table-column prop="contact" label="联系人">
+            <el-table-column prop="contact" label="联系人" min-width="200">
               <template #default="{ row }">
-                <el-input v-model="row.contact" placeholder="联系人" :disabled="isViewMode" />
+                <template v-if="isViewMode">
+                  <span>{{ row.contact }}</span>
+                </template>
+                <el-select
+                  v-else
+                  v-model="row.supplier_user_id"
+                  placeholder="选择联系人"
+                  filterable
+                  clearable
+                  style="width: 100%"
+                  :disabled="!vendorRowSelectKey(row)"
+                  :loading="!!supplierUsersLoading[String(row.supplier_code || row.supplier_id || '')]"
+                  @change="(id: number | undefined) => handleVendorContactSelect(row, id)"
+                >
+                  <el-option
+                    v-for="u in vendorContactOptionsForRow(row)"
+                    :key="u.id"
+                    :label="`${u.user_name}（${u.user_email}）`"
+                    :value="u.id"
+                  />
+                </el-select>
               </template>
             </el-table-column>
-            <el-table-column prop="email" label="邮箱">
+            <el-table-column prop="email" label="邮箱" min-width="180">
               <template #default="{ row }">
-                <el-input v-model="row.email" placeholder="邮箱" :disabled="isViewMode" />
+                <template v-if="isViewMode">
+                  <span>{{ row.email }}</span>
+                </template>
+                <el-input
+                  v-else
+                  v-model="row.email"
+                  placeholder="邮箱"
+                  :disabled="!row.supplier_user_id"
+                />
+              </template>
+            </el-table-column>
+            <el-table-column prop="phone" label="联系电话" min-width="180">
+              <template #default="{ row }">
+                <template v-if="isViewMode">
+                  <span>{{ row.phone }}</span>
+                </template>
+                <el-input
+                  v-else
+                  v-model="row.phone"
+                  placeholder="联系电话"
+                  :disabled="!row.supplier_user_id"
+                />
               </template>
             </el-table-column>
             <el-table-column v-if="!isViewMode" label="操作" width="120">
@@ -381,7 +422,34 @@
         </el-tab-pane>
 
         <el-tab-pane label="附件" name="attachments">
-          <div class="attach-grid">
+          <div v-if="isViewMode" class="inquiry-attachments inquiry-attachments--rfq-detail">
+            <div
+              v-for="group in inquiryAttachmentDisplayGroups"
+              :key="group.key"
+              class="inquiry-attachments__block"
+            >
+              <div class="inquiry-attachments__type">{{ group.label }}</div>
+              <div class="inquiry-attachments__links">
+                <template v-for="(file, idx) in group.files" :key="`${group.key}-${idx}-${file.name || ''}`">
+                  <el-link
+                    v-if="attachmentFileHref(file) !== '#'"
+                    type="primary"
+                    :href="attachmentFileHref(file)"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="inquiry-attachments__link"
+                  >
+                    {{ file.name || '（未命名）' }}
+                  </el-link>
+                  <span v-else class="inquiry-attachments__link inquiry-attachments__link--text">
+                    {{ file.name || '（未命名）' }}
+                  </span>
+                </template>
+                <span v-if="!group.files.length" class="inquiry-attachments__empty-inline">暂无附件</span>
+              </div>
+            </div>
+          </div>
+          <div v-else class="attach-grid">
             <div class="attach-block">
               <div class="attach-title">产品图纸</div>
               <el-upload
@@ -389,12 +457,27 @@
                 :auto-upload="false"
                 multiple
                 list-type="text"
-                :disabled="isViewMode"
                 :file-list="form.attachments.drawing"
                 :on-change="(file, list) => onAttachmentChange('drawing', list)"
                 :on-remove="(file, list) => onAttachmentChange('drawing', list)"
               >
-                <el-button v-if="!isViewMode" size="small" type="primary">上传图纸</el-button>
+                <template #file="{ file }">
+                  <div class="attach-upload-file-row">
+                    <el-link
+                      v-if="attachmentFileHref(file) !== '#'"
+                      type="primary"
+                      :href="attachmentFileHref(file)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inquiry-attachments__link"
+                    >
+                      {{ file.name }}
+                    </el-link>
+                    <span v-else class="attach-upload-file-name">{{ file.name }}</span>
+                    <el-button type="danger" link size="small" @click="removeAttachmentFile('drawing', file)">删除</el-button>
+                  </div>
+                </template>
+                <el-button size="small" type="primary">上传图纸</el-button>
               </el-upload>
             </div>
             <div class="attach-block">
@@ -404,12 +487,27 @@
                 :auto-upload="false"
                 multiple
                 list-type="text"
-                :disabled="isViewMode"
                 :file-list="form.attachments.tender"
                 :on-change="(file, list) => onAttachmentChange('tender', list)"
                 :on-remove="(file, list) => onAttachmentChange('tender', list)"
               >
-                <el-button v-if="!isViewMode" size="small" type="primary">上传文件</el-button>
+                <template #file="{ file }">
+                  <div class="attach-upload-file-row">
+                    <el-link
+                      v-if="attachmentFileHref(file) !== '#'"
+                      type="primary"
+                      :href="attachmentFileHref(file)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inquiry-attachments__link"
+                    >
+                      {{ file.name }}
+                    </el-link>
+                    <span v-else class="attach-upload-file-name">{{ file.name }}</span>
+                    <el-button type="danger" link size="small" @click="removeAttachmentFile('tender', file)">删除</el-button>
+                  </div>
+                </template>
+                <el-button size="small" type="primary">上传文件</el-button>
               </el-upload>
             </div>
             <div class="attach-block">
@@ -419,18 +517,33 @@
                 :auto-upload="false"
                 multiple
                 list-type="text"
-                :disabled="isViewMode"
                 :file-list="form.attachments.other"
                 :on-change="(file, list) => onAttachmentChange('other', list)"
                 :on-remove="(file, list) => onAttachmentChange('other', list)"
               >
-                <el-button v-if="!isViewMode" size="small" type="primary">上传文件</el-button>
+                <template #file="{ file }">
+                  <div class="attach-upload-file-row">
+                    <el-link
+                      v-if="attachmentFileHref(file) !== '#'"
+                      type="primary"
+                      :href="attachmentFileHref(file)"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      class="inquiry-attachments__link"
+                    >
+                      {{ file.name }}
+                    </el-link>
+                    <span v-else class="attach-upload-file-name">{{ file.name }}</span>
+                    <el-button type="danger" link size="small" @click="removeAttachmentFile('other', file)">删除</el-button>
+                  </div>
+                </template>
+                <el-button size="small" type="primary">上传文件</el-button>
               </el-upload>
             </div>
           </div>
         </el-tab-pane>
 
-        <el-tab-pane label="询价单操作日志" name="operation_logs" v-if="isViewMode">
+        <el-tab-pane label="操作日志" name="operation_logs" v-if="isViewMode">
           <div v-if="!currentId" class="operation-log-empty">
             <el-empty description="保存询价单后可查看操作日志" :image-size="72" />
           </div>
@@ -470,41 +583,89 @@
                 <el-icon class="op-table-header__icon"><Document /></el-icon>
                 <span class="op-table-header__title">操作履历明细表</span>
               </div>
-              <el-table :data="operationLogsTableRows" border size="small" stripe empty-text="暂无操作记录">
-                <el-table-column prop="operation_time" label="操作时间" min-width="160" show-overflow-tooltip />
-                <el-table-column label="操作类型" min-width="200" show-overflow-tooltip>
+              <el-table
+                :data="combinedOpLogRows"
+                :span-method="opLogSpanMethod"
+                :row-key="opLogRowKey"
+                border
+                size="small"
+                stripe
+                empty-text="暂无操作记录"
+                class="op-log-main-table"
+              >
+                <el-table-column prop="operation_time" label="操作时间" min-width="150">
+                  <template #default="{ row }">
+                    <template v-if="isOpLogSnapshotRow(row)">
+                      <div class="op-invite-wrap">
+                        <button
+                          type="button"
+                          class="op-invite-toggle"
+                          :aria-expanded="inviteListExpanded"
+                          @click="inviteListExpanded = !inviteListExpanded"
+                        >
+                          <el-icon class="op-invite-toggle__icon">
+                            <ArrowDown v-if="inviteListExpanded" />
+                            <ArrowRight v-else />
+                          </el-icon>
+                          <span class="op-invite-toggle__text">受邀供应商报价一览</span>
+                        </button>
+                        <div v-show="inviteListExpanded" class="op-invite-body">
+                          <el-table
+                            :data="invitedSupplierQuotations"
+                            :show-header="false"
+                            border
+                            size="small"
+                            empty-text="暂无报价单数据"
+                            class="op-invite-nested-table"
+                          >
+                            <el-table-column prop="operation_time" min-width="150" show-overflow-tooltip />
+                            <el-table-column prop="supplier_full_name" min-width="110" show-overflow-tooltip />
+                            <el-table-column prop="operator" min-width="100" show-overflow-tooltip />
+                            <el-table-column prop="quotation_status" label="报价单状态" min-width="120" show-overflow-tooltip />
+                            <el-table-column prop="operation_desc" min-width="160" show-overflow-tooltip>
+                              <template #default="{ row: sub }">
+                                {{ sub.operation_desc?.trim() ? sub.operation_desc : '—' }}
+                              </template>
+                            </el-table-column>
+                            <el-table-column prop="quotation_no" width="120" show-overflow-tooltip />
+                          </el-table>
+                        </div>
+                      </div>
+                    </template>
+                    <template v-else>{{ (row as RfqOperationLogRow).operation_time }}</template>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作类型" min-width="110" show-overflow-tooltip>
                   <template #default="{ row }">
                     <span class="op-type-cell">
-                      <span class="op-type-badge" :class="operationTypeBadgeClass(row.operation_type)">
-                        {{ operationTypeLabel(row.operation_type) }}
+                      <span class="op-type-badge" :class="operationTypeBadgeClass((row as RfqOperationLogRow).operation_type)">
+                        {{ operationTypeLabel((row as RfqOperationLogRow).operation_type) }}
                       </span>
-                      <span v-if="operationPublishSupplierSuffix(row)" class="op-type-suffix">{{
-                        operationPublishSupplierSuffix(row)
-                      }}</span>
-                      <span v-if="operationSupplierQuoteEndedSuffix(row)" class="op-type-suffix">{{
-                        operationSupplierQuoteEndedSuffix(row)
-                      }}</span>
                     </span>
                   </template>
                 </el-table-column>
                 <el-table-column prop="operation_user" label="操作人" min-width="100" show-overflow-tooltip>
                   <template #default="{ row }">
-                    {{ row.operation_user?.trim() ? row.operation_user : '—' }}
+                    {{ (row as RfqOperationLogRow).operation_user?.trim() ? (row as RfqOperationLogRow).operation_user : '—' }}
                   </template>
                 </el-table-column>
-                <el-table-column label="状态变更" min-width="160" show-overflow-tooltip>
+                <el-table-column label="状态变更" min-width="128" show-overflow-tooltip>
                   <template #default="{ row }">
-                    {{ formatOperationStatusChange(row.per_status, row.cur_status) }}
+                    {{ formatOperationStatusChange((row as RfqOperationLogRow).per_status, (row as RfqOperationLogRow).cur_status) }}
                   </template>
                 </el-table-column>
                 <el-table-column prop="operation_desc" label="操作描述" min-width="160" show-overflow-tooltip>
                   <template #default="{ row }">
-                    {{ row.operation_desc?.trim() ? row.operation_desc : '—' }}
+                    {{ (row as RfqOperationLogRow).operation_desc?.trim() ? (row as RfqOperationLogRow).operation_desc : '—' }}
                   </template>
                 </el-table-column>
-                <el-table-column prop="quotation_no" label="报价单号" width="116" show-overflow-tooltip>
+                <el-table-column prop="quotation_no" label="报价单号" width="120" show-overflow-tooltip>
                   <template #default="{ row }">
-                    {{ row.quotation_no && row.quotation_no !== '-' ? row.quotation_no : '—' }}
+                    {{
+                      (row as RfqOperationLogRow).quotation_no && (row as RfqOperationLogRow).quotation_no !== '-'
+                        ? (row as RfqOperationLogRow).quotation_no
+                        : '—'
+                    }}
                   </template>
                 </el-table-column>
               </el-table>
@@ -525,10 +686,10 @@
 </template>
 
 <script setup lang="ts" name="RfqMiscInquiryDetail">
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { ArrowLeft, Clock, Document } from '@element-plus/icons-vue'
+import { ArrowDown, ArrowLeft, ArrowRight, Clock, Document } from '@element-plus/icons-vue'
 import { normalizeDict, formatCostTemplateVersion, formatRfqApiErrorMessage } from './crud'
 import * as api from './api'
 import * as costTemplateApi from '../cost_template/api'
@@ -536,9 +697,11 @@ import { GetCompanies, GetList as GetCurrencies } from '../../basicinfo/currency
 import { GetList as GetParts } from '../misc_parts/api'
 import { GetList as GetMaterials } from '../misc_materials/api'
 import { GetList as GetSuppliers } from '../../basicinfo/supplier/api'
+import { GetList as GetSupplierUsers } from '../../basicinfo/supplier_user/api'
 import { GetList as GetStations } from '../misc_stations/api'
 import { GetList as GetUnits } from '../../basicinfo/unit/api'
 import { useUserInfo } from '/@/stores/userInfo'
+import { getBaseURL } from '/@/utils/baseUrl'
 
 const route = useRoute()
 const router = useRouter()
@@ -615,10 +778,13 @@ const supplierOptions = ref<{
   label: string
   supplier_code?: string
   supplier_name?: string
-  contact?: string
-  email?: string
 }[]>([])
 const supplierLoading = ref(false)
+
+/** 按 supplier_id 缓存「供应商用户信息」列表（询价单联系人下拉） */
+type SupplierUserOption = { id: number; user_name: string; user_email: string; user_phone: string }
+const supplierUsersBySid = ref<Record<string, SupplierUserOption[]>>({})
+const supplierUsersLoading = ref<Record<string, boolean>>({})
 const stationOptions = ref<{ value: string; label: string; rate?: number; unit?: string }[]>([])
 const stationLoading = ref(false)
 const unitOptions = ref<{ value: string; label: string; name?: string }[]>([])
@@ -753,7 +919,7 @@ const loadCurrencyOptions = async (factory?: string) => {
       []
     currencyOptions.value = (Array.isArray(list) ? list : []).map((c: any) => ({
       value: c.currencycode || c.currency_code || c.code || c.currency,
-      label: c.currencyname || c.currency_name || c.currencycode || c.code || '币别',
+      label: c.currencycode || c.code || c.currencyname || c.currency_name || '币别',
       taxRate: extractTaxRate(c)
     }))
   } catch (e) {
@@ -901,8 +1067,6 @@ const loadSupplierOptions = async (factory?: string) => {
       label: `${s.supplier_short_name || s.supplier_name || s.supplier_id || '供应商'}${s.supplier_id ? `（${s.supplier_id}）` : ''}`,
       supplier_code: s.supplier_id || s.supplier_code,
       supplier_name: s.supplier_name || s.supplier_short_name,
-      contact: s.contact_person || s.contact || s.linkman,
-      email: s.contact_email || s.email,
       factory: supplierFactoryKeys.map((k) => s?.[k]).find((v) => v)
     }))
   } catch (e) {
@@ -911,6 +1075,43 @@ const loadSupplierOptions = async (factory?: string) => {
   } finally {
     supplierLoading.value = false
   }
+}
+
+const ensureSupplierUsersLoaded = async (sid: string) => {
+  const k = String(sid || '').trim()
+  if (!k) return
+  if (supplierUsersBySid.value[k]) return
+  if (supplierUsersLoading.value[k]) return
+  supplierUsersLoading.value = { ...supplierUsersLoading.value, [k]: true }
+  try {
+    const res = await GetSupplierUsers({ supplier_id: k, status: 1, page: 1, page_size: 500, pageSize: 500 })
+    const list =
+      res?.data?.data?.results ||
+      res?.data?.results ||
+      res?.data?.list ||
+      res?.data ||
+      res?.results ||
+      res?.list ||
+      []
+    supplierUsersBySid.value[k] = (Array.isArray(list) ? list : []).map((u: any) => ({
+      id: Number(u.id),
+      user_name: String(u.user_name ?? ''),
+      user_email: String(u.user_email ?? ''),
+      user_phone: String(u.user_phone ?? '')
+    }))
+  } catch (e) {
+    console.warn('加载供应商用户失败', e)
+    supplierUsersBySid.value[k] = []
+  } finally {
+    const next = { ...supplierUsersLoading.value }
+    delete next[k]
+    supplierUsersLoading.value = next
+  }
+}
+
+const vendorContactOptionsForRow = (row: any) => {
+  const sid = String(row?.supplier_code || row?.supplier_id || '').trim()
+  return supplierUsersBySid.value[sid] || []
 }
 
 const normalizeSections = (sections: any) => {
@@ -1095,6 +1296,26 @@ type RfqOperationLogRow = {
 
 const operationLogs = ref<RfqOperationLogRow[]>([])
 const operationLogsLoading = ref(false)
+
+/** 受邀供应商报价一览（嵌套表，与后端 invited_supplier_quotations 一致） */
+type InvitedSupplierQuotationRow = {
+  operation_time?: string
+  supplier_full_name?: string
+  operator?: string
+  /** 报价单当前状态（与 QuotationMaster.STATUS_CHOICES 一致） */
+  quotation_status?: string
+  operation_desc?: string
+  quotation_no?: string
+}
+type OpLogSnapshotRow = { _type: 'snapshot'; rowKey: string; anchorId?: number }
+type CombinedOpLogRow = (RfqOperationLogRow & { _type?: 'log'; rowKey?: string }) | OpLogSnapshotRow
+
+const invitedSupplierQuotations = ref<InvitedSupplierQuotationRow[]>([])
+/** 受邀供应商明细：默认展开，与主表同一套列含义（内嵌表不重复表头） */
+const inviteListExpanded = ref(true)
+
+const isOpLogSnapshotRow = (row: unknown): row is OpLogSnapshotRow =>
+  typeof row === 'object' && row !== null && (row as OpLogSnapshotRow)._type === 'snapshot'
 let handlingPlantChange = false
 const userStore = useUserInfo()
 /** 与主表 `purchase_dept` CharField(max_length=20) 一致 */
@@ -1565,8 +1786,41 @@ const timelineStepsView = computed(() => {
   })
 })
 
-/** 明细表按时间正序，与参考稿「操作履历明细表」阅读习惯一致 */
-const operationLogsTableRows = computed(() => operationLogsChronological.value)
+/** 明细表按时间正序；在首条「询价单发布」(3) 之后插入一行快照占位，用于嵌套受邀供应商报价表 */
+const combinedOpLogRows = computed((): CombinedOpLogRow[] => {
+  const list = operationLogsChronological.value
+  const out: CombinedOpLogRow[] = []
+  let inserted = false
+  let idx = 0
+  for (const row of list) {
+    const rowKey = `log-${row.id ?? idx}-${parseOperationLogTime(row.operation_time)}`
+    out.push({ ...row, _type: 'log', rowKey } as CombinedOpLogRow)
+    if (Number(row.operation_type) === 3 && !inserted) {
+      out.push({
+        _type: 'snapshot',
+        rowKey: `snapshot-${row.id ?? 'pub'}-${idx}`,
+        anchorId: row.id
+      })
+      inserted = true
+    }
+    idx += 1
+  }
+  return out
+})
+
+const opLogSpanMethod = ({ row, columnIndex }: { row: Record<string, unknown>; columnIndex: number }) => {
+  if (row._type === 'snapshot') {
+    if (columnIndex === 0) return [1, 6]
+    return [0, 0]
+  }
+  return [1, 1]
+}
+
+const opLogRowKey = (row: CombinedOpLogRow) => {
+  if (isOpLogSnapshotRow(row)) return row.rowKey
+  const r = row as RfqOperationLogRow & { rowKey?: string }
+  return r.rowKey ?? `log-${r.id ?? ''}`
+}
 
 const operationTypeLabel = (t: unknown) => {
   const n = typeof t === 'number' ? t : Number(t)
@@ -1617,9 +1871,25 @@ const formatOperationStatusChange = (per: string | null | undefined, cur: string
   return `${a} → ${b}`
 }
 
+const loadInvitedSupplierQuotations = async () => {
+  if (!currentId.value) {
+    invitedSupplierQuotations.value = []
+    return
+  }
+  try {
+    const res = await api.GetInvitedSupplierQuotations(currentId.value)
+    const raw = unwrapResponseData(res)
+    const list = Array.isArray(raw) ? raw : (raw as { results?: unknown[] })?.results
+    invitedSupplierQuotations.value = Array.isArray(list) ? (list as InvitedSupplierQuotationRow[]) : []
+  } catch {
+    invitedSupplierQuotations.value = []
+  }
+}
+
 const loadOperationLogs = async () => {
   if (!currentId.value) {
     operationLogs.value = []
+    invitedSupplierQuotations.value = []
     return
   }
   operationLogsLoading.value = true
@@ -1630,8 +1900,10 @@ const loadOperationLogs = async () => {
     operationLogs.value = Array.isArray(list)
       ? list.map((row) => normalizeOperationLogRow(row as Record<string, unknown>))
       : []
+    await loadInvitedSupplierQuotations()
   } catch {
     operationLogs.value = []
+    invitedSupplierQuotations.value = []
     ElMessage.error('加载操作日志失败')
   } finally {
     operationLogsLoading.value = false
@@ -1841,19 +2113,42 @@ const supplierOptionsForVendorRow = (row: any) => {
   })
 }
 
-const handleVendorSelect = (row: any, value?: string) => {
+const handleVendorSelect = async (row: any, value?: string) => {
   row.name = value || ''
   const supplier = supplierOptions.value.find((s) => s.value === value)
+  row.supplier_user_id = undefined
+  row.contact = ''
+  row.email = ''
+  row.phone = ''
   if (supplier) {
     row.supplier_id = value || ''
     row.supplier_code = supplier.supplier_code || value || ''
     row.supplier_name = supplier.supplier_name || supplier.label || ''
-    if (supplier.contact) {
-      row.contact = supplier.contact
-    }
-    if (supplier.email) {
-      row.email = supplier.email
-    }
+  } else {
+    row.supplier_id = ''
+    row.supplier_code = ''
+    row.supplier_name = ''
+  }
+  const sid = String(row.supplier_code || row.supplier_id || '').trim()
+  if (sid) await ensureSupplierUsersLoaded(sid)
+}
+
+const handleVendorContactSelect = (row: any, userId?: number | string | null) => {
+  const sid = String(row.supplier_code || row.supplier_id || '').trim()
+  const users = supplierUsersBySid.value[sid] || []
+  const uid =
+    userId === null || userId === undefined || userId === '' ? undefined : Number(userId)
+  const u = uid != null && Number.isFinite(uid) ? users.find((x) => x.id === uid) : undefined
+  if (u) {
+    row.supplier_user_id = u.id
+    row.contact = u.user_name || ''
+    row.email = u.user_email || ''
+    row.phone = u.user_phone || ''
+  } else {
+    row.supplier_user_id = undefined
+    row.contact = ''
+    row.email = ''
+    row.phone = ''
   }
 }
 
@@ -2047,15 +2342,31 @@ const openDetail = async (row: any, mode: 'edit' | 'view') => {
   form.vendors = Array.isArray(detail?.suppliers)
     ? detail.suppliers.map((s: any, idx: number) => ({
       id: s.id || `v-${idx}-${Date.now()}`,
-      name: s.supplier_name || '',
+      name: s.supplier_code || '',
       supplier_id: s.supplier_code || '',
       supplier_code: s.supplier_code || '',
       supplier_name: s.supplier_name || '',
+      supplier_user_id: undefined as number | undefined,
       contact: s.contact_person || '',
       email: s.contact_email || '',
       phone: s.contact_phone || ''
     }))
     : []
+  const resolveVendorContactSelections = async () => {
+    for (const v of form.vendors || []) {
+      const sid = String(v.supplier_code || v.supplier_id || '').trim()
+      if (!sid) continue
+      await ensureSupplierUsersLoaded(sid)
+      const users = supplierUsersBySid.value[sid] || []
+      const email = String(v.email || '').trim()
+      const contact = String(v.contact || '').trim()
+      let match = users.find((u) => u.user_email === email && u.user_name === contact)
+      if (!match && email) match = users.find((u) => u.user_email === email)
+      if (!match && contact) match = users.find((u) => u.user_name === contact)
+      if (match) v.supplier_user_id = match.id
+    }
+  }
+  await resolveVendorContactSelections()
   const next = { drawing: [], tender: [], other: [] as any[] }
   if (Array.isArray(detail?.attachments)) {
     detail.attachments.forEach((a: any) => {
@@ -2080,8 +2391,10 @@ const addVendorRow = () => {
     supplier_id: '',
     supplier_code: '',
     supplier_name: '',
+    supplier_user_id: undefined as number | undefined,
     contact: '',
-    email: ''
+    email: '',
+    phone: ''
   })
 }
 
@@ -2094,14 +2407,75 @@ const removeCostRow = (row: CostRow) => {
   costRows.value = costRows.value.filter((r) => r !== row)
 }
 
+/** text 类型 el-upload 不会给本地文件生成 blob url，预览链接需在下方 attachmentFileHref 中补全 */
+const attachmentBlobUrlCache = new Map<string, string>()
+
+const blobCacheKey = (file: any) =>
+  String(file?.uid ?? `${file?.name ?? ''}-${(file?.raw as File | undefined)?.size ?? 0}`)
+
+const revokeAttachmentBlobUrl = (file: any) => {
+  const key = blobCacheKey(file)
+  const u = attachmentBlobUrlCache.get(key)
+  if (u) {
+    URL.revokeObjectURL(u)
+    attachmentBlobUrlCache.delete(key)
+  }
+}
+
 const onAttachmentChange = (type: 'drawing' | 'tender' | 'other', list: any[]) => {
+  const prev = form.attachments[type] || []
+  const nextUids = new Set(list.map((item: any) => blobCacheKey(item)))
+  for (const f of prev) {
+    if (!nextUids.has(blobCacheKey(f))) revokeAttachmentBlobUrl(f)
+  }
   form.attachments[type] = list.map((item: any) => ({
     uid: item.uid,
     name: item.name,
-    url: item.url || item.response?.url || '',
+    url: item.url || item.file_path || item.response?.data?.url || item.response?.url || '',
+    file_path: item.file_path || item.url || '',
     raw: item.raw,
     status: item.status || 'ready'
   }))
+}
+
+/** 附件 tab：查看模式下列表分组（与供应商端询价附件展示一致） */
+const inquiryAttachmentDisplayGroups = computed(() => [
+  { key: 'drawing', label: '产品图纸', files: form.attachments.drawing || [] },
+  { key: 'tender', label: '招标文件', files: form.attachments.tender || [] },
+  { key: 'other', label: '其它文件', files: form.attachments.other || [] }
+])
+
+const attachmentFileHref = (file: any) => {
+  const p = String(
+    file?.url ??
+      file?.file_path ??
+      file?.response?.data?.url ??
+      file?.response?.data?.file_path ??
+      file?.response?.url ??
+      ''
+  ).trim()
+  if (p && p !== 'undefined') {
+    if (/^blob:/i.test(p) || /^https?:\/\//i.test(p)) return p
+    return getBaseURL(p)
+  }
+  const raw = file?.raw
+  if (raw instanceof Blob) {
+    const key = blobCacheKey(file)
+    let blobUrl = attachmentBlobUrlCache.get(key)
+    if (!blobUrl) {
+      blobUrl = URL.createObjectURL(raw)
+      attachmentBlobUrlCache.set(key, blobUrl)
+    }
+    return blobUrl
+  }
+  return '#'
+}
+
+const removeAttachmentFile = (type: 'drawing' | 'tender' | 'other', file: any) => {
+  revokeAttachmentBlobUrl(file)
+  const uid = file?.uid
+  const list = (form.attachments[type] || []).filter((f: any) => f.uid !== uid)
+  onAttachmentChange(type, list)
 }
 
 const unwrapResponseData = (res: any) => res?.data?.data ?? res?.data ?? res
@@ -2338,6 +2712,24 @@ const saveForm = async () => {
     }
     seenVendorKeys.add(k)
   }
+  for (const v of form.vendors || []) {
+    const k = vendorRowSelectKey(v)
+    if (!k) continue
+    const sid = String(v.supplier_code || v.supplier_id || '').trim()
+    if (!sid) continue
+    await ensureSupplierUsersLoaded(sid)
+    const users = supplierUsersBySid.value[sid] || []
+    if (!users.length) {
+      ElMessage.warning(
+        `供应商「${v.supplier_name || sid}」下暂无有效用户信息，请先在基础资料维护「供应商用户信息」后再选择`
+      )
+      return
+    }
+    if (v.supplier_user_id == null || Number.isNaN(Number(v.supplier_user_id))) {
+      ElMessage.warning(`请为供应商「${v.supplier_name || sid}」从下拉框选择联系人`)
+      return
+    }
+  }
   try {
     const uploadedAttachments = await prepareAttachmentsForSubmit()
     form.attachments = uploadedAttachments
@@ -2533,6 +2925,13 @@ watch(
   { immediate: true }
 )
 
+onBeforeUnmount(() => {
+  for (const url of attachmentBlobUrlCache.values()) {
+    URL.revokeObjectURL(url)
+  }
+  attachmentBlobUrlCache.clear()
+})
+
 onMounted(() => {
   fetchTemplates()
   Promise.all([loadCompanyOptions(), loadPartOptions(), loadMaterialOptions(), loadSupplierOptions(), loadStationOptions(), loadUnitOptions()]).then(() => {
@@ -2722,6 +3121,57 @@ onMounted(() => {
   font-weight: 600;
   font-size: 13px;
   color: var(--el-text-color-primary);
+}
+/* 询价附件：与供应商端 quotation/detail 一致，支持点击预览 */
+.inquiry-attachments--rfq-detail {
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+}
+.inquiry-attachments--rfq-detail .inquiry-attachments__block + .inquiry-attachments__block {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--el-border-color-lighter);
+}
+.inquiry-attachments--rfq-detail .inquiry-attachments__type {
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+.inquiry-attachments--rfq-detail .inquiry-attachments__links {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.inquiry-attachments--rfq-detail .inquiry-attachments__link {
+  font-size: 13px;
+}
+.inquiry-attachments--rfq-detail .inquiry-attachments__link--text {
+  color: var(--el-text-color-regular);
+}
+.inquiry-attachments__empty-inline {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+}
+.attach-upload-file-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.attach-upload-file-name {
+  font-size: 13px;
+  color: var(--el-text-color-regular);
+}
+.attach-upload-file-row .el-link.el-link--primary {
+  color: var(--el-color-primary);
+}
+.attach-block :deep(.el-upload-list) {
+  margin-top: 4px;
 }
 .mb8 {
   margin-bottom: 8px;
@@ -3057,5 +3507,56 @@ onMounted(() => {
 }
 .op-type--default {
   background: #909399;
+}
+.op-log-main-table :deep(.el-table__body td.el-table__cell) {
+  vertical-align: top;
+}
+.op-invite-wrap {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+.op-invite-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 2px 0 6px;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  color: var(--el-text-color-secondary);
+  text-align: left;
+  line-height: 1.4;
+}
+.op-invite-toggle:hover {
+  color: var(--el-color-primary);
+}
+.op-invite-toggle__icon {
+  flex-shrink: 0;
+  font-size: 14px;
+  transition: transform 0.15s ease;
+}
+.op-invite-toggle__text {
+  font-size: 13px;
+  font-weight: 500;
+}
+.op-invite-body {
+  margin: 0;
+  padding: 0;
+}
+.op-invite-nested-table {
+  width: 100%;
+}
+.op-invite-nested-table :deep(.el-table__inner-wrapper::before) {
+  display: none;
+}
+.op-invite-nested-table :deep(.el-table__body-wrapper) {
+  margin-bottom: 0;
+}
+.op-invite-nested-table :deep(.el-table__body tr:last-child td) {
+  border-bottom-color: var(--el-border-color-lighter);
 }
 </style>

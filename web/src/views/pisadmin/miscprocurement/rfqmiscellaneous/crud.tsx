@@ -166,6 +166,18 @@ export const displayPercentRate = (v: unknown): string => {
   return raw.endsWith('%') ? raw : '0.00%'
 }
 
+/**
+ * 比价「利润」行括号内展示：与 `QuotationProfit.profit_rate`（利润率）一致。
+ * 值在 (0,1) 时按小数理解（如 0.03 → 3.00%），否则按百分数值（如 1 或 3 → 1.00% / 3.00%）。
+ */
+export const formatQuotationProfitMarginForCompare = (raw: unknown): string => {
+  if (raw === null || raw === undefined || raw === '') return ''
+  const n = Number(raw)
+  if (!Number.isFinite(n)) return ''
+  const pct = n > 0 && n < 1 ? n * 100 : n
+  return `${pct.toFixed(2)}%`
+}
+
 /** 比价展开明细：与模板 fields 顺序一致 */
 export type ComparisonDetailMetric = {
   label: string
@@ -174,6 +186,18 @@ export type ComparisonDetailMetric = {
   /** 成本模板字段 key；用于跳过与分组标题重复的「材质 / 工站」行 */
   fieldKey?: string
 }
+
+/** 采购端比价页展开：不读成本模板，材料每组固定三行（与制程最低价列逻辑 fieldKey 对齐） */
+export const COMPARE_PRICE_MATERIAL_DETAIL_METRICS: ComparisonDetailMetric[] = [
+  { label: '重量', get: (r) => r?.weight, isText: false, fieldKey: 'weight' },
+  { label: '单价', get: (r) => r?.unit_price ?? r?.unitPrice, isText: false, fieldKey: 'unitprice' },
+  { label: '材料费用', get: (r) => r?.material_cost, isText: false, fieldKey: 'materialcost' }
+]
+
+/** 采购端比价页展开：加工每组固定一行「加工费」 */
+export const COMPARE_PRICE_PROCESS_DETAIL_METRICS: ComparisonDetailMetric[] = [
+  { label: '加工费', get: (r) => r?.process_price ?? r?.processPrice, isText: false, fieldKey: 'processprice' }
+]
 
 /** 比价展开：模板字段 key 归一化（与 index.vue 聚合逻辑共用） */
 export const normCmpTplKey = (k: string) =>

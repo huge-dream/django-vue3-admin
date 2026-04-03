@@ -266,6 +266,8 @@ class NestedQuotationProcessSerializer(QuotationProcessSerializer):
 
 
 class QuotationOtherSerializer(serializers.ModelSerializer):
+    """报价单其它成本子表：按料号维度存包装费、运输费；采购端比价展开「其它成本」明细与此字段一致。"""
+
     class Meta:
         model = QuotationOther
         fields = [
@@ -447,6 +449,7 @@ class QuotationMasterSerializer(BusinessAuditSerializer):
         return cache[inquiry_no]
 
     def get_inquiry_company_code(self, obj):
+        """与 `Inquiry.company_code` 一致；供应商端拉取杂采材质/工站列表时须按此精确过滤厂区。"""
         code, _ = self._inquiry_plant_tuple(getattr(obj, "inquiry_no", None))
         return code
 
