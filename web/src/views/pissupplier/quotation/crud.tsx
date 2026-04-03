@@ -16,7 +16,6 @@ const extractPagedList = (res: any): any[] => {
 
 export type QuoteStatus = 'pending' | 'quoted' | 'completed' | 'expired'
 type CostAttr = { key: string; label: string; value: string | number; type?: string }
-type CostTemplateItem = { section: string; attrs: CostAttr[]; span?: 'wide'; allowAdd?: boolean }
 type CostItem = { id: string; section: string; span?: 'wide'; attrs: CostAttr[]; field?: string }
 type CostRow = {
   id: string
@@ -72,6 +71,7 @@ type Quote = {
   /** 询价单关联附件（`pis_proc_inquiry_attachment`），详情接口 `inquiry_attachments` */
   inquiryAttachments: InquiryAttachmentRow[]
   remark: string
+  inquiryRemark: string
   createdAt: string
   templateSections?: any
   enableCostStructure?: boolean
@@ -149,7 +149,7 @@ export function getSupplierBidWindowRejectReason(row: any, nowMs: number = Date.
   if (!Number.isFinite(start) || !Number.isFinite(end)) {
     return '招标项目缺少投标开始或截止时间，无法报价或提交'
   }
-  if (nowMs < start) return '投标尚未开始，请在投标开始后再报价或提交'
+  // if (nowMs < start) return '投标尚未开始，请在投标开始后再报价或提交'
   if (nowMs > end) return '已超过投标截止时间，无法报价或提交'
   return null
 }
@@ -431,49 +431,14 @@ const processStationKeys = ['process_station', 'processStation']
 
 /**
  * 与后端子表模型字段及 costRowsToNestedPayload 使用的 row.values 键一致。
- * 展示用列名优先来自询价 `template_sections` 各段 `fields[].label`（与 miscInquiryDetail 成本结构一致），
- * 本常量仅在模板未配置字段时作列键与默认标题的 fallback。
- * QuotationMaterial / QuotationProcess / QuotationOther / QuotationProfit 见 apps.pissupplier.models
+ * 列定义仅来自询价单绑定的成本模板 `template_sections` 各段 `fields`；无模板字段时该段无列。
  */
 export type QuotationCostColumn = {
   key: string
   label: string
 }
 
-export const FIXED_QUOTATION_SECTION_COLUMNS: Record<string, QuotationCostColumn[]> = {
-  材料成本: [
-    { key: 'material', label: '材质' },
-    { key: 'len', label: '长(mm)' },
-    { key: 'width', label: '宽(mm)' },
-    { key: 'height', label: '高(mm)' },
-    { key: 'specificgravity', label: '比重(kg/cm³)' },
-    { key: 'qty', label: '数量' },
-    { key: 'weight', label: '重量(kg)' },
-    { key: 'unitPrice', label: '单价' },
-    { key: 'material_fee', label: '材料费用' },
-    { key: 'remark', label: '备注' }
-  ],
-  加工成本: [
-    { key: 'processStation', label: '加工工站' },
-    { key: 'processUnit', label: '单位' },
-    { key: 'processRate', label: '费率' },
-    { key: 'processMeasure', label: '加工计量' },
-    { key: 'processFee', label: '加工费' },
-    { key: 'remark', label: '备注' }
-  ],
-  其它成本: [
-    { key: 'packageFee', label: '包装费' },
-    { key: 'transportFee', label: '运输费' }
-  ],
-  利润: [
-    { key: 'profitRate', label: '利润率(%)' }
-  ],
-  税金: [
-    { key: 'taxRate', label: '税率(%)' }
-  ]
-}
-
-/** 模板 CostEstimateTemplateBody.item_no 归一化后 → 上表 UI 字段 key，用于只读规则（不用于列） */
+/** 模板 item_no 归一化后 → 报价单 UI `row.values` 键（与询价端模板字段对齐） */
 const TEMPLATE_KEY_TO_UI_KEYS: Record<string, Record<string, string[]>> = {
   材料成本: {
     material: ['material'],
@@ -533,163 +498,8 @@ const TEMPLATE_KEY_TO_UI_KEYS: Record<string, Record<string, string[]>> = {
 
 const normTplKey = (k: string) => String(k || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 
-/** 模板未声明某固定列时的列标题兜底（与 merge 补列一致） */
-const labelFallbacks: Record<string, string> = {
-  material: '材质',
-  material_cost: '材料费用',
-  material_fee: '材料费用',
-  materialFee: '材料费用',
-  material_amount: '材料费用',
-  materialAmount: '材料费用',
-  specificgravity: '比重',
-  density: '比重',
-  weight: '重量',
-  length: '长',
-  len: '长',
-  width: '宽',
-  height: '高',
-  qty: '数量',
-  quantity: '数量',
-  unitPrice: '单价',
-  unitprice: '单价',
-  price: '单价',
-  unit_price: '单价',
-  process_station: '加工工站',
-  processStation: '加工工站',
-  process_unit: '单位',
-  unit: '单位',
-  unitrate: '费率',
-  rate: '费率',
-  process_rate: '费率',
-  fee_rate: '费率',
-  processqty: '加工计量',
-  process_qty: '加工计量',
-  processprice: '加工费',
-  process_cost: '加工费',
-  fee: '加工费',
-  process_fee: '加工费',
-  packageFee: '包装费',
-  transportFee: '运输费',
-  profitRate: '利润率(%)',
-  taxRate: '税率(%)'
-}
-
 const templateFieldDisplayLabel = (f: any, rawKey: string) =>
   String(f?.label ?? f?.nameCn ?? f?.name_cn ?? f?.name ?? rawKey).trim() || rawKey
-
-/**
- * 成本结构列：与 miscInquiryDetail 一致，优先按 `template_sections` 各段 `fields` 顺序与中文名展示；
- * 模板字段 key 经 TEMPLATE_KEY_TO_UI_KEYS 映射到报价单 UI 存储键；无模板字段时回退 FIXED_QUOTATION_SECTION_COLUMNS。
- */
-const mergeQuotationSectionColumns = (section: string, templateSections: any): QuotationCostColumn[] => {
-  const fixedFallback = [...(FIXED_QUOTATION_SECTION_COLUMNS[section] || [])]
-  const tpl = normalizeSections(templateSections).find(
-    (s: any) => (s.title || s.name || s.section || '') === section
-  )
-  const fields = Array.isArray(tpl?.fields) ? tpl.fields : []
-  const keyMap = TEMPLATE_KEY_TO_UI_KEYS[section] || {}
-
-  if (!fields.length) {
-    return fixedFallback
-  }
-
-  const out: QuotationCostColumn[] = []
-  const seen = new Set<string>()
-
-  for (const f of fields) {
-    const rawKey = String(f?.key || '').trim()
-    if (!rawKey) continue
-    const nk = normTplKey(rawKey)
-    if (section === '加工成本' && (nk === 'processfee' || rawKey === 'process_fee')) continue
-    if (nk === 'partid' || rawKey === 'part_id') continue
-
-    const uiKeys: string[] = keyMap[nk] || keyMap[String(f.key).toLowerCase()] || []
-    const uiKey = uiKeys.length ? uiKeys[0] : rawKey
-    if (seen.has(uiKey)) continue
-    seen.add(uiKey)
-    out.push({ key: uiKey, label: templateFieldDisplayLabel(f, rawKey) })
-  }
-
-  for (const fc of fixedFallback) {
-    if (!seen.has(fc.key)) {
-      seen.add(fc.key)
-      out.push({
-        key: fc.key,
-        label: labelFallbacks[fc.key] || fc.label
-      })
-    }
-  }
-
-  return out.length ? out : fixedFallback
-}
-
-const costTemplates: Record<string, CostTemplateItem[]> = {
-  default: [
-    {
-      section: '材料成本',
-      span: 'wide',
-      allowAdd: true,
-      attrs: [
-        { key: 'material', label: '材质', value: '' },
-        { key: 'len', label: '长', value: '' },
-        { key: 'width', label: '宽', value: '' },
-        { key: 'height', label: '高', value: '' },
-        { key: 'density', label: '比重', value: '' },
-        { key: 'qty', label: '数量', value: '' },
-        { key: 'weight', label: '重量', value: '' },
-        { key: 'unitPrice', label: '单价', value: '' },
-        { key: 'materialTotal', label: '材料成本合计', value: '' }
-      ]
-    },
-    {
-      section: '加工成本',
-      span: 'wide',
-      allowAdd: true,
-      attrs: [
-        { key: 'processStation', label: '加工工站', value: '' },
-        { key: 'processUnit', label: '单位', value: '' },
-        { key: 'processRate', label: '费率', value: '' },
-        { key: 'processMeasure', label: '加工计量', value: '' },
-        { key: 'processFee', label: '加工费', value: '' },
-        { key: 'processTotal', label: '加工成本合计', value: '' }
-      ]
-    },
-    {
-      section: '管销研费用',
-      attrs: [
-        { key: 'overheadType', label: '费用类别', value: '' },
-        { key: 'overheadTotal', label: '费用', value: '' }
-      ]
-    },
-    {
-      section: '其他费用',
-      attrs: [
-        { key: 'packageFee', label: '包装费', value: '' },
-        { key: 'transportFee', label: '运输费', value: '' },
-        { key: 'otherTotal', label: '合计', value: '' }
-      ]
-    },
-    {
-      section: '利润',
-      attrs: [
-        { key: 'profitRate', label: '利润率(%)', value: '' },
-        { key: 'profitTotal', label: '利润金额', value: '' }
-      ]
-    },
-    {
-      section: '税金',
-      attrs: [
-        { key: 'taxRate', label: '税率(%)', value: '' },
-        { key: 'taxTotal', label: '税金金额', value: '' }
-      ]
-    }
-  ],
-  tooling: [],
-  equipment: [],
-  plastic: []
-}
-
-const resolveTemplate = (key: string) => (costTemplates[key]?.length ? costTemplates[key] : costTemplates.default)
 
 const normalizeSections = (sections: any) => {
   if (!sections) return []
@@ -704,15 +514,47 @@ const normalizeSections = (sections: any) => {
   return Array.isArray(sections) ? sections : []
 }
 
+/** 仅从询价 `template_sections` 各段 `fields` 生成列；无字段则空数组。 */
+const mergeQuotationSectionColumns = (section: string, templateSections: any): QuotationCostColumn[] => {
+  const tpl = normalizeSections(templateSections).find(
+    (s: any) => (s.title || s.name || s.section || '') === section
+  )
+  const fields = Array.isArray(tpl?.fields) ? tpl.fields : []
+  const keyMap = TEMPLATE_KEY_TO_UI_KEYS[section] || {}
+
+  if (!fields.length) {
+    return []
+  }
+
+  const out: QuotationCostColumn[] = []
+  const seen = new Set<string>()
+
+  for (const f of fields) {
+    const rawKey = String(f?.key || f?.item_no || '').trim()
+    if (!rawKey) continue
+    const nk = normTplKey(rawKey)
+    if (section === '加工成本' && (nk === 'processfee' || rawKey === 'process_fee')) continue
+    if (nk === 'partid' || rawKey === 'part_id') continue
+
+    const uiKeys: string[] = keyMap[nk] || keyMap[String(rawKey).toLowerCase()] || []
+    const uiKey = uiKeys.length ? uiKeys[0] : rawKey
+    if (seen.has(uiKey)) continue
+    seen.add(uiKey)
+    out.push({ key: uiKey, label: templateFieldDisplayLabel(f, rawKey) })
+  }
+
+  return out
+}
+
 const allowedSectionsForTemplate = (sections: any, enableCostStructure = true) => {
   const base = enableCostStructure ? costEnabledSections : costDisabledSections
   const tplSections = normalizeSections(sections)
-  const templateSections = tplSections
+  const templateTitles = tplSections
     .filter((s: any) => s?.enabled !== false)
     .map((s: any) => s.title || s.name || s.section || '')
     .filter(Boolean)
-  const allowed = templateSections.length ? base.filter((t) => templateSections.includes(t)) : base
-  return allowed.length ? allowed : base
+  if (!templateTitles.length) return []
+  return base.filter((t) => templateTitles.includes(t))
 }
 
 /** 与 CostEstimateTemplateHead.is_can_add_materials / is_can_add_process 对应；后端 template_sections 每段带 supplierCanAddRow */
@@ -752,17 +594,15 @@ const buildRowsFromTemplate = (sections: any, enableCostStructure = true): CostR
   const rows: CostRow[] = []
   allowed.forEach((title: string, idx: number) => {
     const cols = mergeQuotationSectionColumns(title, sections)
+    if (!cols.length) return
     const values: Record<string, any> = {}
     const labels: Record<string, string> = {}
-    ;(cols || []).forEach((c) => {
+    cols.forEach((c) => {
       values[c.key] = ''
       labels[c.key] = c.label
     })
     rows.push({ id: `tpl-${title}-${idx}-${Date.now()}`, section: title, field: `tpl-${title}-${idx}`, values, labels })
   })
-  if (!rows.length) {
-    return costDisabledSections.map((title, idx) => ({ id: `def-${idx}-${Date.now()}`, section: title, field: `def-${idx}`, values: {}, labels: {} }))
-  }
   return rows
 }
 
@@ -1150,6 +990,12 @@ const formatMoney = (v: number | string) => {
   return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
+/** 成本结构各段标题旁「合计」，与 `sectionAmountMap` 及单元格金额小数位一致（2～4 位） */
+export function formatCostStructureSectionTotal(n: number): string {
+  if (!Number.isFinite(n)) return '0'
+  return n.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 4 })
+}
+
 /** 主表无报价金额字段时，由上阶物料明细含税总价汇总 */
 const totalInclTaxFromRfqItems = (rfqItems: unknown): number | '' => {
   if (!Array.isArray(rfqItems) || !rfqItems.length) return ''
@@ -1195,6 +1041,7 @@ function blankQuote(): Quote {
     attachments: [],
     inquiryAttachments: [],
     remark: '',
+    inquiryRemark: '',
     createdAt: '',
     templateSections: [],
     enableCostStructure: true,
@@ -1263,12 +1110,13 @@ export function useQuoteCrud(options?: {
       const tplSec = templateSectionMap.value.get(section)
       const keyMap = TEMPLATE_KEY_TO_UI_KEYS[section] || {}
       ;(tplSec?.fields || []).forEach((f: any) => {
-        if (!f?.key) return
+        const fk = String(f?.key || f?.item_no || '').trim()
+        if (!fk) return
         const ic =
           Number(f.is_computed ?? f.isComputed ?? (f.autoFill ? 1 : 0)) === 1 || f.autoFill === true
         const sr = Number(f.supplier_required ?? f.supplierRequired ?? 0)
-        const nk = normTplKey(f.key)
-        const uiKeys = keyMap[nk] || keyMap[String(f.key).toLowerCase()] || [f.key]
+        const nk = normTplKey(fk)
+        const uiKeys = keyMap[nk] || keyMap[String(fk).toLowerCase()] || [fk]
         uiKeys.forEach((uk) => {
           m.set(uk, { isComputed: ic, supplierRequired: sr })
         })
@@ -1278,7 +1126,7 @@ export function useQuoteCrud(options?: {
     return out
   })
 
-  /** 固定列 + 模板定义的扩展列（仅材料/加工，与 option_json 一致）；锁格规则仍来自 template_sections */
+  /** 列与锁格规则均来自询价 `template_sections` 各段 `fields` */
   const sectionColumns = computed<Record<string, CostFieldColumn[]>>(() => {
     const res: Record<string, CostFieldColumn[]> = {}
     const tpl = current.templateSections
@@ -1324,13 +1172,15 @@ export function useQuoteCrud(options?: {
     if (map['其它成本']) {
       if (!map['其它成本'].length) {
         const cols = sectionColumns.value['其它成本'] || []
-        const values: Record<string, any> = {}
-        const labels: Record<string, string> = {}
-        cols.forEach((c) => {
-          values[c.key] = ''
-          labels[c.key] = c.label
-        })
-        map['其它成本'] = [{ id: 'other-default', section: '其它成本', field: 'other-default', values, labels }]
+        if (cols.length) {
+          const values: Record<string, any> = {}
+          const labels: Record<string, string> = {}
+          cols.forEach((c) => {
+            values[c.key] = ''
+            labels[c.key] = c.label
+          })
+          map['其它成本'] = [{ id: 'other-default', section: '其它成本', field: 'other-default', values, labels }]
+        }
       } else if (map['其它成本'].length > 1) {
         map['其它成本'] = [map['其它成本'][0]]
       }
@@ -1463,6 +1313,7 @@ export function useQuoteCrud(options?: {
         q.inquiryStatusCode = Number(invSt)
       }
       q.inquiryStatus = formatMiscInquiryStatus(q)
+      q.inquiryRemark = inv.remark || q.inquiryRemark || ''
     }
   }
 
@@ -1548,6 +1399,7 @@ export function useQuoteCrud(options?: {
           ? item.inquiryAttachments
           : [],
       remark: item.remark || '',
+      inquiryRemark: item.inquiry_remark || item.inquiryRemark || '',
       createdAt: item.creattime || item.creat_time || item.create_time || item.createTime || item.createdAt || '',
       templateSections:
         item.template_sections ||
@@ -1562,10 +1414,25 @@ export function useQuoteCrud(options?: {
     return quote
   }
 
-  const loadMaterialOptions = async () => {
+  /**
+   * 杂采材质：必须按询价单交易厂区 `Inquiry.company_code` 过滤 `MiscProcurementMaterialInfo.factory`，
+   * 否则不同厂区同材质名会重复出现且选材质时 `find` 会命中最低价那条。
+   */
+  const loadMaterialOptions = async (factoryCode?: string) => {
+    const fc = (factoryCode || '').trim()
+    if (!fc) {
+      materialOptions.value = []
+      return
+    }
     materialLoading.value = true
     try {
-      const res = await GetMaterials({ page: 1, page_size: 300, pageSize: 300 })
+      const res = await GetMaterials({
+        page: 1,
+        page_size: 500,
+        pageSize: 500,
+        factory: fc,
+        status: 1
+      })
       const list = res?.data?.data?.results || res?.data?.results || res?.data?.list || res?.data || res?.results || res?.list || []
       materialOptions.value = (Array.isArray(list) ? list : []).map((m: any) => ({
         value: m.materialtype || m.material || m.name,
@@ -1581,10 +1448,21 @@ export function useQuoteCrud(options?: {
     }
   }
 
-  const loadStationOptions = async () => {
+  const loadStationOptions = async (companyCode?: string) => {
+    const cc = (companyCode || '').trim()
+    if (!cc) {
+      stationOptions.value = []
+      return
+    }
     stationLoading.value = true
     try {
-      const res = await GetStations({ page: 1, page_size: 500, pageSize: 500 })
+      const res = await GetStations({
+        page: 1,
+        page_size: 500,
+        pageSize: 500,
+        company_code: cc,
+        status: 1
+      })
       const list = res?.data?.data?.results || res?.data?.results || res?.data?.list || res?.data || res?.results || res?.list || []
       stationOptions.value = (Array.isArray(list) ? list : []).map((s: any) => ({
         value: s.stationcode || s.station_code || s.stationname || s.name,
@@ -1666,8 +1544,6 @@ export function useQuoteCrud(options?: {
     if (uiContext === 'list') {
       loadQuotes()
     }
-    loadMaterialOptions()
-    loadStationOptions()
     loadUnitOptions()
     loadMiscPartLookup()
   })
@@ -2040,6 +1916,8 @@ export function useQuoteCrud(options?: {
 
       quoteData.inquiryStatus = formatMiscInquiryStatus(quoteData)
       fillCurrent(quoteData, effectiveRows)
+      await loadMaterialOptions(current.inquiryCompanyCode)
+      await loadStationOptions(current.inquiryCompanyCode)
 
       // 让列表行立即反映「报价(2)」状态，保证表格里的「提交」按钮可用
       if (quoteData?.id) {
@@ -2089,17 +1967,28 @@ export function useQuoteCrud(options?: {
             })
             const list = extractPagedList(res)
             const inv = list[0]
-            if (inv?.attachments?.length) {
-              merged.inquiryAttachments = mapInquiryAttachmentsFromInquiryApi(inv.attachments)
+            if (inv) {
+              const icc =
+                inv.company_code != null && inv.company_code !== '' ? String(inv.company_code).trim() : ''
+              if (icc && !(merged.inquiryCompanyCode || '').trim()) {
+                merged.inquiryCompanyCode = icc
+              }
+              if (inv.attachments?.length) {
+                merged.inquiryAttachments = mapInquiryAttachmentsFromInquiryApi(inv.attachments)
+              }
             }
           }
         } catch (e) {
           console.warn('加载询价附件失败', e)
         }
         fillCurrent(merged)
+        await loadMaterialOptions(current.inquiryCompanyCode)
+        await loadStationOptions(current.inquiryCompanyCode)
       } catch (e) {
         console.warn('加载报价详情失败', e)
         fillCurrent(row)
+        await loadMaterialOptions(current.inquiryCompanyCode)
+        await loadStationOptions(current.inquiryCompanyCode)
       } finally {
         loading.value = false
       }
@@ -2207,6 +2096,10 @@ export function useQuoteCrud(options?: {
 
   const addCostRow = (section: string) => {
     const cols = mergeQuotationSectionColumns(section, current.templateSections)
+    if (!cols.length) {
+      ElMessage.warning('该段未在成本模板中配置字段，无法新增行')
+      return
+    }
     const values: Record<string, any> = {}
     const labels: Record<string, string> = {}
     cols.forEach((c) => {
@@ -2510,6 +2403,10 @@ export function useQuoteCrud(options?: {
     quoteSummaryRows,
     quoteAmountPreTax,
     quoteTotal,
+    /** 成本合计 / 税前 / 税后（与报价合计、保存汇总一致） */
+    quoteRollupForRfq,
+    sectionAmountMap,
+    formatCostStructureSectionTotal,
     addCostRow,
     removeCostRow,
     materialOptions,
@@ -2533,18 +2430,9 @@ export function useQuoteCrud(options?: {
   }
 }
 
-const buildCostItems = (templateKey: string, templateSections?: any, enableCostStructure = true): CostItem[] => {
+const buildCostItems = (_templateKey: string, templateSections?: any, enableCostStructure = true): CostItem[] => {
   const fromTplSections = buildCostItemsFromTemplateSections(templateSections, enableCostStructure)
   if (fromTplSections.length) return fromTplSections
   if (!enableCostStructure) return buildDefaultNonBomCostItems()
-  const tpl = resolveTemplate(templateKey)
-  const allowed = new Set(enableCostStructure ? costEnabledSections : costDisabledSections)
-  return tpl
-    .filter((item) => allowed.has(item.section))
-    .map((item) => ({
-      id: crypto.randomUUID(),
-      section: item.section,
-      span: item.span,
-      attrs: item.attrs.map((a) => ({ ...a }))
-    }))
+  return []
 }

@@ -1,1 +1,0 @@
-{% autoescape off %}【询价截止提醒】询价单{{ inquiry_no }}-{{ material_or_project_short }}已截止，请进行比价{% endautoescape %}

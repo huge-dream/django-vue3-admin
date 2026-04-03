@@ -1,0 +1,41 @@
+<!-- email-subject: 【招标邀请】{{ rfq_number|default:"—" }} - {{ material_short }} - 投标：{{ bid_time_range }} -->
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="font-family:'Microsoft YaHei',SimHei,sans-serif;font-size:14px;color:#1e293b;line-height:1.6;">
+  <p>尊敬的 {{ vendor_name }} 合作伙伴：</p>
+  <p>您好！</p>
+  <p>我司（{{ purchaser_company_name }}）现正式发布新的采购询价单，诚邀贵司参与投标，我们非常期待与您的合作。</p>
+
+  <h3 style="margin:20px 0 8px;font-size:15px;">📋 询价单概要</h3>
+  <ul style="margin:0;padding-left:20px;">
+    <li><strong>询价单号：</strong>{{ rfq_number }}</li>
+    <li><strong>采购物料：</strong>{{ material_info }}</li>
+    <li><strong>投标时间：</strong>{{ bid_time_range }}（请务必在此时间段内投标，逾期提交将视为放弃投标）</li>
+  </ul>
+
+  <h3 style="margin:20px 0 8px;font-size:15px;">💡 如何参与报价？</h3>
+  <p style="margin:8px 0;">请点击下方按钮登录系统查看详情并填写报价：</p>
+  {% if portal_url %}
+  <p style="margin:16px 0;">
+    <a href="{{ portal_url }}" style="display:inline-block;padding:10px 20px;background:#2563eb;color:#ffffff;
+      text-decoration:none;border-radius:6px;font-weight:600;">立即前往投标</a>
+  </p>
+  <p style="margin:8px 0 0;font-size:13px;color:#64748b;">若按钮无法点击，请复制以下链接到浏览器打开：</p>
+  <p style="margin:4px 0 16px;word-break:break-all;font-size:13px;"><a href="{{ portal_url }}">{{ portal_url }}</a></p>
+  {% else %}
+  <p style="margin:16px 0;color:#b45309;">系统未配置供应商门户地址（PIS_SUPPLIER_PORTAL_URL），请联系管理员获取登录方式。</p>
+  {% endif %}
+
+  <h3 style="margin:20px 0 8px;font-size:15px;">⚠️ 注意事项</h3>
+  <ul style="margin:0;padding-left:20px;">
+    <li>截止后系统将自动关闭投标通道，逾期不予补投。</li>
+    <li>如有疑问，请联系采购专员 {{ purchaser_name }}（电话：{% firstof purchaser_phone "—" %}）。</li>
+  </ul>
+
+  <p style="margin:24px 0 8px;">祝商祺！</p>
+  <p style="margin:0;">{{ purchaser_company_name }} 采购部</p>
+  <p style="margin:4px 0 16px;">{{ current_date }}</p>
+  <p style="font-size:12px;color:#94a3b8;">此邮件由系统自动发送，请勿直接回复。</p>
+</body>
+</html>

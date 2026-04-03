@@ -22,7 +22,7 @@
       <div class="detail-card">
         <el-tabs v-model="activeTab" type="border-card" class="detail-tabs tabs-fill">
           <el-tab-pane label="询价单信息" name="inquiry">
-            <div class="tab-pane-body">
+            <div class="tab-pane-body quote-tab-pane">
               <el-descriptions :column="descColumns" border size="small" class="quote-descriptions">
                 <el-descriptions-item label="询价单号">{{ displayText(current.inquiryCode) }}</el-descriptions-item>
                 <el-descriptions-item label="询价单名称" :span="2">{{ displayText(current.inquiryTitle) }}</el-descriptions-item>
@@ -30,38 +30,39 @@
                 <el-descriptions-item label="交易币别">{{ displayText(current.currency) }}</el-descriptions-item>
                 <el-descriptions-item label="报价截止时间">{{ formatQuoteDeadlineDisplay(current.quoteDeadline) || '—' }}</el-descriptions-item>
                 <el-descriptions-item label="交易厂区">{{ displayText(current.companyShortName || current.inquiryCompanyCode) }}</el-descriptions-item>
+                <el-descriptions-item label="备注">{{ displayText(current.inquiryRemark) }}</el-descriptions-item>
               </el-descriptions>
               <div class="section-block">
                 <div class="section-block__title">询价附件</div>
                 <div class="inquiry-attachments">
-              <div v-for="group in inquiryAttachmentGroups" :key="group.fileType" class="inquiry-attachments__block">
-                <div class="inquiry-attachments__type">{{ group.label }}</div>
-                <div class="inquiry-attachments__links">
-                  <template v-for="(file, idx) in group.items" :key="`${group.fileType}-${file.id ?? idx}-${file.file_name}`">
-                    <el-link
-                      v-if="inquiryAttachmentHref(file) !== '#'"
-                      type="primary"
-                      :href="inquiryAttachmentHref(file)"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      class="inquiry-attachments__link"
-                    >
-                      {{ file.file_name || '（未命名）' }}
-                    </el-link>
-                    <span v-else class="inquiry-attachments__link inquiry-attachments__link--text">
-                      {{ file.file_name || '（未命名）' }}
-                    </span>
-                  </template>
+                  <div v-for="group in inquiryAttachmentGroups" :key="group.fileType" class="inquiry-attachments__block">
+                    <div class="inquiry-attachments__type">{{ group.label }}</div>
+                    <div class="inquiry-attachments__links">
+                      <template v-for="(file, idx) in group.items" :key="`${group.fileType}-${file.id ?? idx}-${file.file_name}`">
+                        <el-link
+                          v-if="inquiryAttachmentHref(file) !== '#'"
+                          type="primary"
+                          :href="inquiryAttachmentHref(file)"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="inquiry-attachments__link"
+                        >
+                          {{ file.file_name || '（未命名）' }}
+                        </el-link>
+                        <span v-else class="inquiry-attachments__link inquiry-attachments__link--text">
+                          {{ file.file_name || '（未命名）' }}
+                        </span>
+                      </template>
+                    </div>
+                  </div>
+                  <div v-if="!inquiryAttachmentGroups.length" class="inquiry-attachments__empty">暂无询价附件</div>
                 </div>
-              </div>
-              <div v-if="!inquiryAttachmentGroups.length" class="inquiry-attachments__empty">暂无询价附件</div>
-            </div>
               </div>
             </div>
           </el-tab-pane>
 
         <el-tab-pane label="报价基础信息" name="base">
-          <div class="tab-pane-body">
+          <div class="tab-pane-body quote-tab-pane">
             <template v-if="isReadOnly">
               <el-descriptions :column="descColumns" border size="small" class="quote-descriptions">
                 <el-descriptions-item label="联系人">{{ displayText(current.base.contact) }}</el-descriptions-item>
@@ -192,27 +193,31 @@
         </el-tab-pane>
 
         <el-tab-pane label="成本结构" name="cost">
-          <div class="tab-pane-body">
+          <div class="tab-pane-body quote-tab-pane">
           <div v-if="!isReadOnly" class="cost-toolbar">
             <el-button size="small" @click="loadCostRowsFromTemplate(current.templateSections, true)">清空已填内容</el-button>
           </div>
           <div class="cost-groups">
             <div v-for="section in primarySections" :key="section" class="cost-group">
               <div class="cost-group-header">
-                <div class="cost-section-title">{{ section }}</div>
-                <el-button
-                  size="small"
-                  type="primary"
-                  @click="addCostRow(section)"
-                  v-if="sectionAddConfig[section] && !isReadOnly"
-                >新增一行</el-button>
+                <div class="cost-section-title">{{ costSectionDisplayTitle(section) }}</div>
+                <div class="cost-group-header__tail">
+                  <span v-if="costSectionSubtotalLabel(section)" class="cost-section-subtotal">{{
+                    costSectionSubtotalLabel(section)
+                  }}</span>
+                  <el-button
+                    size="small"
+                    type="primary"
+                    @click="addCostRow(section)"
+                    v-if="sectionAddConfig[section] && !isReadOnly"
+                  >新增一行</el-button>
+                </div>
               </div>
               <el-table
                 :data="(groupedCostRows[section] || [])"
                 border
                 size="small"
-                :class="section === '其它成本' ? 'compact-cost-table' : ''"
-                class="mb12"
+                :class="['cost-el-table', 'mb12', section === '其它成本' ? 'compact-cost-table' : '']"
               >
                 <el-table-column
                   v-for="col in sectionColumns[section] || []"
@@ -288,9 +293,9 @@
             <div class="cost-row-pair">
               <div v-for="section in profitTaxSections" :key="section" class="cost-group">
                 <div class="cost-group-header">
-                  <div class="cost-section-title">{{ section }}</div>
+                  <div class="cost-section-title">{{ costSectionDisplayTitle(section) }}</div>
                 </div>
-                <el-table :data="(groupedCostRows[section] || [])" border size="small" class="mb12">
+                <el-table :data="(groupedCostRows[section] || [])" border size="small" class="cost-el-table mb12">
                   <el-table-column
                     v-for="col in sectionColumns[section] || []"
                     :key="col.key"
@@ -306,6 +311,23 @@
                     </template>
                   </el-table-column>
                 </el-table>
+              </div>
+            </div>
+          </div>
+
+          <div v-if="current.enableCostStructure !== false" class="cost-totals-footer">
+            <div class="cost-totals-footer__inner">
+              <div class="cost-totals-footer__item">
+                <span class="cost-totals-footer__label">成本合计</span>
+                <span class="cost-totals-footer__value">{{ formatMoney(quoteRollupForRfq.costSum) }}</span>
+              </div>
+              <div class="cost-totals-footer__item">
+                <span class="cost-totals-footer__label">税前总价合计</span>
+                <span class="cost-totals-footer__value">{{ formatMoney(quoteRollupForRfq.preTax) }}</span>
+              </div>
+              <div class="cost-totals-footer__item">
+                <span class="cost-totals-footer__label">税后总价合计</span>
+                <span class="cost-totals-footer__value">{{ formatMoney(quoteRollupForRfq.postTax) }}</span>
               </div>
             </div>
           </div>
@@ -337,6 +359,31 @@ import {
 } from './crud'
 
 const descColumns = 3
+
+/** 成本结构 Tab 各段标题前序号（与业务段名称一致：其它成本） */
+const COST_SECTION_DISPLAY_TITLES: Record<string, string> = {
+  材料成本: '① 材料成本',
+  加工成本: '② 加工成本',
+  其它成本: '③ 其它成本',
+  利润: '④ 利润',
+  税金: '⑤ 税金'
+}
+function costSectionDisplayTitle(section: string) {
+  const raw = String(section ?? '')
+    .trim()
+    .normalize('NFC')
+  const stripped = raw.replace(/^[①②③④⑤⑥⑦⑧⑨⑩]\s*/u, '').trim()
+  return COST_SECTION_DISPLAY_TITLES[raw] ?? COST_SECTION_DISPLAY_TITLES[stripped] ?? raw
+}
+
+/** 与报价合计中各段金额算法一致（见 crud `sectionAmountMap`） */
+const COST_SECTION_SUBTOTAL_KEYS = new Set(['材料成本', '物料成本', '加工成本', '其它成本', '其他成本'])
+function costSectionSubtotalLabel(section: string) {
+  const key = String(section ?? '').trim()
+  if (!COST_SECTION_SUBTOTAL_KEYS.has(key)) return ''
+  const n = sectionAmountMap.value[key] ?? 0
+  return `合计：${formatCostStructureSectionTotal(n)}`
+}
 
 function displayText(v: unknown) {
   if (v === null || v === undefined) return '—'
@@ -388,6 +435,9 @@ const {
   quoteSummaryRows,
   quoteAmountPreTax,
   quoteTotal,
+  quoteRollupForRfq,
+  sectionAmountMap,
+  formatCostStructureSectionTotal,
   addCostRow,
   removeCostRow,
   materialOptions,
@@ -595,6 +645,26 @@ watch(
   flex-direction: column;
   gap: 16px;
 }
+/* 三页签统一：与成本结构相同的冷灰渐变底与区块节奏 */
+.tab-pane-body.quote-tab-pane {
+  gap: 18px;
+  padding: 4px 2px 2px;
+  border-radius: 10px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 38%, transparent 100%);
+}
+.quote-tab-pane > .quote-descriptions,
+.quote-tab-pane > .grid-form.grid-form--edit {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 4px 16px rgba(15, 23, 42, 0.04);
+}
+.quote-tab-pane > .grid-form.grid-form--edit {
+  padding: 16px 18px 18px;
+}
 .quote-descriptions :deep(.el-descriptions__label) {
   width: 120px;
   font-weight: 500;
@@ -602,6 +672,15 @@ watch(
 }
 .quote-descriptions :deep(.el-descriptions__content) {
   color: var(--el-text-color-primary);
+}
+.quote-tab-pane .quote-descriptions :deep(.el-descriptions__label) {
+  background: linear-gradient(180deg, #f1f5f9 0%, #e8eef4 100%);
+  font-weight: 600;
+  color: #475569;
+}
+.quote-tab-pane .quote-descriptions :deep(.el-descriptions__content) {
+  background: #fff;
+  color: #0f172a;
 }
 .section-block {
   display: flex;
@@ -615,11 +694,40 @@ watch(
   padding-bottom: 4px;
   border-bottom: 1px solid var(--el-border-color-lighter);
 }
+.quote-tab-pane .section-block {
+  gap: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 10px;
+  padding: 16px 18px;
+  background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 4px 16px rgba(15, 23, 42, 0.04);
+}
+.quote-tab-pane .section-block__title {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #0f172a;
+  padding-left: 14px;
+  margin-left: 2px;
+  margin-bottom: 4px;
+  border-left: 4px solid #2563eb;
+  line-height: 1.35;
+  padding-bottom: 0;
+  border-bottom: none;
+}
 .inquiry-attachments {
   border-radius: 8px;
   padding: 10px 12px;
   background: var(--el-fill-color-light);
   border: 1px solid var(--el-border-color-lighter);
+}
+.quote-tab-pane .inquiry-attachments {
+  padding: 12px 14px;
+  background: rgba(248, 250, 252, 0.95);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 }
 .inquiry-attachments__block + .inquiry-attachments__block {
   margin-top: 10px;
@@ -667,6 +775,10 @@ watch(
 .grid-form--edit :deep(.el-select .el-input__wrapper) {
   min-height: 34px;
 }
+.quote-tab-pane .grid-form--edit :deep(.el-input__wrapper),
+.quote-tab-pane .grid-form--edit :deep(.el-select .el-input__wrapper) {
+  border-radius: 6px;
+}
 .w-full {
   width: 100%;
 }
@@ -676,41 +788,66 @@ watch(
   gap: 14px;
   align-items: stretch;
 }
+.quote-tab-pane .quote-summary {
+  gap: 16px;
+}
 @media (max-width: 900px) {
   .quote-summary {
     grid-template-columns: 1fr;
   }
 }
 .quote-summary__total {
-  border: 1px solid var(--el-border-color-lighter);
+  border: 1px solid rgba(15, 23, 42, 0.1);
   border-radius: 10px;
   padding: 14px 16px;
-  background: linear-gradient(160deg, #f8fafc 0%, #eff6ff 100%);
+  background: linear-gradient(155deg, #f8fafc 0%, #eff6ff 48%, #f1f5f9 100%);
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
 }
 .quote-summary__label {
   font-size: 12px;
   color: var(--el-text-color-secondary);
   font-weight: 500;
 }
+.quote-tab-pane .quote-summary__label {
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.02em;
+}
 .quote-summary__value {
   font-size: 22px;
   font-weight: 700;
   color: var(--el-text-color-primary);
   line-height: 1.2;
+  font-variant-numeric: tabular-nums;
 }
 .quote-summary__value--pretax {
   font-size: 18px;
   font-weight: 700;
   color: var(--el-text-color-regular);
+  font-variant-numeric: tabular-nums;
 }
 .quote-summary__table {
   border-radius: 8px;
   overflow: hidden;
+}
+.quote-tab-pane .quote-summary__table :deep(.el-table__header-wrapper th.el-table__cell) {
+  background: linear-gradient(180deg, #f1f5f9 0%, #e8eef4 100%) !important;
+  color: #334155;
+  font-weight: 600;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35) !important;
+}
+.quote-tab-pane .quote-summary__table :deep(.el-table__body td.el-table__cell) {
+  border-bottom: 1px solid rgba(241, 245, 249, 0.95);
+}
+.quote-tab-pane .quote-summary__table :deep(.el-table__inner-wrapper::before) {
+  display: none;
 }
 .quote-summary__table :deep(tr.quote-summary__subtotal td) {
   font-weight: 600;
@@ -731,54 +868,187 @@ watch(
   font-weight: 700;
   border-left: 4px solid #10b981 !important;
 }
+/* —— 成本结构：段内表格、工具栏（页签壳层样式见 .quote-tab-pane） —— */
 .cost-toolbar {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  padding-bottom: 12px;
   margin-bottom: 4px;
+  border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+.cost-toolbar :deep(.el-button) {
+  border-radius: 6px;
+  font-weight: 500;
 }
 .cost-groups {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 18px;
 }
 .cost-group {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 8px;
-  padding: 14px;
-  background: var(--el-bg-color);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 10px;
+  padding: 16px 18px 14px;
+  background: linear-gradient(145deg, #ffffff 0%, #fafbfc 100%);
   overflow-x: auto;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 4px 16px rgba(15, 23, 42, 0.04);
 }
 .cost-group-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  gap: 14px;
+  margin-bottom: 12px;
+  padding-bottom: 2px;
+}
+.cost-group-header__tail {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+.cost-group-header__tail :deep(.el-button--small) {
+  border-radius: 6px;
+  font-weight: 500;
+  padding: 6px 14px;
+}
+.cost-section-subtotal {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+  white-space: nowrap;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  letter-spacing: 0.02em;
+}
+.cost-totals-footer {
+  margin-top: 8px;
+  padding: 0;
+  border: 1px solid rgba(15, 23, 42, 0.1);
+  border-radius: 10px;
+  background: linear-gradient(155deg, #f8fafc 0%, #eff6ff 48%, #f1f5f9 100%);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  overflow: hidden;
+}
+.cost-totals-footer__inner {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  min-height: 88px;
+}
+@media (max-width: 900px) {
+  .cost-totals-footer__inner {
+    grid-template-columns: 1fr;
+  }
+}
+.cost-totals-footer__item {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: center;
+  gap: 8px;
+  min-width: 0;
+  padding: 16px 20px;
+  border-right: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(255, 255, 255, 0.35);
+}
+.cost-totals-footer__item:last-child {
+  border-right: none;
+}
+@media (max-width: 900px) {
+  .cost-totals-footer__item {
+    border-right: none;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+  }
+  .cost-totals-footer__item:last-child {
+    border-bottom: none;
+  }
+}
+.cost-totals-footer__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.04em;
+  text-transform: none;
+}
+.cost-totals-footer__value {
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #0f172a;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
 }
 .cost-row-pair {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 14px;
+  gap: 18px;
 }
 .cost-section-title {
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #0f172a;
+  padding-left: 14px;
+  margin-left: 2px;
+  border-left: 4px solid #2563eb;
+  line-height: 1.35;
+}
+/* 段内表格：表头冷灰、圆角、金额列更易扫读 */
+.cost-el-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+.quote-tab-pane .cost-el-table :deep(.el-table__header-wrapper th.el-table__cell) {
+  background: linear-gradient(180deg, #f1f5f9 0%, #e8eef4 100%) !important;
+  color: #334155;
   font-weight: 600;
-  color: var(--el-text-color-primary);
-  padding-left: 10px;
-  border-left: 3px solid var(--el-color-primary);
-  line-height: 1.3;
+  font-size: 12px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35) !important;
+}
+.quote-tab-pane .cost-el-table :deep(.el-table__body td.el-table__cell) {
+  border-bottom: 1px solid rgba(241, 245, 249, 0.95);
+}
+.quote-tab-pane .cost-el-table :deep(.el-table__inner-wrapper::before) {
+  display: none;
 }
 .compact-cost-table :deep(.el-table__cell) {
-  padding: 6px 8px;
+  padding: 8px 10px;
 }
 .compact-cost-table :deep(.el-input__wrapper) {
-  min-height: 30px;
+  min-height: 32px;
+}
+.quote-tab-pane .cost-el-table :deep(.el-input__wrapper) {
+  border-radius: 6px;
+  box-shadow: none;
+  transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+.quote-tab-pane .cost-el-table :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.2) inset;
 }
 .attach-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   align-items: start;
+}
+.quote-tab-pane .attach-row :deep(.el-upload-dragger) {
+  border-radius: 8px;
+  border-color: rgba(148, 163, 184, 0.45);
+  background: rgba(248, 250, 252, 0.65);
+}
+.quote-tab-pane .attach-row :deep(.el-textarea .el-textarea__inner) {
+  border-radius: 8px;
 }
 @media (max-width: 768px) {
   .attach-row {
