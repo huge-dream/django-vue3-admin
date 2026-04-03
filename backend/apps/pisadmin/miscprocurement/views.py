@@ -1,5 +1,6 @@
 import logging
 from decimal import Decimal
+from datetime import datetime
 from typing import Optional
 
 from django.db import transaction
@@ -28,6 +29,70 @@ from apps.pissupplier.models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _fmt_dt_for_inquiry_quotation(dt: Optional[datetime]) -> Optional[str]:
+    if not dt:
+        return None
+    if timezone.is_naive(dt):
+        dt = timezone.make_aware(dt, timezone.get_current_timezone())
+    return dt.strftime("%Y-%m-%d %H:%M:%S")
+
+
+def _quotation_master_status_label(status) -> str:
+    """与 ``QuotationMaster.STATUS_CHOICES`` 一致的可读文案。"""
+    labels = {1: "待报价", 2: "报价中", 3: "已报价", 4: "已过期"}
+    try:
+        st = int(status) if status is not None else 1
+    except (TypeError, ValueError):
+        return "—"
+    return labels.get(st, str(st))
+
+
+def build_invited_supplier_quotation_rows(inquiry) -> list:
+    """询价单发布后各受邀供应商报价单当前状态（与 ``QuotationMaster`` 一致，供操作日志嵌套表使用）。"""
+    inquiry_no = (inquiry.inquiry_no or "").strip()
+    if not inquiry_no:
+        return []
+
+    name_map: dict[str, str] = {}
+    for inv in InquirySupplier.objects.filter(inquiry_no=inquiry_no).only("supplier_code", "supplier_name"):
+        code = (inv.supplier_code or "").strip()
+        if not code:
+            continue
+        n = (inv.supplier_name or "").strip()
+        prev = name_map.get(code, "")
+        if len(n) > len(prev):
+            name_map[code] = n
+
+    rows_out: list[dict] = []
+    qms = QuotationMaster.objects.filter(inquiry_no=inquiry_no).order_by("supplier_code", "autoid")
+    for qm in qms:
+        code = (qm.supplier_code or "").strip()
+        full_name = (name_map.get(code) or (qm.supplier_name or "").strip() or code or "—").strip()
+
+        st = int(qm.status or 1)
+        if st == 3 and qm.quotetime:
+            op_time = _fmt_dt_for_inquiry_quotation(qm.quotetime)
+        else:
+            op_time = _fmt_dt_for_inquiry_quotation(qm.creattime) if qm.creattime else None
+
+        if st == 3:
+            op_user = (qm.quoteuser or "").strip() or "—"
+        else:
+            op_user = "—"
+
+        rows_out.append(
+            {
+                "operation_time": op_time or "—",
+                "supplier_full_name": full_name,
+                "operator": op_user,
+                "quotation_status": _quotation_master_status_label(qm.status),
+                "operation_desc": "",
+                "quotation_no": (qm.quotation_no or "").strip(),
+            }
+        )
+    return rows_out
 
 
 from .models import (
@@ -1105,6 +1170,8 @@ class InquiryViewSet(CustomModelViewSet):
             return ErrorResponse(msg='只有“确认”状态的询价单才能发布')
         current_user = self._get_request_username() or None
         current_time = timezone.now()
+        supplier_groups = self._group_inquiry_suppliers(instance)
+        supplier_count = len(supplier_groups)
         try:
             with transaction.atomic():
                 self._create_supplier_quotations(instance)  # 发布询价单时按供应商关联表，逐个创建对应的报价单
@@ -1117,7 +1184,7 @@ class InquiryViewSet(CustomModelViewSet):
                     release_user=current_user,
                     release_time=current_time,
                     operation_type=3,
-                    operation_desc="询价单发布",
+                    operation_desc=f"询价单发布，共{supplier_count}个受邀供应商",
                 )
         except serializers.ValidationError as exc:
             detail = getattr(exc, "detail", None)
@@ -1229,6 +1296,13 @@ class InquiryViewSet(CustomModelViewSet):
             .order_by("-operation_time", "-create_datetime", "-id")
         )
         data = RFQOperationLogsSerializer(qs, many=True).data
+        return DetailResponse(data=data, msg="success")
+
+    @action(methods=["get"], detail=True, url_path="invited_supplier_quotations")
+    def invited_supplier_quotations(self, request, pk=None):
+        """受邀供应商报价单一览（与发布生成的 ``QuotationMaster`` 一致，供操作日志嵌套表使用）。"""
+        instance = self.get_object()
+        data = build_invited_supplier_quotation_rows(instance)
         return DetailResponse(data=data, msg="success")
 
     @action(methods=["put"], detail=True, url_path="save_negotiation_records")

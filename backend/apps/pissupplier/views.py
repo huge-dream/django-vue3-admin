@@ -114,12 +114,6 @@ class QuotationMasterViewSet(CustomModelViewSet):
         username = getattr(getattr(request, "user", None), "username", None)
         with transaction.atomic():
             updated = qs.update(status=4)
-            if quotation_rows:
-                RFQOperationLogs.bulk_append_quote_deadline_expired(
-                    quotation_rows,
-                    inquiry_purchase_type,
-                    operation_user=username,
-                )
             inquiries_closed = Inquiry.sync_to_quote_closed_when_no_open_quotations(
                 inquiry_nos,
                 actor_username=username,

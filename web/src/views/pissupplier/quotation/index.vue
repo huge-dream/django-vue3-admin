@@ -144,7 +144,7 @@ const crudOptions = {
         text: '报价',
         type: compute(({ row }) => {
           bidWindowClock.value
-          const ok = isPendingQuotation(row) && isWithinSupplierBidWindow(row)
+          const ok = isPendingQuotation(row)
           return ok ? 'primary' : 'info'
         }),
         show: true,
@@ -158,7 +158,7 @@ const crudOptions = {
         },
         disabled: compute(({ row }) => {
           bidWindowClock.value
-          return !isPendingQuotation(row) || !isWithinSupplierBidWindow(row)
+          return !isPendingQuotation(row)
         })
       },
       editQuote: {
