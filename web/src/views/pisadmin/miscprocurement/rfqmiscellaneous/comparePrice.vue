@@ -224,6 +224,10 @@
                   {{ formatCompareMin(row.min, row.key) }}
                 </span>
               </template>
+              <template v-else-if="row.key === 'profit'">
+                {{ formatCompareMin(row.min, row.key)
+                }}<template v-if="row.profitMinMarginDisplay">（利润率：{{ row.profitMinMarginDisplay }}）</template>
+              </template>
               <template v-else>{{ formatCompareMin(row.min, row.key) }}</template>
             </template>
           </el-table-column>
@@ -278,6 +282,14 @@ import {
   buildMaterialCostMinLink,
   allCompareSupplierValuesEqual,
   formatQuotationProfitMarginForCompare,
+  computeProfitProcessMinPrice,
+  formatMinProfitMarginForCompare,
+  computeTaxProcessMinPrice,
+  sumComparisonProcessMinTotals,
+  sumComparisonAverageTotals,
+  computeProfitRowAveragePrice,
+  computeTaxRowAveragePrice,
+  coalesceCompareNumeric,
   type CompareMinLink,
   type ComparisonDetailMetric,
   type LowPriceMinContext
@@ -313,6 +325,8 @@ type ComparisonRow = ComparisonDetailRow & {
   detailGroups?: ComparisonDetailGroup[]
   /** 利润行：各供应商列括号内利润率文案（与 QuotationProfit.profit_rate 一致） */
   profitMarginPctBySupplier?: Record<string, string>
+  /** 制程最低价列：利润行末尾「利润率：x%」（取各报价最小利润率） */
+  profitMinMarginDisplay?: string
 }
 
 const compareTableRef = ref()
@@ -857,6 +871,8 @@ const buildComparisonRowsFromPisQuotes = (
     lowPriceCtx?: LowPriceMinContext | null
     /** 加工工站代码 → 名称，用于展开表分组标题 */
     stationNameByCode?: Record<string, string>
+    /** 与询价单头部「税率」一致（如 `firstNonEmptyString` 结果），用于税金行制程最低价 */
+    taxRateForProcessMin?: string
   }
 ) => {
   const supplierKeys = quotes.map((q, idx) => quotationSupplierKey(q, idx))
@@ -982,11 +998,35 @@ const buildComparisonRowsFromPisQuotes = (
       row.minLink = null
     }
   }
-  setRowMinLinkToLowestQuotation(procRow, sumProcessCost)
+  // 加工成本：与 computeLowPriceMinContext 一致，制程最低价列可链向对应报价单（含各列数值全相等时取最早单）
+  const procQid = lp?.minProcessQuotationId
+  if (
+    procRow &&
+    procQid != null &&
+    procQid !== '' &&
+    typeof lp?.minProcessTotal === 'number' &&
+    Number.isFinite(lp.minProcessTotal)
+  ) {
+    procRow.min = lp.minProcessTotal
+    procRow.minLink = { kind: 'quotation', id: procQid }
+  } else {
+    setRowMinLinkToLowestQuotation(procRow, sumProcessCost)
+  }
   setRowMinLinkToLowestQuotation(otherRow, sumOtherCost)
+
+  const profitRateRaws = quotes.map((q) => profitCostRowForQuote(q)?.profit_rate)
+  const profitMinComputed = computeProfitProcessMinPrice(
+    matRow?.min,
+    procRow?.min,
+    otherRow?.min,
+    profitRateRaws
+  )
 
   const profitRow = rows.find((r) => r.key === 'profit')
   if (profitRow) {
+    profitRow.min = profitMinComputed
+    const pm = formatMinProfitMarginForCompare(profitRateRaws)
+    if (pm) profitRow.profitMinMarginDisplay = pm
     const marginMap: Record<string, string> = {}
     supplierKeys.forEach((name, idx) => {
       const pc = profitCostRowForQuote(quotes[idx])
@@ -994,6 +1034,55 @@ const buildComparisonRowsFromPisQuotes = (
       if (s) marginMap[name] = s
     })
     profitRow.profitMarginPctBySupplier = marginMap
+  }
+
+  const matAvg = matRow?.avg
+  const procAvg = procRow?.avg
+  const otherAvg = otherRow?.avg
+  const profitAvgComputed = computeProfitRowAveragePrice(matAvg, procAvg, otherAvg, profitRateRaws)
+  if (profitRow) {
+    profitRow.avg = profitAvgComputed
+  }
+
+  const taxRow = rows.find((r) => r.key === 'tax')
+  if (taxRow) {
+    const tr = String(detailOpts?.taxRateForProcessMin ?? '').trim()
+    taxRow.min = computeTaxProcessMinPrice(
+      matRow?.min,
+      procRow?.min,
+      otherRow?.min,
+      profitMinComputed,
+      tr
+    )
+    taxRow.avg = computeTaxRowAveragePrice(matAvg, procAvg, otherAvg, profitAvgComputed, tr)
+  }
+
+  for (const key of ['material', 'process', 'other', 'profit', 'tax'] as const) {
+    const r = rows.find((x) => x.key === key)
+    if (r) {
+      r.avg = coalesceCompareNumeric(r.avg)
+      r.min = coalesceCompareNumeric(r.min)
+    }
+  }
+
+  const totalRow = rows.find((r) => r.key === 'total')
+  if (totalRow) {
+    totalRow.min = sumComparisonProcessMinTotals(
+      matRow?.min,
+      procRow?.min,
+      otherRow?.min,
+      profitRow?.min,
+      taxRow?.min
+    )
+    totalRow.avg = sumComparisonAverageTotals(
+      matRow?.avg,
+      procRow?.avg,
+      otherRow?.avg,
+      profitRow?.avg,
+      taxRow?.avg
+    )
+    totalRow.min = coalesceCompareNumeric(totalRow.min)
+    totalRow.avg = coalesceCompareNumeric(totalRow.avg)
   }
 
   const suppliers = supplierKeys.map((name, idx) => ({
@@ -1068,15 +1157,6 @@ const loadComparisonPage = async (row: any) => {
     }
     const stationNameByCode = await fetchStationCodeToNameMap()
     const lowPriceCtx = computeLowPriceMinContext(quotes, miscMinUnitPrice, miscMinFactory)
-    const { suppliers, rows } = buildComparisonRowsFromPisQuotes(quotes, {
-      materialMetrics: COMPARE_PRICE_MATERIAL_DETAIL_METRICS,
-      processMetrics: COMPARE_PRICE_PROCESS_DETAIL_METRICS,
-      lowPriceCtx,
-      stationNameByCode
-    })
-    comparisonDialog.quotes = quotes
-    comparisonDialog.suppliers = suppliers
-    comparisonDialog.rows = rows
     const rq0 = quotes[0]?.rfq_items?.[0]
     if (rq0) {
       if (!comparisonDialog.baseInfo.partNo) comparisonDialog.baseInfo.partNo = String(rq0.part_id || '').trim()
@@ -1095,6 +1175,16 @@ const loadComparisonPage = async (row: any) => {
       const c = quotes[0].currency ?? quotes[0].transaction_currency
       if (c != null && c !== '') comparisonDialog.baseInfo.currency = String(c).trim()
     }
+    const { suppliers, rows } = buildComparisonRowsFromPisQuotes(quotes, {
+      materialMetrics: COMPARE_PRICE_MATERIAL_DETAIL_METRICS,
+      processMetrics: COMPARE_PRICE_PROCESS_DETAIL_METRICS,
+      lowPriceCtx,
+      stationNameByCode,
+      taxRateForProcessMin: comparisonDialog.baseInfo.taxRate
+    })
+    comparisonDialog.quotes = quotes
+    comparisonDialog.suppliers = suppliers
+    comparisonDialog.rows = rows
     try {
       const negRes = await api.GetNegotiationRecordsObj(row.id, {})
       const raw = negRes?.data?.data ?? negRes?.data

@@ -168,6 +168,30 @@ def _safe_decimal(v):
         return None
 
 
+def _get_earliest_quotation(quotations: list) -> tuple:
+    """从报价单列表中获取最早提交的报价单（按 quotetime 或 creattime 排序）"""
+    if not quotations:
+        return None, None
+
+    earliest = None
+    earliest_time = None
+    earliest_qn = None
+
+    for q in quotations:
+        q_time = getattr(q, 'quotetime', None) or getattr(q, 'creattime', None)
+        qn = getattr(q, 'quotation_no', None) or getattr(q, 'quotationNo', None)
+
+        if q_time is None:
+            continue
+
+        if earliest is None or q_time < earliest_time:
+            earliest = q
+            earliest_time = q_time
+            earliest_qn = qn
+
+    return earliest, earliest_qn
+
+
 def _resolve_inquiry_primary_part_id(inquiry: Inquiry) -> str:
     """与采购端比价弹窗一致：上阶物料首行料号。"""
     first = InquiryRfqItem.objects.filter(inquiry_no=inquiry).order_by("id").first()
@@ -220,23 +244,25 @@ def _rfq_qty_decimal(inquiry: Inquiry, pid: str) -> Optional[Decimal]:
 def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
     """
     制程最低价落库（与比价展开明细一致）：
-    - 前端比价展开不依赖成本结构模板：材料按材质分组仅展示重量/单价/材料费用，加工按工站分组仅展示加工费；落库口径仍按下列规则。
-    - 询价单下**每个上阶物料料号**单独一套主/次表数据（多料号互不合并）。
-    - **材料**：次表按材质分组记录，每组两行（最低重量、最低单价）；souce_no 为取得该最小值对应的报价单单号，单价若来自「杂采材料信息」
-      则存交易厂区（factory）；主表材料行 souce_no 聚合为 W:…;U:…（重量来源与单价来源可能不同）。
-      主表材料行的 min_price 是所有材质分组的（最低重量×最低单价×数量）之和。
-    - **加工**：仅主表一行（无次表、不按工站）；每报价单合计加工费后取最小，全空/全 0 仍写入 MinPrice=0。
-    - 注意：材料行必须用 quotation_no__in=报价单号列表 过滤，勿用 QuerySet(QuotationMaster) 作 __in，否则 ORM 按主键匹配会查不到材料行。
-    - **其它**：包装费、运输费分列取 min（优先 sup_quotation_other；无则用上阶物料 total_other_expense 回退）。采购端比价主表「其它成本」行制程最低价列与「加工成本」相同，可链向合计最低的报价单详情。
-    - **利润率**：cost_type=6，各报价单该料号利润率取 min。杂采不落库管销研（cost_type=5）。
+    - 先比较所有报价单的最低价。
+    - 如果**所有报价单最低价相等**，则取**最早提交报价单**的最低价。
+    - 如果**最低价不一致**，则取**所有报价单中的最小值**。
+    - 材料：按材质分组，每组单独计算最低重量/单价，再汇总所有材质的材料费用总和。
+    - 加工：每份报价单加工费合计后取最小值。
+    - 材料/加工最低价仅更新 `MiscLowPriceHeader`/`MiscLowPriceDetail` 记录表，
+      `MiscProcMaterialMinPrices`/`MiscProcProcessingMinPrices` 信息表仅在核价完成后更新（暂不实现）。
     """
     inquiry_no = (inquiry.inquiry_no or "").strip()
     if not inquiry_no:
         return
 
+    # 获取所有报价单（排除已过期 status=4）
     qm_qs = QuotationMaster.objects.filter(inquiry_no=inquiry_no).exclude(status=4)
     qn_list = list(qm_qs.values_list("quotation_no", flat=True))
     souce_ref = inquiry_no[:20]
+
+    # 获取所有报价单详情，用于判断最早提交报价单
+    all_quotations = list(qm_qs.order_by("creattime", "quotetime"))
 
     raw_parts = [
         str(x).strip()
@@ -254,7 +280,11 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
         MiscLowPriceHeader.objects.filter(inquiry_no=inquiry_no, part_id=pid).delete()
         MiscLowPriceDetail.objects.filter(inquiry_no=inquiry_no, part_id=pid).delete()
 
+        # 获取该料号的所有报价单（用于判断最早提交报价单）
+        pid_quotations = [q for q in all_quotations if q.quotation_no in qn_list]
+
         # —— 材料：按材质规格分组，每组次表两行（重量、单价）；主表 = 所有分组的（最低重量×最低单价×数量）之和。
+        # 如果所有报价单材料费用相等，则取最早提交报价单；否则取最小值。
         # FK 须用报价单单号列表：quotation_no__in=QuerySet(QuotationMaster) 会按主键匹配，导致材料行查不到。
         materials = QuotationMaterial.objects.filter(quotation_no__in=qn_list, part_id=pid)
 
@@ -266,17 +296,33 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
         for m in materials:
             qn_src = getattr(m, "quotation_no_id", None) or ""
             qn_src = str(qn_src).strip()
+            qn = getattr(m, "quotation_no_id", None) or qn_src
             spec = (getattr(m, "material_spec", None) or "").strip() or "-"
+
+            # 记录每个材质规格下每个报价单的数据，用于判断是否所有报价单相等
+            if spec not in spec_quote_data:
+                spec_quote_data[spec] = {}
+            if qn not in spec_quote_data[spec]:
+                spec_quote_data[spec][qn] = {}
+
             if m.weight is not None:
                 try:
                     w = Decimal(str(m.weight))
                     spec_weight_candidates[spec].append((w, qn_src))
+                    spec_quote_data[spec][qn]['weight'] = w
                 except Exception:
                     pass
             if m.unit_price is not None:
                 try:
                     up = Decimal(str(m.unit_price))
                     spec_unit_candidates[spec].append((up, qn_src))
+                    spec_quote_data[spec][qn]['unit_price'] = up
+                except Exception:
+                    pass
+            if m.material_cost is not None:
+                try:
+                    mc = Decimal(str(m.material_cost))
+                    spec_quote_data[spec][qn]['material_cost'] = mc
                 except Exception:
                     pass
 
@@ -296,6 +342,9 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
         all_src_w_list: list[str] = []
         all_src_up_list: list[str] = []
 
+        # 收集每个材质规格的报价数据，用于按材质分组判断是否所有报价单相等
+        spec_quote_data: dict[str, dict[str, dict]] = {}
+
         # 获取所有材质规格（有重量或单价数据的）
         all_specs = set(spec_weight_candidates.keys()) | set(spec_unit_candidates.keys())
 
@@ -306,12 +355,54 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
             # 杂采单价也加入该分组的单价候选
             unit_candidates = unit_candidates + misc_unit_candidates
 
+            # 按材质分组判断所有报价单是否相等
+            spec_quote_values = spec_quote_data.get(spec, {})
+            all_quotes_equal = True
+            first_value = None
+
+            for qn, data in spec_quote_values.items():
+                # 检查重量、单价、材料费用是否都相等
+                current_values = []
+                if 'weight' in data:
+                    current_values.append(data['weight'])
+                if 'unit_price' in data:
+                    current_values.append(data['unit_price'])
+                if 'material_cost' in data:
+                    current_values.append(data['material_cost'])
+
+                if not current_values:
+                    continue
+
+                if first_value is None:
+                    first_value = current_values[0]
+                else:
+                    for val in current_values:
+                        if abs(val - first_value) > Decimal('0.0001'):
+                            all_quotes_equal = False
+                            break
+                    if not all_quotes_equal:
+                        break
+
             min_w_row = min(weight_candidates, key=lambda t: (t[0], t[1])) if weight_candidates else None
             min_up_row = min(unit_candidates, key=lambda t: (t[0], t[1])) if unit_candidates else None
             min_w = min_w_row[0] if min_w_row else None
             min_up = min_up_row[0] if min_up_row else None
             src_w = min_w_row[1] if min_w_row else None
             src_up = min_up_row[1] if min_up_row else None
+
+            # 如果该材质分组的所有报价单相等，则取最早提交报价单的数据
+            if all_quotes_equal and len(pid_quotations) > 0 and min_w is not None and min_up is not None:
+                earliest, earliest_qn = _get_earliest_quotation(pid_quotations)
+                if earliest_qn:
+                    # 找到最早报价单对应的具体数据
+                    earliest_data = spec_quote_data.get(spec, {}).get(earliest_qn)
+                    if earliest_data:
+                        if 'weight' in earliest_data:
+                            min_w = earliest_data['weight']
+                        if 'unit_price' in earliest_data:
+                            min_up = earliest_data['unit_price']
+                        src_w = earliest_qn
+                        src_up = earliest_qn
 
             # 判断是否来自杂采材料信息
             is_misc_src = False
@@ -333,7 +424,7 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
                     souce_no=_norm_low_price_src((src_w or souce_ref)),
                 )
                 if src_w:
-                    all_src_w_list.append(src_w)
+                    all_src_w_list.append(str(src_w))
 
             # 写入次表：最低单价
             if min_up is not None:
@@ -344,10 +435,10 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
                     material_spec=spec[:50],
                     item_no="2",
                     value=_clip_price_str(min_up),
-                    souce_no=_norm_low_price_src((src_up or souce_ref)) if not is_misc_src else _norm_low_price_src(src_up or souce_ref),
+                    souce_no=_norm_low_price_src((src_up or souce_ref)) if not is_misc_src else _norm_low_price_src(str(src_up or souce_ref)),
                 )
                 if src_up:
-                    all_src_up_list.append(src_up)
+                    all_src_up_list.append(str(src_up))
 
             # 累加到总材料费用
             if min_w is not None and min_up is not None and qty_dec is not None and qty_dec > 0:
@@ -369,7 +460,7 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
             )
 
         # —— 加工：仅主表一行，无次表、不按工站。每份报价单对该料号加工费合计（空/缺省按 0），再取最小；
-        # 若全无报价单或合计均为空，仍写入 MinPrice=0，来源询价单号。 ——
+        # 如果所有报价单加工费合计相等，则取最早提交报价单；否则取最小值。
         proc_totals: list[tuple[Decimal, str]] = []
         for qn in qn_list:
             total = Decimal("0")
@@ -380,11 +471,26 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
                     except Exception:
                         pass
             proc_totals.append((total, str(qn).strip()))
+
         if proc_totals:
-            best_total, best_qn = min(proc_totals, key=lambda t: (t[0], t[1]))
+            # 检查所有加工费是否相等
+            all_equal = all(abs(t[0] - proc_totals[0][0]) < Decimal('0.0001') for t in proc_totals)
+
+            if all_equal and len(pid_quotations) > 0:
+                # 所有报价加工费相等，取最早提交报价单
+                earliest, earliest_qn = _get_earliest_quotation(pid_quotations)
+                if earliest_qn:
+                    best_total = proc_totals[0][0]  # 任意一个都相等
+                    best_qn = earliest_qn
+                else:
+                    best_total, best_qn = min(proc_totals, key=lambda t: (t[0], t[1]))
+            else:
+                # 加工费不一致或无报价单，取最小值
+                best_total, best_qn = min(proc_totals, key=lambda t: (t[0], t[1]))
         else:
             best_total = Decimal("0")
             best_qn = ""
+
         MiscLowPriceHeader.objects.create(
             inquiry_no=inquiry_no,
             part_id=pid,
