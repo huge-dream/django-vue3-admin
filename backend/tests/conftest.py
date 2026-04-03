@@ -18,24 +18,16 @@ def authenticate(api_client, admin_user):
 @pytest.fixture
 def admin_user(db):
     """创建管理员用户（每个测试独立事务，测试后自动 rollback）"""
-    from dvadmin.system.models import Users
+    from tests.factories.system_factory import UserFactory
 
-    user = Users.objects.create_user(
-        username="test_admin",
-        password="testpass123",
-        is_superuser=True,
-    )
+    user = UserFactory(admin=True)
     return user
 
 
 @pytest.fixture
 def normal_user(db):
     """创建普通用户"""
-    from dvadmin.system.models import Users
+    from tests.factories.system_factory import UserFactory
 
-    user = Users.objects.create_user(
-        username="test_normal_user",
-        password="testpass123",
-        is_superuser=False,
-    )
+    user = UserFactory()
     return user

@@ -36,8 +36,6 @@ class FileSerializer(CustomModelSerializer):
         fields = "__all__"
 
     def create(self, validated_data):
-        file_engine = dispatch.get_system_config_values("file_storage.file_engine") or 'local'
-        file_backup = dispatch.get_system_config_values("file_storage.file_backup")
         file = self.initial_data.get('file')
         file_size = file.size
         validated_data['name'] = str(file)
@@ -46,28 +44,19 @@ class FileSerializer(CustomModelSerializer):
         for chunk in file.chunks():
             md5.update(chunk)
         validated_data['md5sum'] = md5.hexdigest()
-        validated_data['engine'] = file_engine
+        validated_data['engine'] = 'rustfs'
         validated_data['mime_type'] = file.content_type
         ft = {'image':0,'video':1,'audio':2}.get(file.content_type.split('/')[0], None)
         validated_data['file_type'] = 3 if ft is None else ft
-        if file_backup:
-            validated_data['url'] = file
-        if file_engine == 'oss':
-            from dvadmin.utils.aliyunoss import ali_oss_upload
-            file_path = ali_oss_upload(file, file_name=validated_data['name'])
-            if file_path:
-                validated_data['file_url'] = file_path
-            else:
-                raise ValueError("上传失败")
-        elif file_engine == 'cos':
-            from dvadmin.utils.tencentcos import tencent_cos_upload
-            file_path = tencent_cos_upload(file, file_name=validated_data['name'])
-            if file_path:
-                validated_data['file_url'] = file_path
-            else:
-                raise ValueError("上传失败")
+
+        # 上传到 RustFS
+        from dvadmin.utils.rustfs_storage import rustfs_upload_file
+        file_path = rustfs_upload_file(file, file_name=validated_data['name'])
+        if file_path:
+            validated_data['file_url'] = file_path
         else:
-            validated_data['url'] = file
+            raise ValueError("文件上传失败")
+
         # 审计字段
         try:
             request_user = self.request.user

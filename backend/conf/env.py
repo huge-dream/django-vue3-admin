@@ -67,3 +67,14 @@ EMAIL_PORT = 25
 # 服务器不支持STARTTLS，使用纯明文连接
 EMAIL_USE_SSL = False
 EMAIL_USE_TLS = False
+
+# ================================================= #
+# *************** RustFS 对象存储 配置 *************** #
+# ================================================= #
+RUSTFS_ENDPOINT = "192.168.80.90:9000"
+RUSTFS_ACCESS_KEY = "kqaQFK3BMETpd2TcWBnT"
+RUSTFS_SECRET_KEY = "39Ms49eTkMW9E633AjFLcnuyFbgt2H1du4nLzpZe"
+RUSTFS_BUCKET = "pis-media"
+RUSTFS_SECURE = False  # True=HTTPS, False=HTTP
+RUSTFS_PATH_PREFIX = ""  # 存储路径前缀，可为空
+RUSTFS_REGION = "us-east-1"  # RustFS 区域（可自定义）
