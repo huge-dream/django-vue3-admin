@@ -85,11 +85,10 @@ def build_invited_supplier_quotation_rows(inquiry) -> list:
 
         rows_out.append(
             {
-                "operation_time": op_time or "—",
                 "supplier_full_name": full_name,
-                "operator": op_user,
                 "quotation_status": _quotation_master_status_label(qm.status),
-                "operation_desc": "",
+                "operation_time": op_time or "—",
+                "operator": op_user,
                 "quotation_no": (qm.quotation_no or "").strip(),
             }
         )
@@ -292,6 +291,7 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
         from collections import defaultdict
         spec_weight_candidates: dict[str, list[tuple[Decimal, str]]] = defaultdict(list)
         spec_unit_candidates: dict[str, list[tuple[Decimal, str]]] = defaultdict(list)
+        spec_quote_data: dict[str, dict[str, dict]] = {}
 
         for m in materials:
             qn_src = getattr(m, "quotation_no_id", None) or ""
@@ -326,24 +326,25 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
                 except Exception:
                     pass
 
-        # 杂采材料信息：单价适用于所有材质分组
-        misc_unit_candidates: list[tuple[Decimal, str]] = []
-        for mi in MiscProcurementMaterialInfo.objects.filter(status=1).only("price", "factory"):
-            if mi.price is not None:
-                try:
-                    up = Decimal(str(mi.price))
-                    fac = (getattr(mi, "factory", None) or "").strip() or "MISC"
-                    misc_unit_candidates.append((up, fac))
-                except Exception:
-                    pass
+        # 杂采材料信息：按「材质」与报价 material_spec 对齐；不得把其它材质的最低单价并入本组
+        misc_by_spec: dict[str, list[tuple[Decimal, str]]] = defaultdict(list)
+        for mi in MiscProcurementMaterialInfo.objects.filter(status=1).only("price", "factory", "materialtype"):
+            if mi.price is None:
+                continue
+            mat = (getattr(mi, "materialtype", None) or "").strip()
+            if not mat:
+                continue
+            try:
+                up = Decimal(str(mi.price))
+                fac = (getattr(mi, "factory", None) or "").strip() or "MISC"
+                misc_by_spec[mat].append((up, fac))
+            except Exception:
+                pass
 
         qty_dec = _rfq_qty_decimal(inquiry, pid)
         total_material_low = Decimal("0")
         all_src_w_list: list[str] = []
         all_src_up_list: list[str] = []
-
-        # 收集每个材质规格的报价数据，用于按材质分组判断是否所有报价单相等
-        spec_quote_data: dict[str, dict[str, dict]] = {}
 
         # 获取所有材质规格（有重量或单价数据的）
         all_specs = set(spec_weight_candidates.keys()) | set(spec_unit_candidates.keys())
@@ -352,8 +353,8 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
             weight_candidates = spec_weight_candidates.get(spec, [])
             unit_candidates = spec_unit_candidates.get(spec, [])
 
-            # 杂采单价也加入该分组的单价候选
-            unit_candidates = unit_candidates + misc_unit_candidates
+            # 仅与同 material_spec 一致的杂采材质行参与该组最低价
+            unit_candidates = unit_candidates + list(misc_by_spec.get(spec, []))
 
             # 按材质分组判断所有报价单是否相等
             spec_quote_values = spec_quote_data.get(spec, {})
@@ -404,10 +405,10 @@ def _sync_misc_low_price_records(inquiry: Inquiry, part_id: str) -> None:
                         src_w = earliest_qn
                         src_up = earliest_qn
 
-            # 判断是否来自杂采材料信息
+            # 判断是否来自杂采材料信息（本材质分组）
             is_misc_src = False
-            if min_up is not None and misc_unit_candidates:
-                for misc_up, misc_fac in misc_unit_candidates:
+            if min_up is not None and misc_by_spec.get(spec):
+                for misc_up, misc_fac in misc_by_spec[spec]:
                     if abs(min_up - misc_up) < Decimal("0.0001"):
                         is_misc_src = True
                         break

@@ -373,16 +373,6 @@ class Inquiry(CoreModel):
             else None
         )
         submitter_name = (getattr(qm_submit, "supplier_name", None) or "").strip() or "—"
-        RFQOperationLogs.try_append(
-            inquiry_no=inq.inquiry_no,
-            purchase_type=int(inq.purchase_type),
-            operation_type=6,
-            operation_user=username,
-            quotation_no=qn,
-            per_status=old_status,
-            cur_status=5,
-            operation_desc=f"供应商（{submitter_name}）提交报价，受邀供应商均提交报价，询价单报价结束",
-        )
         try:
             from apps.pisadmin.basicinfo.views.email_utils import send_quote_ended_notice_to_purchaser
 

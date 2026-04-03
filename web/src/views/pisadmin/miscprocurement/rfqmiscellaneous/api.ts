@@ -20,7 +20,7 @@ export const SubmitPriceAuditObj = (id: string | number) => request({ url: `${ba
 /** 询价单操作日志（按主键，返回该单 inquiry_no 下全部记录，时间倒序） */
 export const GetOperationLogs = (id: string | number) =>
   request({ url: `${baseUrl}${id}/operation_logs/`, method: 'get' })
-/** 受邀供应商报价单一览（与发布生成的报价主表一致，操作日志嵌套表用） */
+/** 受邀供应商一览（与发布生成的报价主表一致，操作日志嵌套表用） */
 export const GetInvitedSupplierQuotations = (id: string | number) =>
   request({ url: `${baseUrl}${id}/invited_supplier_quotations/`, method: 'get' })
 /** 查询杂采议价记录（比价议价价格存此表，非报价明细「中标价格」） */
