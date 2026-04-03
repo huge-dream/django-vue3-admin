@@ -9,6 +9,7 @@
 		"build": "vite build",
 		"build:local": "vite build --mode local_prod",
 		"lint-fix": "eslint --fix --ext .js --ext .jsx --ext .vue src/",
+		"prepare": "cd .. && husky install",
 		"build:flowH5": "vite build --config flowH5.config.ts"
 	},
 	"dependencies": {
@@ -83,6 +84,8 @@
 		"baseline-browser-mapping": "^2.9.19",
 		"eslint": "^8.57.1",
 		"eslint-plugin-vue": "^9.27.0",
+		"husky": "^9.1.7",
+		"lint-staged": "^16.4.0",
 		"prettier": "^2.8.1",
 		"sass": "^1.56.2",
 		"typescript": "^4.9.4",
