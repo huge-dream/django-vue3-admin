@@ -1,7 +1,8 @@
 # Git 协作规范设计
 
 > 创建日期：2026-04-03
-> 状态：已批准
+> 状态：评审中
+> 作者：Lewis Yan
 > 关联：Git 协作标准化
 
 ---
@@ -119,12 +120,12 @@ develop ────────────────────────
 **安装方式：**
 ```bash
 cd backend
-pip install pre-commit commitlint
+pip install pre-commit ruff
 pre-commit install
 ```
 
 **检查内容：**
-- Python：`flake8`、`black`
+- Python：`ruff`（替代 flake8 + black + isort，速度快 10-100x）
 - 通用：禁止 debug 代码、敏感信息检查
 
 **.pre-commit-config.yaml 示例：**
@@ -138,11 +139,11 @@ repos:
       - id: check-yaml
       - id: check-added-large-files
 
-  - repo: https://github.com/pycqa/flake8
-    rev: 7.0.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.0
     hooks:
-      - id: flake8
-        args: [--max-line-length=120]
+      - id: ruff
+      - id: ruff-format
 ```
 
 ### 前端（Node.js）— husky
@@ -204,7 +205,7 @@ npx husky add .husky/pre-commit "npx lint-staged"
 Push → 自动触发 Jenkins Build
   ├── Backend
   │     ├── 单元测试 (pytest)
-  │     ├── 代码检查 (flake8)
+  │     ├── 代码检查 (ruff)
   │     └── 构建
   │
   ├── Frontend
@@ -256,7 +257,7 @@ Push → 自动触发 Jenkins Build
 | Git Hooks（后端） | pre-commit | backend/ |
 | Git Hooks（前端） | husky + lint-staged | web/ |
 | CI/CD | Jenkins | 全项目 |
-| 代码风格（后端） | flake8, black | backend/ |
+| 代码风格（后端） | ruff（lint + format） | backend/ |
 | 代码风格（前端） | eslint, prettier | web/ |
 
 ---
