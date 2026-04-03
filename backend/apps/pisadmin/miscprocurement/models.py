@@ -923,3 +923,57 @@ class RFQOperationLogs(CoreModel):
 
     def __str__(self) -> str:
         return f"{self.inquiry_no}-{self.quotation_no}"
+
+
+class MiscProcMaterialMinPrices(CoreModel):
+    """杂采材料制程最低价信息表（"""
+
+    ITEM_NUM_CHOICES = (
+        ("1", "重量"),
+        ("2", "单价"),
+    )
+
+    part_id = models.CharField(max_length=50, db_column="partid", verbose_name="采购价料号")
+    material_spec = models.CharField(max_length=20, db_column="material_spec", verbose_name="材料规格")
+    currency_code = models.CharField(max_length=50, db_column="currency_code", verbose_name="货币代码")
+    item_num = models.CharField(max_length=20, db_column="item_num", verbose_name="项次名")
+    lowest_value = models.CharField(max_length=20, db_column="lowest_value", verbose_name="最低值")
+    source_number = models.CharField(max_length=50, db_column="source_number", verbose_name="报价来源单号")
+    quotation_time = models.DateTimeField(db_column="quotation_time", verbose_name="报价时间")
+
+    class Meta:
+        db_table = table_prefix + "misc_proc_material_min_prices"
+        verbose_name = "杂采材料制程最低价信息表"
+        verbose_name_plural = verbose_name
+        ordering = ("-create_datetime", "id")
+        indexes = [
+            models.Index(fields=["part_id", "material_spec", "currency_code", "item_num"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.part_id}-{self.material_spec}-{self.currency_code}-{self.item_num}"
+
+
+class MiscProcProcessingMinPrices(CoreModel):
+    """杂采加工费用最低价信息表
+
+    按采购件料号、货币代码存储各报价单加工费合计的最低值。
+    """
+
+    part_id = models.CharField(max_length=50, db_column="partid", verbose_name="采购件料号")
+    currency_code = models.CharField(max_length=50, db_column="currencycode", verbose_name="货币代码")
+    lowest_value = models.CharField(max_length=20, db_column="lowest_vaule", verbose_name="加工费用最低价")
+    source_number = models.CharField(max_length=50, null=True, blank=True, db_column="sourcenumber", verbose_name="报价来源单号")
+    quotation_time = models.DateTimeField(null=True, blank=True, db_column="quotationtime", verbose_name="报价时间")
+
+    class Meta:
+        db_table = table_prefix + "misc_proc_processing_min_prices"
+        verbose_name = "杂采加工费用最低价信息表"
+        verbose_name_plural = verbose_name
+        ordering = ("-create_datetime", "id")
+        indexes = [
+            models.Index(fields=["part_id", "currency_code"]),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.part_id}-{self.currency_code}-{self.lowest_value}"

@@ -114,6 +114,8 @@ from .models import (
     InquiryRfqItem,
     CostEstimateTemplateHead,
     CostEstimateTemplateBody,
+    MiscProcMaterialMinPrices,
+    MiscProcProcessingMinPrices,
 )
 from .serializers import (
     MiscMaterialSerializer,
@@ -138,6 +140,8 @@ from .serializers import (
     CostEstimateTemplateHeadSerializer,
     CostEstimateTemplateNewVersionSerializer,
     create_cost_template_new_version,
+    MiscProcMaterialMinPricesSerializer,
+    MiscProcProcessingMinPricesSerializer,
 )
 
 
@@ -1667,3 +1671,56 @@ class RFQOperationLogsViewSet(CustomModelViewSet):
             nos = Inquiry.objects.filter(buyer__icontains=buyer).values_list("inquiry_no", flat=True)
             queryset = queryset.filter(inquiry_no__in=list(nos))
         return queryset
+
+
+class MiscProcMaterialMinPricesViewSet(CustomModelViewSet):
+    """杂采材料制程最低价信息表视图集
+
+    按采购件料号、材料规格、货币代码、项次存储最低重量(1)和最低单价(2)信息。
+    """
+
+    queryset = MiscProcMaterialMinPrices.objects.all()
+    serializer_class = MiscProcMaterialMinPricesSerializer
+    filter_fields = (
+        "part_id",
+        "material_spec",
+        "currency_code",
+        "item_num",
+    )
+    search_fields = (
+        "part_id",
+        "material_spec",
+        "source_number",
+    )
+    ordering = ("-create_datetime", "id")
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+
+class MiscProcProcessingMinPricesViewSet(CustomModelViewSet):
+    """杂采加工费用最低价信息表视图集
+
+    按采购件料号、货币代码存储各报价单加工费合计的最低值。
+    """
+
+    queryset = MiscProcProcessingMinPrices.objects.all()
+    serializer_class = MiscProcProcessingMinPricesSerializer
+    filter_fields = (
+        "part_id",
+        "currency_code",
+    )
+    search_fields = (
+        "part_id",
+        "source_number",
+    )
+    ordering = ("-create_datetime", "id")
+
+    def perform_create(self, serializer):
+        serializer.save()
+
+    def perform_update(self, serializer):
+        serializer.save()
