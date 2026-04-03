@@ -178,6 +178,162 @@ export const formatQuotationProfitMarginForCompare = (raw: unknown): string => {
   return `${pct.toFixed(2)}%`
 }
 
+/**
+ * 将 `QuotationProfit.profit_rate` 转为乘数（如 1% → 0.01），与 `formatQuotationProfitMarginForCompare` 口径一致：
+ * 介于 0 与 1 之间视为小数形式；否则视为百分数（3 → 3%）。
+ */
+export const quotationProfitRateToMultiplier = (raw: unknown): number | null => {
+  if (raw === null || raw === undefined || raw === '') return null
+  const n = Number(raw)
+  if (!Number.isFinite(n) || n < 0) return null
+  if (n > 0 && n < 1) return n
+  return n / 100
+}
+
+/** 比价数值托底：缺省或非有限数字时按 0 */
+export const coalesceCompareNumeric = (v: unknown): number => {
+  if (v === null || v === undefined || v === '') return 0
+  const n = Number(v)
+  return Number.isFinite(n) ? n : 0
+}
+
+/**
+ * 比价「利润」行制程最低价：各报价中最小利润率 ×（材料+加工+其它三项制程最低价之和）；缺项按 0。
+ */
+export const computeProfitProcessMinPrice = (
+  materialMin: number | undefined,
+  processMin: number | undefined,
+  otherMin: number | undefined,
+  profitRateRaws: unknown[]
+): number => {
+  const m0 = coalesceCompareNumeric(materialMin)
+  const m1 = coalesceCompareNumeric(processMin)
+  const m2 = coalesceCompareNumeric(otherMin)
+  const mults: number[] = []
+  for (const raw of profitRateRaws) {
+    const m = quotationProfitRateToMultiplier(raw)
+    if (m != null) mults.push(m)
+  }
+  const minM = mults.length ? Math.min(...mults) : 0
+  return (m0 + m1 + m2) * minM
+}
+
+/** 各报价中最小利润率对应的展示文案（与 `formatQuotationProfitMarginForCompare` 一致） */
+export const formatMinProfitMarginForCompare = (profitRateRaws: unknown[]): string => {
+  const entries = profitRateRaws
+    .map((raw) => ({ raw, m: quotationProfitRateToMultiplier(raw) }))
+    .filter((x): x is { raw: unknown; m: number } => x.m != null && Number.isFinite(x.m))
+  if (!entries.length) return ''
+  let minM = entries[0].m
+  let minRaw = entries[0].raw
+  for (const e of entries) {
+    if (e.m < minM) {
+      minM = e.m
+      minRaw = e.raw
+    }
+  }
+  return formatQuotationProfitMarginForCompare(minRaw)
+}
+
+/**
+ * 与「税率」信息区一致：将 `firstNonEmptyString` 得到的税率字符串（如 `1.0000%`）转为乘数（如 0.01）。
+ */
+export const comparisonTaxRateToMultiplier = (raw: unknown): number | null => {
+  if (raw === null || raw === undefined || raw === '') return null
+  const n = Number(String(raw).replace(/%/g, '').trim())
+  if (!Number.isFinite(n)) return null
+  return n / 100
+}
+
+/**
+ * 比价「税金」行制程最低价：（材料+加工+其它制程最低价 + 利润制程最低价）× 税率。
+ */
+export const computeTaxProcessMinPrice = (
+  materialMin: number | undefined,
+  processMin: number | undefined,
+  otherMin: number | undefined,
+  profitMin: number | undefined,
+  taxRateDisplay: unknown
+): number => {
+  const m = comparisonTaxRateToMultiplier(taxRateDisplay) ?? 0
+  return (
+    coalesceCompareNumeric(materialMin) +
+    coalesceCompareNumeric(processMin) +
+    coalesceCompareNumeric(otherMin) +
+    coalesceCompareNumeric(profitMin)
+  ) * m
+}
+
+/**
+ * 比价「总价」行制程最低价：材料+加工+其它+利润+税金 五行制程最低价之和（与各行展示一致后再加总）。
+ */
+export const sumComparisonProcessMinTotals = (
+  materialMin: number | undefined,
+  processMin: number | undefined,
+  otherMin: number | undefined,
+  profitMin: number | undefined,
+  taxMin: number | undefined
+): number =>
+  coalesceCompareNumeric(materialMin) +
+  coalesceCompareNumeric(processMin) +
+  coalesceCompareNumeric(otherMin) +
+  coalesceCompareNumeric(profitMin) +
+  coalesceCompareNumeric(taxMin)
+
+/**
+ * 比价「总价」行平均价：材料+加工+其它+利润+税金 五行平均价之和（与各行展示一致后再加总）。
+ */
+export const sumComparisonAverageTotals = (
+  materialAvg: number | undefined,
+  processAvg: number | undefined,
+  otherAvg: number | undefined,
+  profitAvg: number | undefined,
+  taxAvg: number | undefined
+): number =>
+  coalesceCompareNumeric(materialAvg) +
+  coalesceCompareNumeric(processAvg) +
+  coalesceCompareNumeric(otherAvg) +
+  coalesceCompareNumeric(profitAvg) +
+  coalesceCompareNumeric(taxAvg)
+
+/**
+ * 比价「利润」行平均价：（材料+加工+其它平均价之和）× 各报价利润率乘数之算术平均。
+ */
+export const computeProfitRowAveragePrice = (
+  materialAvg: number | undefined,
+  processAvg: number | undefined,
+  otherAvg: number | undefined,
+  profitRateRaws: unknown[]
+): number => {
+  const sum = coalesceCompareNumeric(materialAvg) + coalesceCompareNumeric(processAvg) + coalesceCompareNumeric(otherAvg)
+  const mults: number[] = []
+  for (const raw of profitRateRaws) {
+    const m = quotationProfitRateToMultiplier(raw)
+    if (m != null) mults.push(m)
+  }
+  const avgM = mults.length ? mults.reduce((a, b) => a + b, 0) / mults.length : 0
+  return sum * avgM
+}
+
+/**
+ * 比价「税金」行平均价：（材料+加工+其它+利润平均价之和）× 头部税率（与 `comparisonTaxRateToMultiplier` 一致）。
+ */
+export const computeTaxRowAveragePrice = (
+  materialAvg: number | undefined,
+  processAvg: number | undefined,
+  otherAvg: number | undefined,
+  profitAvg: number | undefined,
+  taxRateDisplay: unknown
+): number => {
+  const m = comparisonTaxRateToMultiplier(taxRateDisplay) ?? 0
+  return (
+    coalesceCompareNumeric(materialAvg) +
+    coalesceCompareNumeric(processAvg) +
+    coalesceCompareNumeric(otherAvg) +
+    coalesceCompareNumeric(profitAvg)
+  ) * m
+}
+
 /** 比价展开明细：与模板 fields 顺序一致 */
 export type ComparisonDetailMetric = {
   label: string
@@ -341,6 +497,8 @@ export type LowPriceMinContext = {
   /** 所有材质分组的材料费用总和（用于材料成本行的制程最低价） */
   totalMaterialProduct?: number
   minProcessTotal?: number
+  /** 加工成本制程最低价对应的报价单 id（可点击跳转） */
+  minProcessQuotationId?: string | number
   pid: string
   /** 杂采材料最低价对应交易厂区（全局，供浮窗） */
   miscMinFactory?: string
@@ -395,6 +553,8 @@ export function computeLowPriceMinContext(
     let specMinQuoteUp: number | undefined
     let specMinWeightQuotationId: string | number | undefined
     let specMinUnitPriceQuotationId: string | number | undefined
+    let allQuotesEqualForSpec = true
+    let firstValue: number | undefined
 
     // 遍历所有报价单，找出该材质规格的最低重量和最低单价
     for (const q of quotes) {
@@ -409,12 +569,24 @@ export function computeLowPriceMinContext(
             specMinW = w
             specMinWeightQuotationId = qid(q)
           }
+          // 检查该材质下所有报价单是否相等
+          if (firstValue === undefined) {
+            firstValue = w
+          } else if (Math.abs(w - firstValue) > 0.0001) {
+            allQuotesEqualForSpec = false
+          }
         }
         const up = Number(r.unit_price)
         if (Number.isFinite(up)) {
           if (specMinQuoteUp === undefined || up < specMinQuoteUp) {
             specMinQuoteUp = up
             specMinUnitPriceQuotationId = qid(q)
+          }
+          // 检查该材质下所有报价单是否相等
+          if (firstValue === undefined) {
+            firstValue = up
+          } else if (Math.abs(up - firstValue) > 0.0001) {
+            allQuotesEqualForSpec = false
           }
         }
       }
@@ -447,6 +619,38 @@ export function computeLowPriceMinContext(
       }
     }
 
+    // 如果该材质的所有报价单相等，则取最早提交的报价单
+    if (allQuotesEqualForSpec && specMinW !== undefined && specMinUp !== undefined) {
+      // 找到最早提交的报价单
+      let earliestQuote = quotes[0]
+      let earliestTime = Infinity
+
+      for (const q of quotes) {
+        const qTime = q.quotetime || q.creattime || q.createTime
+        if (qTime) {
+          const timeVal = new Date(qTime).getTime()
+          if (timeVal < earliestTime) {
+            earliestTime = timeVal
+            earliestQuote = q
+          }
+        }
+      }
+
+      // 使用最早提交报价单的数据
+      for (const r of earliestQuote.material_costs || []) {
+        const rSpec = String(r.material_spec || '').trim() || '材料'
+        if (rSpec === spec) {
+          const w = Number(r.weight)
+          const up = Number(r.unit_price)
+          if (Number.isFinite(w)) specMinW = w
+          if (Number.isFinite(up)) specMinUp = up
+          specMinWeightQuotationId = qid(earliestQuote)
+          specMinUnitPriceQuotationId = qid(earliestQuote)
+          break
+        }
+      }
+    }
+
     // 计算该材质的材料费用（最低重量 × 最低单价 × 数量）
     let specMaterialProduct: number | undefined
     if (specMinW !== undefined && specMinUp !== undefined && Number.isFinite(qty) && qty > 0) {
@@ -467,7 +671,12 @@ export function computeLowPriceMinContext(
   }
 
   // 加工成本：各报价单加工费合计之最小值（不按工站分组）
+  // 按照后端逻辑：如果所有报价单加工费相等，取最早提交报价单；否则取最小值
   let minProcessTotal: number | undefined
+  let allProcessEqual = true
+  let firstProcessValue: number | undefined
+  let earliestProcessQuote: any = quotes[0]
+
   for (const q of quotes) {
     let s = 0
     let ok = false
@@ -479,13 +688,82 @@ export function computeLowPriceMinContext(
         ok = true
       }
     }
-    if (ok) minProcessTotal = minProcessTotal === undefined ? s : Math.min(minProcessTotal, s)
+    if (ok) {
+      if (firstProcessValue === undefined) {
+        firstProcessValue = s
+      } else if (Math.abs(s - firstProcessValue) > 0.0001) {
+        allProcessEqual = false
+      }
+      if (minProcessTotal === undefined || s < minProcessTotal) {
+        minProcessTotal = s
+      }
+    }
+  }
+
+  // 如果所有加工费相等，取最早提交的报价单
+  if (allProcessEqual && quotes.length > 1) {
+    let earliestTime = Infinity
+    for (const q of quotes) {
+      const qTime = q.quotetime || q.creattime || q.createTime
+      if (qTime) {
+        const timeVal = new Date(qTime).getTime()
+        if (timeVal < earliestTime) {
+          earliestTime = timeVal
+          earliestProcessQuote = q
+        }
+      }
+    }
+    // 重新计算最早报价单的加工费
+    let earliestProcessSum = 0
+    for (const r of earliestProcessQuote.process_costs || []) {
+      if (pid && String(r.part_id || '').trim() !== pid) continue
+      const p = Number(r.process_price)
+      if (Number.isFinite(p)) {
+        earliestProcessSum += p
+      }
+    }
+    minProcessTotal = earliestProcessSum
+  }
+
+  // 加工成本「最低价」对应报价单：与后端一致——全相等取最早提交；否则取最小合计，并列按报价单号
+  let minProcessQuotationId: string | number | undefined
+  if (minProcessTotal !== undefined) {
+    if (allProcessEqual && quotes.length > 1) {
+      minProcessQuotationId = qid(earliestProcessQuote)
+    } else if (allProcessEqual) {
+      minProcessQuotationId = qid(quotes[0])
+    } else {
+      const entries: { q: any; s: number; qn: string }[] = []
+      for (const q of quotes) {
+        let s = 0
+        let ok = false
+        for (const r of q.process_costs || []) {
+          if (pid && String(r.part_id || '').trim() !== pid) continue
+          const p = Number(r.process_price)
+          if (Number.isFinite(p)) {
+            s += p
+            ok = true
+          }
+        }
+        if (!ok) continue
+        const qn = String(q.quotation_no || q.quotationNo || '').trim()
+        entries.push({ q, s, qn })
+      }
+      if (entries.length) {
+        entries.sort((a, b) => {
+          if (Math.abs(a.s - b.s) > 1e-6) return a.s - b.s
+          return a.qn.localeCompare(b.qn, undefined, { numeric: true })
+        })
+        minProcessQuotationId = qid(entries[0].q)
+      }
+    }
   }
 
   return {
     materialSpecs,
     totalMaterialProduct: totalMaterialProduct || undefined,
     minProcessTotal,
+    minProcessQuotationId,
     pid,
     miscMinFactory: miscMinFactory != null && String(miscMinFactory).trim() !== ''
       ? String(miscMinFactory).trim()
