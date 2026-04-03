@@ -28,6 +28,7 @@ export default {
     limitsBackEnd: '後端控制',
     limitsBackEndEndPage: '頁面權限',
     personal: '個人中心',
+    dashboard: '看板',
   },
   staticRoutes: {
     signIn: '登錄',

@@ -144,66 +144,57 @@ export default defineComponent({
 		};
 		const loginClick = async () => {
 			if (!formRef.value) return
-			await formRef.value.validate((valid: any) => {
+			await formRef.value.validate(async (valid: any) => {
 				if (valid) {
-					loginApi.login({ ...state.ruleForm, password: Md5.hashStr(state.ruleForm.password) }).then((res: any) => {
+					try {
+						// 根据当前 URL 判断使用哪个登录 API
+						const isSupplierPortal = window.location.href.includes('/login/supplier');
+						const loginMethod = isSupplierPortal ? loginApi.supplierLogin : loginApi.login;
+						const res = await loginMethod({ ...state.ruleForm, password: Md5.hashStr(state.ruleForm.password) });
 						if (res.code === 2000) {
-              const {data} = res
-              Cookies.set('username', res.data.username);
-              Session.set('token', res.data.access);
-              useUserInfo().setPwdChangeCount(data.pwd_change_count)
-              if(data.pwd_change_count==0){
-                return router.push('/login');
-              }
+							const { data } = res;
+							Cookies.set('username', res.data.username);
+							Session.set('token', res.data.access);
+							useUserInfo().setPwdChangeCount(data.pwd_change_count);
 							if (!themeConfig.value.isRequestRoutes) {
-								// 前端控制路由，2、请注意执行顺序
 								initFrontEndControlRoutes();
-								loginSuccess();
+								loginSuccess(data.pwd_change_count);
 							} else {
-								// 模拟后端控制路由，isRequestRoutes 为 true，则开启后端控制路由
-								// 添加完动态路由，再进行 router 跳转，否则可能报错 No match found for location with path "/"
-								initBackEndControlRoutes();
-								// 执行完 initBackEndControlRoutes，再执行 signInSuccess
-								loginSuccess();
+								await initBackEndControlRoutes();
+								loginSuccess(data.pwd_change_count);
 							}
 						}
-					}).catch((err: any) => {
-						// 登录错误之后，刷新验证码
+					} catch (err: any) {
 						refreshCaptcha();
-					});
+					}
 				} else {
-					errorMessage("请填写登录信息")
+					errorMessage("请填写登录信息");
 				}
-			})
-
+			});
 		};
 
 
 
 		// 登录成功后的跳转
-		const loginSuccess = () => {
+		const loginSuccess = (pwd_change_count: number) => {
 			//获取所有字典
 			DictionaryStore().getSystemDictionarys();
 			// 初始化登录成功时间问候语
 			let currentTimeInfo = currentTime.value;
-			// 登录成功，跳到转首页
-      const pwd_change_count = userInfos.value.pwd_change_count ?? 0
-      if(pwd_change_count > 0){
-        // 如果是复制粘贴的路径，非首页/登录页，那么登录成功后重定向到对应的路径中
-        if (route.query?.redirect) {
-        	router.push({
-        		path: <string>route.query?.redirect,
-        		query: Object.keys(<string>route.query?.params).length > 0 ? JSON.parse(<string>route.query?.params) : '',
-        	});
-        } else {
-        	router.push('/');
-        }
-        // 登录成功提示
-        // 关闭 loading
-        state.loading.signIn = true;
-        const signInText = t('message.signInText');
-        ElMessage.success(`${currentTimeInfo}，${signInText}`);
-      }
+			// 如果是复制粘贴的路径，非首页/登录页，那么登录成功后重定向到对应的路径中
+			if (route.query?.redirect) {
+				router.push({
+					path: <string>route.query?.redirect,
+					query: Object.keys(<string>route.query?.params).length > 0 ? JSON.parse(<string>route.query?.params) : '',
+				});
+			} else {
+				router.push('/');
+			}
+			// 登录成功提示
+			// 关闭 loading
+			state.loading.signIn = true;
+			const signInText = t('message.signInText');
+			ElMessage.success(`${currentTimeInfo}，${signInText}`);
 			// 添加 loading，防止第一次进入界面时出现短暂空白
 			NextLoading.start();
 		};

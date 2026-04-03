@@ -7,6 +7,7 @@ from dvadmin.system.views.clause import PrivacyView, TermsServiceView
 from dvadmin.system.views.dept import DeptViewSet
 from dvadmin.system.views.dictionary import DictionaryViewSet
 from dvadmin.system.views.file_list import FileViewSet
+from dvadmin.system.views.login import SupplierLoginView
 from dvadmin.system.views.login_log import LoginLogViewSet
 from dvadmin.system.views.menu import MenuViewSet
 from dvadmin.system.views.menu_button import MenuButtonViewSet
@@ -53,5 +54,7 @@ urlpatterns = [
     # path('dept_lazy_tree/', DeptViewSet.as_view({'get': 'dept_lazy_tree'})),
     path('clause/privacy.html', PrivacyView.as_view()),
     path('clause/terms_service.html', TermsServiceView.as_view()),
+    # 供应商登录
+    path('login/supplier/', SupplierLoginView.as_view(), name='supplier_login'),
 ]
 urlpatterns += system_url.urls

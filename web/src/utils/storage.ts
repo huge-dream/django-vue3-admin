@@ -37,23 +37,26 @@ export const Local = {
 export const Session = {
 	// 设置临时缓存
 	set(key: string, val: any) {
-		if (key === 'token') return Cookies.set(key, val);
+		if (key === 'token') {
+			// 直接使用 sessionStorage 存储 token，避免 Cookies 的问题
+			window.sessionStorage.setItem(key, val);
+			return;
+		}
 		window.sessionStorage.setItem(key, JSON.stringify(val));
 	},
 	// 获取临时缓存
 	get(key: string) {
-		if (key === 'token') return Cookies.get(key);
+		if (key === 'token') return window.sessionStorage.getItem(key);
 		let json = <string>window.sessionStorage.getItem(key);
 		return JSON.parse(json);
 	},
 	// 移除临时缓存
 	remove(key: string) {
-		if (key === 'token') return Cookies.remove(key);
+		if (key === 'token') return window.sessionStorage.removeItem(key);
 		window.sessionStorage.removeItem(key);
 	},
 	// 移除全部临时缓存
 	clear() {
-		Cookies.remove('token');
 		window.sessionStorage.clear();
 	},
 };

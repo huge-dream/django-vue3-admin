@@ -31,7 +31,7 @@ TABLE_PREFIX = "pis_"  # Procurement Inquiry System
 REDIS_DB = 1
 CELERY_BROKER_DB = 3
 REDIS_PASSWORD = 'redis_5pGXn2'
-REDIS_HOST = '177.10.0.15'
+REDIS_HOST = '192.168.80.90'
 REDIS_URL = f'redis://:{REDIS_PASSWORD or ""}@{REDIS_HOST}:6379'
 # ================================================= #
 # ****************** 功能 启停  ******************* #
@@ -48,3 +48,22 @@ LOGIN_NO_CAPTCHA_AUTH = True
 ALLOWED_HOSTS = ["*"]
 # 列权限中排除App应用
 COLUMN_EXCLUDE_APPS = []
+
+
+# ================================================= #
+# ****************** 邮件 配置  ******************* #
+# ================================================= #
+# 发送邮箱地址（From 显示）
+EMAIL_FROM = "eip@avc.co"
+# SMTP 登录账号（服务器不支持认证，留空）
+EMAIL_HOST_USER = ""
+# SMTP 登录密码/授权码（服务器不支持认证，留空）
+EMAIL_HOST_PASSWORD = ""
+# SMTP 服务器地址
+EMAIL_HOST = "mailflow.avc.co"
+# SMTP 端口
+EMAIL_PORT = 25
+# 是否使用 SSL（如果走 STARTTLS，将 EMAIL_USE_SSL 设为 False，EMAIL_USE_TLS=True）
+# 服务器不支持STARTTLS，使用纯明文连接
+EMAIL_USE_SSL = False
+EMAIL_USE_TLS = False
