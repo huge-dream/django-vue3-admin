@@ -33,6 +33,14 @@ export const dynamicRoutes: Array<RouteRecordRaw> = [
 		children: [],
 	},
 	{
+		path: '/home',
+		name: 'home',
+		redirect: '/dashboard',
+		meta: {
+			isKeepAlive: false,
+		},
+	},
+	{
 		path: '/personal',
 		name: 'personal',
 		component: () => import('/@/views/system/personal/index.vue'),
@@ -44,6 +52,20 @@ export const dynamicRoutes: Array<RouteRecordRaw> = [
 			isAffix: false,
 			isIframe: false,
 			icon: 'iconfont icon-gerenzhongxin',
+		},
+	},
+	{
+		path: '/dashboard',
+		name: 'Dashboard',
+		component: () => import('/@/views/pisadmin/dashboard/index.vue'),
+		meta: {
+			title: 'message.router.dashboard',
+			isLink: '',
+			isHide: false,
+			isKeepAlive: true,
+			isAffix: false,
+			isIframe: false,
+			icon: 'iconfont icon-dashboard',
 		},
 	}
 ];
@@ -86,6 +108,14 @@ export const staticRoutes: Array<RouteRecordRaw> = [
 		component: () => import('/@/views/system/login/index.vue'),
 		meta: {
 			title: '登录',
+		},
+	},
+	{
+		path: '/login/supplier',
+		name: 'supplierLogin',
+		component: () => import('/@/views/system/login/supplier.vue'),
+		meta: {
+			title: '供应商登录',
 		},
 	},
 	{

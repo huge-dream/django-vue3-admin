@@ -20,7 +20,7 @@ service.interceptors.request.use(
 	(config: AxiosRequestConfig) => {
 		// 在发送请求之前做些什么 token
 		if (Session.get('token')) {
-			config.headers!['Authorization'] = `${Session.get('token')}`;
+			config.headers!['Authorization'] = `JWT ${Session.get('token')}`;
 		}
 		return config;
 	},
@@ -44,7 +44,7 @@ service.interceptors.response.use(
 					.then(() => {})
 					.catch(() => {});
 			}
-			return Promise.reject(service.interceptors.response);
+			return Promise.reject(error);
 		} else {
 			return response.data;
 		}

@@ -139,8 +139,8 @@ export const useThemeConfig = defineStore('themeConfig', {
 			 */
 			// 网站主标题（菜单导航、浏览器当前网页标题）
 			globalTitle: SITE_BRAND_TITLE,
-			// 网站副标题（登录页顶部文字）
-			globalViceTitle: SITE_BRAND_TITLE,
+			// 网站副标题（菜单栏标题）
+			globalViceTitle: 'PIS',
 			// 网站副标题（登录页顶部文字）
 			globalViceTitleMsg: '企业级快速开发平台',
 			// 默认初始语言，可选值"<zh-cn|en|zh-tw>"，默认 zh-cn

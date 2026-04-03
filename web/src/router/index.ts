@@ -109,6 +109,10 @@ const checkToken = ()=>{
 
     }
 }
+
+// 防止重复初始化路由的标记
+let isRoutesInitializing = false;
+
 // 路由加载前
 router.beforeEach(async (to, from, next) => {
     // 检查浏览器本地版本与线上版本是否一致，判断是否需要刷新页面进行更新
@@ -117,7 +121,7 @@ router.beforeEach(async (to, from, next) => {
     NProgress.configure({showSpinner: false});
     if (to.meta.title) NProgress.start();
     const token = Session.get('token');
-    if (to.path === '/login' && !token) {
+    if ((to.path === '/login' || to.path === '/login/supplier') && !token) {
         next();
         NProgress.done();
     } else {
@@ -136,17 +140,21 @@ router.beforeEach(async (to, from, next) => {
         } else {
             const storesRoutesList = useRoutesList(pinia);
             const {routesList} = storeToRefs(storesRoutesList);
-            if (routesList.value.length === 0) {
+            if (routesList.value.length === 0 && !isRoutesInitializing) {
                 if (isRequestRoutes) {
                     // 后端控制路由：路由数据初始化，防止刷新时丢失
+                    isRoutesInitializing = true;
                     await initBackEndControlRoutes();
+                    isRoutesInitializing = false;
                     // 解决刷新时，一直跳 404 页面问题，关联问题 No match found for location with path 'xxx'
                     // to.query 防止页面刷新时，普通路由带参数时，参数丢失。动态路由（xxx/:id/:name"）isDynamic 无需处理
 
                     next({ path: to.path, query: to.query });
                 } else {
                     // https://gitee.com/lyt-top/vue-next-admin/issues/I5F1HP
+                    isRoutesInitializing = true;
                     await initFrontEndControlRoutes();
+                    isRoutesInitializing = false;
                     next({ path: to.path, query: to.query });
                 }
             } else {
