@@ -1,11 +1,11 @@
 """
-MinIO 文件上传集成测试
+RustFS 文件上传集成测试
 
-依赖: 真实的 MinIO 服务运行在 MINIO_ENDPOINT (192.168.80.90:9000)
+依赖: 真实的 RustFS 服务运行在 RUSTFS_ENDPOINT (192.168.80.90:9000)
 测试前确保:
-  1. MinIO 服务已启动
+  1. RustFS 服务已启动
   2. bucket "pis-media" 已创建
-  3. MINIO_ACCESS_KEY / MINIO_SECRET_KEY 正确配置
+  3. RUSTFS_ACCESS_KEY / RUSTFS_SECRET_KEY 正确配置
 """
 import io
 import pytest
@@ -22,8 +22,8 @@ class TestFileUpload:
     """文件上传 API 测试"""
 
     def test_upload_file_success(self, authenticate):
-        """POST 上传文件返回成功 + MinIO URL"""
-        file_content = b"Hello, MinIO!"
+        """POST 上传文件返回成功 + RustFS URL"""
+        file_content = b"Hello, RustFS!"
         file_obj = io.BytesIO(file_content)
         file_obj.name = "test.txt"
 
@@ -36,8 +36,8 @@ class TestFileUpload:
         assert response.data["code"] == CODE_SUCCESS, f"上传失败: {response.data}"
         assert "file_url" in response.data["data"]
         file_url = response.data["data"]["file_url"]
-        # 验证 URL 指向 MinIO
-        assert settings.MINIO_ENDPOINT in file_url, f"文件 URL 非 MinIO 地址: {file_url}"
+        # 验证 URL 指向 RustFS
+        assert settings.RUSTFS_ENDPOINT in file_url, f"文件 URL 非 RustFS 地址: {file_url}"
         assert file_url.startswith("http://") or file_url.startswith("https://")
 
     def test_upload_file_unauthenticated(self, api_client):
@@ -74,7 +74,7 @@ class TestFileUpload:
 
         assert response.data["code"] == CODE_SUCCESS, f"图片上传失败: {response.data}"
         file_url = response.data["data"]["file_url"]
-        assert settings.MINIO_ENDPOINT in file_url
+        assert settings.RUSTFS_ENDPOINT in file_url
 
     def test_upload_without_file(self, authenticate):
         """POST 不带文件返回错误码"""

@@ -7,7 +7,7 @@ class FileListFactory(factory.django.DjangoModelFactory):
         model = FileList
 
     name = factory.Sequence(lambda n: f"test_file_{n}.txt")
-    engine = "minio"
+    engine = "rustfs"
     mime_type = "text/plain"
     size = "100"
     md5sum = factory.Faker("md5")

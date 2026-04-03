@@ -44,14 +44,14 @@ class FileSerializer(CustomModelSerializer):
         for chunk in file.chunks():
             md5.update(chunk)
         validated_data['md5sum'] = md5.hexdigest()
-        validated_data['engine'] = 'minio'
+        validated_data['engine'] = 'rustfs'
         validated_data['mime_type'] = file.content_type
         ft = {'image':0,'video':1,'audio':2}.get(file.content_type.split('/')[0], None)
         validated_data['file_type'] = 3 if ft is None else ft
 
-        # 上传到 MinIO
-        from dvadmin.utils.minio_storage import minio_upload_file
-        file_path = minio_upload_file(file, file_name=validated_data['name'])
+        # 上传到 RustFS
+        from dvadmin.utils.rustfs_storage import rustfs_upload_file
+        file_path = rustfs_upload_file(file, file_name=validated_data['name'])
         if file_path:
             validated_data['file_url'] = file_path
         else:

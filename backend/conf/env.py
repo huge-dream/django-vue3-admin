@@ -69,12 +69,12 @@ EMAIL_USE_SSL = False
 EMAIL_USE_TLS = False
 
 # ================================================= #
-# *************** MinIO 对象存储 配置 *************** #
+# *************** RustFS 对象存储 配置 *************** #
 # ================================================= #
-MINIO_ENDPOINT = "192.168.80.90:9000"
-MINIO_ACCESS_KEY = "minioadmin"
-MINIO_SECRET_KEY = "minioadmin"
-MINIO_BUCKET = "pis-media"
-MINIO_SECURE = False  # True=HTTPS, False=HTTP
-MINIO_PATH_PREFIX = ""  # 存储路径前缀，可为空
-MINIO_REGION = "us-east-1"  # MinIO 区域（可自定义）
+RUSTFS_ENDPOINT = "192.168.80.90:9000"
+RUSTFS_ACCESS_KEY = "rustfsadmin"
+RUSTFS_SECRET_KEY = "rustfsadmin"
+RUSTFS_BUCKET = "pis-media"
+RUSTFS_SECURE = False  # True=HTTPS, False=HTTP
+RUSTFS_PATH_PREFIX = ""  # 存储路径前缀，可为空
+RUSTFS_REGION = "us-east-1"  # RustFS 区域（可自定义）
