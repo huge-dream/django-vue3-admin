@@ -23,6 +23,8 @@ from .models import (
     InquiryRfqItem,
     CostEstimateTemplateHead,
     CostEstimateTemplateBody,
+    MiscProcMaterialMinPrices,
+    MiscProcProcessingMinPrices,
 )
 from apps.pisadmin.basicinfo.models import Company
 from apps.pisadmin.basicinfo.models import Unit
@@ -1600,3 +1602,35 @@ class InquirySerializer(CustomModelSerializer):
             self._upsert_rfq_items(inquiry, rfq_items)
         
         return inquiry
+
+
+class MiscProcMaterialMinPricesSerializer(CustomModelSerializer):
+    """杂采材料制程最低价信息表序列化器"""
+
+    class Meta:
+        model = MiscProcMaterialMinPrices
+        fields = "__all__"
+        read_only_fields = [
+            "id",
+            "create_datetime",
+            "update_datetime",
+            "creator",
+            "modifier",
+            "dept_belong_id",
+        ]
+
+
+class MiscProcProcessingMinPricesSerializer(CustomModelSerializer):
+    """杂采加工费用最低价信息表序列化器"""
+
+    class Meta:
+        model = MiscProcProcessingMinPrices
+        fields = "__all__"
+        read_only_fields = [
+            "id",
+            "create_datetime",
+            "update_datetime",
+            "creator",
+            "modifier",
+            "dept_belong_id",
+        ]
