@@ -25,6 +25,15 @@ class BuyerTaskSerializer(serializers.Serializer):
     inquiry_no = serializers.CharField()
     status = serializers.CharField()
     created_at = serializers.DateTimeField()
+    method = serializers.SerializerMethodField()
+    quote_deadline = serializers.DateTimeField(allow_null=True, required=False)
+    bid_start_time = serializers.DateTimeField(allow_null=True, required=False)
+    bid_end_time = serializers.DateTimeField(allow_null=True, required=False)
+
+    def get_method(self, obj):
+        if obj.get('buying_method') == 2:
+            return '招标'
+        return '询价'
 
 
 class SupplierKPISerializer(serializers.Serializer):
@@ -42,8 +51,17 @@ class SupplierQuoteSerializer(serializers.Serializer):
     inquiry_no = serializers.CharField()
     item_name = serializers.CharField()
     unit = serializers.CharField()
-    deadline = serializers.DateTimeField()
+    quantity = serializers.CharField(allow_blank=True, required=False)
     status = serializers.IntegerField()
+    method = serializers.SerializerMethodField()
+    quote_deadline = serializers.DateTimeField(allow_null=True, required=False)
+    bid_start_time = serializers.DateTimeField(allow_null=True, required=False)
+    bid_end_time = serializers.DateTimeField(allow_null=True, required=False)
+
+    def get_method(self, obj):
+        if obj.get('buying_method') == 2:
+            return '招标'
+        return '询价'
 
 
 class MessageSerializer(serializers.Serializer):
@@ -55,7 +73,8 @@ class MessageSerializer(serializers.Serializer):
 
 
 class TrendSerializer(serializers.Serializer):
-    month = serializers.CharField()
+    month = serializers.CharField(required=False)
+    day = serializers.IntegerField(required=False)
     count = serializers.IntegerField(required=False)
     quotes = serializers.IntegerField(required=False)
     won = serializers.IntegerField(required=False)
@@ -131,6 +150,10 @@ class DashboardView(views.APIView):
                 'inquiry_no': i.inquiry_no,
                 'status': dict(Inquiry.STATUS_CHOICES).get(i.status, str(i.status)),
                 'created_at': i.create_time,
+                'buying_method': i.buying_method,
+                'quote_deadline': i.quote_deadline,
+                'bid_start_time': i.bid_start_time,
+                'bid_end_time': i.bid_end_time,
             }
             for i in inquiries
         ]
@@ -191,7 +214,6 @@ class DashboardView(views.APIView):
             inquiry = Inquiry.objects.filter(inquiry_no=q.inquiry_no).first()
             # 获取询价单中的数量
             quantity = ''
-            quantity = ''
             unit = ''
             if inquiry:
                 from apps.pisadmin.miscprocurement.models import InquiryRfqItem
@@ -205,8 +227,11 @@ class DashboardView(views.APIView):
                 'item_name': inquiry.title if inquiry else '',
                 'quantity': quantity,
                 'unit': unit,
-                'deadline': q.quote_deadline,
                 'status': q.status,
+                'buying_method': q.buying_method,
+                'quote_deadline': q.quote_deadline,
+                'bid_start_time': q.bid_start_time,
+                'bid_end_time': q.bid_end_time,
             })
         return result
 
@@ -277,6 +302,85 @@ class DashboardView(views.APIView):
                     })
                 return result
 
+    def get_buyer_trend_daily(self, user):
+        """获取采购方当月每日趋势数据"""
+        now = timezone.now()
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        data = (
+            Inquiry.objects.filter(
+                create_user=user.username,
+                create_time__gte=start_of_month,
+                create_time__lte=now
+            )
+            .extra(select={'day': 'DAY(create_time)'})
+            .values('day')
+            .annotate(count=Count('id'))
+            .order_by('day')
+        )
+        return [
+            {'day': d['day'], 'count': d['count']}
+            for d in data
+        ]
+
+    def get_supplier_trend_daily(self, user):
+        """获取供应商当月每日趋势数据"""
+        now = timezone.now()
+        start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        if user.is_superuser:
+            data = (
+                QuotationMaster.objects.filter(
+                    creattime__gte=start_of_month,
+                    creattime__lte=now
+                )
+                .extra(select={'day': 'DAY(creattime)'})
+                .values('day')
+                .annotate(quotes=Count('autoid'))
+                .order_by('day')
+            )
+            result = []
+            for d in data:
+                won = QuotationMaster.objects.filter(
+                    creattime__day=d['day'],
+                    creattime__month=now.month,
+                    creattime__year=now.year,
+                    is_awarded=1
+                ).count()
+                result.append({
+                    'day': d['day'],
+                    'quotes': d['quotes'],
+                    'won': won,
+                })
+            return result
+        else:
+            data = (
+                QuotationMaster.objects.filter(
+                    supplier_code=user.username,
+                    creattime__gte=start_of_month,
+                    creattime__lte=now
+                )
+                .extra(select={'day': 'DAY(creattime)'})
+                .values('day')
+                .annotate(quotes=Count('autoid'))
+                .order_by('day')
+            )
+            result = []
+            for d in data:
+                won = QuotationMaster.objects.filter(
+                    supplier_code=user.username,
+                    creattime__day=d['day'],
+                    creattime__month=now.month,
+                    creattime__year=now.year,
+                    is_awarded=1
+                ).count()
+                result.append({
+                    'day': d['day'],
+                    'quotes': d['quotes'],
+                    'won': won,
+                })
+            return result
+
     def get_messages(self, user):
         """消息通知 - 占位实现，后续接入通知系统"""
         return []
@@ -287,7 +391,7 @@ class DashboardView(views.APIView):
             'kpi': self.get_buyer_kpi(user),
             'tasks': self.get_buyer_tasks(user),
             'messages': self.get_messages(user),
-            'trend': self.get_trend_data(user, is_buyer=True),
+            'trend': self.get_buyer_trend_daily(user),
         }
 
     def get_supplier_data(self, user):
@@ -296,7 +400,7 @@ class DashboardView(views.APIView):
             'kpi': self.get_supplier_kpi(user),
             'pending_quotes': self.get_supplier_pending_quotes(user),
             'messages': self.get_messages(user),
-            'trend': self.get_trend_data(user, is_buyer=False),
+            'trend': self.get_supplier_trend_daily(user),
         }
 
     def get(self, request):
