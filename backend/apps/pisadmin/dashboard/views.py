@@ -443,7 +443,11 @@ class DashboardView(views.APIView):
         if user.is_superuser or has_buyer_role:
             try:
                 buyer_data = self.get_buyer_data(user)
-            except Exception:
+                print(f"[DEBUG] get_buyer_data success, tasks count: {len(buyer_data.get('tasks', []))}")
+            except Exception as e:
+                print(f"[DEBUG] get_buyer_data exception: {e}")
+                import traceback
+                traceback.print_exc()
                 buyer_data = {
                     'kpi': {'total_inquiries': 0, 'pending_inquiries': 0, 'completed_quotes': 0, 'total_suppliers': 0, 'quote_timely_rate': 0},
                     'tasks': [],
