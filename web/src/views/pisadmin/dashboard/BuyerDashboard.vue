@@ -20,7 +20,7 @@
 				<div class="kpi-value">{{ kpi.pending_inquiries }}</div>
 			</div>
 			<div class="kpi-card orange">
-				<div class="kpi-icon"><i class="fa fa-chart-pie"></i></div>
+				<div class="kpi-icon"><i class="fa fa-pie-chart"></i></div>
 				<div class="kpi-title">供应商报价及时率</div>
 				<div class="kpi-value">{{ kpi.quote_timely_rate }}%</div>
 				<div class="kpi-trend trend-flat"><i class="fa fa-minus"></i> 持平</div>

@@ -9,13 +9,13 @@
 		<!-- KPI 指标卡片 -->
 		<div class="kpi-section">
 			<div class="kpi-card blue">
-				<div class="kpi-icon"><i class="fa fa-file-invoice"></i></div>
+				<div class="kpi-icon"><i class="fa fa-file-text-o"></i></div>
 				<div class="kpi-title">报价单总数</div>
 				<div class="kpi-value">{{ kpi.total_quotes.toLocaleString() }}</div>
 				<div class="kpi-trend trend-up"><i class="fa fa-arrow-up"></i> 较上月 +8%</div>
 			</div>
 			<div class="kpi-card orange">
-				<div class="kpi-icon"><i class="fa fa-pen-to-square"></i></div>
+				<div class="kpi-icon"><i class="fa fa-pencil-square-o"></i></div>
 				<div class="kpi-title">待报价</div>
 				<div class="kpi-value">{{ kpi.pending_quotes }}</div>
 				<div class="kpi-trend" style="color: #2e5bff">等待报价</div>
