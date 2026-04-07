@@ -40,7 +40,7 @@
 			<div class="card quote-card">
 				<div class="card-header">
 					<div class="card-title">
-						<i class="fa fa-file-invoice" style="color: #2e5bff"></i> 待报价清单(<span style="color: #ef4444; font-weight: 600">{{
+						<i class="fa fa-pie-chart" style="color: #2e5bff"></i> 待报价清单(<span style="color: #ef4444; font-weight: 600">{{
 							pendingQuotes.length
 						}}</span
 						>)
@@ -52,14 +52,22 @@
 						<div class="quote-row">
 							<span class="quote-no">{{ quote.inquiry_no }}</span>
 							<span class="quote-status" :class="getQuoteStatusClass(quote.status)">{{ getQuoteStatusText(quote.status) }}</span>
+							<span class="method-badge" :class="getMethodClass(quote.method)">{{ getMethodText(quote.method) }}</span>
 							<div class="quote-countdown">
-								<span class="countdown-label">报价截止时间</span>
-								<span class="countdown-time" :class="{ 'is-urgent': isUrgent(quote.deadline) }">{{
-									quote.deadline ? formatDate(quote.deadline) : '-'
-								}}</span>
-								<span class="countdown-remaining" :class="{ 'is-urgent': isUrgent(quote.deadline) }"
-									>剩余: {{ getRemainingTime(quote.deadline) }}</span
-								>
+								<template v-if="quote.method === '招标'">
+									<span class="countdown-label">投标时间</span>
+									<span class="countdown-time" :class="getDeadlineClass(quote)">{{
+										quote.bid_start_time ? formatDateRange(quote.bid_start_time, quote.bid_end_time) : '-'
+									}}</span>
+									<span class="countdown-remaining" :class="getDeadlineClass(quote)">{{ getRemainingTimeText(quote) }}</span>
+								</template>
+								<template v-else>
+									<span class="countdown-label">报价截止时间</span>
+									<span class="countdown-time" :class="getDeadlineClass(quote)">{{
+										quote.quote_deadline ? formatDate(quote.quote_deadline) : '-'
+									}}</span>
+									<span class="countdown-remaining" :class="getDeadlineClass(quote)">{{ getRemainingTimeText(quote) }}</span>
+								</template>
 							</div>
 							<button class="action-btn btn-primary" @click="handleQuote(quote)">去报价</button>
 						</div>
@@ -177,16 +185,30 @@ function getQuoteStatusText(status: number) {
 	return '待报价';
 }
 
-function isUrgent(deadline: string) {
-	if (!deadline) return false;
+function getMethodClass(method: string) {
+	if (method === '招标') return 'method-tender';
+	return 'method-inquiry';
+}
+
+function getMethodText(method: string) {
+	return method || '询价';
+}
+
+function getDeadlineClass(quote: any): string {
+	const deadline = quote.method === '招标' ? quote.bid_end_time : quote.quote_deadline;
+	if (!deadline) return '';
 	const now = new Date();
 	const deadlineDate = new Date(deadline);
 	const diffHours = (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-	return diffHours < 24;
+	if (diffHours < 0) return 'deadline-expired';
+	if (diffHours < 24) return 'deadline-urgent';
+	if (diffHours < 48) return 'deadline-warning';
+	return '';
 }
 
-function getRemainingTime(deadline: string) {
-	if (!deadline) return '-';
+function getRemainingTimeText(quote: any): string {
+	const deadline = quote.method === '招标' ? quote.bid_end_time : quote.quote_deadline;
+	if (!deadline) return '';
 	const now = new Date();
 	const deadlineDate = new Date(deadline);
 	const diffMs = deadlineDate.getTime() - now.getTime();
@@ -195,15 +217,23 @@ function getRemainingTime(deadline: string) {
 	const days = Math.floor(diffHours / 24);
 	const hours = diffHours % 24;
 	if (days > 0) {
-		return `${days}天${hours}小时`;
+		return `剩余 ${days}天${hours}小时`;
 	}
-	return `${hours}小时`;
+	return `剩余 ${hours}小时`;
 }
 
 function formatDate(date: string) {
 	if (!date) return '';
 	const d = new Date(date);
 	return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+}
+
+function formatDateRange(start: string, end: string) {
+	if (!start || !end) return '-';
+	const s = new Date(start);
+	const e = new Date(end);
+	const formatShort = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
+	return `${formatShort(s)}-${formatShort(e)}`;
 }
 
 function initChart() {
@@ -576,6 +606,39 @@ tr:last-child td {
 	background-color: #f3f4f6;
 	color: #6b7280;
 	border: 1px solid #d1d5db;
+}
+
+/* 采购方式badge */
+.method-badge {
+	padding: 2px 8px;
+	border-radius: 4px;
+	font-size: 12px;
+	font-weight: 500;
+	display: inline-block;
+}
+.method-inquiry {
+	background-color: #f0fdf4;
+	color: #16a34a;
+	border: 1px solid #bbf7d0;
+}
+.method-tender {
+	background-color: #faf5ff;
+	color: #9333ea;
+	border: 1px solid #e9d5ff;
+}
+
+/* 截止时间样式 */
+.deadline-urgent {
+	color: var(--danger) !important;
+	font-weight: 700;
+}
+.deadline-warning {
+	color: var(--warning) !important;
+	font-weight: 700;
+}
+.deadline-expired {
+	color: #9ca3af !important;
+	text-decoration: line-through;
 }
 
 .quote-countdown {

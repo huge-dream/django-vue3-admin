@@ -43,20 +43,29 @@
 						<thead>
 							<tr>
 								<th>询价单号</th>
+								<th>采购方式</th>
 								<th>物料名称</th>
 								<th>当前状态</th>
-								<th>截止时间</th>
+								<th>截止时间 / 剩余时间</th>
 								<th>操作</th>
 							</tr>
 						</thead>
 						<tbody>
 							<tr v-for="task in tasks" :key="task.id">
 								<td>{{ task.inquiry_no }}</td>
+								<td>
+									<span :class="getMethodClass(task.method)">{{ getMethodText(task.method) }}</span>
+								</td>
 								<td>{{ task.title }}</td>
 								<td>
 									<span :class="getStatusClass(task.status)">{{ task.status }}</span>
 								</td>
-								<td>{{ task.created_at ? formatDate(task.created_at) : '-' }}</td>
+								<td>
+									<div class="deadline-cell">
+										<span class="deadline-time" :class="getDeadlineClass(task)">{{ getDeadlineText(task) }}</span>
+										<span class="deadline-remaining" :class="getDeadlineClass(task)">{{ getRemainingTimeText(task) }}</span>
+									</div>
+								</td>
 								<td>
 									<button class="action-btn btn-primary" @click="handleAction(task)">
 										{{ getActionText(task.status) }}
@@ -159,6 +168,50 @@ function getStatusClass(status: string) {
 	return 'status-badge status-gray';
 }
 
+function getMethodClass(method: string) {
+	if (method === '招标') return 'method-badge method-tender';
+	return 'method-badge method-inquiry';
+}
+
+function getMethodText(method: string) {
+	return method || '询价';
+}
+
+function getDeadlineClass(task: any): string {
+	const deadline = task.method === '招标' ? task.bid_end_time : task.quote_deadline;
+	if (!deadline) return '';
+	const now = new Date();
+	const deadlineDate = new Date(deadline);
+	const diffHours = (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+	if (diffHours < 0) return 'deadline-expired';
+	if (diffHours < 24) return 'deadline-urgent'; // <24h red
+	if (diffHours < 48) return 'deadline-warning'; // 24-48h yellow
+	return '';
+}
+
+function getDeadlineText(task: any): string {
+	const deadline = task.method === '招标' ? task.bid_end_time : task.quote_deadline;
+	if (!deadline) return '-';
+	const d = new Date(deadline);
+	return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+}
+
+function getRemainingTimeText(task: any): string {
+	const deadline = task.method === '招标' ? task.bid_end_time : task.quote_deadline;
+	if (!deadline) return '';
+	const now = new Date();
+	const deadlineDate = new Date(deadline);
+	const diffMs = deadlineDate.getTime() - now.getTime();
+	if (diffMs <= 0) return '已到期';
+	const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+	const days = Math.floor(diffHours / 24);
+	const hours = diffHours % 24;
+	if (days > 0) {
+		return `剩余 ${days}天${hours}小时`;
+	}
+	return `剩余 ${hours}小时`;
+}
+
 function getActionText(status: string) {
 	if (status?.includes('比价')) return '去比价';
 	if (status?.includes('议价')) return '去议价';
@@ -167,12 +220,6 @@ function getActionText(status: string) {
 
 function handleAction(task: any) {
 	// TODO: navigate to task detail
-}
-
-function formatDate(date: string) {
-	if (!date) return '';
-	const d = new Date(date);
-	return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 }
 
 function initChart() {
@@ -486,6 +533,52 @@ tr:last-child td {
 	background-color: #f3f4f6;
 	color: #4b5563;
 	border: 1px solid #d1d5db;
+}
+
+/* 采购方式badge */
+.method-badge {
+	padding: 2px 8px;
+	border-radius: 4px;
+	font-size: 12px;
+	font-weight: 500;
+	display: inline-block;
+}
+.method-inquiry {
+	background-color: #f0fdf4;
+	color: #16a34a;
+	border: 1px solid #bbf7d0;
+}
+.method-tender {
+	background-color: #faf5ff;
+	color: #9333ea;
+	border: 1px solid #e9d5ff;
+}
+
+/* 截止时间样式 */
+.deadline-cell {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.deadline-time {
+	font-size: 13px;
+	color: var(--text-main);
+}
+.deadline-remaining {
+	font-size: 12px;
+	color: var(--text-secondary);
+}
+.deadline-urgent {
+	color: var(--danger) !important;
+	font-weight: 700;
+}
+.deadline-warning {
+	color: var(--warning) !important;
+	font-weight: 700;
+}
+.deadline-expired {
+	color: #9ca3af !important;
+	text-decoration: line-through;
 }
 
 .action-btn {
