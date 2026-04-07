@@ -2,9 +2,11 @@ import logging
 from typing import Optional
 
 from django.db import transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework.decorators import action
 
+from apps.pisadmin.basicinfo.models import SupplierUser
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
 from dvadmin.utils.viewset import CustomModelViewSet
 
@@ -33,6 +35,64 @@ from apps.pissupplier.serializers import (
 logger = logging.getLogger(__name__)
 
 
+def supplier_codes_for_request_user(user) -> Optional[list]:
+    """
+    若当前登录账号在「供应商用户」表中有有效记录，则返回其 supplier_id 列表（与报价单 supplier_code 一致）；
+    返回 None 表示不按供应商过滤（采购端等无供应商主数据绑定的账号）。
+    返回 [] 表示应限制为「无可见报价单」（有绑定但无有效 supplier_id）。
+    """
+    if not user or not user.is_authenticated:
+        return None
+    if getattr(user, "is_superuser", False):
+        return None
+    un = (getattr(user, "username", None) or "").strip()
+    em = (getattr(user, "email", None) or "").strip()
+    q = Q()
+    if un:
+        q |= Q(user_email__iexact=un)
+    if em:
+        q |= Q(user_email__iexact=em)
+    if not q:
+        return None
+    qs = SupplierUser.objects.filter(q).filter(status=1)
+    if not qs.exists():
+        return None
+    codes = []
+    for raw in qs.values_list("supplier_id", flat=True).distinct():
+        if raw is None:
+            continue
+        s = str(raw).strip()
+        if s:
+            codes.append(s)
+    return codes if codes else []
+
+
+def apply_supplier_quotation_scope(qs, user, *, child_via_quotation_no: bool = False):
+    """供应商门户：仅可访问本供应商报价单主表及子表；采购端无 SupplierUser 匹配时不缩小范围。"""
+    codes = supplier_codes_for_request_user(user)
+    if codes is None:
+        return qs
+    if not codes:
+        return qs.none()
+    if child_via_quotation_no:
+        return qs.filter(quotation_no__supplier_code__in=codes)
+    return qs.filter(supplier_code__in=codes)
+
+
+class SupplierQuotationScopeMixin:
+    """报价单相关接口：登录账号若对应供应商用户主数据，则按 supplier_code 隔离数据。"""
+
+    supplier_scope_via_child_quotation_no = False
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        return apply_supplier_quotation_scope(
+            qs,
+            self.request.user,
+            child_via_quotation_no=self.supplier_scope_via_child_quotation_no,
+        )
+
+
 def _supplier_bidding_window_error(instance: QuotationMaster):
     """招标：报价/提交仅允许在投标开始时间～投标截止时间（含端点）内。"""
     bm = getattr(instance, "buying_method", None)
@@ -50,10 +110,11 @@ def _supplier_bidding_window_error(instance: QuotationMaster):
     return None
 
 
-class QuotationMasterViewSet(CustomModelViewSet):
+class QuotationMasterViewSet(SupplierQuotationScopeMixin, CustomModelViewSet):
     """杂采报价单主表管理接口
 
     详情 GET 与采购端比价弹窗「供应商报价预览」共用：返回 `QuotationMasterSerializer` 及嵌套材料/加工/其它（包装费、运输费）/利润/上阶物料等。
+    供应商门户账号（在「供应商用户」中有绑定）仅可访问本供应商 supplier_code 下的报价单。
     """
 
     queryset = QuotationMaster.objects.prefetch_related(
@@ -274,8 +335,10 @@ class QuotationMasterViewSet(CustomModelViewSet):
         return DetailResponse(data=payload, msg=msg)
 
 
-class QuotationAttachmentViewSet(CustomModelViewSet):
+class QuotationAttachmentViewSet(SupplierQuotationScopeMixin, CustomModelViewSet):
     """杂采报价单附件管理接口"""
+
+    supplier_scope_via_child_quotation_no = True
 
     queryset = QuotationAttachment.objects.all()
     serializer_class = QuotationAttachmentSerializer
@@ -292,8 +355,10 @@ class QuotationAttachmentViewSet(CustomModelViewSet):
         serializer.save()
 
 
-class QuotationMaterialViewSet(CustomModelViewSet):
+class QuotationMaterialViewSet(SupplierQuotationScopeMixin, CustomModelViewSet):
     """杂采报价单材料成本明细管理接口"""
+
+    supplier_scope_via_child_quotation_no = True
 
     queryset = QuotationMaterial.objects.all()
     serializer_class = QuotationMaterialSerializer
@@ -310,8 +375,10 @@ class QuotationMaterialViewSet(CustomModelViewSet):
         serializer.save()
 
 
-class QuotationProcessViewSet(CustomModelViewSet):
+class QuotationProcessViewSet(SupplierQuotationScopeMixin, CustomModelViewSet):
     """杂采报价单加工成本明细管理接口"""
+
+    supplier_scope_via_child_quotation_no = True
 
     queryset = QuotationProcess.objects.all()
     serializer_class = QuotationProcessSerializer
@@ -328,8 +395,10 @@ class QuotationProcessViewSet(CustomModelViewSet):
         serializer.save()
 
 
-class QuotationOtherViewSet(CustomModelViewSet):
+class QuotationOtherViewSet(SupplierQuotationScopeMixin, CustomModelViewSet):
     """杂采报价单其他费用明细管理接口"""
+
+    supplier_scope_via_child_quotation_no = True
 
     queryset = QuotationOther.objects.all()
     serializer_class = QuotationOtherSerializer
@@ -346,8 +415,10 @@ class QuotationOtherViewSet(CustomModelViewSet):
         serializer.save()
 
 
-class QuotationProfitViewSet(CustomModelViewSet):
+class QuotationProfitViewSet(SupplierQuotationScopeMixin, CustomModelViewSet):
     """杂采报价单税率利润明细管理接口"""
+
+    supplier_scope_via_child_quotation_no = True
 
     queryset = QuotationProfit.objects.all()
     serializer_class = QuotationProfitSerializer
@@ -364,8 +435,10 @@ class QuotationProfitViewSet(CustomModelViewSet):
         serializer.save()
 
 
-class QuotationItemViewSet(CustomModelViewSet):
+class QuotationItemViewSet(SupplierQuotationScopeMixin, CustomModelViewSet):
     """杂采报价单上阶物料明细管理接口"""
+
+    supplier_scope_via_child_quotation_no = True
 
     queryset = QuotationItem.objects.all()
     serializer_class = QuotationItemSerializer
