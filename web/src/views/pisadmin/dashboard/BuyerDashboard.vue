@@ -15,7 +15,7 @@
 				<div class="kpi-trend trend-up"><i class="fa fa-arrow-up"></i> 较上月 +12%</div>
 			</div>
 			<div class="kpi-card green">
-				<div class="kpi-icon"><i class="fa fa-clock"></i></div>
+				<div class="kpi-icon"><i class="fa fa-clock-o"></i></div>
 				<div class="kpi-title">进行中询价单</div>
 				<div class="kpi-value">{{ kpi.pending_inquiries }}</div>
 			</div>
