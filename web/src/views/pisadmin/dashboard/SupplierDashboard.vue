@@ -9,21 +9,25 @@
 		<!-- KPI 指标卡片 -->
 		<div class="kpi-section">
 			<div class="kpi-card blue">
+				<div class="kpi-icon"><i class="fa fa-file-invoice"></i></div>
 				<div class="kpi-title">报价单总数</div>
 				<div class="kpi-value">{{ kpi.total_quotes.toLocaleString() }}</div>
 				<div class="kpi-trend trend-up"><i class="fa fa-arrow-up"></i> 较上月 +8%</div>
 			</div>
 			<div class="kpi-card orange">
+				<div class="kpi-icon"><i class="fa fa-pen-to-square"></i></div>
 				<div class="kpi-title">待报价</div>
 				<div class="kpi-value">{{ kpi.pending_quotes }}</div>
 				<div class="kpi-trend" style="color: #2e5bff">等待报价</div>
 			</div>
 			<div class="kpi-card green">
+				<div class="kpi-icon"><i class="fa fa-trophy"></i></div>
 				<div class="kpi-title">已中标</div>
 				<div class="kpi-value">{{ kpi.won_quotes }}</div>
 				<div class="kpi-trend trend-up"><i class="fa fa-trophy"></i> 中标成功</div>
 			</div>
 			<div class="kpi-card purple">
+				<div class="kpi-icon"><i class="fa fa-bullseye"></i></div>
 				<div class="kpi-title">中标率</div>
 				<div class="kpi-value">{{ kpi.conversion_rate }}%</div>
 				<div class="kpi-trend trend-flat"><i class="fa fa-minus"></i> 持平</div>
@@ -343,6 +347,12 @@ watch(trend, () => {
 		transform: translateY(-2px);
 		box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 	}
+}
+
+.kpi-icon {
+	font-size: 28px;
+	margin-bottom: 12px;
+	opacity: 0.8;
 }
 
 .kpi-title {

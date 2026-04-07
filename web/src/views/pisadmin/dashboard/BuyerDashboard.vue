@@ -9,15 +9,18 @@
 		<!-- KPI 指标卡片 -->
 		<div class="kpi-section">
 			<div class="kpi-card blue">
+				<div class="kpi-icon"><i class="fa fa-check-circle"></i></div>
 				<div class="kpi-title">已完成询价单总数</div>
 				<div class="kpi-value">{{ kpi.total_inquiries.toLocaleString() }}</div>
 				<div class="kpi-trend trend-up"><i class="fa fa-arrow-up"></i> 较上月 +12%</div>
 			</div>
 			<div class="kpi-card green">
+				<div class="kpi-icon"><i class="fa fa-clock"></i></div>
 				<div class="kpi-title">进行中询价单</div>
 				<div class="kpi-value">{{ kpi.pending_inquiries }}</div>
 			</div>
 			<div class="kpi-card orange">
+				<div class="kpi-icon"><i class="fa fa-chart-pie"></i></div>
 				<div class="kpi-title">供应商报价及时率</div>
 				<div class="kpi-value">{{ kpi.quote_timely_rate }}%</div>
 				<div class="kpi-trend trend-flat"><i class="fa fa-minus"></i> 持平</div>
@@ -315,6 +318,12 @@ watch(trend, () => {
 		transform: translateY(-2px);
 		box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 	}
+}
+
+.kpi-icon {
+	font-size: 28px;
+	margin-bottom: 12px;
+	opacity: 0.8;
 }
 
 .kpi-title {
