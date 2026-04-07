@@ -1,102 +1,71 @@
-# Django-Vue3-Admin
+# PIS - 采购与供应商管理系统
 
-[![img](https://img.shields.io/badge/license-MIT-blue.svg)](https://gitee.com/liqianglog/django-vue-admin/blob/master/LICENSE)  [![img](https://img.shields.io/badge/python-%3E=3.7.x-green.svg)](https://python.org/)  [![PyPI - Django Version badge](https://img.shields.io/badge/django%20versions-3.2-blue)](https://docs.djangoproject.com/zh-hans/3.2/) [![img](https://img.shields.io/badge/node-%3E%3D%2012.0.0-brightgreen)](https://nodejs.org/zh-cn/) [![img](https://gitee.com/liqianglog/django-vue-admin/badge/star.svg?theme=dark)](https://gitee.com/liqianglog/django-vue-admin)
+## 项目简介
 
-[预 览](https://demo.dvadmin.com) | [官网文档](https://www.django-vue-admin.com) | [群聊](https://qm.qq.com/cgi-bin/qm/qr?k=fOdnHhC8DJlRHGYSnyhoB8P5rgogA6Vs&jump_from=webapi) | [社区](https://bbs.django-vue-admin.com) | [插件市场](https://bbs.django-vue-admin.com/plugMarket.html) | [Github](https://github.com/liqianglog/django-vue-admin)
+基于 Django-Vue3 的采购与供应商管理系统，采用 RBAC 权限控制。
 
+## 项目架构 🏗️
 
+### 技术栈
 
-💡 **「关于」**
+| 层级 | 技术 |
+|------|------|
+| **后端** | Django 4.2.14 + Django REST Framework 3.15.2 |
+| **前端** | Vue 3 + TypeScript + Vite 5.4 + Element Plus 2.8 + FastCRUD |
+| **数据库** | MySQL 8.0 |
+| **缓存/队列** | Redis + Celery |
+| **实时通信** | Django Channels (WebSocket) |
+| **认证** | JWT via SimpleJWT |
 
-我们是一群热爱代码的青年，在这个炙热的时代下，我们希望静下心来通过Code带来一点我们的色彩和颜色。
+### 目录结构
 
-因为热爱，所以拥抱未来!
+```
+pis/
+├── backend/
+│   ├── application/          # Django 项目配置
+│   │   ├── settings.py       # 主配置（从 conf/env.py 导入配置）
+│   │   ├── urls.py           # 根路由
+│   │   ├── asgi.py           # ASGI 配置（支持 WebSocket）
+│   │   └── celery.py         # Celery 配置
+│   ├── apps/
+│   │   ├── pisadmin/         # 采购管理应用
+│   │   │   ├── basicinfo/    # 基础信息：公司、币种、供应商、单位、编码规则
+│   │   │   └── miscprocurement/  # 杂项采购：询价、价格模板、成本节
+│   │   └── pissupplier/      # 供应商报价模块
+│   ├── dvadmin/              # 核心 RBAC 系统
+│   │   └── system/           # 用户、角色、菜单、部门、日志
+│   └── conf/
+│       └── env.py            # 环境配置（数据库、Redis 凭证）
+├── web/                      # Vue 3 前端
+│   └── src/
+│       ├── views/pisadmin/   # 采购管理页面
+│       ├── views/pissupplier/# 供应商页面
+│       └── views/system/     # 系统管理页面
+└── scripts/                  # 服务管理脚本
+    ├── start-backend.sh      # 启动后端服务
+    ├── start-frontend.sh     # 启动前端服务
+    ├── start-celery.sh       # 启动 Celery worker/beat
+    ├── stop-all.sh           # 停止所有服务
+    └── check-status.sh       # 查看服务状态
+```
 
+### 模块说明
 
-## 平台简介
+| 模块 | 说明 |
+|------|------|
+| `pisadmin/basicinfo` | 基础信息管理：公司、币种、供应商、单位、系统编号规则 |
+| `pisadmin/miscprocurement` | 杂项采购：询价（RFQ）、价格模板、成本节构建器 |
+| `pissupplier` | 供应商报价模块 |
+| `dvadmin/system` | 核心 RBAC 系统：用户、角色、菜单、部门、操作日志 |
 
-💡 [django-vue3-admin](https://gitee.com/huge-dream/django-vue3-admin.git) 是一套全部开源的快速开发平台，毫无保留给个人及企业免费使用。
-    django-vue3-admin 基于 vue3 + CompositionAPI + typescript + vite + element plus, 是一款全栈，快速，开源的后台管理系统！
+### 配置说明
 
-
-
-
-* 🧑‍🤝‍🧑前端采用 Vue3+TS+pinia+fastcrud(感谢[vue-next-admin](https://lyt-top.gitee.io/vue-next-admin-doc-preview/))
-* 👭后端采用 Python 语言 Django 框架以及强大的 [Django REST Framework](https://pypi.org/project/djangorestframework)。
-* 👫权限认证使用[Django REST Framework SimpleJWT](https://pypi.org/project/djangorestframework-simplejwt)，支持多终端认证系统。
-* 👬支持加载动态权限菜单，多方式轻松权限控制。
-* 💏特别鸣谢：[vue-next-admin](https://lyt-top.gitee.io/vue-next-admin-doc-preview/)。
-* 💡 特别感谢[jetbrains](https://www.jetbrains.com/) 为本开源项目提供免费的 IntelliJ IDEA 授权。
-
-#### 🏭 环境支持
-
-| Edge      | Firefox      | Chrome      | Safari      |
-| --------- | ------------ | ----------- | ----------- |
-| Edge ≥ 79 | Firefox ≥ 78 | Chrome ≥ 64 | Safari ≥ 12 |
-
-> 由于 Vue3 不再支持 IE11，故而 ElementPlus 也不支持 IE11 及之前版本。
-
-
-
-## 在线体验
-
-👩‍👧‍👦演示地址：[https://demo.dvadmin.com](https://demo.dvadmin.com)
-
-- 账号：superadmin
-
-- 密码：admin123456
-
-👩‍👦‍👦文档地址：[coding](https://dvadmin-private.coding.net/share/km/cec69f3d-30fe-47d5-bd97-e9e851f0b776/K-2)
-
-
-## 给框架点赞
- <img src='https://django-vue-admin.com/alipay.jpg' width='200'>
- <img src='https://django-vue-admin.com/wechat.jpg' width='200'>
-
-
-## 交流
-
-- 交流社区：[戳我](https://bbs.django-vue-admin.com)👩‍👦‍👦
-
-- 插件市场：[戳我](https://bbs.django-vue-admin.com/plugMarket.html)👩‍👦‍👦
-
--  django-vue-admin交流01群(已满)：812482043 [点击链接加入群聊](https://qm.qq.com/cgi-bin/qm/qr?k=aJVwjDvH-Es4MPJQuoO32N0SucK22TE5&jump_from=webapi)
--  django-vue-admin交流02群(已满)：687252418  [点击链接加入群聊](https://qm.qq.com/cgi-bin/qm/qr?k=4jJN4IjWGfxJ8YJXbb_gTsuWjR34WLdc&jump_from=webapi)
--  django-vue-admin交流03群：442108213  [点击链接加入群聊](http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=wsm5oSz3K8dElBYUDtLTcQSEPhINFkl8&authKey=M6sbER0z59ZakgBr5erFeZyFZU15CI52bErNZa%2FxSvvGIuVAbY0N5866v89hm%2FK4&noverify=0&group_code=442108213)
-
-- 二维码
-
-  <img src='https://images.gitee.com/uploads/images/2022/0530/233203_5fb11883_5074988.jpeg' width='200'>
-
-## 源码地址
-
-gitee地址(主推)：[https://gitee.com/huge-dream/django-vue3-admin](https://gitee.com/huge-dream/django-vue3-admin)👩‍👦‍👦
-
-github地址：暂无
-
-
-## 内置功能
-
-1.  👨‍⚕️菜单管理：配置系统菜单，操作权限，按钮权限标识、后端接口权限等。
-2.  🧑‍⚕️部门管理：配置系统组织机构（公司、部门、角色）。
-3.  👩‍⚕️角色管理：角色菜单权限分配、数据权限分配、设置角色按部门进行数据范围权限划分。
-4.  🧑‍🎓按钮权限权限：授权角色的按钮权限和接口权限,可做到每一个接口都能授权数据范围。
-5.  🧑‍🎓字段权限权限：授权页面的字段显示权限。
-5.  👨‍🎓用户管理：用户是系统操作者，该功能主要完成系统用户配置。
-6.  👬接口白名单：配置不需要进行权限校验的接口。
-7.  🧑‍🔧字典管理：对系统中经常使用的一些较为固定的数据进行维护。
-8.  🧑‍🔧地区管理：对省市县区域进行管理。
-9.  📁附件管理：对平台上所有文件、图片等进行统一管理。
-10.  🗓️操作日志：系统正常操作日志记录和查询；系统异常信息日志记录和查询。
-11.  🔌[插件市场 ](https://bbs.django-vue-admin.com/plugMarket.html)：基于Django-Vue-Admin框架开发的应用和插件。
-
-##  插件市场 🔌
-
-- Celery异步任务：[dvadmin-celery](https://gitee.com/huge-dream/dvadmin-celery)
-- 升级中心后端：[dvadmin-upgrade-center](https://gitee.com/huge-dream/dvadmin-upgrade-center)
-- 升级中心前端：[dvadmin-upgrade-center-web](https://gitee.com/huge-dream/dvadmin-upgrade-center-web)
+后端配置分离：
+- `application/settings.py` - Django 默认配置
+- `conf/env.py` - 环境特定配置（数据库、Redis、密钥）
 
 ## 准备工作
+
 ~~~
 Python >= 3.8.0 (推荐3.8+版本)
 nodejs >= 14.0 (推荐最新)
@@ -104,109 +73,119 @@ Mysql >= 5.7.0 (可选，默认数据库sqlite3，推荐8.0版本)
 Redis(可选，最新版)
 ~~~
 
-## 前端♝
+## 前端
 
 ```bash
-# 克隆项目
-git clone https://gitee.com/huge-dream/django-vue3-admin.git
-
-# 进入项目目录
+# 进入前端目录
 cd web
 
 # 安装依赖
-npm install --registry=https://registry.npm.taobao.org
+npm install yarn
+npm install --registry=https://registry.npmmirror.com
 
-# 启动服务
-npm run dev
+# 启动开发服务器
+yarn run dev
 # 浏览器访问 http://localhost:8080
 # .env.development 文件中可配置启动端口等参数
+
 # 构建生产环境
-# npm run build
+yarn run build
 ```
 
+## 后端
 
+### 方式一：脚本启动（推荐）
 
-## 后端💈
+项目提供了完整的启动脚本，位于项目根目录 `scripts/` 目录：
 
-~~~bash
-1. 进入项目目录 cd backend
-2. 在项目根目录中，复制 ./conf/env.example.py 文件为一份新的到 ./conf 文件夹下，并重命名为 env.py
-3. 在 env.py 中配置数据库信息
-	mysql数据库版本建议：8.0
-	mysql数据库字符集：utf8mb4
-4. 安装依赖环境
-	pip3 install -r requirements.txt
-5. 执行迁移命令：
-	python3 manage.py makemigrations
-	python3 manage.py migrate
-6. 初始化数据
-	python3 manage.py init
-7. 初始化省市县数据:
-	python3 manage.py init_area
-8. 启动项目
-	python3 manage.py runserver 0.0.0.0:8000
-或使用 daphne :
-  daphne -b 0.0.0.0 -p 8000 application.asgi:application
-~~~
+```bash
+# 进入项目根目录
+cd D:\AVC-PROJECT\pis
+
+# 启动后端服务（开发模式）
+./scripts/start-backend.sh
+
+# 启动前端服务
+./scripts/start-frontend.sh
+
+# 启动 Celery 异步任务（可选）
+./scripts/start-celery.sh
+```
+
+**脚本功能说明：**
+
+| 脚本 | 说明 |
+|------|------|
+| `start-backend.sh` | 启动后端服务（自动创建 PID 和日志文件）|
+| `start-frontend.sh` | 启动前端开发服务器 |
+| `start-celery.sh` | 启动 Celery Worker 和 Beat |
+| `stop-all.sh` | 停止所有服务 |
+| `stop-celery.sh` | 仅停止 Celery 服务 |
+| `check-status.sh` | 查看所有服务状态 |
+| `view-logs.sh` | 查看服务日志 |
+
+**查看日志：**
+```bash
+./scripts/view-logs.sh all      # 查看所有日志
+./scripts/view-logs.sh backend  # 仅看后端日志
+./scripts/view-logs.sh celery   # 仅看 Celery 日志
+```
+
+**停止服务：**
+```bash
+./scripts/stop-all.sh           # 停止所有服务
+./scripts/stop-celery.sh       # 仅停止 Celery
+```
+
+### 方式二：手动启动
+
+```bash
+# 1. 进入后端目录
+cd backend
+
+# 2. 复制并配置环境文件
+cp ./conf/env.example.py ./conf/env.py
+# 编辑 env.py 配置数据库信息
+
+# 3. 安装依赖
+pip3 install -r requirements.txt
+
+# 4. 执行数据库迁移
+python3 manage.py makemigrations
+python3 manage.py migrate
+
+# 5. 初始化数据
+python3 manage.py init
+python3 manage.py init_area
+
+# 6. 启动后端
+uvicorn application.asgi:application --port 8000 --host 0.0.0.0 --workers 8
+```
 
 ### 访问项目
 
-- 访问地址：[http://localhost:8080](http://localhost:8080) (默认为此地址，如有修改请按照配置文件)
-- 账号：`superadmin` 密码：`admin123456`
+- 前端地址：http://localhost:8080
+- 后端接口：http://localhost:8080/api
+- 默认账号：`superadmin` / `admin123456`
 
+### Docker 部署
 
-
-
-
-### docker-compose 运行
-
-~~~shell
-# 先安装docker-compose (自行百度安装),执行此命令等待安装，如有使用celery插件请打开docker-compose.yml中celery 部分注释
+```shell
 docker-compose up -d
-# 初始化后端数据(第一次执行即可)
+# 初始化后端数据（第一次执行即可）
 docker exec -ti dvadmin-django bash
-python manage.py makemigrations 
+python manage.py makemigrations
 python manage.py migrate
 python manage.py init_area
 python manage.py init
 exit
 
-前端地址：http://127.0.0.1:8080
-后端地址：http://127.0.0.1:8080/api
-# 在服务器上请把127.0.0.1 换成自己公网ip
-账号：superadmin 密码：admin123456
-
-# docker-compose 停止
+# 停止服务
 docker-compose down
-#  docker-compose 重启
+
+# 重启服务
 docker-compose restart
-#  docker-compose 启动时重新进行 build
+
+# 重新构建并启动
 docker-compose up -d --build
-~~~
-
-
-
-## 演示图✅
-
-![image-01](https://images.gitee.com/uploads/images/2022/0530/234137_b58c8f98_5074988.png)
-
-![image-02](https://images.gitee.com/uploads/images/2022/0530/234240_39834603_5074988.png)
-
-![image-03](https://images.gitee.com/uploads/images/2022/0530/234339_35e728a0_5074988.png)
-
-![image-04](https://images.gitee.com/uploads/images/2022/0530/234426_957036b0_5074988.png)
-
-![image-05](https://images.gitee.com/uploads/images/2022/0530/234458_898be492_5074988.png)
-
-![image-06](https://images.gitee.com/uploads/images/2022/0530/234521_35b40076_5074988.png)
-
-![image-07](https://images.gitee.com/uploads/images/2022/0530/234615_c2325639_5074988.png)
-
-![image-08](https://images.gitee.com/uploads/images/2022/0530/234639_1ed6cc93_5074988.png)
-
-![image-09](https://images.gitee.com/uploads/images/2022/0530/234815_cea2c53f_5074988.png)
-
-![image-10](https://images.gitee.com/uploads/images/2022/0530/234840_5f3e5f53_5074988.png)
-
-
-
+```
