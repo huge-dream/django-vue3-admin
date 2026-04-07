@@ -185,10 +185,24 @@ function initChart() {
 	let dataReceive: number[] = [];
 
 	if (trend.value && trend.value.length > 0) {
-		labels = trend.value.map((d) => d.day);
-		dataPublish = trend.value.map((d) => d.count || 0);
-		// 议价完成数据暂无，填充0
-		dataReceive = trend.value.map(() => 0);
+		// 生成当前月的所有日期，确保每天都能显示
+		const now = new Date();
+		const year = now.getFullYear();
+		const month = now.getMonth();
+		const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+		// 创建数据映射
+		const dataMap = new Map(trend.value.map((d) => [d.day, d.count || 0]));
+
+		// 填充所有日期，缺失的填0
+		labels = [];
+		dataPublish = [];
+		dataReceive = [];
+		for (let day = 1; day <= daysInMonth; day++) {
+			labels.push(`${month + 1}/${day}`);
+			dataPublish.push(dataMap.get(day) || 0);
+			dataReceive.push(0); // 议价完成数据暂无
+		}
 	} else {
 		// 模拟数据
 		const today = new Date();

@@ -216,9 +216,25 @@ function initChart() {
 	let wonData: number[] = [];
 
 	if (trend.value && trend.value.length > 0) {
-		labels = trend.value.map((d) => d.day);
-		quotesData = trend.value.map((d) => d.quotes || 0);
-		wonData = trend.value.map((d) => d.won || 0);
+		// 生成当前月的所有日期，确保每天都能显示
+		const now = new Date();
+		const year = now.getFullYear();
+		const month = now.getMonth();
+		const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+		// 创建数据映射
+		const quotesMap = new Map(trend.value.map((d) => [d.day, d.quotes || 0]));
+		const wonMap = new Map(trend.value.map((d) => [d.day, d.won || 0]));
+
+		// 填充所有日期，缺失的填0
+		labels = [];
+		quotesData = [];
+		wonData = [];
+		for (let day = 1; day <= daysInMonth; day++) {
+			labels.push(`${month + 1}/${day}`);
+			quotesData.push(quotesMap.get(day) || 0);
+			wonData.push(wonMap.get(day) || 0);
+		}
 	} else {
 		// 模拟数据
 		const today = new Date();
