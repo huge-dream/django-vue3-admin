@@ -500,8 +500,6 @@ export type LowPriceMinContext = {
   /** 加工成本制程最低价对应的报价单 id（可点击跳转） */
   minProcessQuotationId?: string | number
   pid: string
-  /** 杂采材料最低价对应交易厂区（全局，供浮窗） */
-  miscMinFactory?: string
 }
 
 const _nearlyEqualMin = (a: number, b: number) => Math.abs(a - b) < 1e-6
@@ -525,10 +523,12 @@ export function allCompareSupplierValuesEqual(
   return nums.every((x) => _nearlyEqualMin(x, a0))
 }
 
+/**
+ * @param miscMinBySpec 杂采材料信息：按「材质」与报价 material_spec 对齐后的最低单价及厂区；不得用全表全局最低价混入其它材质分组
+ */
 export function computeLowPriceMinContext(
   quotes: any[],
-  miscMinUnitPrice?: number | null,
-  miscMinFactory?: string | null
+  miscMinBySpec?: Record<string, { price: number; factory?: string }> | null
 ): LowPriceMinContext {
   const pid = String(quotes[0]?.rfq_items?.[0]?.part_id || '').trim()
   const qty = Number(quotes[0]?.rfq_items?.[0]?.qty)
@@ -592,27 +592,29 @@ export function computeLowPriceMinContext(
       }
     }
 
-    // 考虑杂采材料信息的单价
+    // 考虑杂采材料信息的单价（仅与同材质 material_spec 一致的杂采行比较）
     let specMinUp = specMinQuoteUp
     let specMinUnitPriceFromMisc = false
     let specMiscMinFactory: string | undefined
 
-    if (miscMinUnitPrice != null && Number.isFinite(miscMinUnitPrice)) {
-      const misc = miscMinUnitPrice
+    const miscEntry = miscMinBySpec?.[spec]
+    const misc = miscEntry != null && Number.isFinite(miscEntry.price) ? miscEntry.price : undefined
+    const miscFac =
+      miscEntry != null && String(miscEntry.factory ?? '').trim() !== ''
+        ? String(miscEntry.factory).trim()
+        : undefined
+
+    if (misc !== undefined) {
       if (specMinQuoteUp === undefined) {
         specMinUp = misc
         specMinUnitPriceFromMisc = true
         specMinUnitPriceQuotationId = undefined
-        specMiscMinFactory = miscMinFactory != null && String(miscMinFactory).trim() !== ''
-          ? String(miscMinFactory).trim()
-          : undefined
+        specMiscMinFactory = miscFac
       } else if (misc < specMinQuoteUp && !_nearlyEqualMin(misc, specMinQuoteUp)) {
         specMinUp = misc
         specMinUnitPriceFromMisc = true
         specMinUnitPriceQuotationId = undefined
-        specMiscMinFactory = miscMinFactory != null && String(miscMinFactory).trim() !== ''
-          ? String(miscMinFactory).trim()
-          : undefined
+        specMiscMinFactory = miscFac
       } else {
         specMinUp = Math.min(specMinQuoteUp, misc)
         specMinUnitPriceFromMisc = false
@@ -764,10 +766,7 @@ export function computeLowPriceMinContext(
     totalMaterialProduct: totalMaterialProduct || undefined,
     minProcessTotal,
     minProcessQuotationId,
-    pid,
-    miscMinFactory: miscMinFactory != null && String(miscMinFactory).trim() !== ''
-      ? String(miscMinFactory).trim()
-      : undefined
+    pid
   }
 }
 

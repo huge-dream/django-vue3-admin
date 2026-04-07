@@ -607,27 +607,21 @@
                             <ArrowDown v-if="inviteListExpanded" />
                             <ArrowRight v-else />
                           </el-icon>
-                          <span class="op-invite-toggle__text">受邀供应商报价一览</span>
+                          <span class="op-invite-toggle__text">受邀供应商一览</span>
                         </button>
                         <div v-show="inviteListExpanded" class="op-invite-body">
                           <el-table
                             :data="invitedSupplierQuotations"
-                            :show-header="false"
                             border
                             size="small"
                             empty-text="暂无报价单数据"
                             class="op-invite-nested-table"
                           >
-                            <el-table-column prop="operation_time" min-width="150" show-overflow-tooltip />
-                            <el-table-column prop="supplier_full_name" min-width="110" show-overflow-tooltip />
-                            <el-table-column prop="operator" min-width="100" show-overflow-tooltip />
-                            <el-table-column prop="quotation_status" label="报价单状态" min-width="120" show-overflow-tooltip />
-                            <el-table-column prop="operation_desc" min-width="160" show-overflow-tooltip>
-                              <template #default="{ row: sub }">
-                                {{ sub.operation_desc?.trim() ? sub.operation_desc : '—' }}
-                              </template>
-                            </el-table-column>
-                            <el-table-column prop="quotation_no" width="120" show-overflow-tooltip />
+                            <el-table-column prop="supplier_full_name" label="供应商名称" min-width="140" show-overflow-tooltip />
+                            <el-table-column prop="quotation_status" label="报价单状态" min-width="110" show-overflow-tooltip />
+                            <el-table-column prop="operation_time" label="操作时间" min-width="150" show-overflow-tooltip />
+                            <el-table-column prop="operator" label="操作人" min-width="100" show-overflow-tooltip />
+                            <el-table-column prop="quotation_no" label="报价单号" width="120" show-overflow-tooltip />
                           </el-table>
                         </div>
                       </div>
@@ -1297,21 +1291,19 @@ type RfqOperationLogRow = {
 const operationLogs = ref<RfqOperationLogRow[]>([])
 const operationLogsLoading = ref(false)
 
-/** 受邀供应商报价一览（嵌套表，与后端 invited_supplier_quotations 一致） */
+/** 受邀供应商一览（嵌套表，与后端 invited_supplier_quotations 一致） */
 type InvitedSupplierQuotationRow = {
-  operation_time?: string
   supplier_full_name?: string
-  operator?: string
-  /** 报价单当前状态（与 QuotationMaster.STATUS_CHOICES 一致） */
   quotation_status?: string
-  operation_desc?: string
+  operation_time?: string
+  operator?: string
   quotation_no?: string
 }
 type OpLogSnapshotRow = { _type: 'snapshot'; rowKey: string; anchorId?: number }
 type CombinedOpLogRow = (RfqOperationLogRow & { _type?: 'log'; rowKey?: string }) | OpLogSnapshotRow
 
 const invitedSupplierQuotations = ref<InvitedSupplierQuotationRow[]>([])
-/** 受邀供应商明细：默认展开，与主表同一套列含义（内嵌表不重复表头） */
+/** 受邀供应商明细：默认展开 */
 const inviteListExpanded = ref(true)
 
 const isOpLogSnapshotRow = (row: unknown): row is OpLogSnapshotRow =>
@@ -1786,16 +1778,24 @@ const timelineStepsView = computed(() => {
   })
 })
 
-/** 明细表按时间正序；在首条「询价单发布」(3) 之后插入一行快照占位，用于嵌套受邀供应商报价表 */
+/** 受邀供应商一览：插在首条「供应商报价」且状态变更为「发布 → 报价中」的日志之后；若无该条则回退为首条「询价单发布」(3) 之后 */
+const isOpLogPublishToQuotingAnchor = (row: RfqOperationLogRow) =>
+  Number(row.operation_type) === 6 &&
+  (row.per_status || '').trim() === '发布' &&
+  (row.cur_status || '').trim() === '报价中'
+
 const combinedOpLogRows = computed((): CombinedOpLogRow[] => {
   const list = operationLogsChronological.value
+  const hasPublishToQuoting = list.some(isOpLogPublishToQuotingAnchor)
   const out: CombinedOpLogRow[] = []
   let inserted = false
   let idx = 0
   for (const row of list) {
     const rowKey = `log-${row.id ?? idx}-${parseOperationLogTime(row.operation_time)}`
     out.push({ ...row, _type: 'log', rowKey } as CombinedOpLogRow)
-    if (Number(row.operation_type) === 3 && !inserted) {
+    const fallbackPublish = !hasPublishToQuoting && Number(row.operation_type) === 3
+    const afterAnchor = hasPublishToQuoting && isOpLogPublishToQuotingAnchor(row)
+    if (!inserted && (afterAnchor || fallbackPublish)) {
       out.push({
         _type: 'snapshot',
         rowKey: `snapshot-${row.id ?? 'pub'}-${idx}`,

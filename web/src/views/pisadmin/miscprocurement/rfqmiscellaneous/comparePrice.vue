@@ -216,9 +216,7 @@
             <template #default="{ row }">
               <template v-if="row.key === 'bargain'">-</template>
               <template
-                v-else-if="
-                  (row.key === 'process' || row.key === 'other') && row.minLink?.kind === 'quotation'
-                "
+                v-else-if="row.key === 'process' && row.minLink?.kind === 'quotation'"
               >
                 <span class="compare-min-link" @click.stop="openCompareMinLink(row.minLink)">
                   {{ formatCompareMin(row.min, row.key) }}
@@ -972,7 +970,7 @@ const buildComparisonRowsFromPisQuotes = (
   }
 
   const nearlyEqMin = (a: number, b: number) => Math.abs(a - b) < 1e-6
-  /** 主表「加工成本」「其它成本」制程最低价：列最小值对应报价单，可点击跳转 */
+  /** 主表「加工成本」制程最低价（兜底）：列最小值对应报价单，可点击跳转 */
   const setRowMinLinkToLowestQuotation = (
     row: ComparisonRow | undefined,
     sumForQuote: (q: any) => number | null
@@ -1012,7 +1010,7 @@ const buildComparisonRowsFromPisQuotes = (
   } else {
     setRowMinLinkToLowestQuotation(procRow, sumProcessCost)
   }
-  setRowMinLinkToLowestQuotation(otherRow, sumOtherCost)
+  if (otherRow) otherRow.minLink = null
 
   const profitRateRaws = quotes.map((q) => profitCostRowForQuote(q)?.profit_rate)
   const profitMinComputed = computeProfitProcessMinPrice(
@@ -1137,8 +1135,8 @@ const loadComparisonPage = async (row: any) => {
       list.map((q: any) => getQuotationDetail(q.autoid ?? q.id))
     )
     const quotes = details.map((r: any) => unwrapQuotationDetail(r)).filter(Boolean)
-    let miscMinUnitPrice: number | undefined
-    let miscMinFactory: string | undefined
+    /** 杂采材料：按材质聚合最低单价（与报价 material_spec 对齐），禁止跨材质取全局最低 */
+    const miscMinBySpec: Record<string, { price: number; factory?: string }> = {}
     try {
       const mres = await GetMaterials({ page: 1, page_size: 5000 })
       const mlist = extractQuotationList(mres)
@@ -1146,17 +1144,22 @@ const loadComparisonPage = async (row: any) => {
         if (it.status != null && Number(it.status) !== 1) continue
         const p = Number(it.price)
         if (!Number.isFinite(p)) continue
-        if (miscMinUnitPrice === undefined || p < miscMinUnitPrice) {
-          miscMinUnitPrice = p
-          const fac = String(it.factory ?? it.company_code ?? '').trim()
-          miscMinFactory = fac || undefined
+        const matRaw = it.materialtype ?? it.material_type ?? it.material
+        const mat = String(matRaw ?? '')
+          .trim()
+          .replace(/\s+/g, ' ')
+        if (!mat) continue
+        const fac = String(it.factory ?? it.company_code ?? '').trim()
+        const prev = miscMinBySpec[mat]
+        if (!prev || p < prev.price) {
+          miscMinBySpec[mat] = { price: p, factory: fac || undefined }
         }
       }
     } catch {
       /* 杂采材料信息不可用则制程最低价单价仅来自报价 */
     }
     const stationNameByCode = await fetchStationCodeToNameMap()
-    const lowPriceCtx = computeLowPriceMinContext(quotes, miscMinUnitPrice, miscMinFactory)
+    const lowPriceCtx = computeLowPriceMinContext(quotes, miscMinBySpec)
     const rq0 = quotes[0]?.rfq_items?.[0]
     if (rq0) {
       if (!comparisonDialog.baseInfo.partNo) comparisonDialog.baseInfo.partNo = String(rq0.part_id || '').trim()
