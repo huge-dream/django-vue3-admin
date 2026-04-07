@@ -8,7 +8,7 @@
 
 		<!-- KPI 指标卡片 -->
 		<div class="kpi-section">
-			<div class="kpi-card blue">
+			<div class="kpi-card green">
 				<div class="kpi-icon"><i class="fa fa-file-text-o"></i></div>
 				<div class="kpi-title">报价单总数</div>
 				<div class="kpi-value">{{ kpi.total_quotes.toLocaleString() }}</div>
@@ -18,15 +18,15 @@
 				<div class="kpi-icon"><i class="fa fa-pencil-square-o"></i></div>
 				<div class="kpi-title">待报价</div>
 				<div class="kpi-value">{{ kpi.pending_quotes }}</div>
-				<div class="kpi-trend" style="color: #2e5bff">等待报价</div>
+				<div class="kpi-trend">等待报价</div>
 			</div>
-			<div class="kpi-card green">
+			<div class="kpi-card gold">
 				<div class="kpi-icon"><i class="fa fa-trophy"></i></div>
 				<div class="kpi-title">已中标</div>
 				<div class="kpi-value">{{ kpi.won_quotes }}</div>
 				<div class="kpi-trend trend-up"><i class="fa fa-trophy"></i> 中标成功</div>
 			</div>
-			<div class="kpi-card purple">
+			<div class="kpi-card blue">
 				<div class="kpi-icon"><i class="fa fa-bullseye"></i></div>
 				<div class="kpi-title">中标率</div>
 				<div class="kpi-value">{{ kpi.conversion_rate }}%</div>
@@ -53,21 +53,24 @@
 							<span class="quote-no">{{ quote.inquiry_no }}</span>
 							<span class="quote-status" :class="getQuoteStatusClass(quote.status)">{{ getQuoteStatusText(quote.status) }}</span>
 							<span class="method-badge" :class="getMethodClass(quote.method)">{{ getMethodText(quote.method) }}</span>
-							<div class="quote-countdown">
-								<template v-if="quote.method === '招标'">
-									<span class="countdown-label">投标时间</span>
-									<span class="countdown-time" :class="getDeadlineClass(quote)">{{
-										quote.bid_start_time ? formatDateRange(quote.bid_start_time, quote.bid_end_time) : '-'
-									}}</span>
-									<span class="countdown-remaining" :class="getDeadlineClass(quote)">{{ getRemainingTimeText(quote) }}</span>
-								</template>
-								<template v-else>
-									<span class="countdown-label">报价截止时间</span>
-									<span class="countdown-time" :class="getDeadlineClass(quote)">{{
-										quote.quote_deadline ? formatDate(quote.quote_deadline) : '-'
-									}}</span>
-									<span class="countdown-remaining" :class="getDeadlineClass(quote)">{{ getRemainingTimeText(quote) }}</span>
-								</template>
+							<div class="quote-deadline-cell">
+								<table class="deadline-inner">
+									<tbody>
+										<tr>
+											<td class="deadline-td-label">{{ getDeadlinePrimaryLabel(quote) }}</td>
+											<td class="deadline-td-value">
+												<span :class="getDeadlineValueClass(quote)">{{ getDeadlinePrimaryValue(quote) }}</span>
+											</td>
+										</tr>
+										<tr>
+											<td class="deadline-td-gap"></td>
+											<td class="deadline-td-remaining">
+												<span class="deadline-remaining-label">剩余：</span>
+												<span :class="getDeadlineValueClass(quote)">{{ getDeadlineRemainingValue(quote) }}</span>
+											</td>
+										</tr>
+									</tbody>
+								</table>
 							</div>
 							<button class="action-btn btn-primary" @click="handleQuote(quote)">去报价</button>
 						</div>
@@ -196,12 +199,7 @@ const kpi = computed(
 			conversion_rate: 0,
 		}
 );
-const pendingQuotes = computed(() => {
-	const q = supplier.value?.pending_quotes || [];
-	console.log('[SupplierDashboard] supplier.value:', supplier.value);
-	console.log('[SupplierDashboard] pendingQuotes computed:', q);
-	return q;
-});
+const pendingQuotes = computed(() => supplier.value?.pending_quotes || []);
 const trend = computed(() => supplier.value?.trend || []);
 
 // 获取消息列表
@@ -246,65 +244,122 @@ function getQuoteStatusClass(status: number) {
 }
 
 function getQuoteStatusText(status: number) {
-	if (status === 1) return '待报价';
+	if (status === 1) return '未报价';
 	if (status === 2) return '报价中';
 	if (status === 3) return '已报价';
-	return '待报价';
+	return '未报价';
 }
 
-function getMethodClass(method: string) {
+function getMethodClass(method: string | undefined) {
 	if (method === '招标') return 'method-tender';
 	return 'method-inquiry';
 }
 
-function getMethodText(method: string) {
+function getMethodText(method: string | undefined) {
 	return method || '询价';
 }
 
-function getDeadlineClass(quote: any): string {
-	const deadline = quote.method === '招标' ? quote.bid_end_time : quote.quote_deadline;
-	console.log('[SupplierDashboard] getDeadlineClass quote:', quote.inquiry_no, 'method:', quote.method, 'deadline:', deadline);
-	if (!deadline) return '';
-	const now = new Date();
-	const deadlineDate = new Date(deadline);
-	const diffHours = (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-	console.log('[SupplierDashboard] diffHours:', diffHours);
-	if (diffHours < 0) return 'deadline-expired';
-	if (diffHours < 24) return 'deadline-urgent';
-	if (diffHours < 48) return 'deadline-warning';
-	return '';
+function isTenderQuote(quote: any): boolean {
+	return quote?.method === '招标';
 }
 
-function getRemainingTimeText(quote: any): string {
-	const deadline = quote.method === '招标' ? quote.bid_end_time : quote.quote_deadline;
-	console.log('[SupplierDashboard] getRemainingTimeText quote:', quote.inquiry_no, 'deadline:', deadline);
-	if (!deadline) return '';
-	const now = new Date();
-	const deadlineDate = new Date(deadline);
-	const diffMs = deadlineDate.getTime() - now.getTime();
-	console.log('[SupplierDashboard] diffMs:', diffMs);
-	if (diffMs <= 0) return '已到期';
-	const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-	const days = Math.floor(diffHours / 24);
-	const hours = diffHours % 24;
-	if (days > 0) {
-		return `剩余 ${days}天${hours}小时`;
-	}
-	return `剩余 ${hours}小时`;
+function formatDateTimeYMDHM(iso: string | Date | null | undefined): string {
+	if (!iso) return '-';
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return '-';
+	const y = d.getFullYear();
+	const m = String(d.getMonth() + 1).padStart(2, '0');
+	const day = String(d.getDate()).padStart(2, '0');
+	const h = String(d.getHours()).padStart(2, '0');
+	const min = String(d.getMinutes()).padStart(2, '0');
+	return `${y}-${m}-${day} ${h}:${min}`;
 }
 
-function formatDate(date: string) {
-	if (!date) return '';
-	const d = new Date(date);
-	return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+function formatTimeHM(iso: string | Date): string {
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return '-';
+	const h = String(d.getHours()).padStart(2, '0');
+	const min = String(d.getMinutes()).padStart(2, '0');
+	return `${h}:${min}`;
 }
 
-function formatDateRange(start: string, end: string) {
-	if (!start || !end) return '-';
+function formatTenderBidTimeRange(
+	start: string | Date | null | undefined,
+	end: string | Date | null | undefined
+): string {
+	if (!start && !end) return '-';
+	if (!start) return formatDateTimeYMDHM(end);
+	if (!end) return formatDateTimeYMDHM(start);
 	const s = new Date(start);
 	const e = new Date(end);
-	const formatShort = (d: Date) => `${d.getMonth() + 1}/${d.getDate()}`;
-	return `${formatShort(s)}-${formatShort(e)}`;
+	if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return '-';
+	const sameDay =
+		s.getFullYear() === e.getFullYear() &&
+		s.getMonth() === e.getMonth() &&
+		s.getDate() === e.getDate();
+	if (sameDay) {
+		const y = s.getFullYear();
+		const m = String(s.getMonth() + 1).padStart(2, '0');
+		const day = String(s.getDate()).padStart(2, '0');
+		return `${y}-${m}-${day} ${formatTimeHM(s)} 至 ${formatTimeHM(e)}`;
+	}
+	return `${formatDateTimeYMDHM(s)} 至 ${formatDateTimeYMDHM(e)}`;
+}
+
+function formatDurationCn(diffMs: number): string {
+	if (diffMs <= 0) return '已到期';
+	const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+	const days = Math.floor(totalHours / 24);
+	const hours = totalHours % 24;
+	if (days > 0) return `${days}天${hours}小时`;
+	return `${hours}小时`;
+}
+
+function getInquiryHoursToQuoteDeadline(quote: any): number | null {
+	const q = quote?.quote_deadline;
+	if (!q) return null;
+	return (new Date(q).getTime() - Date.now()) / (1000 * 60 * 60);
+}
+
+function getDeadlinePrimaryLabel(quote: any): string {
+	return isTenderQuote(quote) ? '投标时间：' : '报价截止时间：';
+}
+
+function getDeadlinePrimaryValue(quote: any): string {
+	if (isTenderQuote(quote)) {
+		return formatTenderBidTimeRange(quote?.bid_start_time, quote?.bid_end_time);
+	}
+	return formatDateTimeYMDHM(quote?.quote_deadline);
+}
+
+function getDeadlineRemainingValue(quote: any): string {
+	if (isTenderQuote(quote)) {
+		const start = quote?.bid_start_time;
+		const end = quote?.bid_end_time;
+		if (!start) return '-';
+		const now = Date.now();
+		const startMs = new Date(start).getTime();
+		const endMs = end ? new Date(end).getTime() : null;
+		if (now < startMs) return formatDurationCn(startMs - now);
+		if (endMs != null && now < endMs) return '投标进行中';
+		if (endMs != null && now >= endMs) return '已结束';
+		return '已开始';
+	}
+	const q = quote?.quote_deadline;
+	if (!q) return '-';
+	return formatDurationCn(new Date(q).getTime() - Date.now());
+}
+
+function getDeadlineValueClass(quote: any): string {
+	if (isTenderQuote(quote)) {
+		return 'deadline-tender-accent';
+	}
+	const h = getInquiryHoursToQuoteDeadline(quote);
+	if (h == null || quote?.quote_deadline == null) return '';
+	if (h < 0) return 'deadline-expired';
+	if (h < 24) return 'deadline-urgent';
+	if (h < 48) return 'deadline-warning';
+	return 'deadline-accent-normal';
 }
 
 function initChart() {
@@ -395,8 +450,6 @@ function initChart() {
 }
 
 onMounted(() => {
-	console.log('[SupplierDashboard] onMounted - supplier store:', supplier.value);
-	console.log('[SupplierDashboard] onMounted - pendingQuotes:', pendingQuotes.value);
 	initChart();
 	getMsg();
 	window.addEventListener('resize', () => chartRef.value && echarts.getInstanceByDom(chartRef.value)?.resize());
@@ -434,7 +487,7 @@ watch(trend, () => {
 	--danger: #ef4444;
 	--warning: #f59e0b;
 	--success: #10b981;
-	--purple: #8b5cf6;
+	--gold: #d4af37;
 	--border-color: #e5e7eb;
 	font-family: 'Inter', 'PingFang SC', 'Microsoft YaHei', sans-serif;
 	background: var(--bg-body);
@@ -467,12 +520,43 @@ watch(trend, () => {
 		transform: translateY(-2px);
 		box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 	}
+
+	&.green .kpi-icon {
+		color: var(--success);
+	}
+	&.orange .kpi-icon {
+		color: var(--warning);
+	}
+	&.gold .kpi-icon {
+		color: var(--gold);
+	}
+	&.blue .kpi-icon {
+		color: var(--primary-color);
+	}
+
+	/* 底部说明与卡片主题一致（避免语义类与主题色错位） */
+	&.green .kpi-trend.trend-up {
+		color: var(--success);
+	}
+	&.orange .kpi-trend {
+		color: var(--warning);
+	}
+	&.gold .kpi-trend {
+		color: var(--gold);
+	}
+	&.blue .kpi-trend.trend-flat {
+		color: var(--primary-color);
+	}
 }
 
 .kpi-icon {
 	font-size: 28px;
 	margin-bottom: 12px;
-	opacity: 0.8;
+	opacity: 0.9;
+
+	i {
+		color: inherit;
+	}
 }
 
 .kpi-title {
@@ -701,7 +785,49 @@ tr:last-child td {
 	border: 1px solid #e9d5ff;
 }
 
-/* 截止时间样式 */
+/* 截止时间 / 剩余时间（与采购端仪表盘一致） */
+.quote-deadline-cell {
+	margin-left: auto;
+	min-width: 220px;
+	max-width: 340px;
+	padding: 6px 10px;
+	background: #f9fafb;
+	border-radius: 6px;
+}
+.deadline-inner {
+	border-collapse: collapse;
+	width: 100%;
+	table-layout: auto;
+}
+.deadline-td-label {
+	vertical-align: top;
+	white-space: nowrap;
+	font-size: 13px;
+	color: var(--text-main);
+	padding: 0 8px 4px 0;
+	line-height: 1.45;
+}
+.deadline-td-value {
+	vertical-align: top;
+	font-size: 13px;
+	line-height: 1.45;
+	padding: 0 0 4px 0;
+}
+.deadline-td-gap {
+	padding: 0;
+	width: 0;
+}
+.deadline-td-remaining {
+	vertical-align: top;
+	font-size: 12px;
+	line-height: 1.45;
+	padding: 0;
+}
+.deadline-remaining-label {
+	color: var(--text-secondary);
+	font-weight: 400;
+	margin-right: 2px;
+}
 .deadline-urgent {
 	color: var(--danger) !important;
 	font-weight: 700;
@@ -712,42 +838,16 @@ tr:last-child td {
 }
 .deadline-expired {
 	color: #9ca3af !important;
+	font-weight: 500;
 	text-decoration: line-through;
 }
-
-.quote-countdown {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	margin-left: auto;
-	padding: 6px 12px;
-	background: #f9fafb;
-	border-radius: 6px;
+.deadline-accent-normal {
+	color: #ea580c !important;
+	font-weight: 600;
 }
-
-.countdown-label {
-	font-size: 12px;
-	color: var(--text-secondary);
-}
-
-.countdown-time {
-	font-size: 13px;
-	color: var(--text-main);
-	font-weight: 500;
-
-	&.is-urgent {
-		color: var(--danger);
-	}
-}
-
-.countdown-remaining {
-	font-size: 12px;
-	color: var(--text-secondary);
-
-	&.is-urgent {
-		color: var(--danger);
-		font-weight: 500;
-	}
+.deadline-tender-accent {
+	color: #ea580c !important;
+	font-weight: 600;
 }
 
 .quote-info-row {

@@ -44,7 +44,7 @@
 							<tr>
 								<th>询价单号</th>
 								<th>采购方式</th>
-								<th>物料名称</th>
+								<th>询价单名称</th>
 								<th>当前状态</th>
 								<th>截止时间 / 剩余时间</th>
 								<th>操作</th>
@@ -61,10 +61,23 @@
 									<span :class="getStatusClass(task.status)">{{ task.status }}</span>
 								</td>
 								<td>
-									<div class="deadline-cell">
-										<span class="deadline-time" :class="getDeadlineClass(task)">{{ getDeadlineText(task) }}</span>
-										<span class="deadline-remaining" :class="getDeadlineClass(task)">{{ getRemainingTimeText(task) }}</span>
-									</div>
+									<table class="deadline-inner">
+										<tbody>
+											<tr>
+												<td class="deadline-td-label">{{ getDeadlinePrimaryLabel(task) }}</td>
+												<td class="deadline-td-value">
+													<span :class="getDeadlineValueClass(task)">{{ getDeadlinePrimaryValue(task) }}</span>
+												</td>
+											</tr>
+											<tr>
+												<td class="deadline-td-gap"></td>
+												<td class="deadline-td-remaining">
+													<span class="deadline-remaining-label">剩余：</span>
+													<span :class="getDeadlineValueClass(task)">{{ getDeadlineRemainingValue(task) }}</span>
+												</td>
+											</tr>
+										</tbody>
+									</table>
 								</td>
 								<td>
 									<button class="action-btn btn-primary" @click="handleAction(task)">
@@ -73,7 +86,7 @@
 								</td>
 							</tr>
 							<tr v-if="tasks.length === 0">
-								<td colspan="5" class="empty-cell">暂无待办任务</td>
+								<td colspan="6" class="empty-cell">暂无待办任务</td>
 							</tr>
 						</tbody>
 					</table>
@@ -157,6 +170,25 @@ interface NewsItem {
 	title: string;
 }
 
+/** 与 dashboard API buyer.tasks 一致 */
+interface DashboardBuyerTask {
+	id: number;
+	title: string;
+	inquiry_no: string;
+	status: string;
+	created_at: string;
+	method?: string;
+	quote_deadline?: string | null;
+	bid_start_time?: string | null;
+	bid_end_time?: string | null;
+}
+
+interface DashboardTrendPoint {
+	month?: string;
+	day?: number;
+	count: number;
+}
+
 const store = useDashboardStore();
 const { buyer } = storeToRefs(store);
 const userInfo = useUserInfo();
@@ -191,13 +223,8 @@ const kpi = computed(
 			quote_timely_rate: 0,
 		}
 );
-const tasks = computed(() => {
-	const t = buyer.value?.tasks || [];
-	console.log('[BuyerDashboard] buyer.value:', buyer.value);
-	console.log('[BuyerDashboard] tasks computed:', t);
-	return t;
-});
-const trend = computed(() => buyer.value?.trend || []);
+const tasks = computed((): DashboardBuyerTask[] => (buyer.value?.tasks || []) as DashboardBuyerTask[]);
+const trend = computed((): DashboardTrendPoint[] => (buyer.value?.trend || []) as DashboardTrendPoint[]);
 
 // 获取消息列表
 const getMsg = (): void => {
@@ -235,54 +262,119 @@ function getStatusClass(status: string) {
 	return 'status-badge status-gray';
 }
 
-function getMethodClass(method: string) {
+function getMethodClass(method: string | undefined) {
 	if (method === '招标') return 'method-badge method-tender';
 	return 'method-badge method-inquiry';
 }
 
-function getMethodText(method: string) {
+function getMethodText(method: string | undefined) {
 	return method || '询价';
 }
 
-function getDeadlineClass(task: any): string {
-	// Debug: log full task object to find actual field names
-	console.log('[BuyerDashboard] getDeadlineClass full task:', JSON.stringify(task));
-	const deadline = task.method === '招标' ? task.bid_end_time : task.quote_deadline;
-	console.log('[BuyerDashboard] getDeadlineClass task:', task.inquiry_no, 'method:', task.method, 'deadline:', deadline);
-	if (!deadline) return '';
-	const now = new Date();
-	const deadlineDate = new Date(deadline);
-	const diffHours = (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60);
-	console.log('[BuyerDashboard] diffHours:', diffHours);
-	if (diffHours < 0) return 'deadline-expired';
-	if (diffHours < 24) return 'deadline-urgent'; // <24h red
-	if (diffHours < 48) return 'deadline-warning'; // 24-48h yellow
-	return '';
+function isTenderTask(task: any): boolean {
+	return task?.method === '招标';
 }
 
-function getDeadlineText(task: any): string {
-	const deadline = task.method === '招标' ? task.bid_end_time : task.quote_deadline;
-	if (!deadline) return '-';
-	const d = new Date(deadline);
-	return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+function formatDateTimeYMDHM(iso: string | Date | null | undefined): string {
+	if (!iso) return '-';
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return '-';
+	const y = d.getFullYear();
+	const m = String(d.getMonth() + 1).padStart(2, '0');
+	const day = String(d.getDate()).padStart(2, '0');
+	const h = String(d.getHours()).padStart(2, '0');
+	const min = String(d.getMinutes()).padStart(2, '0');
+	return `${y}-${m}-${day} ${h}:${min}`;
 }
 
-function getRemainingTimeText(task: any): string {
-	const deadline = task.method === '招标' ? task.bid_end_time : task.quote_deadline;
-	console.log('[BuyerDashboard] getRemainingTimeText task:', task.inquiry_no, 'deadline:', deadline);
-	if (!deadline) return '';
-	const now = new Date();
-	const deadlineDate = new Date(deadline);
-	const diffMs = deadlineDate.getTime() - now.getTime();
-	console.log('[BuyerDashboard] diffMs:', diffMs);
-	if (diffMs <= 0) return '已到期';
-	const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-	const days = Math.floor(diffHours / 24);
-	const hours = diffHours % 24;
-	if (days > 0) {
-		return `剩余 ${days}天${hours}小时`;
+function formatTimeHM(iso: string | Date): string {
+	const d = new Date(iso);
+	if (Number.isNaN(d.getTime())) return '-';
+	const h = String(d.getHours()).padStart(2, '0');
+	const min = String(d.getMinutes()).padStart(2, '0');
+	return `${h}:${min}`;
+}
+
+/** 投标时间：同一天为 yyyy-mm-dd hh:mm 至 hh:mm；跨天则两端均为完整日期时间 */
+function formatTenderBidTimeRange(
+	start: string | Date | null | undefined,
+	end: string | Date | null | undefined
+): string {
+	if (!start && !end) return '-';
+	if (!start) return formatDateTimeYMDHM(end);
+	if (!end) return formatDateTimeYMDHM(start);
+	const s = new Date(start);
+	const e = new Date(end);
+	if (Number.isNaN(s.getTime()) || Number.isNaN(e.getTime())) return '-';
+	const sameDay =
+		s.getFullYear() === e.getFullYear() &&
+		s.getMonth() === e.getMonth() &&
+		s.getDate() === e.getDate();
+	if (sameDay) {
+		const y = s.getFullYear();
+		const m = String(s.getMonth() + 1).padStart(2, '0');
+		const day = String(s.getDate()).padStart(2, '0');
+		return `${y}-${m}-${day} ${formatTimeHM(s)} 至 ${formatTimeHM(e)}`;
 	}
-	return `剩余 ${hours}小时`;
+	return `${formatDateTimeYMDHM(s)} 至 ${formatDateTimeYMDHM(e)}`;
+}
+
+function formatDurationCn(diffMs: number): string {
+	if (diffMs <= 0) return '已到期';
+	const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
+	const days = Math.floor(totalHours / 24);
+	const hours = totalHours % 24;
+	if (days > 0) return `${days}天${hours}小时`;
+	return `${hours}小时`;
+}
+
+/** 询价：距报价截止的剩余小时（用于着色）；招标不用 */
+function getInquiryHoursToQuoteDeadline(task: any): number | null {
+	const q = task?.quote_deadline;
+	if (!q) return null;
+	return (new Date(q).getTime() - Date.now()) / (1000 * 60 * 60);
+}
+
+function getDeadlinePrimaryLabel(task: any): string {
+	return isTenderTask(task) ? '投标时间：' : '报价截止时间：';
+}
+
+function getDeadlinePrimaryValue(task: any): string {
+	if (isTenderTask(task)) {
+		return formatTenderBidTimeRange(task?.bid_start_time, task?.bid_end_time);
+	}
+	return formatDateTimeYMDHM(task?.quote_deadline);
+}
+
+function getDeadlineRemainingValue(task: any): string {
+	if (isTenderTask(task)) {
+		const start = task?.bid_start_time;
+		const end = task?.bid_end_time;
+		if (!start) return '-';
+		const now = Date.now();
+		const startMs = new Date(start).getTime();
+		const endMs = end ? new Date(end).getTime() : null;
+		if (now < startMs) return formatDurationCn(startMs - now);
+		if (endMs != null && now < endMs) return '投标进行中';
+		if (endMs != null && now >= endMs) return '已结束';
+		return '已开始';
+	}
+	const q = task?.quote_deadline;
+	if (!q) return '-';
+	return formatDurationCn(new Date(q).getTime() - Date.now());
+}
+
+/** 第一行时间 + 第二行「剩余」数值共用样式类 */
+function getDeadlineValueClass(task: any): string {
+	if (isTenderTask(task)) {
+		return 'deadline-tender-accent';
+	}
+	const h = getInquiryHoursToQuoteDeadline(task);
+	if (h == null || task?.quote_deadline == null) return '';
+	if (h < 0) return 'deadline-expired';
+	if (h < 24) return 'deadline-urgent';
+	if (h < 48) return 'deadline-warning';
+	return 'deadline-accent-normal';
 }
 
 function getActionText(status: string) {
@@ -384,8 +476,6 @@ function initChart() {
 }
 
 onMounted(() => {
-	console.log('[BuyerDashboard] onMounted - buyer store:', buyer.value);
-	console.log('[BuyerDashboard] onMounted - tasks:', tasks.value);
 	initChart();
 	getMsg();
 	window.addEventListener('resize', () => chartRef.value && echarts.getInstanceByDom(chartRef.value)?.resize());
@@ -455,12 +545,26 @@ watch(trend, () => {
 		transform: translateY(-2px);
 		box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 	}
+
+	&.blue .kpi-icon {
+		color: var(--primary-color);
+	}
+	&.green .kpi-icon {
+		color: var(--success);
+	}
+	&.orange .kpi-icon {
+		color: var(--warning);
+	}
 }
 
 .kpi-icon {
 	font-size: 28px;
 	margin-bottom: 12px;
-	opacity: 0.8;
+	opacity: 0.9;
+
+	i {
+		color: inherit;
+	}
 }
 
 .kpi-title {
@@ -630,19 +734,40 @@ tr:last-child td {
 	border: 1px solid #e9d5ff;
 }
 
-/* 截止时间样式 */
-.deadline-cell {
-	display: flex;
-	flex-direction: column;
-	gap: 2px;
+/* 截止时间 / 剩余时间（与采购端待办表格对齐） */
+.deadline-inner {
+	border-collapse: collapse;
+	width: 100%;
+	table-layout: auto;
 }
-.deadline-time {
+.deadline-td-label {
+	vertical-align: top;
+	white-space: nowrap;
 	font-size: 13px;
 	color: var(--text-main);
+	padding: 0 8px 4px 0;
+	line-height: 1.45;
 }
-.deadline-remaining {
+.deadline-td-value {
+	vertical-align: top;
+	font-size: 13px;
+	line-height: 1.45;
+	padding: 0 0 4px 0;
+}
+.deadline-td-gap {
+	padding: 0;
+	width: 0;
+}
+.deadline-td-remaining {
+	vertical-align: top;
 	font-size: 12px;
+	line-height: 1.45;
+	padding: 0;
+}
+.deadline-remaining-label {
 	color: var(--text-secondary);
+	font-weight: 400;
+	margin-right: 2px;
 }
 .deadline-urgent {
 	color: var(--danger) !important;
@@ -654,7 +779,18 @@ tr:last-child td {
 }
 .deadline-expired {
 	color: #9ca3af !important;
+	font-weight: 500;
 	text-decoration: line-through;
+}
+/* 询价：距截止 >48h 时的强调色（参考稿橙红） */
+.deadline-accent-normal {
+	color: #ea580c !important;
+	font-weight: 600;
+}
+/* 招标：两行强调色统一 */
+.deadline-tender-accent {
+	color: #ea580c !important;
+	font-weight: 600;
 }
 
 .action-btn {

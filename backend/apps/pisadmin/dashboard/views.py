@@ -26,13 +26,16 @@ class BuyerTaskSerializer(serializers.Serializer):
     inquiry_no = serializers.CharField()
     status = serializers.CharField()
     created_at = serializers.DateTimeField()
+    # 须声明，否则校验时会被丢弃，SerializerMethodField 无法读到库里的采购方式
+    buying_method = serializers.IntegerField(required=False, allow_null=True)
     method = serializers.SerializerMethodField()
     quote_deadline = serializers.DateTimeField(allow_null=True, required=False)
     bid_start_time = serializers.DateTimeField(allow_null=True, required=False)
     bid_end_time = serializers.DateTimeField(allow_null=True, required=False)
 
     def get_method(self, obj):
-        if obj.get('buying_method') == 2:
+        bm = obj.get('buying_method')
+        if bm == 2:
             return '招标'
         return '询价'
 
@@ -54,13 +57,15 @@ class SupplierQuoteSerializer(serializers.Serializer):
     unit = serializers.CharField()
     quantity = serializers.CharField(allow_blank=True, required=False)
     status = serializers.IntegerField()
+    buying_method = serializers.IntegerField(required=False, allow_null=True)
     method = serializers.SerializerMethodField()
     quote_deadline = serializers.DateTimeField(allow_null=True, required=False)
     bid_start_time = serializers.DateTimeField(allow_null=True, required=False)
     bid_end_time = serializers.DateTimeField(allow_null=True, required=False)
 
     def get_method(self, obj):
-        if obj.get('buying_method') == 2:
+        bm = obj.get('buying_method')
+        if bm == 2:
             return '招标'
         return '询价'
 
@@ -139,10 +144,10 @@ class DashboardView(views.APIView):
         }
 
     def get_buyer_tasks(self, user):
-        """采购方待办任务"""
+        """采购方待办任务（仅询价状态为发布/报价中/报价结束/比议价中的单，见 Inquiry.BUYER_DASHBOARD_TASK_STATUSES）。"""
         inquiries = Inquiry.objects.filter(
             create_user=user.username,
-            status__in=[1, 2, 3]
+            status__in=Inquiry.BUYER_DASHBOARD_TASK_STATUSES,
         ).order_by('-create_time')[:10]
         return [
             {
@@ -164,12 +169,14 @@ class DashboardView(views.APIView):
         # 超级管理员看到所有供应商汇总数据
         if user.is_superuser:
             total_quotes = QuotationMaster.objects.count()
-            pending_quotes = QuotationMaster.objects.filter(status__in=[1, 2]).count()
+            pending_quotes = QuotationMaster.objects.filter(
+                status__in=QuotationMaster.DASHBOARD_PENDING_STATUSES
+            ).count()
             won_quotes = QuotationMaster.objects.filter(is_awarded=1).count()
         else:
             total_quotes = QuotationMaster.objects.filter(supplier_code=user.username).count()
             pending_quotes = QuotationMaster.objects.filter(
-                supplier_code=user.username, status__in=[1, 2]
+                supplier_code=user.username, status__in=QuotationMaster.DASHBOARD_PENDING_STATUSES
             ).count()
             won_quotes = QuotationMaster.objects.filter(
                 supplier_code=user.username, is_awarded=1
@@ -200,24 +207,53 @@ class DashboardView(views.APIView):
             'overdue_quotes': overdue_quotes,
         }
 
+    def _supplier_quote_remaining_sort_key(self, q, inquiry, now):
+        """用于待报价清单排序：剩余时间由少到多（越早越靠前）；无截止时间排最后。"""
+        bm = (inquiry.buying_method if inquiry is not None else None) or q.buying_method
+        if bm == 2:
+            start, end = q.bid_start_time, q.bid_end_time
+            if not start:
+                return None
+            if now < start:
+                return (start - now).total_seconds()
+            if end and now < end:
+                return (end - now).total_seconds()
+            return float('inf')
+        if q.quote_deadline:
+            return (q.quote_deadline - now).total_seconds()
+        return None
+
     def get_supplier_pending_quotes(self, user):
-        """供应商待报价清单"""
-        # 超级管理员看到所有待报价，供应商只看自己的
-        if user.is_superuser:
-            quotes = QuotationMaster.objects.filter(status__in=[1, 2]).order_by('-creattime')[:10]
-        else:
-            quotes = QuotationMaster.objects.filter(
-                supplier_code=user.username,
-                status__in=[1, 2]
-            ).order_by('-creattime')[:10]
+        """供应商待报价清单：仅未报价(待报价)/报价中；按剩余时间由少到多取前 10 条。"""
+        base = QuotationMaster.objects.filter(status__in=QuotationMaster.DASHBOARD_PENDING_STATUSES)
+        if not user.is_superuser:
+            base = base.filter(supplier_code=user.username)
+        quotes = list(base)
+        if not quotes:
+            return []
+
+        now = timezone.now()
+        inquiry_nos = {q.inquiry_no for q in quotes}
+        inquiries = {i.inquiry_no: i for i in Inquiry.objects.filter(inquiry_no__in=inquiry_nos)}
+
+        def sort_key(q):
+            inq = inquiries.get(q.inquiry_no)
+            k = self._supplier_quote_remaining_sort_key(q, inq, now)
+            if k is None:
+                return float('inf')
+            return k
+
+        quotes.sort(key=sort_key)
+        quotes = quotes[:10]
+
+        from apps.pisadmin.miscprocurement.models import InquiryRfqItem
+
         result = []
         for q in quotes:
-            inquiry = Inquiry.objects.filter(inquiry_no=q.inquiry_no).first()
-            # 获取询价单中的数量
+            inquiry = inquiries.get(q.inquiry_no)
             quantity = ''
             unit = ''
             if inquiry:
-                from apps.pisadmin.miscprocurement.models import InquiryRfqItem
                 item = InquiryRfqItem.objects.filter(inquiry_no=q.inquiry_no).first()
                 if item:
                     quantity = item.qty
@@ -229,7 +265,7 @@ class DashboardView(views.APIView):
                 'quantity': quantity,
                 'unit': unit,
                 'status': q.status,
-                'buying_method': q.buying_method,
+                'buying_method': (inquiry.buying_method if inquiry is not None else q.buying_method),
                 'quote_deadline': q.quote_deadline,
                 'bid_start_time': q.bid_start_time,
                 'bid_end_time': q.bid_end_time,
@@ -473,4 +509,5 @@ class DashboardView(views.APIView):
         serializer = DashboardResponseSerializer(data=response_data)
         serializer.is_valid(raise_exception=True)
 
-        return SuccessResponse(data=serializer.validated_data, msg="获取成功")
+        # 须用 .data：validated_data 不含 SerializerMethodField（如 tasks[].method）
+        return SuccessResponse(data=serializer.data, msg="获取成功")

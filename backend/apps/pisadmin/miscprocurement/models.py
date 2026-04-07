@@ -195,6 +195,8 @@ class Inquiry(CoreModel):
         (9, "落标(结束)"),
         (0, "作废"),
     )
+    # 采购端仪表盘「我的待办任务」：发布、报价中、报价结束（业务上常称「报价完成」）、比议价中
+    BUYER_DASHBOARD_TASK_STATUSES = (3, 4, 5, 6)
     PAYMENT_METHOD_CHOICES = (
         (1, "月结30天"),
         (2, "月结60天"),

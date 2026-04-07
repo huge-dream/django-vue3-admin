@@ -15,6 +15,10 @@ interface BuyerDashboard {
 		inquiry_no: string;
 		status: string;
 		created_at: string;
+		method?: string;
+		quote_deadline?: string | null;
+		bid_start_time?: string | null;
+		bid_end_time?: string | null;
 	}>;
 	messages: Array<{
 		id: number;
@@ -23,7 +27,7 @@ interface BuyerDashboard {
 		is_read: boolean;
 		created_at: string;
 	}>;
-	trend: Array<{ month: string; count: number }>;
+	trend: Array<{ month?: string; day?: number; count: number }>;
 }
 
 interface SupplierDashboard {
@@ -37,10 +41,13 @@ interface SupplierDashboard {
 		id: number;
 		inquiry_no: string;
 		item_name: string;
-		quantity: number;
+		quantity: string | number;
 		unit: string;
-		deadline: string;
 		status: number;
+		method?: string;
+		quote_deadline?: string | null;
+		bid_start_time?: string | null;
+		bid_end_time?: string | null;
 	}>;
 	messages: Array<{
 		id: number;
@@ -49,7 +56,7 @@ interface SupplierDashboard {
 		is_read: boolean;
 		created_at: string;
 	}>;
-	trend: Array<{ month: string; quotes: number; won: number }>;
+	trend: Array<{ month?: string; day?: number; quotes?: number; won?: number }>;
 }
 
 export const useDashboardStore = defineStore('dashboard', {

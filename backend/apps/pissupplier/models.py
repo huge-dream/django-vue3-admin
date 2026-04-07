@@ -19,6 +19,8 @@ class QuotationMaster(models.Model):
         (3, "已报价"),
         (4, "已过期"),
     )
+    # 供应商仪表盘「待报价清单」仅包含：待报价(业务上常称「未报价」)、报价中
+    DASHBOARD_PENDING_STATUSES = (1, 2)
 
     AWARD_STATUS_CHOICES = (
         (0, "未中标"),
