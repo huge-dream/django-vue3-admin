@@ -468,4 +468,4 @@ class DashboardView(views.APIView):
         serializer = DashboardResponseSerializer(data=response_data)
         serializer.is_valid(raise_exception=True)
 
-        return Response(serializer.validated_data)
+        return Response({'code': 200, 'msg': 'success', 'data': serializer.validated_data})

@@ -59,7 +59,8 @@ class MessageSerializer(serializers.Serializer):
 
 
 class TrendSerializer(serializers.Serializer):
-    month = serializers.CharField()
+    day = serializers.IntegerField(required=False)
+    month = serializers.CharField(required=False)
     count = serializers.IntegerField(required=False)
     quotes = serializers.IntegerField(required=False)
     won = serializers.IntegerField(required=False)

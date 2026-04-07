@@ -64,13 +64,14 @@ export const useDashboardStore = defineStore('dashboard', {
 			try {
 				const res: any = await getDashboard();
 				console.log('[Dashboard Store] API response:', res);
-				console.log('[Dashboard Store] buyer data:', res?.buyer);
-				console.log('[Dashboard Store] supplier data:', res?.supplier);
-				console.log('[Dashboard Store] buyer.tasks:', res?.buyer?.tasks);
-				console.log('[Dashboard Store] supplier.pending_quotes:', res?.supplier?.pending_quotes);
-				// 后端直接返回 {buyer, supplier} 结构
-				this.buyer = res?.buyer || null;
-				this.supplier = res?.supplier || null;
+				// 后端返回 {code: 200, msg, data: {buyer, supplier}}，需要取 res.data
+				const data = res?.data || res;
+				console.log('[Dashboard Store] buyer data:', data?.buyer);
+				console.log('[Dashboard Store] supplier data:', data?.supplier);
+				console.log('[Dashboard Store] buyer.tasks:', data?.buyer?.tasks);
+				console.log('[Dashboard Store] supplier.pending_quotes:', data?.supplier?.pending_quotes);
+				this.buyer = data?.buyer || null;
+				this.supplier = data?.supplier || null;
 				console.log('[Dashboard Store] store.buyer after set:', this.buyer);
 				console.log('[Dashboard Store] store.supplier after set:', this.supplier);
 			} finally {
