@@ -99,9 +99,13 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
         addRequest: async ({ form }) => {
           try {
             await ensureUserEmailUnique(form.supplier_id, form.user_email)
-            return await api.AddObj(form)
+            const res = await api.AddObj(form)
+            ElMessage.success(
+              '保存成功；已同步创建系统用户（登录账号为联络人邮箱，初始密码为系统默认密码，部门：供应商）'
+            )
+            return res
           } catch (err: any) {
-            ElMessage.error(err?.message || '保存失败')
+            ElMessage.error(err?.msg || err?.message || '保存失败')
             throw err
           }
         },
@@ -110,7 +114,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
             await ensureUserEmailUnique(form.supplier_id, form.user_email, row.id)
             return await api.UpdateObj({ ...form, id: row.id })
           } catch (err: any) {
-            ElMessage.error(err?.message || '保存失败')
+            ElMessage.error(err?.msg || err?.message || '保存失败')
             throw err
           }
         },

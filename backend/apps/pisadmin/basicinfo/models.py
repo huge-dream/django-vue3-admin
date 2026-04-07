@@ -76,6 +76,10 @@ class Supplier(CoreModel):
 class SupplierUser(CoreModel):
     """供应商用户信息（独立主数据；通过 supplier_id 与供应商主档逻辑关联，非数据库外键）"""
 
+    ROLE_CHOICES = (
+        (1, "supplier_quote"),  # 供应商_报价
+    )
+
     supplier_id = models.CharField(
         max_length=20,
         db_index=True,
@@ -83,7 +87,7 @@ class SupplierUser(CoreModel):
         help_text="与供应商信息表 supplier_id 同值，可多条（多联系人）",
     )
     supplier_name = models.CharField(max_length=100, verbose_name="供应商全称", help_text="供应商全称")
-    supplier_role = models.IntegerField(verbose_name="供应商角色", help_text="供应商角色(1:报价)")
+    supplier_role = models.IntegerField(choices=ROLE_CHOICES, verbose_name="供应商角色", help_text="供应商角色")
     user_email = models.CharField(max_length=100, verbose_name="联络人邮箱", help_text="联络人邮箱")
     user_name = models.CharField(max_length=20, verbose_name="联络人", help_text="联络人")
     user_phone = models.CharField(max_length=100, verbose_name="联络人电话", help_text="联络人电话")
