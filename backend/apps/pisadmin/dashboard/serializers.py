@@ -14,6 +14,15 @@ class BuyerTaskSerializer(serializers.Serializer):
     inquiry_no = serializers.CharField()
     status = serializers.CharField()
     created_at = serializers.DateTimeField()
+    method = serializers.SerializerMethodField()
+    quote_deadline = serializers.DateTimeField(allow_null=True, required=False)
+    bid_start_time = serializers.DateTimeField(allow_null=True, required=False)
+    bid_end_time = serializers.DateTimeField(allow_null=True, required=False)
+
+    def get_method(self, obj):
+        if obj.get('buying_method') == 2:
+            return '招标'
+        return '询价'
 
 
 class SupplierKPISerializer(serializers.Serializer):
@@ -27,9 +36,18 @@ class SupplierQuoteSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     inquiry_no = serializers.CharField()
     item_name = serializers.CharField()
-    quantity = serializers.IntegerField()
     unit = serializers.CharField()
-    deadline = serializers.DateTimeField()
+    quantity = serializers.CharField(allow_blank=True, required=False)
+    status = serializers.IntegerField()
+    method = serializers.SerializerMethodField()
+    quote_deadline = serializers.DateTimeField(allow_null=True, required=False)
+    bid_start_time = serializers.DateTimeField(allow_null=True, required=False)
+    bid_end_time = serializers.DateTimeField(allow_null=True, required=False)
+
+    def get_method(self, obj):
+        if obj.get('buying_method') == 2:
+            return '招标'
+        return '询价'
 
 
 class MessageSerializer(serializers.Serializer):
@@ -41,7 +59,8 @@ class MessageSerializer(serializers.Serializer):
 
 
 class TrendSerializer(serializers.Serializer):
-    month = serializers.CharField()
+    day = serializers.IntegerField(required=False)
+    month = serializers.CharField(required=False)
     count = serializers.IntegerField(required=False)
     quotes = serializers.IntegerField(required=False)
     won = serializers.IntegerField(required=False)

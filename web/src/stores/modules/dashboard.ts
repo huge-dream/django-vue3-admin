@@ -63,9 +63,17 @@ export const useDashboardStore = defineStore('dashboard', {
 			this.loading = true;
 			try {
 				const res: any = await getDashboard();
-				// 后端直接返回 {buyer, supplier} 结构
-				this.buyer = res?.buyer || null;
-				this.supplier = res?.supplier || null;
+				console.log('[Dashboard Store] API response:', res);
+				// 后端返回 {code: 200, msg, data: {buyer, supplier}}，需要取 res.data
+				const data = res?.data || res;
+				console.log('[Dashboard Store] buyer data:', data?.buyer);
+				console.log('[Dashboard Store] supplier data:', data?.supplier);
+				console.log('[Dashboard Store] buyer.tasks:', data?.buyer?.tasks);
+				console.log('[Dashboard Store] supplier.pending_quotes:', data?.supplier?.pending_quotes);
+				this.buyer = data?.buyer || null;
+				this.supplier = data?.supplier || null;
+				console.log('[Dashboard Store] store.buyer after set:', this.buyer);
+				console.log('[Dashboard Store] store.supplier after set:', this.supplier);
 			} finally {
 				this.loading = false;
 			}

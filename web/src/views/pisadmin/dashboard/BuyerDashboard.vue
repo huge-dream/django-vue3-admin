@@ -9,15 +9,18 @@
 		<!-- KPI 指标卡片 -->
 		<div class="kpi-section">
 			<div class="kpi-card blue">
+				<div class="kpi-icon"><i class="fa fa-check-circle"></i></div>
 				<div class="kpi-title">已完成询价单总数</div>
 				<div class="kpi-value">{{ kpi.total_inquiries.toLocaleString() }}</div>
 				<div class="kpi-trend trend-up"><i class="fa fa-arrow-up"></i> 较上月 +12%</div>
 			</div>
 			<div class="kpi-card green">
+				<div class="kpi-icon"><i class="fa fa-clock-o"></i></div>
 				<div class="kpi-title">进行中询价单</div>
 				<div class="kpi-value">{{ kpi.pending_inquiries }}</div>
 			</div>
 			<div class="kpi-card orange">
+				<div class="kpi-icon"><i class="fa fa-pie-chart"></i></div>
 				<div class="kpi-title">供应商报价及时率</div>
 				<div class="kpi-value">{{ kpi.quote_timely_rate }}%</div>
 				<div class="kpi-trend trend-flat"><i class="fa fa-minus"></i> 持平</div>
@@ -40,20 +43,29 @@
 						<thead>
 							<tr>
 								<th>询价单号</th>
+								<th>采购方式</th>
 								<th>物料名称</th>
 								<th>当前状态</th>
-								<th>截止时间</th>
+								<th>截止时间 / 剩余时间</th>
 								<th>操作</th>
 							</tr>
 						</thead>
 						<tbody>
 							<tr v-for="task in tasks" :key="task.id">
 								<td>{{ task.inquiry_no }}</td>
+								<td>
+									<span :class="getMethodClass(task.method)">{{ getMethodText(task.method) }}</span>
+								</td>
 								<td>{{ task.title }}</td>
 								<td>
 									<span :class="getStatusClass(task.status)">{{ task.status }}</span>
 								</td>
-								<td>{{ task.created_at ? formatDate(task.created_at) : '-' }}</td>
+								<td>
+									<div class="deadline-cell">
+										<span class="deadline-time" :class="getDeadlineClass(task)">{{ getDeadlineText(task) }}</span>
+										<span class="deadline-remaining" :class="getDeadlineClass(task)">{{ getRemainingTimeText(task) }}</span>
+									</div>
+								</td>
 								<td>
 									<button class="action-btn btn-primary" @click="handleAction(task)">
 										{{ getActionText(task.status) }}
@@ -68,11 +80,32 @@
 				</div>
 			</div>
 
-			<!-- 右侧：图片 + 快捷入口 -->
+			<!-- 右侧：图片+消息通知 + 快捷入口 -->
 			<div class="right-sidebar">
-				<!-- 图片卡片 -->
-				<div class="card home-img-card">
-					<img :src="HomeBg" alt="home-bg" class="home-bg-img" />
+				<!-- 图片卡片 + 消息通知 -->
+				<div class="card img-notify-card">
+					<div class="img-notify-img">
+						<img :src="HomeBg" alt="home-bg" class="home-bg-img" />
+					</div>
+					<div class="img-notify-list">
+						<div class="card-header" style="margin-bottom: 12px">
+							<div class="card-title"><i class="fa fa-bullhorn" style="color: #2e5bff"></i> 系统通知</div>
+							<a href="#" class="view-all">更多 <i class="fa fa-arrow-right"></i></a>
+						</div>
+						<div class="notify-item" v-for="(v, k) in newsInfoList" :key="k">
+							<div class="notify-icon">
+								<i class="fa fa-commenting-o" style="color: #5d8b22"></i>
+							</div>
+							<div class="notify-content">
+								<div class="notify-title-row">
+									<span class="notify-title">[{{ v.creator_name }}]</span>
+									<span class="notify-time">{{ v.create_datetime }}</span>
+								</div>
+								<div class="notify-title-text">{{ v.title }}</div>
+							</div>
+						</div>
+						<div v-if="newsInfoList.length === 0" class="empty-notif">暂无通知</div>
+					</div>
 				</div>
 
 				<!-- 快捷入口 -->
@@ -109,18 +142,30 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, ref, reactive, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDashboardStore } from '/@/stores/modules/dashboard';
 import { useUserInfo } from '/@/stores/userInfo';
 import * as echarts from 'echarts';
 import HomeBg from '/@/assets/home-bg.png';
+import * as api from '/@/views/system/personal/api';
+
+// 定义消息类型
+interface NewsItem {
+	creator_name: string;
+	create_datetime: string;
+	title: string;
+}
 
 const store = useDashboardStore();
 const { buyer } = storeToRefs(store);
 const userInfo = useUserInfo();
 
 const chartRef = ref();
+
+const defaultNewsItems: NewsItem[] = [];
+
+const newsInfoList = reactive<NewsItem[]>([...defaultNewsItems]);
 
 // 快捷入口列表
 const quickNavList = [
@@ -146,14 +191,98 @@ const kpi = computed(
 			quote_timely_rate: 0,
 		}
 );
-const tasks = computed(() => buyer.value?.tasks || []);
+const tasks = computed(() => {
+	const t = buyer.value?.tasks || [];
+	console.log('[BuyerDashboard] buyer.value:', buyer.value);
+	console.log('[BuyerDashboard] tasks computed:', t);
+	return t;
+});
 const trend = computed(() => buyer.value?.trend || []);
-const messages = computed(() => buyer.value?.messages || []);
+
+// 获取消息列表
+const getMsg = (): void => {
+	// 先重置为默认数据
+	newsInfoList.length = 0;
+	newsInfoList.push(...defaultNewsItems);
+
+	// 尝试从API获取最新数据
+	api.GetSelfReceive({}).then((res: any) => {
+		const { data } = res || {};
+		// 严格检查返回数据的有效性
+		if (data && Array.isArray(data) && data.length > 0) {
+			try {
+				// 安全地进行类型转换并更新状态
+				newsInfoList.length = 0;
+				newsInfoList.push(
+					...data.map((item: any): NewsItem => ({
+						creator_name: String(item.creator_name || '未知用户'),
+						create_datetime: String(item.create_datetime || ''),
+						title: String(item.title || ''),
+					}))
+				);
+			} catch {
+				// 类型转换失败时保持默认数据
+			}
+		}
+	}).catch(() => {
+		// 错误时保持已设置的默认数据
+	});
+};
 
 function getStatusClass(status: string) {
 	if (status?.includes('比价') || status?.includes('发布')) return 'status-badge status-blue';
 	if (status?.includes('议价') || status?.includes('紧急')) return 'status-badge status-pink';
 	return 'status-badge status-gray';
+}
+
+function getMethodClass(method: string) {
+	if (method === '招标') return 'method-badge method-tender';
+	return 'method-badge method-inquiry';
+}
+
+function getMethodText(method: string) {
+	return method || '询价';
+}
+
+function getDeadlineClass(task: any): string {
+	// Debug: log full task object to find actual field names
+	console.log('[BuyerDashboard] getDeadlineClass full task:', JSON.stringify(task));
+	const deadline = task.method === '招标' ? task.bid_end_time : task.quote_deadline;
+	console.log('[BuyerDashboard] getDeadlineClass task:', task.inquiry_no, 'method:', task.method, 'deadline:', deadline);
+	if (!deadline) return '';
+	const now = new Date();
+	const deadlineDate = new Date(deadline);
+	const diffHours = (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+	console.log('[BuyerDashboard] diffHours:', diffHours);
+	if (diffHours < 0) return 'deadline-expired';
+	if (diffHours < 24) return 'deadline-urgent'; // <24h red
+	if (diffHours < 48) return 'deadline-warning'; // 24-48h yellow
+	return '';
+}
+
+function getDeadlineText(task: any): string {
+	const deadline = task.method === '招标' ? task.bid_end_time : task.quote_deadline;
+	if (!deadline) return '-';
+	const d = new Date(deadline);
+	return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+}
+
+function getRemainingTimeText(task: any): string {
+	const deadline = task.method === '招标' ? task.bid_end_time : task.quote_deadline;
+	console.log('[BuyerDashboard] getRemainingTimeText task:', task.inquiry_no, 'deadline:', deadline);
+	if (!deadline) return '';
+	const now = new Date();
+	const deadlineDate = new Date(deadline);
+	const diffMs = deadlineDate.getTime() - now.getTime();
+	console.log('[BuyerDashboard] diffMs:', diffMs);
+	if (diffMs <= 0) return '已到期';
+	const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+	const days = Math.floor(diffHours / 24);
+	const hours = diffHours % 24;
+	if (days > 0) {
+		return `剩余 ${days}天${hours}小时`;
+	}
+	return `剩余 ${hours}小时`;
 }
 
 function getActionText(status: string) {
@@ -166,12 +295,6 @@ function handleAction(task: any) {
 	// TODO: navigate to task detail
 }
 
-function formatDate(date: string) {
-	if (!date) return '';
-	const d = new Date(date);
-	return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
-}
-
 function initChart() {
 	if (!chartRef.value) return;
 	const chart = echarts.getInstanceByDom(chartRef.value) || echarts.init(chartRef.value);
@@ -182,10 +305,24 @@ function initChart() {
 	let dataReceive: number[] = [];
 
 	if (trend.value && trend.value.length > 0) {
-		labels = trend.value.map((d) => d.month);
-		dataPublish = trend.value.map((d) => d.count || 0);
-		// 议价完成数据暂无，填充0
-		dataReceive = trend.value.map(() => 0);
+		// 生成当前月的所有日期，确保每天都能显示
+		const now = new Date();
+		const year = now.getFullYear();
+		const month = now.getMonth();
+		const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+		// 创建数据映射
+		const dataMap = new Map(trend.value.map((d) => [d.day, d.count || 0]));
+
+		// 填充所有日期，缺失的填0
+		labels = [];
+		dataPublish = [];
+		dataReceive = [];
+		for (let day = 1; day <= daysInMonth; day++) {
+			labels.push(`${month + 1}/${day}`);
+			dataPublish.push(dataMap.get(day) || 0);
+			dataReceive.push(0); // 议价完成数据暂无
+		}
 	} else {
 		// 模拟数据
 		const today = new Date();
@@ -247,7 +384,10 @@ function initChart() {
 }
 
 onMounted(() => {
+	console.log('[BuyerDashboard] onMounted - buyer store:', buyer.value);
+	console.log('[BuyerDashboard] onMounted - tasks:', tasks.value);
 	initChart();
+	getMsg();
 	window.addEventListener('resize', () => chartRef.value && echarts.getInstanceByDom(chartRef.value)?.resize());
 });
 
@@ -315,6 +455,12 @@ watch(trend, () => {
 		transform: translateY(-2px);
 		box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 	}
+}
+
+.kpi-icon {
+	font-size: 28px;
+	margin-bottom: 12px;
+	opacity: 0.8;
 }
 
 .kpi-title {
@@ -463,6 +609,52 @@ tr:last-child td {
 	background-color: #f3f4f6;
 	color: #4b5563;
 	border: 1px solid #d1d5db;
+}
+
+/* 采购方式badge */
+.method-badge {
+	padding: 2px 8px;
+	border-radius: 4px;
+	font-size: 12px;
+	font-weight: 500;
+	display: inline-block;
+}
+.method-inquiry {
+	background-color: #f0fdf4;
+	color: #16a34a;
+	border: 1px solid #bbf7d0;
+}
+.method-tender {
+	background-color: #faf5ff;
+	color: #9333ea;
+	border: 1px solid #e9d5ff;
+}
+
+/* 截止时间样式 */
+.deadline-cell {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+.deadline-time {
+	font-size: 13px;
+	color: var(--text-main);
+}
+.deadline-remaining {
+	font-size: 12px;
+	color: var(--text-secondary);
+}
+.deadline-urgent {
+	color: var(--danger) !important;
+	font-weight: 700;
+}
+.deadline-warning {
+	color: var(--warning) !important;
+	font-weight: 700;
+}
+.deadline-expired {
+	color: #9ca3af !important;
+	text-decoration: line-through;
 }
 
 .action-btn {
@@ -659,6 +851,87 @@ tr:last-child td {
 	height: 100%;
 	object-fit: cover;
 	display: block;
+}
+
+/* 图片+通知合并卡片 */
+.img-notify-card {
+	padding: 0;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.img-notify-img {
+	width: 100%;
+	height: 180px;
+	overflow: hidden;
+	flex-shrink: 0;
+}
+
+.img-notify-img .home-bg-img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.img-notify-list {
+	flex: 1;
+	padding: 16px;
+	overflow-y: auto;
+}
+
+.notify-item {
+	display: flex;
+	gap: 10px;
+	padding: 8px 0;
+	border-bottom: 1px solid #f3f4f6;
+
+	&:last-child {
+		border-bottom: none;
+	}
+}
+
+.notify-icon {
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
+	background: #f8f8f8;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.notify-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.notify-title-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 2px;
+}
+
+.notify-title {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-main);
+}
+
+.notify-time {
+	font-size: 11px;
+	color: #9ca3af;
+	font-style: italic;
+}
+
+.notify-title-text {
+	font-size: 12px;
+	color: var(--text-secondary);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 /* 快捷入口 */
