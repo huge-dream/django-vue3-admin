@@ -183,6 +183,8 @@ function getMethodText(method: string) {
 }
 
 function getDeadlineClass(task: any): string {
+	// Debug: log full task object to find actual field names
+	console.log('[BuyerDashboard] getDeadlineClass full task:', JSON.stringify(task));
 	const deadline = task.method === '招标' ? task.bid_end_time : task.quote_deadline;
 	console.log('[BuyerDashboard] getDeadlineClass task:', task.inquiry_no, 'method:', task.method, 'deadline:', deadline);
 	if (!deadline) return '';
