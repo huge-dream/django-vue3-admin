@@ -216,7 +216,7 @@ function initChart() {
 	let wonData: number[] = [];
 
 	if (trend.value && trend.value.length > 0) {
-		labels = trend.value.map((d) => d.month);
+		labels = trend.value.map((d) => d.day);
 		quotesData = trend.value.map((d) => d.quotes || 0);
 		wonData = trend.value.map((d) => d.won || 0);
 	} else {

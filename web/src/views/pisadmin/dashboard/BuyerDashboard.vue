@@ -185,7 +185,7 @@ function initChart() {
 	let dataReceive: number[] = [];
 
 	if (trend.value && trend.value.length > 0) {
-		labels = trend.value.map((d) => d.month);
+		labels = trend.value.map((d) => d.day);
 		dataPublish = trend.value.map((d) => d.count || 0);
 		// 议价完成数据暂无，填充0
 		dataReceive = trend.value.map(() => 0);
