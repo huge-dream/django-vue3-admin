@@ -86,11 +86,32 @@
 				</div>
 			</div>
 
-			<!-- 右侧：图片 + 快捷入口 -->
+			<!-- 右侧：图片+消息通知 + 快捷入口 -->
 			<div class="right-sidebar">
-				<!-- 图片卡片 -->
-				<div class="card home-img-card">
-					<img :src="HomeBg" alt="home-bg" class="home-bg-img" />
+				<!-- 图片卡片 + 消息通知 -->
+				<div class="card img-notify-card">
+					<div class="img-notify-img">
+						<img :src="HomeBg" alt="home-bg" class="home-bg-img" />
+					</div>
+					<div class="img-notify-list">
+						<div class="card-header" style="margin-bottom: 12px">
+							<div class="card-title"><i class="fa fa-bullhorn" style="color: #2e5bff"></i> 系统通知</div>
+							<a href="#" class="view-all">更多 <i class="fa fa-arrow-right"></i></a>
+						</div>
+						<div class="notify-item" v-for="(v, k) in newsInfoList" :key="k">
+							<div class="notify-icon">
+								<i class="fa fa-commenting-o" style="color: #5d8b22"></i>
+							</div>
+							<div class="notify-content">
+								<div class="notify-title-row">
+									<span class="notify-title">[{{ v.creator_name }}]</span>
+									<span class="notify-time">{{ v.create_datetime }}</span>
+								</div>
+								<div class="notify-title-text">{{ v.title }}</div>
+							</div>
+						</div>
+						<div v-if="newsInfoList.length === 0" class="empty-notif">暂无通知</div>
+					</div>
 				</div>
 
 				<!-- 快捷入口 -->
@@ -127,18 +148,30 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, ref, reactive, onMounted, watch } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useDashboardStore } from '/@/stores/modules/dashboard';
 import { useUserInfo } from '/@/stores/userInfo';
 import * as echarts from 'echarts';
 import HomeBg from '/@/assets/home-bg.png';
+import * as api from '/@/views/system/personal/api';
+
+// 定义消息类型
+interface NewsItem {
+	creator_name: string;
+	create_datetime: string;
+	title: string;
+}
 
 const store = useDashboardStore();
 const { supplier } = storeToRefs(store);
 const userInfo = useUserInfo();
 
 const chartRef = ref();
+
+const defaultNewsItems: NewsItem[] = [];
+
+const newsInfoList = reactive<NewsItem[]>([...defaultNewsItems]);
 
 // 快捷入口列表
 const quickNavList = [
@@ -170,7 +203,36 @@ const pendingQuotes = computed(() => {
 	return q;
 });
 const trend = computed(() => supplier.value?.trend || []);
-const messages = computed(() => supplier.value?.messages || []);
+
+// 获取消息列表
+const getMsg = (): void => {
+	// 先重置为默认数据
+	newsInfoList.length = 0;
+	newsInfoList.push(...defaultNewsItems);
+
+	// 尝试从API获取最新数据
+	api.GetSelfReceive({}).then((res: any) => {
+		const { data } = res || {};
+		// 严格检查返回数据的有效性
+		if (data && Array.isArray(data) && data.length > 0) {
+			try {
+				// 安全地进行类型转换并更新状态
+				newsInfoList.length = 0;
+				newsInfoList.push(
+					...data.map((item: any): NewsItem => ({
+						creator_name: String(item.creator_name || '未知用户'),
+						create_datetime: String(item.create_datetime || ''),
+						title: String(item.title || ''),
+					}))
+				);
+			} catch {
+				// 类型转换失败时保持默认数据
+			}
+		}
+	}).catch(() => {
+		// 错误时保持已设置的默认数据
+	});
+};
 
 function handleQuote(quote: any) {
 	// TODO: navigate to quote page
@@ -336,6 +398,7 @@ onMounted(() => {
 	console.log('[SupplierDashboard] onMounted - supplier store:', supplier.value);
 	console.log('[SupplierDashboard] onMounted - pendingQuotes:', pendingQuotes.value);
 	initChart();
+	getMsg();
 	window.addEventListener('resize', () => chartRef.value && echarts.getInstanceByDom(chartRef.value)?.resize());
 });
 
@@ -865,6 +928,87 @@ tr:last-child td {
 	height: 100%;
 	object-fit: cover;
 	display: block;
+}
+
+/* 图片+通知合并卡片 */
+.img-notify-card {
+	padding: 0;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+}
+
+.img-notify-img {
+	width: 100%;
+	height: 180px;
+	overflow: hidden;
+	flex-shrink: 0;
+}
+
+.img-notify-img .home-bg-img {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+.img-notify-list {
+	flex: 1;
+	padding: 16px;
+	overflow-y: auto;
+}
+
+.notify-item {
+	display: flex;
+	gap: 10px;
+	padding: 8px 0;
+	border-bottom: 1px solid #f3f4f6;
+
+	&:last-child {
+		border-bottom: none;
+	}
+}
+
+.notify-icon {
+	width: 32px;
+	height: 32px;
+	border-radius: 8px;
+	background: #f8f8f8;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-shrink: 0;
+}
+
+.notify-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.notify-title-row {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-bottom: 2px;
+}
+
+.notify-title {
+	font-size: 12px;
+	font-weight: 500;
+	color: var(--text-main);
+}
+
+.notify-time {
+	font-size: 11px;
+	color: #9ca3af;
+	font-style: italic;
+}
+
+.notify-title-text {
+	font-size: 12px;
+	color: var(--text-secondary);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
 }
 
 /* 快捷入口 */
