@@ -5,6 +5,7 @@ from django.db.models import Count, F
 from django.db.models.functions import TruncMonth
 from rest_framework import serializers, views
 from rest_framework.response import Response
+from dvadmin.utils.json_response import SuccessResponse
 
 from apps.pisadmin.miscprocurement.models import Inquiry
 from apps.pissupplier.models import QuotationMaster
@@ -468,4 +469,4 @@ class DashboardView(views.APIView):
         serializer = DashboardResponseSerializer(data=response_data)
         serializer.is_valid(raise_exception=True)
 
-        return Response({'code': 200, 'msg': 'success', 'data': serializer.validated_data})
+        return SuccessResponse(data=serializer.validated_data, msg="获取成功")
