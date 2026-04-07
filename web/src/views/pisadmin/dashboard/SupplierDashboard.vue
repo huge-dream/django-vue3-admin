@@ -163,7 +163,12 @@ const kpi = computed(
 			conversion_rate: 0,
 		}
 );
-const pendingQuotes = computed(() => supplier.value?.pending_quotes || []);
+const pendingQuotes = computed(() => {
+	const q = supplier.value?.pending_quotes || [];
+	console.log('[SupplierDashboard] supplier.value:', supplier.value);
+	console.log('[SupplierDashboard] pendingQuotes computed:', q);
+	return q;
+});
 const trend = computed(() => supplier.value?.trend || []);
 const messages = computed(() => supplier.value?.messages || []);
 
@@ -196,10 +201,12 @@ function getMethodText(method: string) {
 
 function getDeadlineClass(quote: any): string {
 	const deadline = quote.method === '招标' ? quote.bid_end_time : quote.quote_deadline;
+	console.log('[SupplierDashboard] getDeadlineClass quote:', quote.inquiry_no, 'method:', quote.method, 'deadline:', deadline);
 	if (!deadline) return '';
 	const now = new Date();
 	const deadlineDate = new Date(deadline);
 	const diffHours = (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+	console.log('[SupplierDashboard] diffHours:', diffHours);
 	if (diffHours < 0) return 'deadline-expired';
 	if (diffHours < 24) return 'deadline-urgent';
 	if (diffHours < 48) return 'deadline-warning';
@@ -208,10 +215,12 @@ function getDeadlineClass(quote: any): string {
 
 function getRemainingTimeText(quote: any): string {
 	const deadline = quote.method === '招标' ? quote.bid_end_time : quote.quote_deadline;
+	console.log('[SupplierDashboard] getRemainingTimeText quote:', quote.inquiry_no, 'deadline:', deadline);
 	if (!deadline) return '';
 	const now = new Date();
 	const deadlineDate = new Date(deadline);
 	const diffMs = deadlineDate.getTime() - now.getTime();
+	console.log('[SupplierDashboard] diffMs:', diffMs);
 	if (diffMs <= 0) return '已到期';
 	const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
 	const days = Math.floor(diffHours / 24);
@@ -324,6 +333,8 @@ function initChart() {
 }
 
 onMounted(() => {
+	console.log('[SupplierDashboard] onMounted - supplier store:', supplier.value);
+	console.log('[SupplierDashboard] onMounted - pendingQuotes:', pendingQuotes.value);
 	initChart();
 	window.addEventListener('resize', () => chartRef.value && echarts.getInstanceByDom(chartRef.value)?.resize());
 });

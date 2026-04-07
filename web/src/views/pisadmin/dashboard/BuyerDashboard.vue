@@ -158,7 +158,12 @@ const kpi = computed(
 			quote_timely_rate: 0,
 		}
 );
-const tasks = computed(() => buyer.value?.tasks || []);
+const tasks = computed(() => {
+	const t = buyer.value?.tasks || [];
+	console.log('[BuyerDashboard] buyer.value:', buyer.value);
+	console.log('[BuyerDashboard] tasks computed:', t);
+	return t;
+});
 const trend = computed(() => buyer.value?.trend || []);
 const messages = computed(() => buyer.value?.messages || []);
 
@@ -179,10 +184,12 @@ function getMethodText(method: string) {
 
 function getDeadlineClass(task: any): string {
 	const deadline = task.method === '招标' ? task.bid_end_time : task.quote_deadline;
+	console.log('[BuyerDashboard] getDeadlineClass task:', task.inquiry_no, 'method:', task.method, 'deadline:', deadline);
 	if (!deadline) return '';
 	const now = new Date();
 	const deadlineDate = new Date(deadline);
 	const diffHours = (deadlineDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+	console.log('[BuyerDashboard] diffHours:', diffHours);
 	if (diffHours < 0) return 'deadline-expired';
 	if (diffHours < 24) return 'deadline-urgent'; // <24h red
 	if (diffHours < 48) return 'deadline-warning'; // 24-48h yellow
@@ -198,10 +205,12 @@ function getDeadlineText(task: any): string {
 
 function getRemainingTimeText(task: any): string {
 	const deadline = task.method === '招标' ? task.bid_end_time : task.quote_deadline;
+	console.log('[BuyerDashboard] getRemainingTimeText task:', task.inquiry_no, 'deadline:', deadline);
 	if (!deadline) return '';
 	const now = new Date();
 	const deadlineDate = new Date(deadline);
 	const diffMs = deadlineDate.getTime() - now.getTime();
+	console.log('[BuyerDashboard] diffMs:', diffMs);
 	if (diffMs <= 0) return '已到期';
 	const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
 	const days = Math.floor(diffHours / 24);
@@ -311,6 +320,8 @@ function initChart() {
 }
 
 onMounted(() => {
+	console.log('[BuyerDashboard] onMounted - buyer store:', buyer.value);
+	console.log('[BuyerDashboard] onMounted - tasks:', tasks.value);
 	initChart();
 	window.addEventListener('resize', () => chartRef.value && echarts.getInstanceByDom(chartRef.value)?.resize());
 });
