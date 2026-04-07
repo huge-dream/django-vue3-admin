@@ -2,7 +2,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 from django.db.models import Count, F
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import TruncMonth, TruncDate
 from rest_framework import serializers, views
 from rest_framework.response import Response
 from dvadmin.utils.json_response import SuccessResponse
@@ -314,13 +314,13 @@ class DashboardView(views.APIView):
                 create_time__gte=start_of_month,
                 create_time__lte=now
             )
-            .extra(select={'day': 'DAY(create_time)'})
+            .annotate(day=TruncDate('create_time'))
             .values('day')
             .annotate(count=Count('id'))
             .order_by('day')
         )
         return [
-            {'day': d['day'], 'count': d['count']}
+            {'day': d['day'].day, 'count': d['count']}
             for d in data
         ]
 
@@ -335,7 +335,7 @@ class DashboardView(views.APIView):
                     creattime__gte=start_of_month,
                     creattime__lte=now
                 )
-                .extra(select={'day': 'DAY(creattime)'})
+                .annotate(day=TruncDate('creattime'))
                 .values('day')
                 .annotate(quotes=Count('autoid'))
                 .order_by('day')
@@ -343,13 +343,13 @@ class DashboardView(views.APIView):
             result = []
             for d in data:
                 won = QuotationMaster.objects.filter(
-                    creattime__day=d['day'],
+                    creattime__day=d['day'].day,
                     creattime__month=now.month,
                     creattime__year=now.year,
                     is_awarded=1
                 ).count()
                 result.append({
-                    'day': d['day'],
+                    'day': d['day'].day,
                     'quotes': d['quotes'],
                     'won': won,
                 })
@@ -361,7 +361,7 @@ class DashboardView(views.APIView):
                     creattime__gte=start_of_month,
                     creattime__lte=now
                 )
-                .extra(select={'day': 'DAY(creattime)'})
+                .annotate(day=TruncDate('creattime'))
                 .values('day')
                 .annotate(quotes=Count('autoid'))
                 .order_by('day')
@@ -370,13 +370,13 @@ class DashboardView(views.APIView):
             for d in data:
                 won = QuotationMaster.objects.filter(
                     supplier_code=user.username,
-                    creattime__day=d['day'],
+                    creattime__day=d['day'].day,
                     creattime__month=now.month,
                     creattime__year=now.year,
                     is_awarded=1
                 ).count()
                 result.append({
-                    'day': d['day'],
+                    'day': d['day'].day,
                     'quotes': d['quotes'],
                     'won': won,
                 })
