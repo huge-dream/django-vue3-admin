@@ -78,3 +78,14 @@ RUSTFS_BUCKET = "pis-media"
 RUSTFS_SECURE = False  # True=HTTPS, False=HTTP
 RUSTFS_PATH_PREFIX = ""  # 存储路径前缀，可为空
 RUSTFS_REGION = "us-east-1"  # RustFS 区域（可自定义）
+
+# ================================================= #
+# *************** EIP 对接（出站 / 配置） *************** #
+# ================================================= #
+# PIS 主动调用 EIP 时使用（sync 插件 clients/eip_client）
+EIP_BASE_URL = os.getenv("EIP_BASE_URL", "").rstrip("/")
+EIP_API_KEY = os.getenv("EIP_API_KEY", "")
+EIP_TIMEOUT = int(os.getenv("EIP_TIMEOUT", "30"))
+# 同步重试（预留）
+SYNC_RETRY_MAX = int(os.getenv("SYNC_RETRY_MAX", "3"))
+SYNC_RETRY_DELAY = int(os.getenv("SYNC_RETRY_DELAY", "60"))

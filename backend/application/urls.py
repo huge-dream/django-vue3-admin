@@ -102,6 +102,7 @@ urlpatterns = (
                 schema_view.with_ui("redoc", cache_timeout=0),
                 name="schema-redoc",
             ),
+            path("api/pisadmin/sync/", include("sync.urls")),
             path("api/pisadmin/miscprocurement/", include("apps.pisadmin.miscprocurement.urls")),
             path("api/pisadmin/basicinfo/", include("apps.pisadmin.basicinfo.urls")),
             path("api/pisadmin/dashboard/", include("apps.pisadmin.dashboard.urls")),
