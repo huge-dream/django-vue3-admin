@@ -28,6 +28,13 @@ from dvadmin.utils.validator import CustomValidationError
 logger = logging.getLogger(__name__)
 
 
+def _is_supplier_portal_role_key(role_key: str) -> bool:
+    """供应商端登录：允许 role.key 为 supplier 或 supplier_*（如 supplier_quote）。"""
+    if not role_key:
+        return False
+    return role_key == "supplier" or role_key.startswith("supplier_")
+
+
 class CaptchaView(APIView):
     authentication_classes = []
     permission_classes = []
@@ -143,7 +150,7 @@ class LoginSerializer(TokenObtainPairSerializer):
 class SupplierLoginSerializer(TokenObtainPairSerializer):
     """
     供应商登录的序列化器
-    复用 LoginSerializer 的验证逻辑，额外校验 role.key = 'supplier'
+    复用 LoginSerializer 的验证逻辑，额外校验 role.key 为 supplier 或 supplier_*（如 supplier_quote）
     """
     captcha = serializers.CharField(
         max_length=6, required=False, allow_null=True, allow_blank=True
@@ -189,10 +196,10 @@ class SupplierLoginSerializer(TokenObtainPairSerializer):
         # 必须重置用户名为username,否则使用邮箱手机号登录会提示密码错误
         attrs['username'] = user.username
 
-        # 校验用户角色是否为供应商
+        # 校验用户角色是否为供应商（含 supplier_quote 等 supplier_*）
         user_roles = user.role.all()
         role_keys = [r.key for r in user_roles]
-        if 'supplier' not in role_keys:
+        if not any(_is_supplier_portal_role_key(k) for k in role_keys):
             raise CustomValidationError("该账号不是供应商账号，请使用采购方入口登录")
 
         try:

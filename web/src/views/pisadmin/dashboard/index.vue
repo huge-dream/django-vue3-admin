@@ -8,7 +8,7 @@
       </el-radio-group>
     </div>
     <BuyerDashboard v-if="currentRole === 'buyer'" />
-    <SupplierDashboard v-else-if="currentRole === 'supplier'" />
+    <SupplierDashboard v-else-if="isSupplierDashboardRole(currentRole)" />
   </div>
 </template>
 
@@ -26,6 +26,10 @@ const store = useDashboardStore();
 const { buyer, supplier } = storeToRefs(store);
 
 const currentRole = ref('buyer');
+
+/** 供应商侧仪表盘：角色标识为 supplier_*（如 supplier_quote），兼容历史值 supplier */
+const isSupplierDashboardRole = (role: string) =>
+  role === 'supplier' || /^supplier_/.test(role);
 
 const hasBuyerRole = computed(() => !!buyer.value);
 const hasSupplierRole = computed(() => !!supplier.value);
@@ -46,10 +50,10 @@ onMounted(() => {
 });
 
 // 如果只有采购方权限，默认 buyer
-// 如果只有供应商权限，默认 supplier
+// 如果只有供应商权限，默认 supplier_*（当前为 supplier_quote）
 // 初始化时确保 currentRole 与可用角色匹配
 if (!hasBuyerRole.value && hasSupplierRole.value) {
-  currentRole.value = 'supplier';
+  currentRole.value = 'supplier_quote';
 }
 
 // 如果后端返回了数据但 currentRole 不匹配角色，则默认 buyer
@@ -61,13 +65,13 @@ if (hasBuyerRole.value && !hasBothRoles.value) {
 watch([hasBuyerRole, hasSupplierRole], () => {
   if (hasBothRoles.value) {
     // 双方角色，默认 buyer
-    if (currentRole.value !== 'buyer' && currentRole.value !== 'supplier') {
+    if (currentRole.value !== 'buyer' && !isSupplierDashboardRole(currentRole.value)) {
       currentRole.value = 'buyer';
     }
   } else if (hasBuyerRole.value) {
     currentRole.value = 'buyer';
   } else if (hasSupplierRole.value) {
-    currentRole.value = 'supplier';
+    currentRole.value = 'supplier_quote';
   }
 });
 
