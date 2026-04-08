@@ -83,9 +83,9 @@ type Quote = {
 type SummaryRow = { section: string; amount: number; isSubtotal?: boolean }
 
 /** 与杂采询价列表列展示一致 */
-export const buyingMethodDict = [
-  { value: 1, label: '询价' },
-  { value: 2, label: '招标' }
+export const getBuyingMethodDict = (t: Function) => [
+  { value: 1, label: t('message.pages.pissupplier.quotation.buyingMethodInquiry') },
+  { value: 2, label: t('message.pages.pissupplier.quotation.buyingMethodBid') }
 ]
 
 export function formatQuoteDeadlineDisplay(value: unknown) {
@@ -806,7 +806,7 @@ const costItemsFromQuotationApi = (item: any, t: Function): CostItem[] => {
       section: '其它成本',
       attrs: [
         { key: 'part_id', label: t('message.pages.pissupplier.quotation.partNo'), value: o.part_id ?? '' },
-        { key: 'packageFee', label: t('message.pages.pissupplier.quotation.packageFee'), value: o.packaging_cost ?? '' },
+        { key: 'packageFee', label: t('message.pages.pissupplier.quotation.packagingFee'), value: o.packaging_cost ?? '' },
         { key: 'transportFee', label: t('message.pages.pissupplier.quotation.transportFee'), value: o.transportation_cost ?? '' }
       ]
     })
@@ -2380,7 +2380,7 @@ export function useQuoteCrud(options?: {
 
   return {
     filters,
-    statusOptions: getStatusOptions(),
+    statusOptions: getStatusOptions(t),
     resetFilter,
     filteredQuotes,
     loading,
