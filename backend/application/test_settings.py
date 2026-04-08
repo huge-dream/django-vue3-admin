@@ -5,12 +5,15 @@
 
 - 继承 ``application.settings`` 中的 ``DATABASE_*``（可用环境变量覆盖，见 ``conf/env.py``）。
 - 复用业务库 ``DATABASE_NAME``：不 CREATE/DROP 库、不跑 ``migrate``，避免与线上一致库结构冲突。
+- **请在业务库上至少执行过一次** ``python manage.py migrate``（含 ``sync`` 应用），确保存在 ``pis_sync_record`` 等表；否则同步接口仍可返回 JSON，但审计表无数据、依赖 ``SyncRecord`` 的断言会失败。
 - 依赖 ``mssql-django`` 的 ``DatabaseCreation`` 补丁（见下方 ``_install_shared_test_database``）。
 
 **无 SQL Server 时（本地 CI / 开发机）**
 
 - 设置环境变量 ``PIS_TEST_USE_SQLITE=1``（或 ``TEST_USE_SQLITE=1``）：使用项目目录下 ``.pytest/pis_test_runner.sqlite3``，
   走 Django **默认**测试库创建与 ``migrate``，不挂「复用库」逻辑。
+
+本模块仅处理 **SQL Server（mssql-django）** 与上述 SQLite 测试模式，不再包含 PostgreSQL / MySQL 专用分支。
 """
 import os
 
@@ -90,24 +93,7 @@ def _install_shared_test_database(creation_cls, base_module):
 
 if not _use_sqlite_for_tests:
     _engine = (DATABASES["default"].get("ENGINE") or "").lower()
-
-    if "postgresql" in _engine:
-        from django.db.backends.postgresql import base as _pg_base
-        from django.db.backends.postgresql.creation import (
-            DatabaseCreation as _PGDatabaseCreation,
-        )
-
-        _install_shared_test_database(_PGDatabaseCreation, _pg_base)
-
-    elif "mysql" in _engine:
-        from django.db.backends.mysql import base as _my_base
-        from django.db.backends.mysql.creation import (
-            DatabaseCreation as _MySQLDatabaseCreation,
-        )
-
-        _install_shared_test_database(_MySQLDatabaseCreation, _my_base)
-
-    elif "mssql" in _engine or "sql_server" in _engine:
+    if "mssql" in _engine or "sql_server" in _engine:
         import mssql.base
         from mssql.creation import DatabaseCreation as _MsSqlDatabaseCreation
 

@@ -1,6 +1,9 @@
 """
 杂采料号、核价审核结果 EIP 同步：适配器、SyncManager、HTTP 接口。
 
+数据库：项目以 **SQL Server** 为主；单元测试使用 ``application.test_settings``（复用业务库或
+``PIS_TEST_USE_SQLITE=1`` 走 SQLite，见该模块说明）。
+
 使用 pytest + django_db，客户端与 fixtures 与项目 conftest 一致（api_client / authenticate）。
 
 查看 **HTTP 入参 / 出参**（接收请求与返回响应）::

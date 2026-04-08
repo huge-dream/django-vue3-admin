@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import logging
 from typing import Any, Dict, List, Optional
 
+from django.db import DatabaseError, transaction
 from django.utils import timezone
 
 from sync.base import SyncOperationResult, SyncStatus
 from sync.factory import SyncFactory
 from sync.logger import SyncLogger
 from sync.models import SyncRecord
+
+logger = logging.getLogger(__name__)
 
 
 class SyncManager:
@@ -58,18 +62,30 @@ class SyncManager:
         return {"Status": False, "Message": err}
 
     def _persist_record(self, op: SyncOperationResult) -> None:
+        """写入审计表；失败仅记日志，不向上抛，避免 EIP 回调拿不到约定 JSON。
+
+        使用独立 ``atomic()``：在 SQL Server 上失败语句会中止当前事务；嵌套块以保存点回滚，
+        避免污染外层请求/测试事务（否则后续 ORM 报 TransactionManagementError）。
+        """
         completed_at = timezone.now()
-        SyncRecord.objects.create(
-            adapter_name=op.adapter_name,
-            direction=op.direction.value,
-            external_id=op.external_id or "",
-            payload=op.payload,
-            response=op.response,
-            status=op.status.value,
-            error_message=op.error_message or "",
-            retry_count=op.retry_count,
-            completed_at=completed_at,
-        )
+        try:
+            with transaction.atomic():
+                SyncRecord.objects.create(
+                    adapter_name=op.adapter_name,
+                    direction=op.direction.value,
+                    external_id=op.external_id or "",
+                    payload=op.payload,
+                    response=op.response,
+                    status=op.status.value,
+                    error_message=op.error_message or "",
+                    retry_count=op.retry_count,
+                    completed_at=completed_at,
+                )
+        except DatabaseError as exc:
+            logger.warning(
+                "SyncRecord 落库失败（请确认已执行: python manage.py migrate sync）。%s",
+                exc,
+            )
 
     def get_sync_history(
         self,
