@@ -132,9 +132,9 @@ class TestSyncManager:
 
 @pytest.mark.django_db
 class TestMiscMaterialSyncAPI:
-    """POST /api/pisadmin/sync/misc-material/（DRF force_authenticate 绕过 AK/SK 验签，仅测业务链）。"""
+    """POST /api/sync/material/misc/（DRF force_authenticate 绕过 AK/SK 验签，仅测业务链）。"""
 
-    URL = "/api/pisadmin/sync/misc-material/"
+    URL = "/api/sync/material/misc/"
 
     def test_post_success(self, api_client, admin_user):
         api_client.force_authenticate(user=admin_user)

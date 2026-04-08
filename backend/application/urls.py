@@ -25,6 +25,7 @@ from rest_framework_simplejwt.views import (
 
 from application import dispatch
 from application import settings
+from sync.views import MiscMaterialSyncView
 from application.sse_views import sse_view
 from dvadmin.system.views.dictionary import InitDictionaryViewSet
 from dvadmin.system.views.login import (
@@ -102,7 +103,11 @@ urlpatterns = (
                 schema_view.with_ui("redoc", cache_timeout=0),
                 name="schema-redoc",
             ),
-            path("api/pisadmin/sync/", include("sync.urls")),
+            path(
+                "api/sync/material/misc/",
+                MiscMaterialSyncView.as_view(),
+                name="sync-misc-material",
+            ),
             path("api/pisadmin/miscprocurement/", include("apps.pisadmin.miscprocurement.urls")),
             path("api/pisadmin/basicinfo/", include("apps.pisadmin.basicinfo.urls")),
             path("api/pisadmin/dashboard/", include("apps.pisadmin.dashboard.urls")),
