@@ -31,8 +31,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
   const { t } = useI18n()
 
   const statusDict = [
-    { value: 1, label: t('message.pages.miscprocurement.misc_materials.statusEnabled') },
-    { value: 0, label: t('message.pages.miscprocurement.misc_materials.statusDisabled') }
+    { value: 1, label: t('message.pages.miscprocurement.materialInfo.statusEnabled') },
+    { value: 0, label: t('message.pages.miscprocurement.materialInfo.statusDisabled') }
   ]
 
   return {
@@ -59,7 +59,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       },
       columns: {
         factory: {
-          title: t('message.pages.miscprocurement.misc_materials.companyCode'),
+          title: t('message.pages.miscprocurement.materialInfo.factory'),
           type: 'dict-select',
           dict: dict({
             cache: false,
@@ -73,41 +73,41 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         materialtype: {
-          title: t('message.pages.miscprocurement.misc_materials.materialtype'),
+          title: t('message.pages.miscprocurement.materialInfo.materialtype'),
           type: 'input',
           search: {
             show: true,
-            component: { props: { placeholder: t('message.pages.miscprocurement.misc_materials.materialtype'), clearable: true } }
+            component: { props: { placeholder: t('message.pages.miscprocurement.materialInfo.materialtype'), clearable: true } }
           },
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         density: {
-          title: t('message.pages.miscprocurement.misc_materials.density'),
+          title: t('message.pages.miscprocurement.materialInfo.density'),
           type: 'input',
-          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.misc_materials.density') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.materialInfo.density') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { width: 120, showOverflowTooltip: true }
         },
         price: {
-          title: t('message.pages.miscprocurement.misc_materials.price'),
+          title: t('message.pages.miscprocurement.materialInfo.price'),
           type: 'number',
-          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.misc_materials.price') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }], component: { props: { precision: 2 } } },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.materialInfo.price') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }], component: { props: { precision: 2 } } },
           column: { width: 120 }
         },
         status: {
-          title: t('message.pages.miscprocurement.misc_materials.status'),
+          title: t('message.pages.miscprocurement.materialInfo.status'),
           type: 'dict-switch',
           dict: dict({ data: statusDict }),
           form: { value: 1 },
           column: { width: 120 }
         },
         create_datetime: {
-          title: '创建时间',
+          title: t('message.pages.miscprocurement.materialInfo.createTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }
         },
         update_datetime: {
-          title: '更新时间',
+          title: t('message.pages.miscprocurement.materialInfo.updateTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }

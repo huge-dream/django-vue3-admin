@@ -53,13 +53,13 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
   const { t } = useI18n()
 
   const statusDict = [
-    { value: 1, label: t('message.pages.miscprocurement.misc_stations.statusEnabled') },
-    { value: 0, label: t('message.pages.miscprocurement.misc_stations.statusDisabled') }
+    { value: 1, label: t('message.pages.miscprocurement.stationInfo.statusEnabled') },
+    { value: 0, label: t('message.pages.miscprocurement.stationInfo.statusDisabled') }
   ]
 
   const stationTypeDict = [
-    { value: 1, label: t('message.pages.miscprocurement.misc_stations.typeTooling') },
-    { value: 2, label: t('message.pages.miscprocurement.misc_stations.typeGraphite') }
+    { value: 1, label: t('message.pages.miscprocurement.stationInfo.typeTooling') },
+    { value: 2, label: t('message.pages.miscprocurement.stationInfo.typeGraphite') }
   ]
 
   void crudExpose
@@ -79,7 +79,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       ? list.find((item: any) => item.company_code === companyCode && item.stationcode === stationCode)
       : null
     if (exists && (!currentId || exists.id !== currentId)) {
-      throw new Error(t('message.pages.miscprocurement.misc_stations.companyCode') + t('message.pages.miscprocurement.misc_stations.stationcode') + t('message.pages.menu.validation.alreadyExists'))
+      throw new Error(t('message.pages.miscprocurement.stationInfo.companyCode') + t('message.pages.miscprocurement.stationInfo.stationcode') + t('message.pages.menu.validation.alreadyExists'))
     }
   }
   return {
@@ -122,7 +122,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       },
       columns: {
         company_code: {
-          title: t('message.pages.miscprocurement.misc_stations.companyCode'),
+          title: t('message.pages.miscprocurement.stationInfo.companyCode'),
           type: 'dict-select',
           dict: dict({
             cache: false,
@@ -134,60 +134,60 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         stationcode: {
-          title: t('message.pages.miscprocurement.misc_stations.stationcode'),
+          title: t('message.pages.miscprocurement.stationInfo.stationcode'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: t('message.pages.miscprocurement.misc_stations.stationcode'), clearable: true } } },
-          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.misc_stations.stationcode') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
+          search: { show: true, component: { props: { placeholder: t('message.pages.miscprocurement.stationInfo.stationcode'), clearable: true } } },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.stationInfo.stationcode') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           editForm: {
             component: { props: { disabled: true } }
           },
           column: { minWidth: 140, showOverflowTooltip: true }
         },
         stationname: {
-          title: t('message.pages.miscprocurement.misc_stations.stationname'),
+          title: t('message.pages.miscprocurement.stationInfo.stationname'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: t('message.pages.miscprocurement.misc_stations.stationname'), clearable: true } } },
-          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.misc_stations.stationname') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
+          search: { show: true, component: { props: { placeholder: t('message.pages.miscprocurement.stationInfo.stationname'), clearable: true } } },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.stationInfo.stationname') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         stationtype: {
-          title: t('message.pages.miscprocurement.misc_stations.stationtype'),
+          title: t('message.pages.miscprocurement.stationInfo.stationtype'),
           type: 'dict-select',
           dict: dict({ data: stationTypeDict }),
-          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.misc_stations.stationtype') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.stationInfo.stationtype') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { width: 140, showOverflowTooltip: true }
         },
         unit: {
-          title: t('message.pages.miscprocurement.misc_stations.unit'),
+          title: t('message.pages.miscprocurement.stationInfo.unit'),
           type: 'dict-select',
           dict: dict({
             cache: false,
             getData: async () => loadUnitOptions()
           }),
-          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.misc_stations.unit') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.stationInfo.unit') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { width: 140, showOverflowTooltip: true }
         },
         rate: {
-          title: t('message.pages.miscprocurement.misc_stations.rate'),
+          title: t('message.pages.miscprocurement.stationInfo.rate'),
           type: 'number',
-          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.misc_stations.rate') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }], component: { props: { precision: 2 } } },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.stationInfo.rate') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }], component: { props: { precision: 2 } } },
           column: { width: 120 }
         },
         status: {
-          title: t('message.pages.miscprocurement.misc_stations.status'),
+          title: t('message.pages.miscprocurement.stationInfo.status'),
           type: 'dict-switch',
           dict: dict({ data: statusDict }),
           form: { value: 1 },
           column: { width: 120 }
         },
         create_datetime: {
-          title: '创建时间',
+          title: t('message.pages.miscprocurement.stationInfo.createTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }
         },
         update_datetime: {
-          title: '更新时间',
+          title: t('message.pages.miscprocurement.stationInfo.updateTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }

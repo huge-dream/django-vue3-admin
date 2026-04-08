@@ -4,17 +4,6 @@ import { GetCompanies } from '../../basicinfo/currency/api'
 import { GetList as GetUnits } from '../../basicinfo/unit/api'
 import { ElMessage } from 'element-plus'
 
-const statusDict = [
-  { value: 1, label: '启用' },
-  { value: 0, label: '禁用' }
-]
-
-const categoryDict = [
-  { value: 1, label: '模治具' },
-  { value: 2, label: '石墨' },
-  { value: 3, label: '其他' }
-]
-
 const loadCompanyOptions = async () => {
   try {
     const res = await GetCompanies({ page: 1, page_size: 1000, pageSize: 1000 })
@@ -62,7 +51,19 @@ const loadUnitOptions = async (companyCode?: string) => {
 void loadCompanyOptions()
 
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+  const { t } = useI18n()
   void crudExpose
+
+  const statusDict = () => [
+    { value: 1, label: t('message.pages.miscprocurement.misc_parts.statusEnabled') },
+    { value: 0, label: t('message.pages.miscprocurement.misc_parts.statusDisabled') }
+  ]
+
+  const categoryDict = () => [
+    { value: 1, label: t('message.pages.miscprocurement.misc_parts.categoryTooling') },
+    { value: 2, label: t('message.pages.miscprocurement.misc_parts.categoryGraphite') },
+    { value: 3, label: t('message.pages.miscprocurement.misc_parts.categoryOther') }
+  ]
 
   const ensurePartUnique = async (companyCode: string, partId: string, currentId?: number) => {
     if (!companyCode || !partId) return
@@ -79,7 +80,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       ? list.find((item: any) => item.company_code === companyCode && item.partid === partId)
       : null
     if (exists && (!currentId || exists.id !== currentId)) {
-      throw new Error('同一交易厂区下料号已存在，不可重复')
+      throw new Error(t('message.pages.miscprocurement.misc_parts.companyCode') + t('message.pages.miscprocurement.misc_parts.partid') + t('message.pages.miscprocurement.misc_parts.validation.alreadyExists'))
     }
   }
   return {
@@ -122,7 +123,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       },
       columns: {
         company_code: {
-          title: '交易厂区',
+          title: t('message.pages.miscprocurement.misc_parts.companyCode'),
           type: 'dict-select',
           dict: dict({
             cache: false,
@@ -144,55 +145,55 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         partid: {
-          title: '料号',
+          title: t('message.pages.miscprocurement.misc_parts.partid'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入料号', clearable: true } } },
-          form: { rules: [{ required: true, message: '请输入料号' }] },
+          search: { show: true, component: { props: { placeholder: t('message.pages.miscprocurement.misc_parts.partid'), clearable: true } } },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.misc_parts.partid') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         partid_name: {
-          title: '物料说明',
+          title: t('message.pages.miscprocurement.misc_parts.partidName'),
           type: 'input',
-          form: { rules: [{ required: true, message: '请输入物料说明' }] },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.misc_parts.partidName') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         specification: {
-          title: '品名规格',
+          title: t('message.pages.miscprocurement.misc_parts.specification'),
           type: 'input',
-          form: { rules: [{ required: true, message: '请输入品名规格' }] },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.misc_parts.specification') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         unit: {
-          title: '单位',
+          title: t('message.pages.miscprocurement.misc_parts.unit'),
           type: 'dict-select',
           dict: dict({
             cache: false,
             getData: async ({ form }: any = {}) => loadUnitOptions(form?.company_code)
           }),
-          form: { rules: [{ required: true, message: '请选择单位' }], component: { props: { placeholder: '先选择厂区' } } },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.misc_parts.unit') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }], component: { props: { placeholder: t('message.pages.miscprocurement.misc_parts.companyCode') } } },
           column: { width: 140, showOverflowTooltip: true }
         },
         partid_category_id: {
-          title: '物料分类',
+          title: t('message.pages.miscprocurement.misc_parts.partidCategory'),
           type: 'dict-select',
-          dict: dict({ data: categoryDict }),
+          dict: dict({ data: categoryDict() }),
           column: { width: 140, showOverflowTooltip: true }
         },
         status: {
-          title: '启用否',
+          title: t('message.pages.miscprocurement.misc_parts.status'),
           type: 'dict-switch',
-          dict: dict({ data: statusDict }),
+          dict: dict({ data: statusDict() }),
           form: { value: 1 },
           column: { width: 120 }
         },
         create_datetime: {
-          title: '创建时间',
+          title: t('message.pages.miscprocurement.misc_parts.createTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }
         },
         update_datetime: {
-          title: '更新时间',
+          title: t('message.pages.miscprocurement.misc_parts.updateTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }
