@@ -1,0 +1,23 @@
+@use './index.scss' as index;
+
+/* 页面宽度小于768px
+------------------------------- */
+@media screen and (max-width: index.$sm) {
+	.home-media,
+	.home-media-sm {
+		margin-top: 15px;
+	}
+}
+
+/* 页面宽度小于1200px
+------------------------------- */
+@media screen and (max-width: index.$lg) {
+	.home-media-lg {
+		margin-top: 15px;
+	}
+	.home-monitor {
+		.flex-warp-item {
+			width: 33.33% !important;
+		}
+	}
+}

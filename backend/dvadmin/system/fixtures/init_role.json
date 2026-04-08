@@ -1,0 +1,16 @@
+[
+    {
+        "name": "管理员",
+        "key": "admin",
+        "sort": 1,
+        "status": true,
+        "remark": null
+    },
+    {
+        "name": "用户",
+        "key": "public",
+        "sort": 2,
+        "status": true,
+        "remark": null
+    }
+]

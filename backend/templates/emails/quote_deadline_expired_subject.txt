@@ -1,0 +1,1 @@
+{% autoescape off %}【报价截止提醒】询价单 {{ inquiry_no }} 有 {{ supplier_count }} 家供应商已到期未报价，请及时处理{% endautoescape %}

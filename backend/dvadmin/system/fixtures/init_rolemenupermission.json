@@ -1,0 +1,12 @@
+[
+    {
+        "role__key": "admin",
+        "menu__web_path": "/system",
+        "menu__component_name": ""
+    },
+    {
+        "role__key": "admin",
+        "menu__web_path": "/menu",
+        "menu__component_name": "menu"
+    }
+]

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8" /></head>
+<body style="font-family:'Microsoft YaHei',SimHei,sans-serif;font-size:14px;color:#1e293b;line-height:1.7;">
+  <p>尊敬的 {{ purchaser_name }}：</p>
+  <p>您好！</p>
+  <p>您负责的询价单（编号：{{ inquiry_no }}）有 <strong>{{ supplier_count }} 家</strong>供应商报价已到期但尚未提交报价，具体信息如下：</p>
+
+  <table style="width:100%;border-collapse:collapse;margin:12px 0;">
+    <thead>
+      <tr style="background:#f1f5f9;">
+        <th style="padding:8px 12px;border:1px solid #e2e8f0;text-align:left;">供应商名称</th>
+        <th style="padding:8px 12px;border:1px solid #e2e8f0;text-align:left;">联系人</th>
+        <th style="padding:8px 12px;border:1px solid #e2e8f0;text-align:left;">报价截止时间</th>
+        <th style="padding:8px 12px;border:1px solid #e2e8f0;text-align:left;">当前状态</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for supplier in expired_suppliers %}
+      <tr>
+        <td style="padding:8px 12px;border:1px solid #e2e8f0;">{{ supplier.supplier_name }}</td>
+        <td style="padding:8px 12px;border:1px solid #e2e8f0;">{{ supplier.contact_person|default:"—" }}</td>
+        <td style="padding:8px 12px;border:1px solid #e2e8f0;">{{ supplier.quote_deadline }}</td>
+        <td style="padding:8px 12px;border:1px solid #e2e8f0;">{% if supplier.status == 1 %}待报价{% else %}报价中{% endif %}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  {% if comparison_page_url %}
+  <p style="margin:16px 0;">
+    <a href="{{ comparison_page_url }}" style="color:#0f766e;font-weight:600;">点击此处进入比价页面</a>
+  </p>
+  <p style="margin:8px 0 0;font-size:13px;color:#64748b;">若链接无法打开，请复制以下地址到浏览器：</p>
+  <p style="margin:4px 0 16px;word-break:break-all;font-size:13px;"><a href="{{ comparison_page_url }}">{{ comparison_page_url }}</a></p>
+  {% else %}
+  <p style="margin:16px 0;color:#b45309;">系统未配置采购端门户地址，请登录系统进入「比价/议价」页面处理。</p>
+  {% endif %}
+
+  <p style="font-size:12px;color:#94a3b8;">此邮件由系统自动发送，请勿直接回复。</p>
+</body>
+</html>
