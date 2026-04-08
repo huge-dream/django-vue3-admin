@@ -9,3 +9,4 @@ class SyncConfig(AppConfig):
     def ready(self):
         # Register adapters with SyncFactory
         from sync.adapters import misc_material  # noqa: F401
+        from sync.adapters import pricing_result  # noqa: F401

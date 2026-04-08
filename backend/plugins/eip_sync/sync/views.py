@@ -8,12 +8,29 @@ from dvadmin_ak_sk.libs.authentication import AkSkAuthentication
 from sync.manager import SyncManager
 
 
+class PricingAuditResultSyncView(APIView):
+    """
+    EIP -> PIS：核价申请单审核完成后抛转审核结果。
+
+    POST ``/api/pricing/applications/result``
+    """
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        manager = SyncManager()
+        result = manager.process_pricing_audit_webhook(request.data)
+        status_code = 200 if result.get("Status") is True else 400
+        return Response(result, status=status_code)
+
+
 class MiscMaterialSyncView(APIView):
     """
     EIP -> PIS: miscellaneous procurement material master (杂采料号).
     Authenticated via dvadmin-ak-sk (X-NSF-* signature headers).
 
-    POST ``/api/sync/material/misc/``
+    POST ``/api/sync/material/misc``
     """
 
     # authentication_classes = [AkSkAuthentication]

@@ -35,6 +35,28 @@ class SyncManager:
 
         return {"Status": "fail", "Message": op.error_message or "同步失败"}
 
+    def process_pricing_audit_webhook(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """EIP 核价审核结果：返回 ``Status`` 为 bool、成功文案与接口规范一致。"""
+        adapter_name = "pricing_result"
+        if adapter_name not in SyncFactory.list_adapters():
+            return {"Status": False, "Message": f"未知的适配器: {adapter_name}"}
+
+        adapter = SyncFactory.create(adapter_name)
+        op = adapter.push_to_local(data)
+        self._persist_record(op)
+        self.logger.log_sync(op)
+
+        if op.status == SyncStatus.SUCCESS:
+            return {
+                "Status": True,
+                "Message": "审核结果已接收并更新本地单据状态",
+            }
+
+        err = op.error_message or "同步失败"
+        if err.startswith("保存失败: "):
+            err = err[len("保存失败: ") :]
+        return {"Status": False, "Message": err}
+
     def _persist_record(self, op: SyncOperationResult) -> None:
         completed_at = timezone.now()
         SyncRecord.objects.create(

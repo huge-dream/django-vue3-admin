@@ -27,7 +27,7 @@ from application import dispatch
 from application import settings
 from apps.pisadmin.miscprocurement.views import MiscInquiryComparisonShareBundleView
 from apps.pissupplier.views import PublicQuotationShareDetailView
-from sync.views import MiscMaterialSyncView
+from sync.views import MiscMaterialSyncView, PricingAuditResultSyncView
 from application.sse_views import sse_view
 from dvadmin.system.views.dictionary import InitDictionaryViewSet
 from dvadmin.system.views.login import (
@@ -106,9 +106,14 @@ urlpatterns = (
                 name="schema-redoc",
             ),
             path(
-                "api/sync/material/misc/",
+                "api/sync/material/misc",
                 MiscMaterialSyncView.as_view(),
                 name="sync-misc-material",
+            ),
+            path(
+                "api/pricing/applications/result",
+                PricingAuditResultSyncView.as_view(),
+                name="sync-pricing-audit-result",
             ),
             path(
                 "api/public/pissupplier/quotation/",
