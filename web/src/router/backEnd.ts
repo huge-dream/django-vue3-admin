@@ -267,6 +267,8 @@ export async function refreshRoutesForI18n() {
 	storesRoutesList.setRoutesList([...(dynamicRoutes[0].children || []), ...frameOut]);
 	// 通知侧边栏刷新菜单
 	mitt.emit('getBreadcrumbIndexSetFilterRoutes');
+	// 清除 tagsView 缓存，重新加载时会用新语言读取标题
+	Session.remove('tagsViewList');
 }
 
 /**

@@ -371,7 +371,7 @@ class UserViewSet(CustomModelViewSet):
             return ErrorResponse(msg="Invalid language code")
         user = request.user
         user.language = lang
-        user.save(update_fields=["language", "modifier", "modifier_time"])
+        user.save(update_fields=["language", "modifier", "update_datetime"])
         return DetailResponse(data={"language": lang}, msg="Language updated successfully")
 
     @action(methods=["PUT"], detail=True, permission_classes=[IsAuthenticated])

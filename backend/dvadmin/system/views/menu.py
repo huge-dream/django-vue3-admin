@@ -69,14 +69,25 @@ class WebRouterSerializer(CustomModelSerializer):
     title = serializers.SerializerMethodField()
 
     def get_title(self, obj):
-        """Return title based on request language preference (D-05)"""
-        request = self.context.get('request')
-        if not request:
-            return obj.name
-        lang = getattr(request, 'LANGUAGE_CODE', None) or 'zh-hans'
+        lang = None
+        req = getattr(self, 'request', None)
+        if req:
+            user = getattr(req, 'user', None)
+            if user and getattr(user, 'is_authenticated', False):
+                lang = getattr(user, 'language', None)
+            # query_params.get() returns string (DRF QueryDict), or list if same param sent multiple times
+            _qp_lang = req.query_params.get('language', None)
+            if _qp_lang:
+                lang = _qp_lang[0] if isinstance(_qp_lang, list) else _qp_lang
+            if not lang:
+                meta_lang = req.META.get('HTTP_ACCEPT_LANGUAGE', '')
+                if meta_lang.startswith('en'):
+                    lang = 'en'
+                elif 'zh-tw' in meta_lang or 'zh-hant' in meta_lang:
+                    lang = 'zh-tw'
         if lang == 'en':
             return obj.name_en or obj.name
-        elif lang == 'zh-hant':
+        elif lang == 'zh-tw':
             return obj.name_zh_tw or obj.name
         return obj.name
 
