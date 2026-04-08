@@ -152,7 +152,7 @@ export const createCrudOptions = function ({ crudExpose }: Partial<CreateCrudOpt
           column: { width: 100 }
         },
         create_datetime: {
-          title: t('message.pages.system.user.createTime'),
+          title: t('message.pages.basicinfo.emailnotice.createTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }

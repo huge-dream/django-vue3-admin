@@ -230,13 +230,13 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           column: { width: 120 }
         },
         create_datetime: {
-          title: t('message.pages.system.user.createTime'),
+          title: t('message.pages.basicinfo.supplierUser.createTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }
         },
         update_datetime: {
-          title: t('message.pages.system.user.updateTime'),
+          title: t('message.pages.basicinfo.supplierUser.updateTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }

@@ -99,6 +99,7 @@ export default {
                     permissionNameRequired: '權限名稱必填',
                     permissionValueRequired: '權限標識必填',
                     batchGenerate: '批量生成',
+                    alreadyExists: '已存在，不可重複',
                 },
                 dialog: {
                     columnPermission: '字段權限',

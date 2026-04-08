@@ -114,13 +114,13 @@ export const createCrudOptions = function ({ crudExpose }: Partial<CreateCrudOpt
           column: { width: 120 }
         },
         createuser: {
-          title: t('message.pages.basicinfo.company.createTime'),
+          title: t('message.pages.basicinfo.company.createUser'),
           type: 'input',
           form: { show: false },
           column: { width: 140, showOverflowTooltip: true }
         },
         updateuser: {
-          title: t('message.pages.basicinfo.company.updateTime'),
+          title: t('message.pages.basicinfo.company.updateUser'),
           type: 'input',
           form: { show: false },
           column: { width: 140, showOverflowTooltip: true }

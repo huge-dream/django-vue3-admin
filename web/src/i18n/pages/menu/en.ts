@@ -99,6 +99,7 @@ export default {
                     permissionNameRequired: 'Permission name is required',
                     permissionValueRequired: 'Permission key is required',
                     batchGenerate: 'Batch Generate',
+                    alreadyExists: ' already exists and cannot be duplicated',
                 },
                 dialog: {
                     columnPermission: 'Column Permission',
