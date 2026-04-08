@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "apps.pisadmin.dashboard",
     "apps.pissupplier",
     "sync",
+    "dvadmin_ak_sk",
 ]
 
 MIDDLEWARE = [
