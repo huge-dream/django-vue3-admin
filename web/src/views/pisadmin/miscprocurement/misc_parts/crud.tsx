@@ -1,4 +1,5 @@
 import { dict, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud'
+import { useI18n } from 'vue-i18n'
 import * as api from './api'
 import { GetCompanies } from '../../basicinfo/currency/api'
 import { GetList as GetUnits } from '../../basicinfo/unit/api'
