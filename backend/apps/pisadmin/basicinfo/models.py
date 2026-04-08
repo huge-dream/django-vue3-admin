@@ -78,6 +78,8 @@ class SupplierUser(CoreModel):
 
     ROLE_CHOICES = (
         (1, "supplier_quote"),  # 供应商_报价
+        (2, "supplier_misc_quote"),  # 供应商_杂采报价
+        (3, "supplier_raw_quote"),  # 供应商_策采报价
     )
 
     supplier_id = models.CharField(

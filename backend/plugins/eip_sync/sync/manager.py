@@ -18,6 +18,7 @@ class SyncManager:
     """Routes inbound EIP webhooks to registered adapters."""
 
     SUCCESS_MESSAGE_MISC = "物料信息已成功抛转至PIS"
+    SUCCESS_MESSAGE_VENDOR_QUOTE_PERMISSION = "权限信息已成功跳转至PIS"
 
     def __init__(self):
         self.logger = SyncLogger()
@@ -32,9 +33,12 @@ class SyncManager:
         self.logger.log_sync(op)
 
         if op.status == SyncStatus.SUCCESS:
-            message = (
-                self.SUCCESS_MESSAGE_MISC if adapter_name == "misc_material" else "同步成功"
-            )
+            if adapter_name == "misc_material":
+                message = self.SUCCESS_MESSAGE_MISC
+            elif adapter_name == "vendor_quote_permission":
+                message = self.SUCCESS_MESSAGE_VENDOR_QUOTE_PERMISSION
+            else:
+                message = "同步成功"
             return {"Status": "success", "Message": message}
 
         return {"Status": "fail", "Message": op.error_message or "同步失败"}
