@@ -29,4 +29,8 @@ export default {
 		text: '打开手机扫一扫，快速登录/注册',
 	},
 	signInText: '欢迎回来！',
+	loginTitle: '采购询报价系统 - 采购端',
+	firstLoginTip: '初次登录请修改密码',
+	welcomeLogin: '欢迎登录',
+	copyright: 'Copyright © AVC 版权所有',
 };

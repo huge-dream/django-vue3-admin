@@ -1,7 +1,7 @@
 <template>
 	<el-form ref="formRef" size="large" class="login-content-form" :model="state.ruleForm" :rules="rules" @keyup.enter="loginClick">
 		<el-form-item class="login-animation1" prop="username">
-			<el-input type="text" :placeholder="$t('message.account.accountPlaceholder1')" v-model="ruleForm.username"
+			<el-input type="text" :placeholder="$t('message.pages.login.account.accountPlaceholder1')" v-model="ruleForm.username"
 				clearable autocomplete="off">
 				<template #prefix>
 					<el-icon class="el-input__icon"><ele-User /></el-icon>
@@ -9,7 +9,7 @@
 			</el-input>
 		</el-form-item>
 		<el-form-item class="login-animation2" prop="password">
-			<el-input :type="isShowPassword ? 'text' : 'password'" :placeholder="$t('message.account.accountPlaceholder2')"
+			<el-input :type="isShowPassword ? 'text' : 'password'" :placeholder="$t('message.pages.login.account.accountPlaceholder2')"
 				v-model="ruleForm.password">
 				<template #prefix>
 					<el-icon class="el-input__icon"><ele-Unlock /></el-icon>
@@ -24,7 +24,7 @@
 		</el-form-item>
 		<el-form-item class="login-animation3" v-if="isShowCaptcha" prop="captcha">
 			<el-col :span="15">
-				<el-input type="text" maxlength="4" :placeholder="$t('message.account.accountPlaceholder3')"
+				<el-input type="text" maxlength="4" :placeholder="$t('message.pages.login.account.accountPlaceholder3')"
 					v-model="ruleForm.captcha" clearable autocomplete="off">
 					<template #prefix>
 						<el-icon class="el-input__icon"><ele-Position /></el-icon>
@@ -41,7 +41,7 @@
 		<el-form-item class="login-animation4">
 			<el-button type="primary" class="login-content-submit" round @click="loginClick"
 				:loading="loading.signIn">
-				<span>{{ $t('message.account.accountBtnText') }}</span>
+				<span>{{ $t('message.pages.login.account.accountBtnText') }}</span>
 			</el-button>
 		</el-form-item>
 	</el-form>
@@ -193,7 +193,7 @@ export default defineComponent({
 			// 登录成功提示
 			// 关闭 loading
 			state.loading.signIn = true;
-			const signInText = t('message.signInText');
+			const signInText = t('message.pages.login.signInText');
 			ElMessage.success(`${currentTimeInfo}，${signInText}`);
 			// 添加 loading，防止第一次进入界面时出现短暂空白
 			NextLoading.start();

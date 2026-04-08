@@ -14,6 +14,8 @@ export default {
 		accountPlaceholder1: 'Please enter your login account',
 		accountPlaceholder2: 'Please enter your login password',
 		accountPlaceholder3: 'Please enter the verification code',
+		accountPlaceholder4: 'Please enter new password',
+		accountPlaceholder5: 'Please enter new password again',
 		accountBtnText: 'Sign in',
 	},
 	mobile: {
@@ -28,4 +30,8 @@ export default {
 		text: 'Open the mobile phone to scan and quickly log in / register',
 	},
 	signInText: 'welcome back!',
+	loginTitle: 'Procurement Quotation System - Buyer Portal',
+	firstLoginTip: 'Please change your password on first login',
+	welcomeLogin: 'Welcome',
+	copyright: 'Copyright © AVC All Rights Reserved',
 };

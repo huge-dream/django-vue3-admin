@@ -30,61 +30,81 @@
                         "name": "查询",
                         "value": "user:Search",
                         "api": "/api/system/user/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Search",
+                        "name_zh_tw": "查詢"
                     },
                     {
                         "name": "新增",
                         "value": "user:Create",
                         "api": "/api/system/user/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Add",
+                        "name_zh_tw": "新增"
                     },
                     {
                         "name": "编辑",
                         "value": "user:Update",
                         "api": "/api/system/user/{id}/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Edit",
+                        "name_zh_tw": "編輯"
                     },
                     {
                         "name": "删除",
                         "value": "user:Delete",
                         "api": "/api/system/user/{id}/",
-                        "method": 3
+                        "method": 3,
+                        "name_en": "Delete",
+                        "name_zh_tw": "刪除"
                     },
                     {
                         "name": "导出",
                         "value": "user:Export",
                         "api": "/api/system/user/export/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Export",
+                        "name_zh_tw": "導出"
                     },
                     {
                         "name": "导入",
                         "value": "user:Import",
                         "api": "/api/system/user/import/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Import",
+                        "name_zh_tw": "導入"
                     },
                     {
                         "name": "获取导入模板",
                         "value": "user:ImportTemplate",
                         "api": "/api/system/user/import/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Get Import Template",
+                        "name_zh_tw": "獲取導入模板"
                     },
                     {
                         "name": "批量更新模板",
                         "value": "user:BatchUpdateTemplate",
                         "api": "/api/system/user/update_template/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Batch Update Template",
+                        "name_zh_tw": "批量更新模板"
                     },
                     {
                         "name": "重设密码",
                         "value": "user:ResetPassword",
                         "api": "/api/system/user/{id}/reset_password/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Reset Password",
+                        "name_zh_tw": "重設密碼"
                     },
                     {
                         "name": "重置密码",
                         "value": "user:ResetDefaultPassword",
                         "api": "/api/system/user/{id}/reset_to_default_password/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Reset Password",
+                        "name_zh_tw": "重置密碼"
                     }
                 ],
                 "menu_field": [
@@ -163,7 +183,9 @@
                         "title": "用户类型",
                         "model": "Users"
                     }
-                ]
+                ],
+                "name_en": "User Management",
+                "name_zh_tw": "用戶管理"
             },
             {
                 "name": "菜单管理",
@@ -183,112 +205,150 @@
                         "name": "查询",
                         "value": "menu:Search",
                         "api": "/api/system/menu/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Search",
+                        "name_zh_tw": "查詢"
                     },
                     {
                         "name": "单例",
                         "value": "menu:Retrieve",
                         "api": "/api/system/menu/{id}/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Retrieve",
+                        "name_zh_tw": "單例"
                     },
                     {
                         "name": "新增",
                         "value": "menu:Create",
                         "api": "/api/system/menu/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Add",
+                        "name_zh_tw": "新增"
                     },
                     {
                         "name": "编辑",
                         "value": "menu:Update",
                         "api": "/api/system/menu/{id}/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Edit",
+                        "name_zh_tw": "編輯"
                     },
                     {
                         "name": "删除",
                         "value": "menu:Delete",
                         "api": "/api/system/menu/{id}/",
-                        "method": 3
+                        "method": 3,
+                        "name_en": "Delete",
+                        "name_zh_tw": "刪除"
                     },
                     {
                         "name": "查询所有",
                         "value": "menu:SearchAll",
                         "api": "/api/system/menu/get_all_menu/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Query All",
+                        "name_zh_tw": "查詢所有"
                     },
                     {
                         "name": "路由",
                         "value": "menu:router",
                         "api": "/api/system/menu/web_router/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Route",
+                        "name_zh_tw": "路由"
                     },
                     {
                         "name": "查询按钮",
                         "value": "menu:SearchButton",
                         "api": "/api/system/menu_button/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Query Buttons",
+                        "name_zh_tw": "查詢按鈕"
                     },
                     {
                         "name": "新增按钮",
                         "value": "menu:CreateButton",
                         "api": "/api/system/menu_button/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Add Button",
+                        "name_zh_tw": "新增按鈕"
                     },
                     {
                         "name": "编辑按钮",
                         "value": "menu:UpdateButton",
                         "api": "/api/system/menu_button/{id}/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Edit Button",
+                        "name_zh_tw": "編輯按鈕"
                     },
                     {
                         "name": "删除按钮",
                         "value": "menu:DeleteButton",
                         "api": "/api/system/menu_button/{id}/",
-                        "method": 3
+                        "method": 3,
+                        "name_en": "Delete Button",
+                        "name_zh_tw": "刪除按鈕"
                     },
                     {
                         "name": "上移",
                         "value": "menu:MoveUp",
                         "api": "/api/system/menu/mode_up/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Move Up",
+                        "name_zh_tw": "上移"
                     },
                     {
                         "name": "下移",
                         "value": "menu:MoveDown",
                         "api": "/api/system/menu/mode_down/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Move Down",
+                        "name_zh_tw": "下移"
                     },
                     {
                         "name": "查询列权限",
                         "value": "column:Search",
                         "api": "/api/system/column/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Query Column Perms",
+                        "name_zh_tw": "查詢列權限"
                     },
                     {
                         "name": "新增列权限",
                         "value": "column:Create",
                         "api": "/api/system/column/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Add Column Perms",
+                        "name_zh_tw": "新增列權限"
                     },
                     {
                         "name": "编辑列权限",
                         "value": "column:Update",
                         "api": "/api/system/column/{id}/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Edit Column Perms",
+                        "name_zh_tw": "編輯列權限"
                     },
                     {
                         "name": "删除列权限",
                         "value": "column:Delete",
                         "api": "/api/system/column/{id}/",
-                        "method": 3
+                        "method": 3,
+                        "name_en": "Delete Column Perms",
+                        "name_zh_tw": "刪除列權限"
                     },
                     {
                         "name": "自动匹配列权限",
                         "value": "column:Match",
                         "api": "/api/system/column/auto_match_fields/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Auto Match Col Perms",
+                        "name_zh_tw": "自動匹配列權限"
                     }
                 ],
-                "menu_field": []
+                "menu_field": [],
+                "name_en": "Menu Management",
+                "name_zh_tw": "選單管理"
             },
             {
                 "name": "部门管理",
@@ -308,58 +368,78 @@
                         "name": "查询",
                         "value": "dept:Search",
                         "api": "/api/system/dept/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Search",
+                        "name_zh_tw": "查詢"
                     },
                     {
                         "name": "详情",
                         "value": "dept:Retrieve",
                         "api": "/api/system/dept/{id}/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Detail",
+                        "name_zh_tw": "詳情"
                     },
                     {
                         "name": "获取所有部门",
                         "value": "dept:SearchAll",
                         "api": "/api/system/dept/all_dept/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Get All Depts",
+                        "name_zh_tw": "獲取所有部門"
                     },
                     {
                         "name": "部门顶部信息",
                         "value": "dept:HeaderInfo",
                         "api": "/api/system/dept/dept_info/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Dept Header Info",
+                        "name_zh_tw": "部門頂部資訊"
                     },
                     {
                         "name": "新增",
                         "value": "dept:Create",
                         "api": "/api/system/dept/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Add",
+                        "name_zh_tw": "新增"
                     },
                     {
                         "name": "上移",
                         "value": "dept:MoveUp",
                         "api": "/api/system/dept/mode_up/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Move Up",
+                        "name_zh_tw": "上移"
                     },
                     {
                         "name": "下移",
                         "value": "dept:MoveDown",
                         "api": "/api/system/dept/mode_down/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Move Down",
+                        "name_zh_tw": "下移"
                     },
                     {
                         "name": "编辑",
                         "value": "dept:Update",
                         "api": "/api/system/dept/{id}/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Edit",
+                        "name_zh_tw": "編輯"
                     },
                     {
                         "name": "删除",
                         "value": "dept:Delete",
                         "api": "/api/system/dept/{id}/",
-                        "method": 3
+                        "method": 3,
+                        "name_en": "Delete",
+                        "name_zh_tw": "刪除"
                     }
                 ],
-                "menu_field": []
+                "menu_field": [],
+                "name_en": "Department Management",
+                "name_zh_tw": "部門管理"
             },
             {
                 "name": "角色管理",
@@ -379,85 +459,113 @@
                         "name": "查询",
                         "value": "role:Search",
                         "api": "/api/system/role/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Search",
+                        "name_zh_tw": "查詢"
                     },
                     {
                         "name": "单例",
                         "value": "role:Retrieve",
                         "api": "/api/system/role/{id}/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Retrieve",
+                        "name_zh_tw": "單例"
                     },
                     {
                         "name": "新增",
                         "value": "role:Create",
                         "api": "/api/system/role/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Add",
+                        "name_zh_tw": "新增"
                     },
                     {
                         "name": "编辑",
                         "value": "role:Update",
                         "api": "/api/system/role/{id}/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Edit",
+                        "name_zh_tw": "編輯"
                     },
                     {
                         "name": "删除",
                         "value": "role:Delete",
                         "api": "/api/system/role/{id}/",
-                        "method": 3
+                        "method": 3,
+                        "name_en": "Delete",
+                        "name_zh_tw": "刪除"
                     },
                     {
                         "name": "获取所有可授权数据范围的部门",
                         "value": "role:AllDataRangeDept",
                         "api": "/api/system/role_menu_button_permision/role_to_dept_all/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Get Assignable Depts",
+                        "name_zh_tw": "獲取所有可授權數據範圍的部門"
                     },
                     {
                         "name": "获取所有可授权菜单",
                         "value": "role:AllCanMenu",
                         "api": "/api/system/role_menu_button_permision/get_role_menu/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Get All Assignable Menus",
+                        "name_zh_tw": "獲取所有可授權選單"
                     },
                     {
                         "name": "获取所有已授权用户",
                         "value": "role:AllAuthorizedUser",
                         "api": "/api/system/role/get_role_users/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Get Authorized Users",
+                        "name_zh_tw": "獲取所有已授權用戶"
                     },
                     {
                         "name": "获取菜单所有可授权按钮",
                         "value": "role:AllMenuButton",
                         "api": "/api/system/role_menu_button_permision/get_role_menu_btn_field/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Get All Assignable Buttons",
+                        "name_zh_tw": "獲取選單所有可授權按鈕"
                     },
                     {
                         "name": "授权菜单",
                         "value": "role:SetMenu",
                         "api": "/api/system/role_menu_button_permision/set_role_menu/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Assign Menu",
+                        "name_zh_tw": "授權選單"
                     },
                     {
                         "name": "授权菜单按钮",
                         "value": "role:SetMenuButton",
                         "api": "/api/system/role_menu_button_permision/set_role_menu_btn/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Assign Menu Buttons",
+                        "name_zh_tw": "授權選單按鈕"
                     },
                     {
                         "name": "授权数据范围",
                         "value": "role:SetDataRange",
                         "api": "/api/system/role_menu_button_permision/set_role_menu_btn_data_range/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Assign Data Range",
+                        "name_zh_tw": "授權數據範圍"
                     },
                     {
                         "name": "获取所有用户",
                         "value": "role:AllUser",
                         "api": "/api/system/user/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Get All Users",
+                        "name_zh_tw": "獲取所有用戶"
                     },
                     {
                         "name": "授权用户予角色",
                         "value": "role:SetUserRole",
                         "api": "/api/system/role/{id}/set_role_users/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Assign Users to Role",
+                        "name_zh_tw": "授權用戶予角色"
                     }
                 ],
                 "menu_field": [
@@ -516,7 +624,9 @@
                         "title": "修改时间",
                         "model": "Role"
                     }
-                ]
+                ],
+                "name_en": "Role Management",
+                "name_zh_tw": "角色管理"
             },
             {
                 "name": "消息中心",
@@ -537,31 +647,41 @@
                         "name": "查询",
                         "value": "messageCenter:Search",
                         "api": "/api/system/message_center/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Search",
+                        "name_zh_tw": "查詢"
                     },
                     {
                         "name": "详情",
                         "value": "messageCenter:Retrieve",
                         "api": "/api/system/message_center/{id}/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Detail",
+                        "name_zh_tw": "詳情"
                     },
                     {
                         "name": "新增",
                         "value": "messageCenter:Create",
                         "api": "/api/system/message_center/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Add",
+                        "name_zh_tw": "新增"
                     },
                     {
                         "name": "编辑",
                         "value": "messageCenter:Update",
                         "api": "/api/system/message_center/{id}/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Edit",
+                        "name_zh_tw": "編輯"
                     },
                     {
                         "name": "删除",
                         "value": "messageCenter:Delete",
                         "api": "/api/system/menu/{id}/",
-                        "method": 3
+                        "method": 3,
+                        "name_en": "Delete",
+                        "name_zh_tw": "刪除"
                     }
                 ],
                 "menu_field": [
@@ -615,7 +735,9 @@
                         "title": "修改时间",
                         "model": "MessageCenter"
                     }
-                ]
+                ],
+                "name_en": "Notification Center",
+                "name_zh_tw": "通知中心"
             },
             {
                 "name": "接口白名单",
@@ -636,31 +758,41 @@
                         "name": "查询",
                         "value": "api_white_list:Search",
                         "api": "/api/system/api_white_list/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Search",
+                        "name_zh_tw": "查詢"
                     },
                     {
                         "name": "详情",
                         "value": "api_white_list:Retrieve",
                         "api": "/api/system/api_white_list/{id}/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Detail",
+                        "name_zh_tw": "詳情"
                     },
                     {
                         "name": "新增",
                         "value": "api_white_list:Create",
                         "api": "/api/system/api_white_list/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Add",
+                        "name_zh_tw": "新增"
                     },
                     {
                         "name": "编辑",
                         "value": "api_white_list:Update",
                         "api": "/api/system/api_white_list/{id}/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Edit",
+                        "name_zh_tw": "編輯"
                     },
                     {
                         "name": "删除",
                         "value": "api_white_list:Delete",
                         "api": "/api/system/api_white_list/{id}/",
-                        "method": 3
+                        "method": 3,
+                        "name_en": "Delete",
+                        "name_zh_tw": "刪除"
                     }
                 ],
                 "menu_field": [
@@ -714,7 +846,9 @@
                         "title": "url",
                         "model": "ApiWhiteList"
                     }
-                ]
+                ],
+                "name_en": "API Whitelist",
+                "name_zh_tw": "接口白名單"
             },
             {
                 "name": "下载中心",
@@ -734,14 +868,20 @@
                     {
                         "name": "查询",
                         "value": "downloadCenter:Search",
-                        "api": "/api/system/download_center/"
+                        "api": "/api/system/download_center/",
+                        "name_en": "Search",
+                        "name_zh_tw": "查詢"
                     }
                 ],
-                "menu_field": []
+                "menu_field": [],
+                "name_en": "Download Center",
+                "name_zh_tw": "下載中心"
             }
         ],
         "menu_button": [],
-        "menu_field": []
+        "menu_field": [],
+        "name_en": "System Management",
+        "name_zh_tw": "系統設置"
     },
     {
         "name": "常规配置",
@@ -776,34 +916,46 @@
                         "name": "查询",
                         "value": "system_config:Search",
                         "api": "/api/system/system_config/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Search",
+                        "name_zh_tw": "查詢"
                     },
                     {
                         "name": "详情",
                         "value": "system_config:Retrieve",
                         "api": "/api/system/system_config/{id}/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Detail",
+                        "name_zh_tw": "詳情"
                     },
                     {
                         "name": "新增",
                         "value": "system_config:Create",
                         "api": "/api/system/system_config/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Add",
+                        "name_zh_tw": "新增"
                     },
                     {
                         "name": "编辑",
                         "value": "system_config:Update",
                         "api": "/api/system/system_config/{id}/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Edit",
+                        "name_zh_tw": "編輯"
                     },
                     {
                         "name": "删除",
                         "value": "system_config:Delete",
                         "api": "/api/system/system_config/{id}/",
-                        "method": 3
+                        "method": 3,
+                        "name_en": "Delete",
+                        "name_zh_tw": "刪除"
                     }
                 ],
-                "menu_field": []
+                "menu_field": [],
+                "name_en": "System Config",
+                "name_zh_tw": "系統配置"
             },
             {
                 "name": "字典管理",
@@ -824,31 +976,41 @@
                         "name": "查询",
                         "value": "dictionary:Search",
                         "api": "/api/system/dictionary/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Search",
+                        "name_zh_tw": "查詢"
                     },
                     {
                         "name": "详情",
                         "value": "dictionary:Retrieve",
                         "api": "/api/system/dictionary/{id}/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Detail",
+                        "name_zh_tw": "詳情"
                     },
                     {
                         "name": "新增",
                         "value": "dictionary:Create",
                         "api": "/api/system/dictionary/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Add",
+                        "name_zh_tw": "新增"
                     },
                     {
                         "name": "编辑",
                         "value": "dictionary:Update",
                         "api": "/api/system/dictionary/{id}/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Edit",
+                        "name_zh_tw": "編輯"
                     },
                     {
                         "name": "删除",
                         "value": "dictionary:Delete",
                         "api": "/api/system/dictionary/{id}/",
-                        "method": 3
+                        "method": 3,
+                        "name_en": "Delete",
+                        "name_zh_tw": "刪除"
                     }
                 ],
                 "menu_field": [
@@ -932,7 +1094,9 @@
                         "title": "字典编号",
                         "model": "Dictionary"
                     }
-                ]
+                ],
+                "name_en": "Dictionary Management",
+                "name_zh_tw": "字典管理"
             },
             {
                 "name": "地区管理",
@@ -953,31 +1117,41 @@
                         "name": "查询",
                         "value": "area:Search",
                         "api": "/api/system/area/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Search",
+                        "name_zh_tw": "查詢"
                     },
                     {
                         "name": "详情",
                         "value": "area:Retrieve",
                         "api": "/api/system/area/{id}/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Detail",
+                        "name_zh_tw": "詳情"
                     },
                     {
                         "name": "新增",
                         "value": "area:Create",
                         "api": "/api/system/area/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Add",
+                        "name_zh_tw": "新增"
                     },
                     {
                         "name": "编辑",
                         "value": "area:Update",
                         "api": "/api/system/area/{id}/",
-                        "method": 2
+                        "method": 2,
+                        "name_en": "Edit",
+                        "name_zh_tw": "編輯"
                     },
                     {
                         "name": "删除",
                         "value": "area:Delete",
                         "api": "/api/system/area/{id}/",
-                        "method": 3
+                        "method": 3,
+                        "name_en": "Delete",
+                        "name_zh_tw": "刪除"
                     }
                 ],
                 "menu_field": [
@@ -1051,7 +1225,9 @@
                         "title": "修改时间",
                         "model": "Area"
                     }
-                ]
+                ],
+                "name_en": "Area Management",
+                "name_zh_tw": "地區管理"
             },
             {
                 "name": "附件管理",
@@ -1072,25 +1248,33 @@
                         "name": "详情",
                         "value": "file:Retrieve",
                         "api": "/api/system/file/{id}/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Detail",
+                        "name_zh_tw": "詳情"
                     },
                     {
                         "name": "查询",
                         "value": "file:Search",
                         "api": "/api/system/file/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Search",
+                        "name_zh_tw": "查詢"
                     },
                     {
                         "name": "编辑",
                         "value": "file:Update",
                         "api": "/api/system/file/{id}/",
-                        "method": 1
+                        "method": 1,
+                        "name_en": "Edit",
+                        "name_zh_tw": "編輯"
                     },
                     {
                         "name": "删除",
                         "value": "file:Delete",
                         "api": "/api/system/file/{id}/",
-                        "method": 3
+                        "method": 3,
+                        "name_en": "Delete",
+                        "name_zh_tw": "刪除"
                     }
                 ],
                 "menu_field": [
@@ -1164,11 +1348,15 @@
                         "title": "url",
                         "model": "FileList"
                     }
-                ]
+                ],
+                "name_en": "File Management",
+                "name_zh_tw": "附件管理"
             }
         ],
         "menu_button": [],
-        "menu_field": []
+        "menu_field": [],
+        "name_en": "General Config",
+        "name_zh_tw": "常規配置"
     },
     {
         "name": "日志管理",
@@ -1203,13 +1391,17 @@
                         "name": "查询",
                         "value": "login_log:Search",
                         "api": "/api/system/login_log/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Search",
+                        "name_zh_tw": "查詢"
                     },
                     {
                         "name": "详情",
                         "value": "login_log:Retrieve",
                         "api": "/api/system/login_log/{id}/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Detail",
+                        "name_zh_tw": "詳情"
                     }
                 ],
                 "menu_field": [
@@ -1333,7 +1525,9 @@
                         "title": "登录用户名",
                         "model": "LoginLog"
                     }
-                ]
+                ],
+                "name_en": "Login Logs",
+                "name_zh_tw": "登錄日誌"
             },
             {
                 "name": "操作日志",
@@ -1354,13 +1548,17 @@
                         "name": "详情",
                         "value": "operation_log:Retrieve",
                         "api": "/api/system/operation_log/{id}/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Detail",
+                        "name_zh_tw": "詳情"
                     },
                     {
                         "name": "查询",
                         "value": "operation_log:Search",
                         "api": "/api/system/operation_log/",
-                        "method": 0
+                        "method": 0,
+                        "name_en": "Search",
+                        "name_zh_tw": "查詢"
                     }
                 ],
                 "menu_field": [
@@ -1454,10 +1652,59 @@
                         "title": "修改时间",
                         "model": "OperationLog"
                     }
-                ]
+                ],
+                "name_en": "Operation Logs",
+                "name_zh_tw": "操作日誌"
             }
         ],
         "menu_button": [],
-        "menu_field": []
+        "menu_field": [],
+        "name_en": "Log Management",
+        "name_zh_tw": "日誌管理"
+    },
+    {
+        "name": "定时任务",
+        "web_path": "/celeryManage",
+        "icon": "iconfont icon-",
+        "sort": 99,
+        "is_link": false,
+        "is_catalog": true,
+        "status": true,
+        "cache": false,
+        "visible": true,
+        "children": [
+            {
+                "name": "任务管理",
+                "web_path": "/taskManage",
+                "component": "celery/task/index",
+                "icon": "iconfont icon-",
+                "sort": 1,
+                "is_link": false,
+                "is_catalog": false,
+                "status": true,
+                "cache": false,
+                "visible": true,
+                "children": [],
+                "name_en": "Task Management",
+                "name_zh_tw": "任務管理"
+            },
+            {
+                "name": "任务日志",
+                "web_path": "/taskLog",
+                "component": "celery/taskLog/index",
+                "icon": "iconfont icon-",
+                "sort": 2,
+                "is_link": false,
+                "is_catalog": false,
+                "status": true,
+                "cache": false,
+                "visible": true,
+                "children": [],
+                "name_en": "Task Logs",
+                "name_zh_tw": "任務日誌"
+            }
+        ],
+        "name_en": "Scheduled Tasks",
+        "name_zh_tw": "定時任務"
     }
 ]

@@ -14,6 +14,8 @@ export default {
 		accountPlaceholder1: '請輸入登入賬號',
 		accountPlaceholder2: '請輸入登入密碼',
 		accountPlaceholder3: '請輸入驗證碼',
+		accountPlaceholder4: '請輸入新密碼',
+		accountPlaceholder5: '請再次輸入新密碼',
 		accountBtnText: '登入',
 	},
 	mobile: {
@@ -27,4 +29,8 @@ export default {
 		text: '打開手機掃一掃，快速登錄/注册',
 	},
 	signInText: '歡迎回來！',
+	loginTitle: '採購詢報價系統 - 採購端',
+	firstLoginTip: '初次登入請修改密碼',
+	welcomeLogin: '歡迎登入',
+	copyright: 'Copyright © AVC 版權所有',
 };
