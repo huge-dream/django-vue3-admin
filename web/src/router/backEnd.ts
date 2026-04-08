@@ -101,7 +101,9 @@ import {SystemConfigStore} from "/@/stores/systemConfig";
 import {useDeptInfoStore} from "/@/stores/modules/dept";
 import {DictionaryStore} from "/@/stores/dictionary";
 import {useFrontendMenuStore} from "/@/stores/frontendMenu";
+import {useThemeConfig} from "/@/stores/themeConfig";
 import {toRaw} from "vue";
+import mitt from "/@/utils/mitt";
 const menuApi = useMenuApi();
 
 const layouModules: any = import.meta.glob('../layout/routerView/*.{vue,tsx}');
@@ -240,7 +242,31 @@ export function getBackEndControlRoutes() {
 	useDeptInfoStore().requestDeptInfo()
 	// 获取字典信息
 	DictionaryStore().getSystemDictionarys()
-	return menuApi.getSystemMenu();
+	const { themeConfig } = storeToRefs(useThemeConfig(pinia))
+	return menuApi.getSystemMenu({ language: themeConfig.value.globalI18n });
+}
+
+/**
+ * 根据语言重新请求后端路由菜单
+ * @description 用于语言切换后刷新路由
+ */
+export async function refreshRoutesForI18n() {
+	const { themeConfig } = storeToRefs(useThemeConfig(pinia));
+	const res = await menuApi.getSystemMenu({ language: themeConfig.value.globalI18n });
+	const { frameIn, frameOut } = handleMenu(res.data);
+	const frameInProcessed = await backEndComponent(frameIn);
+	dynamicRoutes[0].children = [
+		...(frameInProcessed || []),
+		pissupplierQuotationDetailRoute,
+		pisadminRfqMiscInquiryDetailRoute,
+		pisadminRfqMiscComparePriceRoute,
+		pisadminMiscMaterialsIndexRoute,
+		pisadminRfsOperationLogsRoute
+	];
+	const storesRoutesList = useRoutesList(pinia);
+	storesRoutesList.setRoutesList([...(dynamicRoutes[0].children || []), ...frameOut]);
+	// 通知侧边栏刷新菜单
+	mitt.emit('getBreadcrumbIndexSetFilterRoutes');
 }
 
 /**

@@ -1,0 +1,65 @@
+// Define content
+export default {
+    message: {
+        pages: {
+            operationLog: {
+                table: {
+                    columns: {
+                        module: 'Module',
+                        method: 'Method',
+                        operationType: 'Operation Type',
+                        requestUrl: 'Request URL',
+                        requestParam: 'Request Params',
+                        responseCode: 'Response Code',
+                        duration: 'Duration (ms)',
+                        status: 'Status',
+                        createTime: 'Operation Time',
+                        creator: 'Operator',
+                        remark: 'Details',
+                        index: 'No.',
+                        keyword: 'Keyword',
+                        requestModule: 'Request Module',
+                        requestPath: 'Request URL',
+                        requestBody: 'Request Params',
+                        requestMethod: 'Request Method',
+                        requestMsg: 'Description',
+                        requestIp: 'IP Address',
+                        requestBrowser: 'Browser',
+                        requestOs: 'OS',
+                        jsonResult: 'Response',
+                        creatorName: 'Operator',
+                    },
+                },
+                form: {
+                    module: 'Module',
+                    remark: 'Details',
+                    modulePlaceholder: 'Enter module',
+                    remarkPlaceholder: 'Enter details',
+                    keywordPlaceholder: 'Enter keyword',
+                    requestModulePlaceholder: 'Enter request module',
+                    requestPathPlaceholder: 'Enter request URL',
+                    requestBodyPlaceholder: 'Enter request params',
+                    requestMethodPlaceholder: 'Enter request method',
+                    requestIpPlaceholder: 'Enter IP address',
+                },
+                validation: {
+                    moduleMaxLength: 'Module must be 100 characters or less',
+                    remarkMaxLength: 'Details must be 500 characters or less',
+                },
+                buttons: {
+                    view: 'View',
+                    query: 'Query',
+                    export: 'Export',
+                    refresh: 'Refresh',
+                    reset: 'Reset',
+                    timeRange: 'Operation Time Range',
+                    operationType: 'Operation Type',
+                },
+                messages: {
+                    querySuccess: 'Query successful',
+                    exportSuccess: 'Exported successfully',
+                },
+            },
+        },
+    },
+};

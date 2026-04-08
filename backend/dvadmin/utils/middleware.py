@@ -8,6 +8,8 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.exceptions import MultipleObjectsReturned
 from django.http import HttpResponse, HttpResponseServerError
+from django.utils import translation
+from django.utils.translation.trans_real import parse_accept_lang_header
 from django.utils.deprecation import MiddlewareMixin
 
 from dvadmin.system.models import OperationLog
@@ -166,3 +168,54 @@ class HealthCheckMiddleware(object):
             return HttpResponseServerError("cache: cannot connect to cache.")
 
         return HttpResponse("OK")
+
+
+class LocaleMiddleware:
+    """Set request locale from Accept-Language header (D-03: header always wins)."""
+
+    # Map frontend locale codes to Django locale codes (D-07 fallback order)
+    LOCALE_MAP = {
+        'en': 'en',
+        'zh-cn': 'zh-hans',
+        'zh-tw': 'zh-hant',
+    }
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        lang_code = None
+
+        # 1. Accept-Language header always wins (D-03)
+        accept_lang = request.META.get('HTTP_ACCEPT_LANGUAGE', '')
+        if accept_lang:
+            try:
+                for code, _priority in parse_accept_lang_header(accept_lang):
+                    if code == '*':
+                        continue
+                    # Normalize: 'zh-CN' -> 'zh-cn'
+                    normalized = code.lower().replace('_', '-')
+                    if normalized in self.LOCALE_MAP:
+                        lang_code = self.LOCALE_MAP[normalized]
+                        break
+                    elif code in dict(settings.LANGUAGES):
+                        lang_code = code
+                        break
+            except Exception:
+                pass
+
+        # 2. Authenticated user DB preference as fallback (D-01: header wins)
+        if not lang_code and hasattr(request, 'user') and request.user.is_authenticated:
+            user_lang = getattr(request.user, 'language', None) or 'zh-cn'
+            lang_code = self.LOCALE_MAP.get(user_lang, user_lang)
+
+        # 3. Default for unauthenticated/unknown (D-06: zh-CN default)
+        if not lang_code:
+            lang_code = 'zh-hans'
+
+        translation.activate(lang_code)
+        request.LANGUAGE_CODE = lang_code
+
+        response = self.get_response(request)
+        translation.deactivate()
+        return response

@@ -73,6 +73,7 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",  # 跨域中间件
+    "dvadmin.utils.middleware.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -151,6 +152,22 @@ USE_I18N = True
 USE_L10N = True
 
 USE_TZ = False
+
+# ================================================= #
+# *************** 国际化配置 (i18n) *************** #
+# ================================================= #
+
+# Supported languages — maps frontend codes to Django locale names (D-07)
+LANGUAGES = [
+    ('zh-hans', 'Simplified Chinese'),
+    ('en', 'English'),
+    ('zh-hant', 'Traditional Chinese'),
+]
+
+# Locale file paths for Django .po/.mo files (BEI-04)
+LOCALE_PATHS = [
+    os.path.join(BASE_DIR, "locale"),
+]
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/

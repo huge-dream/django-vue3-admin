@@ -1,0 +1,267 @@
+# Simplified Chinese translations for Django.
+# Copyright (C) 2026
+# This file is distributed under the same license as the Django project.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: django-vue3-admin\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-31 00:00+0000\n"
+"PO-Revision-Date: 2026-03-31 00:00+0000\n"
+"Last-Translator: \n"
+"Language: zh_Hans\n"
+"Language-Team: \n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: django-vue3-admin i18n phase 1\n"
+
+#: dvadmin/utils/json_response.py
+msgid "error"
+msgstr "错误"
+
+#: dvadmin/utils/exception.py
+msgid "Endpoint address is incorrect"
+msgstr "接口地址不正确"
+
+msgid "Delete failed: this record has related data bindings"
+msgstr "删除失败:该条数据与其他数据有相关绑定"
+
+#: dvadmin/utils/backends.py
+msgid "This account has been disabled. Contact an administrator to unlock it."
+msgstr "当前用户已被禁用,请联系管理员!"
+
+#: dvadmin/utils/import_export.py
+msgid "Date format is incorrect"
+msgstr "日期格式不正确"
+
+#: dvadmin/utils/import_export_mixin.py
+msgid "No."
+msgstr "序号"
+
+msgid "Import"
+msgstr "导入"
+
+msgid "Template"
+msgstr "模板"
+
+msgid "Export"
+msgstr "导出"
+
+msgid "Update primary key (do not modify)"
+msgstr "更新主键(勿改)"
+
+msgid "Please configure the corresponding export template fields."
+msgstr "请配置对应的导出模板字段。"
+
+msgid "Please configure the corresponding import template fields."
+msgstr "请配置对应的导入模板字段。"
+
+msgid "Please configure the corresponding import serializer."
+msgstr "请配置对应的导入序列化器。"
+
+msgid "Please configure the corresponding export serializer."
+msgstr "请配置对应的导出序列化器。"
+
+msgid "Import successful"
+msgstr "导入成功"
+
+msgid "Data export task"
+msgstr "数据导出任务"
+
+msgid "Import task has been created. Please go to 'Download Center' to wait for download"
+msgstr "导入任务已创建,请前往'下载中心'等待下载"
+
+#: dvadmin/utils/viewset.py
+msgid "Create successful"
+msgstr "新增成功"
+
+msgid "Query successful"
+msgstr "获取成功"
+
+msgid "Update successful"
+msgstr "更新成功"
+
+msgid "Delete successful"
+msgstr "删除成功"
+
+msgid "keys field not provided"
+msgstr "未获取到keys字段"
+
+#: dvadmin/system/views/login.py
+msgid "Verification code is required"
+msgstr "验证码不能为空"
+
+msgid "Verification code has expired"
+msgstr "验证码已过期"
+
+msgid "Image verification code is incorrect"
+msgstr "图片验证码错误"
+
+msgid "The account you are logging in with does not exist"
+msgstr "您登录的账号不存在"
+
+msgid "Multiple accounts found for this login. Contact an administrator to check account uniqueness"
+msgstr "您登录的账号存在多个,请联系管理员检查登录账号唯一性"
+
+msgid "Account has been locked. Contact an administrator to unlock"
+msgstr "账号已被锁定,联系管理员解锁"
+
+msgid "Username/password incorrect. Account will be locked after {} failed attempts~"
+msgstr "账号/密码错误;重试{}次后将被锁定~"
+
+msgid "Request successful"
+msgstr "请求成功"
+
+msgid "This interface is not yet available"
+msgstr "该接口暂未开通!"
+
+msgid "Logout successful"
+msgstr "注销成功"
+
+msgid "Username/password incorrect"
+msgstr "账号/密码错误"
+
+#: dvadmin/system/views/user.py
+msgid "Username must be unique"
+msgstr "账号必须唯一"
+
+msgid "Mobile number must be unique"
+msgstr "手机号必须唯一"
+
+msgid "Enabled"
+msgstr "启用"
+
+msgid "Disabled"
+msgstr "停用"
+
+msgid "Username"
+msgstr "用户账号"
+
+msgid "Full name"
+msgstr "用户名称"
+
+msgid "Email"
+msgstr "用户邮箱"
+
+msgid "Mobile"
+msgstr "手机号码"
+
+msgid "Gender"
+msgstr "用户性别"
+
+msgid "Account status"
+msgstr "帐号状态"
+
+msgid "Last login time"
+msgstr "最后登录时间"
+
+msgid "Department name"
+msgstr "部门名称"
+
+msgid "Department head"
+msgstr "部门负责人"
+
+msgid "Login username"
+msgstr "登录账号"
+
+msgid "Department"
+msgstr "部门"
+
+msgid "Role"
+msgstr "角色"
+
+msgid "No department"
+msgstr "暂无部门"
+
+msgid "Parameters cannot be empty"
+msgstr "参数不能为空"
+
+msgid "Passwords do not match"
+msgstr "两次密码不匹配"
+
+msgid "Old password is incorrect"
+msgstr "旧密码不正确"
+
+msgid "Invalid language code"
+msgstr "无效的语言代码"
+
+msgid "Language updated successfully"
+msgstr "语言更新成功"
+
+msgid "Only super administrators can reset passwords"
+msgstr "只允许超级管理员对其进行密码重置"
+
+msgid "Password reset successful"
+msgstr "密码重置成功"
+
+msgid "User not found"
+msgstr "未获取到用户"
+
+#: dvadmin/system/views/role.py
+msgid "Permission key must be unique"
+msgstr "权限字符必须唯一"
+#: dvadmin/system/views/role.py
+msgid "Please select a role"
+msgstr "请选择角色"
+#: dvadmin/system/views/role.py
+msgid "Please select a user"
+msgstr "请选择用户"
+#: dvadmin/system/views/role.py
+msgid "Add successful"
+msgstr "添加成功"
+#: dvadmin/system/views/menu.py
+msgid "Menu does not exist"
+msgstr "菜单不存在"
+#: dvadmin/system/views/menu.py
+msgid "Move up successful"
+msgstr "上移成功"
+#: dvadmin/system/views/menu.py
+msgid "Move down successful"
+msgstr "下移成功"
+#: dvadmin/system/views/dept.py
+msgid "Department does not exist"
+msgstr "部门不存在"
+#: dvadmin/system/views/role_menu.py
+msgid "Role parameter not provided"
+msgstr "未获取到角色参数"
+#: dvadmin/system/views/role_menu.py
+msgid "Menu parameter not provided"
+msgstr "未获取到菜单参数"
+#: dvadmin/system/views/role_menu.py
+msgid "Save successful"
+msgstr "保存成功"
+#: dvadmin/system/views/system_config.py
+msgid "Variable name already exists"
+msgstr "已存在相同变量名"
+#: dvadmin/system/views/system_config.py
+msgid "Query error~"
+msgstr "查询出错了~"
+#: dvadmin/system/views/system_config.py
+msgid "Association information not found"
+msgstr "未获取到关联信息"
+#: dvadmin/system/views/menu_button.py
+msgid "Batch creation successful"
+msgstr "批量创建成功"
+#: dvadmin/system/views/menu_button.py
+msgid "Add"
+msgstr "新增"
+#: dvadmin/system/views/menu_button.py
+msgid "Edit"
+msgstr "编辑"
+#: dvadmin/system/views/menu_field.py
+msgid "Model table does not exist"
+msgstr "模型表不存在"
+#: dvadmin/system/views/menu_field.py
+msgid "Field permission for '%s' already exists and cannot be duplicated"
+msgstr "'%s' 字段权限已有，不可重复创建"
+#: dvadmin/system/views/menu_field.py
+msgid "Match successful"
+msgstr "匹配成功"
+#: dvadmin/system/views/message_center.py
+msgid "You have a new message~"
+msgstr "您有一条新消息~"
+#: dvadmin/system/views/message_center.py
+msgid "You viewed a message~"
+msgstr "您查看了一条消息~"

@@ -24,7 +24,7 @@ class MenuSerializer(CustomModelSerializer):
     hasChild = serializers.SerializerMethodField()
 
     def get_menuPermission(self, instance):
-        queryset = instance.menuPermission.order_by('-name').values('id', 'name', 'value')
+        queryset = instance.menuPermission.order_by('-name').values('id', 'name', 'name_en', 'name_zh_tw', 'value')
         # MenuButtonSerializer(instance.menuPermission.all(), many=True)
         if queryset:
             return queryset
@@ -66,13 +66,25 @@ class WebRouterSerializer(CustomModelSerializer):
     前端菜单路由的简单序列化器
     """
     path = serializers.CharField(source="web_path")
-    title = serializers.CharField(source="name")
+    title = serializers.SerializerMethodField()
+
+    def get_title(self, obj):
+        """Return title based on request language preference (D-05)"""
+        request = self.context.get('request')
+        if not request:
+            return obj.name
+        lang = getattr(request, 'LANGUAGE_CODE', None) or 'zh-hans'
+        if lang == 'en':
+            return obj.name_en or obj.name
+        elif lang == 'zh-hant':
+            return obj.name_zh_tw or obj.name
+        return obj.name
 
     class Meta:
         model = Menu
         fields = (
             'id', 'parent', 'icon', 'sort', 'path', 'name', 'title', 'is_link','link_url', 'is_catalog', 'web_path', 'component',
-            'component_name', 'cache', 'visible','is_iframe','is_affix', 'status')
+            'component_name', 'cache', 'visible','is_iframe','is_affix', 'status', 'name_en', 'name_zh_tw')
         read_only_fields = ["id"]
 
 

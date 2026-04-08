@@ -1,5 +1,6 @@
 // 引入fast-crud
 import {FastCrud, useTypes} from '@fast-crud/fast-crud';
+import { i18n } from '/@/i18n';
 
 const {getType} = useTypes();
 import '@fast-crud/fast-crud/dist/style.css';
@@ -19,7 +20,7 @@ export default {
         app.use(ui);
         // 然后安装FastCrud
         app.use(FastCrud, {
-            //i18n, //i18n配置，可选，默认使用中文，具体用法请看demo里的 src/i18n/index.js 文件
+            i18n, // fast-crud 国际化，支持 search/reset 按钮、操作列等界面文字
             // 此处配置公共的dictRequest（字典请求）
             async dictRequest({dict,url}: any) {
                 const {isTree} = dict

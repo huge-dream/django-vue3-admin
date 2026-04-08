@@ -1,0 +1,65 @@
+// 定义内容
+export default {
+    message: {
+        pages: {
+            operationLog: {
+                table: {
+                    columns: {
+                        module: '操作模块',
+                        method: '请求方式',
+                        operationType: '操作类型',
+                        requestUrl: '请求地址',
+                        requestParam: '请求参数',
+                        responseCode: '响应码',
+                        duration: '耗时(ms)',
+                        status: '状态',
+                        createTime: '操作时间',
+                        creator: '操作人',
+                        remark: '操作详情',
+                        index: '序号',
+                        keyword: '关键词',
+                        requestModule: '请求模块',
+                        requestPath: '请求地址',
+                        requestBody: '请求参数',
+                        requestMethod: '请求方法',
+                        requestMsg: '操作说明',
+                        requestIp: 'IP地址',
+                        requestBrowser: '请求浏览器',
+                        requestOs: '操作系统',
+                        jsonResult: '返回信息',
+                        creatorName: '操作人',
+                    },
+                },
+                form: {
+                    module: '操作模块',
+                    remark: '操作详情',
+                    modulePlaceholder: '请输入操作模块',
+                    remarkPlaceholder: '请输入操作详情',
+                    keywordPlaceholder: '请输入关键词',
+                    requestModulePlaceholder: '请输入请求模块',
+                    requestPathPlaceholder: '请输入请求地址',
+                    requestBodyPlaceholder: '请输入请求参数',
+                    requestMethodPlaceholder: '请输入请求方法',
+                    requestIpPlaceholder: '请输入IP地址',
+                },
+                validation: {
+                    moduleMaxLength: '操作模块不能超过100个字符',
+                    remarkMaxLength: '操作详情不能超过500个字符',
+                },
+                buttons: {
+                    view: '查看',
+                    query: '查询',
+                    export: '导出',
+                    refresh: '刷新',
+                    reset: '重置',
+                    timeRange: '操作时间范围',
+                    operationType: '操作类型',
+                },
+                messages: {
+                    querySuccess: '查询成功',
+                    exportSuccess: '导出成功',
+                },
+            },
+        },
+    },
+};
