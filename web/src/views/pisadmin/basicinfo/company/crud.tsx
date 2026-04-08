@@ -2,14 +2,11 @@ import { dict, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/f
 import * as api from './api'
 import { useUserInfo } from '/@/stores/userInfo'
 import { ElMessage } from 'element-plus'
-
-const statusDict = [
-  { value: 1, label: '可用' },
-  { value: 0, label: '不可用' }
-]
+import { useI18n } from 'vue-i18n'
 
 export const createCrudOptions = function ({ crudExpose }: Partial<CreateCrudOptionsProps>): CreateCrudOptionsRet {
   void crudExpose
+  const { t } = useI18n()
   const userStore = useUserInfo()
   const currentUser =
     userStore.userInfos?.name ||
@@ -30,7 +27,7 @@ export const createCrudOptions = function ({ crudExpose }: Partial<CreateCrudOpt
       []
     const exists = Array.isArray(list) ? list.find((item: any) => item.company_code === code) : null
     if (exists && (!currentId || exists.id !== currentId)) {
-      throw new Error('公司代码已存在，不可重复')
+      throw new Error(t('message.pages.basicinfo.company.companyCode') + t('message.pages.menu.validation.alreadyExists'))
     }
   }
   return {
@@ -84,46 +81,46 @@ export const createCrudOptions = function ({ crudExpose }: Partial<CreateCrudOpt
       },
       columns: {
         company_code: {
-          title: '公司代码',
+          title: t('message.pages.basicinfo.company.companyCode'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入公司代码', clearable: true } } },
-          form: { rules: [{ required: true, message: '请输入公司代码' }] },
+          search: { show: true, component: { props: { placeholder: t('message.pages.basicinfo.company.companyCode'), clearable: true } } },
+          form: { rules: [{ required: true, message: t('message.pages.basicinfo.company.companyCode') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           editForm: {
             component: { props: { disabled: true } }
           },
           column: { minWidth: 140, showOverflowTooltip: true }
         },
         company_name: {
-          title: '公司全称',
+          title: t('message.pages.basicinfo.company.companyName'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入公司全称', clearable: true } } },
+          search: { show: true, component: { props: { placeholder: t('message.pages.basicinfo.company.companyName'), clearable: true } } },
           column: { minWidth: 180, showOverflowTooltip: true }
         },
         company_short_name: {
-          title: '公司简称',
+          title: t('message.pages.basicinfo.company.companyShortName'),
           type: 'input',
           column: { minWidth: 150, showOverflowTooltip: true }
         },
         company_address: {
-          title: '公司地址',
+          title: t('message.pages.basicinfo.company.companyAddress'),
           type: 'input',
           column: { minWidth: 220, showOverflowTooltip: true }
         },
         status: {
-          title: '可用状态',
+          title: t('message.pages.basicinfo.company.status'),
           type: 'dict-switch',
-          dict: dict({ data: statusDict }),
+          dict: dict({ data: [{ value: 1, label: t('message.pages.basicinfo.company.enabled') }, { value: 0, label: t('message.pages.basicinfo.company.disabled') }] }),
           form: { value: 1 },
           column: { width: 120 }
         },
         createuser: {
-          title: '创建人员',
+          title: t('message.pages.system.user.createUser'),
           type: 'input',
           form: { show: false },
           column: { width: 140, showOverflowTooltip: true }
         },
         updateuser: {
-          title: '更新人员',
+          title: t('message.pages.system.user.updateUser'),
           type: 'input',
           form: { show: false },
           column: { width: 140, showOverflowTooltip: true }

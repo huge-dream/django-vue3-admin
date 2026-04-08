@@ -1,36 +1,7 @@
 import { compute, dict, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import * as api from './api'
-
-const statusDict = [
-  { value: 1, label: '开立' },
-  { value: 2, label: '确认' },
-  { value: 3, label: '发布' },
-  { value: 4, label: '报价中' },
-  { value: 5, label: '报价结束' },
-  { value: 6, label: '比议价中' },
-  { value: 7, label: '价格审核' },
-  { value: 8, label: '核价通过(结束)' },
-  { value: 9, label: '落标(结束)' },
-  { value: 0, label: '作废' }
-]
-
-const buyingMethodDict = [
-  { value: 1, label: '询价' },
-  { value: 2, label: '招标' }
-]
-
-const paymentMethods = [
-  { value: 1, label: '月结30天' },
-  { value: 2, label: '月结60天' },
-  { value: 3, label: '不到付款' },
-  { value: 4, label: '预付30%' },
-  { value: 5, label: '预付50%' },
-  { value: 6, label: '余款至生产' },
-  { value: 7, label: '价格审核' },
-  { value: 8, label: '价格结算(运费)' },
-  { value: 9, label: '新建(结束)' }
-]
 
 const formatQuoteDeadlineDisplay = (value: unknown) => {
   if (!value) return ''
@@ -950,6 +921,38 @@ export const createCrudOptions = function ({
 }: Partial<CreateCrudOptionsProps> & ExtraHooks): CreateCrudOptionsRet {
   void context
 
+  const { t } = useI18n()
+
+  const statusDict = [
+    { value: 1, label: t('message.pages.miscprocurement.rfqmiscellaneous.statusOpen') },
+    { value: 2, label: t('message.pages.miscprocurement.rfqmiscellaneous.statusConfirmed') },
+    { value: 3, label: t('message.pages.miscprocurement.rfqmiscellaneous.statusPublished') },
+    { value: 4, label: t('message.pages.miscprocurement.rfqmiscellaneous.statusQuoting') },
+    { value: 5, label: t('message.pages.miscprocurement.rfqmiscellaneous.statusQuotingEnd') },
+    { value: 6, label: t('message.pages.miscprocurement.rfqmiscellaneous.statusBargaining') },
+    { value: 7, label: t('message.pages.miscprocurement.rfqmiscellaneous.statusPriceAudit') },
+    { value: 8, label: t('message.pages.miscprocurement.rfqmiscellaneous.statusPriceApproved') },
+    { value: 9, label: t('message.pages.miscprocurement.rfqmiscellaneous.statusLost') },
+    { value: 0, label: t('message.pages.miscprocurement.rfqmiscellaneous.statusCancelled') }
+  ]
+
+  const buyingMethodDict = [
+    { value: 1, label: t('message.pages.miscprocurement.rfqmiscellaneous.buyingMethodInquiry') },
+    { value: 2, label: t('message.pages.miscprocurement.rfqmiscellaneous.buyingMethodBid') }
+  ]
+
+  const paymentMethods = [
+    { value: 1, label: t('message.pages.miscprocurement.rfqmiscellaneous.paymentMethod1') },
+    { value: 2, label: t('message.pages.miscprocurement.rfqmiscellaneous.paymentMethod2') },
+    { value: 3, label: t('message.pages.miscprocurement.rfqmiscellaneous.paymentMethod3') },
+    { value: 4, label: t('message.pages.miscprocurement.rfqmiscellaneous.paymentMethod4') },
+    { value: 5, label: t('message.pages.miscprocurement.rfqmiscellaneous.paymentMethod5') },
+    { value: 6, label: t('message.pages.miscprocurement.rfqmiscellaneous.paymentMethod6') },
+    { value: 7, label: t('message.pages.miscprocurement.rfqmiscellaneous.paymentMethod7') },
+    { value: 8, label: t('message.pages.miscprocurement.rfqmiscellaneous.paymentMethod8') },
+    { value: 9, label: t('message.pages.miscprocurement.rfqmiscellaneous.paymentMethod9') }
+  ]
+
   const getSelectedRows = () => {
     if (typeof getTableSelection === 'function') {
       const rows = getTableSelection()
@@ -976,11 +979,11 @@ export const createCrudOptions = function ({
   const pickSelectedRow = (): any | null => {
     const rows = getSelectedRows()
     if (!rows.length) {
-      ElMessage.warning('请先选择询价单')
+      ElMessage.warning(t('message.pages.miscprocurement.rfqmiscellaneous.selectInquiryFirst'))
       return null
     }
     if (rows.length > 1) {
-      ElMessage.warning('仅支持单条操作')
+      ElMessage.warning(t('message.pages.miscprocurement.rfqmiscellaneous.onlySingleOperation'))
       return null
     }
     return rows[0]
@@ -991,13 +994,13 @@ export const createCrudOptions = function ({
       form: {
         labelWidth: '120px',
         col: { span: 12 },
-        wrapper: { is: 'el-dialog', width: '960px', top: '6vh', title: '询价单' },
+        wrapper: { is: 'el-dialog', width: '960px', top: '6vh', title: t('message.pages.miscprocurement.rfqmiscellaneous.title') },
         group: {
           type: 'tab',
-          base: { label: '基础信息', columns: ['code', 'title', 'product_category', 'template', 'part_no', 'part_name', 'quote_deadline', 'purchase_qty', 'buyer', 'currency', 'plant', 'target_price', 'lead_time_days', 'payment_term', 'status', 'remark'] },
-          cost: { label: '成本结构', columns: ['cost_items'] },
-          vendors: { label: '供应商名单', columns: ['vendors'] },
-          attachments: { label: '附件', columns: ['attachments'] }
+          base: { label: t('message.pages.miscprocurement.rfqmiscellaneous.basicInfo'), columns: ['code', 'title', 'product_category', 'template', 'part_no', 'part_name', 'quote_deadline', 'purchase_qty', 'buyer', 'currency', 'plant', 'target_price', 'lead_time_days', 'payment_term', 'status', 'remark'] },
+          cost: { label: t('message.pages.miscprocurement.rfqmiscellaneous.costStructure'), columns: ['cost_items'] },
+          vendors: { label: t('message.pages.miscprocurement.rfqmiscellaneous.supplierList'), columns: ['vendors'] },
+          attachments: { label: t('message.pages.miscprocurement.rfqmiscellaneous.attachments'), columns: ['attachments'] }
         }
       },
       request: {
@@ -1009,7 +1012,7 @@ export const createCrudOptions = function ({
           try {
             return await api.DelObj(row.id)
           } catch (err: any) {
-            ElMessage.error(getErrorMessage(err, '删除失败'))
+            ElMessage.error(getErrorMessage(err, t('message.pages.miscprocurement.rfqmiscellaneous.deleteFailed')))
             throw err
           }
         }
@@ -1024,28 +1027,28 @@ export const createCrudOptions = function ({
         buttons: {
           add: {
             show: true,
-            text: '新建询价单',
+            text: t('message.pages.miscprocurement.rfqmiscellaneous.newInquiry'),
             click() {
               onAdd && onAdd()
             }
           },
           startBargaining: {
             show: true,
-            text: '开启比价',
+            text: t('message.pages.miscprocurement.rfqmiscellaneous.startBargain'),
             order: 2,
             type: 'warning',
             async click() {
               const row = pickSelectedRow()
               if (!row) return
               if (!isQuotingOrEndedStatus(row)) {
-                ElMessage.warning('仅报价中或报价结束状态可开启比价')
+                ElMessage.warning(t('message.pages.miscprocurement.rfqmiscellaneous.onlyQuotingCanBargain'))
                 return
               }
               try {
-                await ElMessageBox.confirm('确认将状态改为【比议价中】？', '提示', {
+                await ElMessageBox.confirm(t('message.pages.miscprocurement.rfqmiscellaneous.confirmBargainPrompt'), t('message.pages.miscprocurement.rfqmiscellaneous.prompt'), {
                   type: 'warning',
-                  confirmButtonText: '确定',
-                  cancelButtonText: '取消'
+                  confirmButtonText: t('message.pages.miscprocurement.rfqmiscellaneous.confirm'),
+                  cancelButtonText: t('message.pages.miscprocurement.rfqmiscellaneous.cancel')
                 })
                 await api.StartBargainingObj(row.id)
                 await api.SaveNegotiationRecordsObj(row.id, { records: [] })
@@ -1054,7 +1057,7 @@ export const createCrudOptions = function ({
                 crudExpose?.doRefresh?.()
               } catch (err: any) {
                 if (err === 'cancel' || err === 'close') return
-                ElMessage.error(getErrorMessage(err, '开启比价失败'))
+                ElMessage.error(getErrorMessage(err, t('message.pages.miscprocurement.rfqmiscellaneous.startBargainFailed')))
               }
             }
           },
@@ -1067,7 +1070,7 @@ export const createCrudOptions = function ({
           view: { show: false },
           edit: { show: false },
           remove: {
-            text: '删除',
+            text: t('message.pages.miscprocurement.rfqmiscellaneous.delete'),
             // 禁用时不沿用 danger 的淡红底，改为 info 灰底 + disabled
             type: compute(({ row }) => (isOpenStatus(row) ? 'danger' : 'info')),
             order: 1,
@@ -1075,7 +1078,7 @@ export const createCrudOptions = function ({
             disabled: compute(({ row }) => !isOpenStatus(row))
           },
           customView: {
-            text: '查看',
+            text: t('message.pages.miscprocurement.rfqmiscellaneous.view'),
             type: 'default',
             order: 0,
             show: true,
@@ -1084,7 +1087,7 @@ export const createCrudOptions = function ({
             }
           },
           customEdit: {
-            text: '编辑',
+            text: t('message.pages.miscprocurement.rfqmiscellaneous.edit'),
             type: compute(({ row }) => (isOpenStatus(row) ? 'primary' : 'info')),
             order: 1.5,
             show: true,
@@ -1095,7 +1098,7 @@ export const createCrudOptions = function ({
             }
           },
           confirm: {
-            text: '确认',
+            text: t('message.pages.miscprocurement.rfqmiscellaneous.confirm'),
             type: compute(({ row }) => (isOpenStatus(row) ? 'success' : 'info')),
             order: 2,
             show: true,
@@ -1105,26 +1108,26 @@ export const createCrudOptions = function ({
               try {
                 const supplierOk = rowHasSuppliersList(row)
                 if (supplierOk === false) {
-                  ElMessage.warning('请先维护询价单供应商名单后再确认')
+                  ElMessage.warning(t('message.pages.miscprocurement.rfqmiscellaneous.addSupplierFirst'))
                   return
                 }
-                await ElMessageBox.confirm('确认后，该询价单将锁定并不可再编辑。如需修改，后续需执行【还原】操作', '提示', {
+                await ElMessageBox.confirm(t('message.pages.miscprocurement.rfqmiscellaneous.confirmPrompt'), t('message.pages.miscprocurement.rfqmiscellaneous.prompt'), {
                   type: 'warning',
-                  confirmButtonText: '确定',
-                  cancelButtonText: '取消'
+                  confirmButtonText: t('message.pages.miscprocurement.rfqmiscellaneous.confirm'),
+                  cancelButtonText: t('message.pages.miscprocurement.rfqmiscellaneous.cancel')
                 })
                 const res = await api.ConfirmObj(row.id)
                 crudExpose?.doRefresh?.()
                 return res
               } catch (err: any) {
                 if (err === 'cancel' || err === 'close') return
-                ElMessage.error(getErrorMessage(err, '确认失败'))
+                ElMessage.error(getErrorMessage(err, t('message.pages.miscprocurement.rfqmiscellaneous.confirmFailed')))
                 throw err
               }
             }
           },
           restore: {
-            text: '还原',
+            text: t('message.pages.miscprocurement.rfqmiscellaneous.restore'),
             type: compute(({ row }) => (isConfirmedStatus(row) ? 'primary' : 'info')),
             order: 2.5,
             show: true,
@@ -1132,23 +1135,23 @@ export const createCrudOptions = function ({
             async click({ row }) {
               if (!isConfirmedStatus(row)) return
               try {
-                await ElMessageBox.confirm('确认将状态还原为【开立】？', '提示', {
+                await ElMessageBox.confirm(t('message.pages.miscprocurement.rfqmiscellaneous.restorePrompt'), t('message.pages.miscprocurement.rfqmiscellaneous.prompt'), {
                   type: 'warning',
-                  confirmButtonText: '确定',
-                  cancelButtonText: '取消'
+                  confirmButtonText: t('message.pages.miscprocurement.rfqmiscellaneous.confirm'),
+                  cancelButtonText: t('message.pages.miscprocurement.rfqmiscellaneous.cancel')
                 })
                 const res = await api.RestoreObj(row.id)
                 crudExpose?.doRefresh?.()
                 return res
               } catch (err: any) {
                 if (err === 'cancel' || err === 'close') return
-                ElMessage.error(getErrorMessage(err, '还原失败'))
+                ElMessage.error(getErrorMessage(err, t('message.pages.miscprocurement.rfqmiscellaneous.restoreFailed')))
                 throw err
               }
             }
           },
           publish: {
-            text: '发布',
+            text: t('message.pages.miscprocurement.rfqmiscellaneous.publish'),
             type: compute(({ row }) => (canPublishStatus(row) ? 'warning' : 'info')),
             order: 3,
             show: true,
@@ -1156,23 +1159,23 @@ export const createCrudOptions = function ({
             async click({ row }) {
               if (!canPublishStatus(row)) return
               try {
-                await ElMessageBox.confirm('确认将状态改为【发布】？', '提示', {
+                await ElMessageBox.confirm(t('message.pages.miscprocurement.rfqmiscellaneous.publishPrompt'), t('message.pages.miscprocurement.rfqmiscellaneous.prompt'), {
                   type: 'warning',
-                  confirmButtonText: '确定',
-                  cancelButtonText: '取消'
+                  confirmButtonText: t('message.pages.miscprocurement.rfqmiscellaneous.confirm'),
+                  cancelButtonText: t('message.pages.miscprocurement.rfqmiscellaneous.cancel')
                 })
                 const res = await api.PublishObj(row.id)
                 crudExpose?.doRefresh?.()
                 return res
               } catch (err: any) {
                 if (err === 'cancel' || err === 'close') return
-                ElMessage.error(getErrorMessage(err, '发布失败'))
+                ElMessage.error(getErrorMessage(err, t('message.pages.miscprocurement.rfqmiscellaneous.publishFailed')))
                 throw err
               }
             }
           },
           viewComparison: {
-            text: '比价',
+            text: t('message.pages.miscprocurement.rfqmiscellaneous.comparePrice'),
             type: compute(({ row }) => (canOpenComparison(row) ? 'primary' : 'info')),
             order: 0.25,
             show: true,
@@ -1198,7 +1201,7 @@ export const createCrudOptions = function ({
           }
         },
         company_short_name: {
-          title: '交易厂区',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.companyShortName'),
           type: 'text',
           form: { show: false },
           search: { show: false },
@@ -1212,12 +1215,12 @@ export const createCrudOptions = function ({
           }
         },
         buying_method: {
-          title: '采购方式',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.buyingMethod'),
           type: 'dict-select',
           dict: dict({ data: buyingMethodDict }),
           search: {
             show: true,
-            component: { props: { placeholder: '采购方式', clearable: true } }
+            component: { props: { placeholder: t('message.pages.miscprocurement.rfqmiscellaneous.buyingMethod'), clearable: true } }
           },
           form: { show: false },
           column: {
@@ -1231,11 +1234,11 @@ export const createCrudOptions = function ({
           }
         },
         inquiry_no: {
-          title: '询价单号',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.inquiryNo'),
           type: 'input',
           search: {
             show: true,
-            component: { props: { placeholder: '请输入询价单号', clearable: true } }
+            component: { props: { placeholder: t('message.pages.miscprocurement.rfqmiscellaneous.inquiryNoPlaceholder'), clearable: true } }
           },
           form: {
             show: false
@@ -1243,17 +1246,17 @@ export const createCrudOptions = function ({
           column: { minWidth: 120, showOverflowTooltip: true }
         },
         title: {
-          title: '询价单名称',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.inquiryName'),
           type: 'input',
           search: {
             show: true,
-            component: { props: { placeholder: '请输入询价单名称', clearable: true } }
+            component: { props: { placeholder: t('message.pages.miscprocurement.rfqmiscellaneous.inquiryNamePlaceholder'), clearable: true } }
           },
-          form: { rules: [{ required: true, message: '请输入询价单名称' }] },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.rfqmiscellaneous.inquiryNameRequired') }] },
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         template: {
-          title: '询价模版',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.inquiryTemplate'),
           type: 'input',
           column: {
             minWidth: 120,
@@ -1268,7 +1271,7 @@ export const createCrudOptions = function ({
           }
         },
         quote_deadline: {
-          title: '报价截止时间',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.quoteDeadline'),
           type: 'datetime',
           column: {
             width: 150,
@@ -1276,7 +1279,7 @@ export const createCrudOptions = function ({
           }
         },
         bid_start_time: {
-          title: '投标开始时间',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.bidStartTime'),
           type: 'datetime',
           column: {
             width: 150,
@@ -1285,7 +1288,7 @@ export const createCrudOptions = function ({
           }
         },
         bid_end_time: {
-          title: '投标截止时间',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.bidEndTime'),
           type: 'datetime',
           column: {
             width: 150,
@@ -1294,17 +1297,17 @@ export const createCrudOptions = function ({
           }
         },
         buyer: {
-          title: '采购负责人',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.buyer'),
           type: 'input',
           search: {
             show: true,
-            component: { props: { placeholder: '请输入采购负责人', clearable: true } }
+            component: { props: { placeholder: t('message.pages.miscprocurement.rfqmiscellaneous.buyerPlaceholder'), clearable: true } }
           },
-          form: { rules: [{ required: true, message: '请输入采购负责人' }] },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.rfqmiscellaneous.buyerRequired') }] },
           column: { minWidth: 120 }
         },
         currency: {
-          title: '币别',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.currency'),
           type: 'dict-select',
           dict: dict({ data: [
             { value: 'CNY', label: 'CNY' },
@@ -1314,32 +1317,32 @@ export const createCrudOptions = function ({
           form: { value: 'CNY' }
         },
         lead_time_days: {
-          title: '交货周期(天)',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.leadTimeDays'),
           type: 'number',
           column: { width: 120 },
           form: { component: { props: { precision: 0 } } }
         },
         payment_method: {
-          title: '付款方式',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.paymentMethod'),
           type: 'dict-select',
           dict: dict({ data: paymentMethods }),
           column: { width: 140, showOverflowTooltip: true },
           form: { show: false }
         },
         status: {
-          title: '状态',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.status'),
           type: 'dict-select',
           dict: dict({ data: statusDict }),
           column: { width: 140 }
         },
         remark: {
-          title: '备注',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.remark'),
           type: 'textarea',
           column: { minWidth: 180, showOverflowTooltip: true },
           form: { component: { props: { rows: 3 } } }
         },
         update_datetime: {
-          title: '更新时间',
+          title: t('message.pages.miscprocurement.rfqmiscellaneous.updateTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }

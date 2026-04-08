@@ -1,5 +1,6 @@
 import { compute, dict, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import * as api from './api'
 import SectionBuilder from './SectionBuilder.vue'
 
@@ -306,16 +307,16 @@ const applyEnabledFlags = (sections: any[], titles: string[]) => {
   })
 }
 
-const visibleTitles = (procurementCategory?: string, enableCostStructure?: boolean) => {
-  // 杂采(2) 不显示“管销研费用”
+const visibleTitles = (t: any, procurementCategory?: string, enableCostStructure?: boolean) => {
+  // 杂采(2) 不显示”管销研费用”
   if (procurementCategory === '2') {
     return enableCostStructure
-      ? ['材料成本', '加工成本', '其它成本', '利润', '税金']
-      : ['产品明细', '利润', '税金']
+      ? [t('message.pages.miscprocurement.cost_template.materials'), t('message.pages.miscprocurement.cost_template.process'), t('message.pages.miscprocurement.cost_template.others'), t('message.pages.miscprocurement.cost_template.profit'), t('message.pages.miscprocurement.cost_template.tax')]
+      : [t('message.pages.miscprocurement.cost_template.productDetail'), t('message.pages.miscprocurement.cost_template.profit'), t('message.pages.miscprocurement.cost_template.tax')]
   }
   return enableCostStructure
-    ? ['材料成本', '加工成本', '其它成本', '管销研费用', '利润', '税金']
-    : ['产品明细', '利润', '税金']
+    ? [t('message.pages.miscprocurement.cost_template.materials'), t('message.pages.miscprocurement.cost_template.process'), t('message.pages.miscprocurement.cost_template.others'), t('message.pages.miscprocurement.cost_template.sgna'), t('message.pages.miscprocurement.cost_template.profit'), t('message.pages.miscprocurement.cost_template.tax')]
+    : [t('message.pages.miscprocurement.cost_template.productDetail'), t('message.pages.miscprocurement.cost_template.profit'), t('message.pages.miscprocurement.cost_template.tax')]
 }
 
 const ensureAllSections = (form: any, titlesForEnabled?: string[], procurementCategory?: string) => {
@@ -349,8 +350,8 @@ const ensureAllSections = (form: any, titlesForEnabled?: string[], procurementCa
   return arr
 }
 
-const refreshSectionsIfNeeded = (form: any, overrides: any = {}) => {
-  const titles = visibleTitles(
+const refreshSectionsIfNeeded = (t: any, form: any, overrides: any = {}) => {
+  const titles = visibleTitles(t,
     overrides.procurement_category ?? form?.procurement_category,
     overrides.enable_cost_structure ?? (form?.is_bom || 'Y') === 'Y'
   )
@@ -615,6 +616,213 @@ const buildCostTemplateSubmitPayload = (form: any) => {
 }
 
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+  const { t } = useI18n()
+
+  // i18n-aware field factories
+  const makeMaterialsFieldsMisc = () => [
+    createField(t('message.pages.miscprocurement.cost_template.material'), 'material', 'text'),
+    createField(t('message.pages.miscprocurement.cost_template.length'), 'length', 'number'),
+    createField(t('message.pages.miscprocurement.cost_template.width'), 'width', 'number'),
+    createField(t('message.pages.miscprocurement.cost_template.height'), 'height', 'number'),
+    createField(t('message.pages.miscprocurement.cost_template.specificgravity'), 'specificgravity', 'number', t('message.pages.miscprocurement.cost_template.autoByMaterial'), { supplierEditable: false }),
+    createField(t('message.pages.miscprocurement.cost_template.qty'), 'qty', 'number', '', { supplierRequired: true }),
+    createField(t('message.pages.miscprocurement.cost_template.weight'), 'weight', 'number', t('message.pages.miscprocurement.cost_template.lengthWidthHeightSpecificgravityQty'), { supplierEditable: false }),
+    createField(t('message.pages.miscprocurement.cost_template.unitPrice'), 'unitPrice', 'number'),
+    createField(t('message.pages.miscprocurement.cost_template.materialCost'), 'material_cost', 'number', t('message.pages.miscprocurement.cost_template.weightTimesUnitPrice'), { supplierEditable: false })
+  ]
+
+  const makeMaterialsFieldsStrategic = () => [
+    createField(t('message.pages.miscprocurement.cost_template.material'), 'material', 'text'),
+    createField(t('message.pages.miscprocurement.cost_template.weightUsage'), 'weight', 'number'),
+    createField(t('message.pages.miscprocurement.cost_template.unitPrice'), 'unitPrice', 'number'),
+    createField(t('message.pages.miscprocurement.cost_template.unit'), 'unit', 'text'),
+    createField(t('message.pages.miscprocurement.cost_template.lossRate'), 'loss_rate', 'number'),
+    createField(t('message.pages.miscprocurement.cost_template.materialCost'), 'material_cost', 'number', t('message.pages.miscprocurement.cost_template.weightTimesUnitPrice'), { supplierEditable: false }),
+    createField(t('message.pages.miscprocurement.cost_template.remark'), 'remark', 'text')
+  ]
+
+  const makeGetMaterialsFields = () => (procurementCategory?: string) =>
+    procurementCategory === '1' ? makeMaterialsFieldsStrategic() : makeMaterialsFieldsMisc()
+
+  const makeProcessFieldsMisc = () => [
+    createField(t('message.pages.miscprocurement.cost_template.processStation'), 'process_station', 'select'),
+    createField(t('message.pages.miscprocurement.cost_template.unit'), 'unit', 'text', '', { supplierEditable: false }),
+    createField(t('message.pages.miscprocurement.cost_template.unitrate'), 'unitrate', 'number', t('message.pages.miscprocurement.cost_template.autoByStation'), { supplierEditable: false }),
+    createField(t('message.pages.miscprocurement.cost_template.processqty'), 'processqty', 'number'),
+    createField(t('message.pages.miscprocurement.cost_template.processprice'), 'processprice', 'number', t('message.pages.miscprocurement.cost_template.unitrateTimesProcessqty'), { supplierEditable: false }),
+    createField(t('message.pages.miscprocurement.cost_template.remark'), 'remark', 'text', '', { supplierEditable: false })
+  ]
+
+  const makeProcessFieldsStrategic = () => [
+    createField(t('message.pages.miscprocurement.cost_template.processStation'), 'process_station', 'select'),
+    createField(t('message.pages.miscprocurement.cost_template.processTime'), 'process_time', 'number'),
+    createField(t('message.pages.miscprocurement.cost_template.unitPrice'), 'unit_price', 'number'),
+    createField(t('message.pages.miscprocurement.cost_template.unit'), 'unit', 'text', '', { supplierEditable: false }),
+    createField(t('message.pages.miscprocurement.cost_template.lossRate'), 'loss_rate', 'number', '', { supplierEditable: false }),
+    createField(t('message.pages.miscprocurement.cost_template.processCost'), 'process_cost', 'number', '', { supplierEditable: false }),
+    createField(t('message.pages.miscprocurement.cost_template.remark'), 'remark', 'text', '', { supplierEditable: false })
+  ]
+
+  const makeGetProcessFields = () => (procurementCategory?: string) =>
+    procurementCategory === '1' ? makeProcessFieldsStrategic() : makeProcessFieldsMisc()
+
+  const makeBaseSections = () => {
+    const getMaterialsFields = makeGetMaterialsFields()
+    const getProcessFields = makeGetProcessFields()
+    const sections = Object.values(baseSections).map((s) => deepCopy(s))
+    sections.forEach((sec) => {
+      if (sec.id === 'productDetail') sec.title = t('message.pages.miscprocurement.cost_template.productDetail')
+      else if (sec.id === 'materials') sec.title = t('message.pages.miscprocurement.cost_template.materials')
+      else if (sec.id === 'process') sec.title = t('message.pages.miscprocurement.cost_template.process')
+      else if (sec.id === 'sgna') sec.title = t('message.pages.miscprocurement.cost_template.sgna')
+      else if (sec.id === 'others') sec.title = t('message.pages.miscprocurement.cost_template.others')
+      else if (sec.id === 'profit') sec.title = t('message.pages.miscprocurement.cost_template.profit')
+      else if (sec.id === 'tax') sec.title = t('message.pages.miscprocurement.cost_template.tax')
+      if (sec.id === 'materials') {
+        sec.fields = deepCopy(getMaterialsFields())
+      } else if (sec.id === 'process') {
+        sec.fields = deepCopy(getProcessFields())
+      }
+    })
+    return sections
+  }
+
+  const makeBuildDefaultSections = () => (procurementCategory?: string) => {
+    const sections = makeBaseSections()
+    return sections
+  }
+
+  // i18n-aware visibleTitles
+  const doVisibleTitles = (procurementCategory?: string, enableCostStructure?: boolean) => {
+    if (procurementCategory === '2') {
+      return enableCostStructure
+        ? [t('message.pages.miscprocurement.cost_template.materials'), t('message.pages.miscprocurement.cost_template.process'), t('message.pages.miscprocurement.cost_template.others'), t('message.pages.miscprocurement.cost_template.profit'), t('message.pages.miscprocurement.cost_template.tax')]
+        : [t('message.pages.miscprocurement.cost_template.productDetail'), t('message.pages.miscprocurement.cost_template.profit'), t('message.pages.miscprocurement.cost_template.tax')]
+    }
+    return enableCostStructure
+      ? [t('message.pages.miscprocurement.cost_template.materials'), t('message.pages.miscprocurement.cost_template.process'), t('message.pages.miscprocurement.cost_template.others'), t('message.pages.miscprocurement.cost_template.sgna'), t('message.pages.miscprocurement.cost_template.profit'), t('message.pages.miscprocurement.cost_template.tax')]
+      : [t('message.pages.miscprocurement.cost_template.productDetail'), t('message.pages.miscprocurement.cost_template.profit'), t('message.pages.miscprocurement.cost_template.tax')]
+  }
+
+  // i18n-aware validation
+  const doValidateDuplicateFieldKeys = (form: any): { ok: true } | { ok: false; message: string } => {
+    const allowTitles = doVisibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
+    const scan = (sectionsRaw: any): string[] => {
+      const msgs: string[] = []
+      for (const sec of normalizeSections(sectionsRaw)) {
+        if (!sec || sec.enabled === false) continue
+        const title = sec.title || sec.name || ''
+        if (allowTitles.length && !allowTitles.includes(title)) continue
+        const keys: string[] = []
+        for (const f of sec.fields || []) {
+          const k = String(f?.key ?? '').trim()
+          if (!k) continue
+          keys.push(k)
+        }
+        const cnt = new Map<string, number>()
+        for (const k of keys) cnt.set(k, (cnt.get(k) || 0) + 1)
+        const dups = [...cnt.entries()].filter(([, c]) => c > 1).map(([k]) => k)
+        if (dups.length) msgs.push(`${t('message.pages.miscprocurement.cost_template.duplicateFieldKey', { title })}：${dups.join('、')}`)
+      }
+      return msgs
+    }
+    const merged = new Set<string>([...scan(latestSectionDraft), ...scan(form?.sections)])
+    const parts = [...merged].filter(Boolean)
+    if (parts.length) {
+      return { ok: false, message: `${parts.join('；')}，${t('message.pages.miscprocurement.cost_template.pleaseModifyAndSave')}` }
+    }
+    return { ok: true }
+  }
+
+  const doValidateItemNamesCn = (form: any): { ok: true } | { ok: false; message: string } => {
+    const sections = normalizeSections(resolveSectionsForSubmit(form))
+    const allowTitles = doVisibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
+    const msgs: string[] = []
+    for (const sec of sections) {
+      if (!sec || sec.enabled === false) continue
+      const title = sec.title || sec.name || ''
+      if (allowTitles.length && !allowTitles.includes(title)) continue
+      const badKeys: string[] = []
+      for (const f of sec.fields || []) {
+        if (!fieldDisplayNameCn(f)) {
+          const k = String(f?.key ?? '').trim()
+          badKeys.push(k || `（${t('message.pages.miscprocurement.cost_template.keyNotFilled')}）`)
+        }
+      }
+      if (badKeys.length) msgs.push(`${t('message.pages.miscprocurement.cost_template.fieldNameNotFilled', { title })}（${t('message.pages.miscprocurement.cost_template.fieldKey')}: ${badKeys.join('、')}）`)
+    }
+    if (msgs.length) {
+      return { ok: false, message: `${msgs.join('；')}，${t('message.pages.miscprocurement.cost_template.pleaseCompleteAndSave')}` }
+    }
+    return { ok: true }
+  }
+
+  const doValidateCostTemplateBeforeSubmit = (form: any): { ok: true } | { ok: false; message: string } => {
+    const issues: string[] = []
+    const dup = doValidateDuplicateFieldKeys(form)
+    if (!dup.ok) issues.push(dup.message.replace(new RegExp(`，${t('message.pages.miscprocurement.cost_template.pleaseModifyAndSave')}$`), ''))
+    const cn = doValidateItemNamesCn(form)
+    if (!cn.ok) issues.push(cn.message.replace(new RegExp(`，${t('message.pages.miscprocurement.cost_template.pleaseCompleteAndSave')}$`), ''))
+    if (issues.length) {
+      return { ok: false, message: `${issues.join('；')}，${t('message.pages.miscprocurement.cost_template.pleaseModifyAndSave')}` }
+    }
+    return { ok: true }
+  }
+
+  const doRefreshSectionsIfNeeded = (form: any, overrides: any = {}) => {
+    const titles = doVisibleTitles(
+      overrides.procurement_category ?? form?.procurement_category,
+      overrides.enable_cost_structure ?? (form?.is_bom || 'Y') === 'Y'
+    )
+    const procurementCategory = overrides.procurement_category ?? form?.procurement_category
+    const sections = makeBaseSections()
+    // Ensure all sections exist
+    const existing = normalizeSections(form?.sections)
+    const map = new Map<string, any>()
+    existing.forEach((s: any) => {
+      const key = normalizeTitleKey(s?.title || s?.name)
+      if (key) map.set(key, s)
+    })
+    sections.forEach((base) => {
+      if (!map.has(base.title)) {
+        map.set(base.title, deepCopy(base))
+      }
+    })
+    const arr = Array.from(map.values())
+    // Always replace built-in materials/process fields by procurement category
+    const materials = arr.find((s: any) => s?.title === t('message.pages.miscprocurement.cost_template.materials'))
+    if (materials) {
+      const getMaterialsFields = makeGetMaterialsFields()
+      replaceBuiltInFields(materials, deepCopy(getMaterialsFields(procurementCategory)))
+    }
+    const process = arr.find((s: any) => s?.title === t('message.pages.miscprocurement.cost_template.process'))
+    if (process) {
+      const getProcessFields = makeGetProcessFields()
+      replaceBuiltInFields(process, deepCopy(getProcessFields(procurementCategory)))
+    }
+    if (titles.length) {
+      applyEnabledFlags(arr, titles)
+    }
+    form.sections = arr
+    form.__visibleTitles = titles
+    if (Array.isArray(form.sections)) {
+      (form.sections as any).__visibleTitles = titles
+    }
+    latestSectionDraft = normalizeSections(form.sections)
+    logPT('refreshSections', {
+      procurement_category: overrides.procurement_category ?? form?.procurement_category,
+      enable_cost_structure: overrides.enable_cost_structure ?? (form?.is_bom || 'Y') === 'Y',
+      titles,
+      sectionsCount: Array.isArray(form.sections) ? form.sections.length : 0,
+      draftSectionsCount: latestSectionDraft.length
+    })
+  }
+
+  const procurementDictLocalized = [
+    { value: '1', label: t('message.pages.miscprocurement.cost_template.procurementStrategic') },
+    { value: '2', label: t('message.pages.miscprocurement.cost_template.procurementMisc') }
+  ]
+
   return {
     crudOptions: {
       form: {
@@ -628,15 +836,15 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
         group: {
           type: 'tab',
           base: {
-            label: '基础信息',
+            label: t('message.pages.miscprocurement.cost_template.basicInfo'),
             columns: ['template_name', 'procurement_category', 'version', 'template_desc']
           },
           controls: {
-            label: '启用设置',
+            label: t('message.pages.miscprocurement.cost_template.controls'),
             columns: ['acti', 'is_bom']
           },
           sections: {
-            label: '成本结构',
+            label: t('message.pages.miscprocurement.cost_template.sections'),
             columns: ['sections']
           }
         },
@@ -644,7 +852,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           if (ctx.mode === 'add') {
             // 版本变更：由 openAdd 预填完整 sections/items；勿 refreshSectionsIfNeeded（会再走 replaceBuiltInFields，且易与预填冲突）
             if (ctx.form?.__newVersionSourceId != null && ctx.form.__newVersionSourceId !== '') {
-              const vis = visibleTitles(ctx.form.procurement_category, (ctx.form.is_bom || 'Y') === 'Y')
+              const vis = doVisibleTitles(ctx.form.procurement_category, (ctx.form.is_bom || 'Y') === 'Y')
               ctx.form.__visibleTitles = vis
               if (Array.isArray(ctx.form.sections)) {
                 ;(ctx.form.sections as any).__visibleTitles = vis
@@ -658,7 +866,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
             if (ctx.form.version == null || ctx.form.version === '') {
               ctx.form.version = 1
             }
-            refreshSectionsIfNeeded(ctx.form)
+            doRefreshSectionsIfNeeded(ctx.form)
             latestSectionDraft = normalizeSections(ctx.form.sections)
             return
           }
@@ -671,7 +879,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                 Object.assign(ctx.form, detail)
                 if (Array.isArray(detail.items)) {
                   const secs = itemsToSections(detail.items, detail)
-                  const vis = visibleTitles(detail.procurement_category, (detail.is_bom || 'Y') === 'Y')
+                  const vis = doVisibleTitles(detail.procurement_category, (detail.is_bom || 'Y') === 'Y')
                   ;(secs as any).__visibleTitles = vis
                   ctx.form.sections = secs
                   ctx.form.__visibleTitles = vis
@@ -679,7 +887,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                 }
               }
             } catch (e) {
-              console.warn('加载成本模板详情失败', e)
+              console.warn(t('message.pages.miscprocurement.cost_template.loadDetailFailed'), e)
             }
           }
         },
@@ -687,7 +895,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       request: {
         pageRequest: async (query) => api.GetList(query),
         addRequest: async ({ form }) => {
-          const pre = validateCostTemplateBeforeSubmit(form)
+          const pre = doValidateCostTemplateBeforeSubmit(form)
           if (!pre.ok) {
             ElMessage.error(pre.message)
             return Promise.reject(new Error(pre.message))
@@ -715,7 +923,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           })
         },
         editRequest: async ({ form, row }) => {
-          const pre = validateCostTemplateBeforeSubmit(form)
+          const pre = doValidateCostTemplateBeforeSubmit(form)
           if (!pre.ok) {
             ElMessage.error(pre.message)
             return Promise.reject(new Error(pre.message))
@@ -764,32 +972,32 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
             show: false
           },
           confirm: {
-            text: '确认',
-            title: '确认',
+            text: t('message.pages.miscprocurement.cost_template.confirm'),
+            title: t('message.pages.miscprocurement.cost_template.confirm'),
             type: 'success',
             order: 4,
             show: compute(({ row }) => templateStatusUnconfirmed(row)),
             async click({ row }: { row: any }) {
               try {
-                await ElMessageBox.confirm('确认将模板设为「已确认」状态？', '确认', {
+                await ElMessageBox.confirm(t('message.pages.miscprocurement.cost_template.confirmStatusTip'), t('message.pages.miscprocurement.cost_template.confirm'), {
                   type: 'warning',
-                  confirmButtonText: '确定',
-                  cancelButtonText: '取消'
+                  confirmButtonText: t('message.pages.miscprocurement.cost_template.confirmButtonText'),
+                  cancelButtonText: t('message.pages.miscprocurement.cost_template.cancelButtonText')
                 })
                 const cres: any = await api.ConfirmObj(row.id)
-                const okMsg = cres?.data?.msg || cres?.msg || '确认成功'
+                const okMsg = cres?.data?.msg || cres?.msg || t('message.pages.miscprocurement.cost_template.confirmSuccess')
                 ElMessage.success(okMsg)
                 crudExpose?.doRefresh?.()
               } catch (e: any) {
                 if (e === 'cancel' || e === 'close') return
-                const msg = e?.response?.data?.msg || e?.message || '确认失败'
+                const msg = e?.response?.data?.msg || e?.message || t('message.pages.miscprocurement.cost_template.confirmFailed')
                 ElMessage.error(msg)
               }
             }
           },
           newVersion: {
-            text: '版本变更',
-            title: '版本变更',
+            text: t('message.pages.miscprocurement.cost_template.newVersion'),
+            title: t('message.pages.miscprocurement.cost_template.newVersion'),
             type: 'primary',
             order: 5,
             show: compute(({ row }) => templateStatusConfirmed(row)),
@@ -798,7 +1006,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                 const res: any = await api.GetObj(row.id)
                 const detail = res?.data?.data || res?.data || res
                 if (!detail || typeof detail !== 'object') {
-                  ElMessage.error('加载模板详情失败')
+                  ElMessage.error(t('message.pages.miscprocurement.cost_template.loadDetailFailed'))
                   return
                 }
                 const nextV = Number(detail.version) + 1
@@ -812,7 +1020,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                 // 必须用源模板版本过滤明细；勿把 version 设为 nextV，否则 itemsToSections 会筛掉全部旧版行
                 const headForSections = { ...detail, __itemsSourceVersion: sourceVer }
                 const secs = itemsToSections(itemsStripped, headForSections)
-                const vis = visibleTitles(detail.procurement_category, (detail.is_bom || 'Y') === 'Y')
+                const vis = doVisibleTitles(detail.procurement_category, (detail.is_bom || 'Y') === 'Y')
                 ;(secs as any).__visibleTitles = vis
                 await crudExpose?.openAdd?.(
                   {
@@ -834,10 +1042,10 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                       items: itemsStripped
                     }
                   },
-                  { title: '版本变更' }
+                  { title: t('message.pages.miscprocurement.cost_template.newVersion') }
                 )
               } catch (e: any) {
-                const msg = e?.response?.data?.msg || e?.message || '版本变更失败'
+                const msg = e?.response?.data?.msg || e?.message || t('message.pages.miscprocurement.cost_template.newVersionFailed')
                 ElMessage.error(msg)
               }
             }
@@ -846,42 +1054,42 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       },
       columns: {
         template_name: {
-          title: '模板名称',
+          title: t('message.pages.miscprocurement.cost_template.templateName'),
           type: 'input',
           search: {
             show: true,
             component: {
-              props: { placeholder: '请输入模板名称', clearable: true }
+              props: { placeholder: t('message.pages.miscprocurement.cost_template.inputTemplateName'), clearable: true }
             }
           },
           form: {
             col: { span: 12 },
-            rules: [{ required: true, message: '请输入模板名称' }]
+            rules: [{ required: true, message: t('message.pages.miscprocurement.cost_template.inputTemplateName') }]
           },
           column: { minWidth: 160 }
         },
         template_no: {
-          title: '模板编号',
+          title: t('message.pages.miscprocurement.cost_template.templateNo'),
           type: 'input',
           search: {
             show: true,
-            component: { props: { placeholder: '模板编号', clearable: true } }
+            component: { props: { placeholder: t('message.pages.miscprocurement.cost_template.templateNo'), clearable: true } }
           },
           form: { show: false },
           column: { width: 160, showOverflowTooltip: true }
         },
         procurement_category: {
-          title: '采购类别',
+          title: t('message.pages.miscprocurement.cost_template.procurementCategory'),
           type: 'dict-select',
-          dict: dict({ data: procurementDict }),
+          dict: dict({ data: procurementDictLocalized }),
           column: { width: 120 },
           search: { show: true },
           form: {
             col: { span: 12 },
             value: '2',
-            rules: [{ required: true, message: '请选择采购类别' }],
+            rules: [{ required: true, message: t('message.pages.miscprocurement.cost_template.selectProcurementCategory') }],
             valueChange({ form, value }) {
-              refreshSectionsIfNeeded(form, { procurement_category: value })
+              doRefreshSectionsIfNeeded(form, { procurement_category: value })
               logPT('onChange procurement_category', value, { visibleTitles: form.__visibleTitles })
               logPT('sections titles now', Array.isArray(form.sections) ? form.sections.map((s: any) => s.title) : [])
             }
@@ -891,36 +1099,36 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           }
         },
         acti: {
-          title: '有效',
+          title: t('message.pages.miscprocurement.cost_template.acti'),
           type: 'dict-select',
           dict: dict({ data: [
-            { value: 'Y', label: '是' },
-            { value: 'N', label: '否' }
+            { value: 'Y', label: t('message.pages.miscprocurement.cost_template.actiYes') },
+            { value: 'N', label: t('message.pages.miscprocurement.cost_template.actiNo') }
           ] }),
           column: { width: 90 },
           search: { show: true },
           form: { value: 'Y' }
         },
         is_bom: {
-          title: '启用BOM',
+          title: t('message.pages.miscprocurement.cost_template.isBom'),
           type: 'dict-select',
           dict: dict({ data: [
-            { value: 'Y', label: '是' },
-            { value: 'N', label: '否' }
+            { value: 'Y', label: t('message.pages.miscprocurement.cost_template.bomYes') },
+            { value: 'N', label: t('message.pages.miscprocurement.cost_template.bomNo') }
           ] }),
           column: { width: 100 },
           search: { show: true },
           form: {
             value: 'Y',
             valueChange({ form, value }) {
-              refreshSectionsIfNeeded(form, { enable_cost_structure: value === 'Y' })
+              doRefreshSectionsIfNeeded(form, { enable_cost_structure: value === 'Y' })
               logPT('onChange is_bom', value, { visibleTitles: form.__visibleTitles })
               logPT('sections titles now', Array.isArray(form.sections) ? form.sections.map((s: any) => s.title) : [])
             }
           }
         },
         template_desc: {
-          title: '备注',
+          title: t('message.pages.miscprocurement.cost_template.templateDesc'),
           type: 'textarea',
           column: { minWidth: 180, showOverflowTooltip: true },
           form: {
@@ -929,7 +1137,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           }
         },
         version: {
-          title: '版本号',
+          title: t('message.pages.miscprocurement.cost_template.version'),
           type: 'number',
           column: { width: 100 },
           form: {
@@ -941,18 +1149,18 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           }
         },
         status: {
-          title: '状态',
+          title: t('message.pages.miscprocurement.cost_template.status'),
           type: 'dict-select',
           dict: dict({
             data: [
-              { value: '0', label: '未确认' },
-              { value: '1', label: '已确认' },
-              { value: '2', label: '作废' }
+              { value: '0', label: t('message.pages.miscprocurement.cost_template.statusUnconfirmed') },
+              { value: '1', label: t('message.pages.miscprocurement.cost_template.statusConfirmed') },
+              { value: '2', label: t('message.pages.miscprocurement.cost_template.statusCancelled') }
             ]
           }),
           search: {
             show: true,
-            component: { props: { clearable: true, placeholder: '状态（默认不含作废）' } }
+            component: { props: { clearable: true, placeholder: t('message.pages.miscprocurement.cost_template.statusPlaceholder') } }
           },
           form: { show: false },
           column: { width: 100 }
@@ -977,7 +1185,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
               }
             },
             value: () => {
-              const vis = visibleTitles('2', true)
+              const vis = doVisibleTitles('2', true)
               const defaults = ensureAllSections({ sections: buildDefaultSections('2') }, vis, '2')
               ;(defaults as any).__visibleTitles = vis
               return defaults
@@ -991,7 +1199,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
             // 否则会把数据库里的 is_computed 等真实值覆盖成前端预设默认值。
             if (Array.isArray(form.items) && form.items.length) {
               const secs = itemsToSections(form.items, form)
-              const vis = visibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
+              const vis = doVisibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
               ;(secs as any).__visibleTitles = vis
               form.sections = secs
               form.__visibleTitles = vis
@@ -999,7 +1207,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
               logPT('valueBuilder(items)', { visibleTitles: form.__visibleTitles, sections: form.sections?.length, items: form.items.length })
               return
             }
-            const vis = visibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
+            const vis = doVisibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
             const ensured = ensureAllSections(form, vis, form.procurement_category)
             ;(ensured as any).__visibleTitles = vis
             form.sections = ensured
@@ -1019,7 +1227,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
             // 初次回填时（尚未形成 sections），再从 items 转换
             if (Array.isArray(form.items) && form.items.length) {
               const secs = itemsToSections(form.items, form)
-              const vis = visibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
+              const vis = doVisibleTitles(form.procurement_category, (form.is_bom || 'Y') === 'Y')
               ;(secs as any).__visibleTitles = vis
               form.sections = secs
               form.__visibleTitles = vis
@@ -1034,7 +1242,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           }
         },
         update_time: {
-          title: '更新时间',
+          title: t('message.pages.miscprocurement.cost_template.updateTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }

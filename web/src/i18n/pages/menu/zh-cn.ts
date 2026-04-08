@@ -88,6 +88,7 @@ export default {
                     widthPlaceholder: '请输入宽度',
                 },
                 validation: {
+                    alreadyExists: '已存在，不可重复',
                     fieldNameRequired: '请输入字段名！',
                     titleRequired: '请输入列名！',
                     fieldNameFieldRequired: '请输入字段名称！',

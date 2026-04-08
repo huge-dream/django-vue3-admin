@@ -1,11 +1,7 @@
 import { dict, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud'
+import { useI18n } from 'vue-i18n'
 import * as api from './api'
 import { GetCompanies } from '../../basicinfo/currency/api'
-
-const statusDict = [
-  { value: 1, label: '可用' },
-  { value: 0, label: '不可用' }
-]
 
 const loadCompanyOptions = async () => {
   try {
@@ -32,6 +28,13 @@ void loadCompanyOptions()
 
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
   void crudExpose
+  const { t } = useI18n()
+
+  const statusDict = [
+    { value: 1, label: t('message.pages.miscprocurement.misc_materials.statusEnabled') },
+    { value: 0, label: t('message.pages.miscprocurement.misc_materials.statusDisabled') }
+  ]
+
   return {
     crudOptions: {
       form: {
@@ -56,7 +59,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       },
       columns: {
         factory: {
-          title: '交易厂区',
+          title: t('message.pages.miscprocurement.misc_materials.companyCode'),
           type: 'dict-select',
           dict: dict({
             cache: false,
@@ -70,25 +73,28 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         materialtype: {
-          title: '材质',
+          title: t('message.pages.miscprocurement.misc_materials.materialtype'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入材质', clearable: true } } },
+          search: {
+            show: true,
+            component: { props: { placeholder: t('message.pages.miscprocurement.misc_materials.materialtype'), clearable: true } }
+          },
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         density: {
-          title: '比重',
+          title: t('message.pages.miscprocurement.misc_materials.density'),
           type: 'input',
-          form: { rules: [{ required: true, message: '请输入比重' }] },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.misc_materials.density') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { width: 120, showOverflowTooltip: true }
         },
         price: {
-          title: '单价',
+          title: t('message.pages.miscprocurement.misc_materials.price'),
           type: 'number',
-          form: { rules: [{ required: true, message: '请输入单价' }], component: { props: { precision: 2 } } },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.misc_materials.price') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }], component: { props: { precision: 2 } } },
           column: { width: 120 }
         },
         status: {
-          title: '可用状态',
+          title: t('message.pages.miscprocurement.misc_materials.status'),
           type: 'dict-switch',
           dict: dict({ data: statusDict }),
           form: { value: 1 },
