@@ -8,6 +8,8 @@ import { GetList as GetMiscParts } from '../../pisadmin/miscprocurement/misc_par
 import { GetList as GetStations } from '../../pisadmin/miscprocurement/misc_stations/api'
 import { GetList as GetUnits } from '../../pisadmin/basicinfo/unit/api'
 
+/** 公开分享：`#/public/pissupplier/quotation?id=`（报价 autoid），见 `fetchPublicQuotationDetail`。 */
+
 /** 与 loadQuotes / openQuote 等处解析列表响应一致 */
 const extractPagedList = (res: any): any[] => {
   const raw = res?.data?.results ?? res?.data?.data?.results ?? res?.data?.list ?? res?.data
@@ -1932,6 +1934,28 @@ export function useQuoteCrud(options?: {
     }
   }
 
+  /**
+   * 公开分享路由 `#/public/pissupplier/quotation?id=`：由 `fetchPublicQuotationDetail` 拉取与登录详情相同结构后调用。
+   */
+  const viewQuoteFromPublicRaw = async (rawDetail: any) => {
+    dialog.mode = 'view'
+    dialog.quoteId = String(rawDetail?.autoid ?? rawDetail?.id ?? '')
+    loading.value = true
+    try {
+      await ensureTemplateNameLookup()
+      const merged = mapBackendQuote(rawDetail)
+      await enrichQuotesWithInquiryData([merged])
+      fillCurrent(merged)
+      await loadMaterialOptions(current.inquiryCompanyCode)
+      await loadStationOptions(current.inquiryCompanyCode)
+    } catch (e) {
+      console.warn('加载公开报价详情失败', e)
+      ElMessage.error('加载报价详情失败')
+    } finally {
+      loading.value = false
+    }
+  }
+
   const viewQuote = (row: Quote) => {
     dialog.mode = 'view'
     dialog.quoteId = row.id
@@ -2385,6 +2409,7 @@ export function useQuoteCrud(options?: {
     isQuotedQuotation,
     isQuotationEditable,
     viewQuote,
+    viewQuoteFromPublicRaw,
     openQuote,
     dialog,
     dialogTitle: computed(() => (dialog.mode === 'view' ? '查看报价' : dialog.quoteId ? '编辑报价' : '新增报价')),

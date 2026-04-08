@@ -1,8 +1,16 @@
+import axios from 'axios'
 import { request } from '/@/utils/service'
+import { getBaseURL } from '/@/utils/baseUrl'
 
 const baseUrl = '/api/pisadmin/miscprocurement/inquiry/'
 
 /** 列表/增删改 API；完整表单在隐藏路由 `PisadminRfqMiscInquiryDetail`（`miscInquiryDetail/:id`）。议价相关接口由隐藏路由 `PisadminRfqMiscComparePrice`（`comparePrice/:id`）使用。 */
+
+/** 免登录：比价数据包，``inquiry_id`` 为询价单主键 */
+export const fetchPublicComparisonBundle = async (params: { inquiry_id: string | number }) => {
+  const url = `${getBaseURL().replace(/\/$/, '')}/api/public/miscprocurement/comparison/`
+  return axios.get(url, { params: { inquiry_id: String(params.inquiry_id) } })
+}
 
 export const GetList = (params: any) => request({ url: baseUrl, method: 'get', params })
 export const GetObj = (id: string | number) => request({ url: baseUrl + id + '/', method: 'get' })

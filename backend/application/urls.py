@@ -25,6 +25,8 @@ from rest_framework_simplejwt.views import (
 
 from application import dispatch
 from application import settings
+from apps.pisadmin.miscprocurement.views import MiscInquiryComparisonShareBundleView
+from apps.pissupplier.views import PublicQuotationShareDetailView
 from sync.views import MiscMaterialSyncView
 from application.sse_views import sse_view
 from dvadmin.system.views.dictionary import InitDictionaryViewSet
@@ -107,6 +109,16 @@ urlpatterns = (
                 "api/sync/material/misc/",
                 MiscMaterialSyncView.as_view(),
                 name="sync-misc-material",
+            ),
+            path(
+                "api/public/pissupplier/quotation/",
+                PublicQuotationShareDetailView.as_view(),
+                name="public-pissupplier-quotation-share",
+            ),
+            path(
+                "api/public/miscprocurement/comparison/",
+                MiscInquiryComparisonShareBundleView.as_view(),
+                name="public-misc-comparison-bundle",
             ),
             path("api/pisadmin/miscprocurement/", include("apps.pisadmin.miscprocurement.urls")),
             path("api/pisadmin/basicinfo/", include("apps.pisadmin.basicinfo.urls")),

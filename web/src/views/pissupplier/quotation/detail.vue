@@ -1,7 +1,11 @@
 <template>
-  <fs-page class="quote-detail-page" v-loading="loading">
+  <fs-page
+    class="quote-detail-page"
+    :class="{ 'quote-detail-page--public-share': isPublicQuotationShare }"
+    v-loading="loading"
+  >
     <template #header>
-      <header class="quote-detail-toolbar">
+      <header v-if="!isPublicQuotationShare" class="quote-detail-toolbar">
         <div class="quote-detail-toolbar__left">
           <el-button text class="quote-detail-back" @click="goBack">
             <el-icon class="quote-detail-back__icon"><ArrowLeft /></el-icon>
@@ -351,6 +355,8 @@ import { ArrowLeft } from '@element-plus/icons-vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { getBaseURL } from '/@/utils/baseUrl'
+import { ElMessage } from 'element-plus'
+import * as quotationApi from './api'
 import {
   useQuoteCrud,
   type InquiryAttachmentRow,
@@ -413,6 +419,9 @@ const inquiryAttachmentHref = (file: InquiryAttachmentRow) => {
 const route = useRoute()
 const router = useRouter()
 
+/** 比价分享页内跳转：免登录，``query.id`` 为报价 autoid */
+const isPublicQuotationShare = computed(() => route.name === 'PublicPissupplierQuotationShare')
+
 /** 仅 `?mode=edit` 为编辑；无 query、点标签页进入等默认查看 */
 const pageTitle = computed(() => (route.query.mode === 'edit' ? '编辑报价' : '查看报价'))
 
@@ -453,7 +462,8 @@ const {
   formatMoney,
   saveQuote,
   isQuotationEditable,
-  loading
+  loading,
+  viewQuoteFromPublicRaw
 } = useQuoteCrud({
   uiContext: 'detail',
   onSaveSuccess: () => {
@@ -513,6 +523,31 @@ const quoteSummaryRowClassName = ({ row }: { row: { isSubtotal?: boolean; sectio
 const activeTab = ref('base')
 
 async function loadPage() {
+  if (isPublicQuotationShare.value) {
+    const qid = String((route.query.id as string) || '').trim()
+    if (!qid) {
+      ElMessage.error('缺少 id（报价单主键）')
+      return
+    }
+    try {
+      const res = await quotationApi.fetchPublicQuotationDetail({ id: qid })
+      const body = res?.data as { code?: number; data?: any; msg?: string } | undefined
+      if (body && body.code !== undefined && body.code !== 2000) {
+        ElMessage.error(body.msg || '加载失败')
+        return
+      }
+      const raw = body?.data
+      if (!raw || typeof raw !== 'object') {
+        ElMessage.error('数据无效')
+        return
+      }
+      await viewQuoteFromPublicRaw(raw)
+    } catch (e: any) {
+      const msg = e?.response?.data?.msg || e?.message || '加载报价详情失败'
+      ElMessage.error(msg)
+    }
+    return
+  }
   const id = String(route.params.id || '').trim()
   if (!id) {
     goBack()
@@ -529,7 +564,7 @@ async function loadPage() {
 }
 
 watch(
-  () => [route.params.id, route.query.mode] as const,
+  () => route.fullPath,
   () => {
     loadPage()
   },
@@ -541,6 +576,17 @@ watch(
 /* 与杂采询价单详情页（rfqmiscellaneous/detail.vue）布局与风格对齐：fs-page header / 可滚动内容区 / footer */
 .quote-detail-page {
   box-sizing: border-box;
+}
+.quote-detail-page--public-share {
+  height: 100vh !important;
+  min-height: 100vh;
+  border-radius: 0;
+}
+.quote-detail-page--public-share .detail-body {
+  padding-top: 8px;
+}
+.quote-detail-page--public-share :deep(.fs-page-header) {
+  display: none;
 }
 .quote-detail-page :deep(.fs-page-header) {
   border-bottom: none;
