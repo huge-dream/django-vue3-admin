@@ -114,25 +114,25 @@ export const createCrudOptions = function ({ crudExpose }: Partial<CreateCrudOpt
           column: { width: 120 }
         },
         createuser: {
-          title: t('message.pages.system.user.createUser'),
+          title: t('message.pages.basicinfo.company.createTime'),
           type: 'input',
           form: { show: false },
           column: { width: 140, showOverflowTooltip: true }
         },
         updateuser: {
-          title: t('message.pages.system.user.updateUser'),
+          title: t('message.pages.basicinfo.company.updateTime'),
           type: 'input',
           form: { show: false },
           column: { width: 140, showOverflowTooltip: true }
         },
         create_datetime: {
-          title: '创建时间',
+          title: t('message.pages.basicinfo.company.createTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }
         },
         update_datetime: {
-          title: '更新时间',
+          title: t('message.pages.basicinfo.company.updateTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }

@@ -1,31 +1,10 @@
 import { dict, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud'
 import * as api from './api'
-import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 
-const statusDict = [
-  { value: 1, label: '可用' },
-  { value: 0, label: '不可用' }
-]
-
-export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+export const createCrudOptions = function ({ crudExpose }: Partial<CreateCrudOptionsProps>): CreateCrudOptionsRet {
   void crudExpose
-
-  const ensureUnitCodeUnique = async (code: string, currentId?: number) => {
-    if (!code) return
-    const res = await api.GetList({ unitcode: code, page: 1, page_size: 1, pageSize: 1 })
-    const list =
-      res?.data?.data?.results ||
-      res?.data?.results ||
-      res?.data?.list ||
-      res?.data ||
-      res?.results ||
-      res?.list ||
-      []
-    const exists = Array.isArray(list) ? list.find((item: any) => item.unitcode === code) : null
-    if (exists && (!currentId || exists.id !== currentId)) {
-      throw new Error('计量单位代码已存在，不可重复')
-    }
-  }
+  const { t } = useI18n()
 
   return {
     crudOptions: {
@@ -34,24 +13,8 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       },
       request: {
         pageRequest: async (query) => api.GetList(query),
-        addRequest: async ({ form }) => {
-          try {
-            await ensureUnitCodeUnique(form.unitcode)
-            return await api.AddObj(form)
-          } catch (err: any) {
-            ElMessage.error(err?.message || '保存失败')
-            throw err
-          }
-        },
-        editRequest: async ({ form, row }) => {
-          try {
-            await ensureUnitCodeUnique(form.unitcode, row.id)
-            return await api.UpdateObj({ ...form, id: row.id })
-          } catch (err: any) {
-            ElMessage.error(err?.message || '保存失败')
-            throw err
-          }
-        },
+        addRequest: async ({ form }) => api.AddObj(form),
+        editRequest: async ({ form, row }) => api.UpdateObj({ ...form, id: row.id }),
         delRequest: async ({ row }) => api.DelObj(row.id)
       },
       table: {
@@ -67,35 +30,34 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       },
       columns: {
         unitcode: {
-          title: '计量单位代码',
+          title: t('message.pages.basicinfo.unit.unitcode'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入计量单位代码', clearable: true } } },
-          form: { rules: [{ required: true, message: '请输入计量单位代码' }] },
+          search: { show: true, component: { props: { placeholder: t('message.pages.basicinfo.unit.unitcode'), clearable: true } } },
+          form: { rules: [{ required: true, message: t('message.pages.basicinfo.unit.unitcode') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { minWidth: 140, showOverflowTooltip: true }
         },
         unitname: {
-          title: '计量单位名称',
+          title: t('message.pages.basicinfo.unit.unitname'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入计量单位名称', clearable: true } } },
-          form: { rules: [{ required: true, message: '请输入计量单位名称' }] },
+          search: { show: true, component: { props: { placeholder: t('message.pages.basicinfo.unit.unitname'), clearable: true } } },
+          form: { rules: [{ required: true, message: t('message.pages.basicinfo.unit.unitname') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { minWidth: 160, showOverflowTooltip: true }
         },
-        
         status: {
-          title: '可用状态',
+          title: t('message.pages.basicinfo.unit.status'),
           type: 'dict-switch',
-          dict: dict({ data: statusDict }),
+          dict: dict({ data: [{ value: 1, label: t('message.pages.basicinfo.unit.enabled') }, { value: 0, label: t('message.pages.basicinfo.unit.disabled') }] }),
           form: { value: 1 },
           column: { width: 120 }
         },
         create_datetime: {
-          title: '创建时间',
+          title: t('message.pages.basicinfo.unit.createTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }
         },
         update_datetime: {
-          title: '更新时间',
+          title: t('message.pages.basicinfo.unit.updateTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }

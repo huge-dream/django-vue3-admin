@@ -1,37 +1,11 @@
 import { dict, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud'
 import * as api from './api'
+import { useI18n } from 'vue-i18n'
 
-const statusDict = [
-  { value: 1, label: '可用' },
-  { value: 0, label: '不可用' }
-]
-
-const loadCompanyOptions = async () => {
-  try {
-    const res = await api.GetCompanies({ page: 1, page_size: 1000, pageSize: 1000 })
-    const list =
-      res?.data?.data?.results ||
-      res?.data?.results ||
-      res?.data?.list ||
-      res?.data ||
-      res?.results ||
-      res?.list ||
-      []
-    return (Array.isArray(list) ? list : []).map((c: any) => ({
-      company_code: c.company_code,
-      company_short_name: c.company_short_name || c.company_code || c.company_name
-    }))
-  } catch (e) {
-    console.warn('加载公司列表失败', e)
-    return []
-  }
-}
-
-// 预取一次，确保进入页面时就触发请求
-void loadCompanyOptions()
-
-export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+export const createCrudOptions = function ({ crudExpose }: Partial<CreateCrudOptionsProps>): CreateCrudOptionsRet {
   void crudExpose
+  const { t } = useI18n()
+
   return {
     crudOptions: {
       form: {
@@ -56,64 +30,80 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       },
       columns: {
         currencyname: {
-          title: '货币名称',
+          title: t('message.pages.basicinfo.currency.currencyname'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入货币名称', clearable: true } } },
-          form: { rules: [{ required: true, message: '请输入货币名称' }] },
+          search: { show: true, component: { props: { placeholder: t('message.pages.basicinfo.currency.currencyname'), clearable: true } } },
+          form: { rules: [{ required: true, message: t('message.pages.basicinfo.currency.currencyname') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         currencycode: {
-          title: '货币代码',
+          title: t('message.pages.basicinfo.currency.currencycode'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入货币代码', clearable: true } } },
-          form: { rules: [{ required: true, message: '请输入货币代码' }] },
+          search: { show: true, component: { props: { placeholder: t('message.pages.basicinfo.currency.currencycode'), clearable: true } } },
+          form: { rules: [{ required: true, message: t('message.pages.basicinfo.currency.currencycode') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           editForm: {
             component: { props: { disabled: true } }
           },
           column: { minWidth: 140, showOverflowTooltip: true }
         },
         currencysymbol: {
-          title: '货币符号',
+          title: t('message.pages.basicinfo.currency.currencysymbol'),
           type: 'input',
-          form: { rules: [{ required: true, message: '请输入货币符号' }] },
+          form: { rules: [{ required: true, message: t('message.pages.basicinfo.currency.currencysymbol') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { width: 120, showOverflowTooltip: true }
         },
         factory: {
-          title: '交易厂区',
+          title: t('message.pages.basicinfo.currency.factory'),
           type: 'dict-select',
           dict: dict({
             cache: false,
             value: 'company_code',
             label: 'company_short_name',
             getData: async () => {
-              return loadCompanyOptions()
+              try {
+                const res = await api.GetCompanies({ page: 1, page_size: 1000, pageSize: 1000 })
+                const list =
+                  res?.data?.data?.results ||
+                  res?.data?.results ||
+                  res?.data?.list ||
+                  res?.data ||
+                  res?.results ||
+                  res?.list ||
+                  []
+                return (Array.isArray(list) ? list : []).map((c: any) => ({
+                  company_code: c.company_code,
+                  company_short_name: c.company_short_name || c.company_code || c.company_name
+                }))
+              } catch (e) {
+                return []
+              }
             }
           }),
           search: { show: true },
-          form: { rules: [{ required: true, message: '请选择交易厂区' }] },
+          form: { rules: [{ required: true, message: t('message.pages.basicinfo.currency.factory') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { width: 160, showOverflowTooltip: true }
         },
         tax: {
-          title: '税率(%)',
+          title: t('message.pages.basicinfo.currency.tax') + '(%)',
           type: 'number',
-          form: { rules: [{ required: true, message: '请输入税率' }], component: { props: { precision: 2 } } },
+          form: { rules: [{ required: true, message: t('message.pages.basicinfo.currency.tax') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }], component: { props: { precision: 2 } } },
           column: { width: 120 }
         },
         status: {
-          title: '可用状态',
+          title: t('message.pages.basicinfo.currency.status'),
           type: 'dict-switch',
-          dict: dict({ data: statusDict }),
+          dict: dict({ data: [{ value: 1, label: t('message.pages.basicinfo.currency.enabled') }, { value: 0, label: t('message.pages.basicinfo.currency.disabled') }] }),
           form: { value: 1 },
           column: { width: 120 }
         },
         create_datetime: {
-          title: '创建时间',
+          title: t('message.pages.basicinfo.currency.createTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }
         },
         update_datetime: {
-          title: '更新时间',
+          title: t('message.pages.basicinfo.currency.updateTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }
