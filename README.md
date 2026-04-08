@@ -1,192 +1,93 @@
-# PIS - Procurement & Supplier Management System
+# PIS采购询报价管理系统
 
-## Project Overview
 
-A Django-Vue3 based procurement and supplier management system with RBAC permission control.
 
-## Project Architecture 🏗️
+## Getting started
 
-### Tech Stack
+To make it easy for you to get started with GitLab, here's a list of recommended next steps.
 
-| Layer | Technology |
-|-------|------------|
-| **Backend** | Django 4.2.14 + Django REST Framework 3.15.2 |
-| **Frontend** | Vue 3 + TypeScript + Vite 5.4 + Element Plus 2.8 + FastCRUD |
-| **Database** | MySQL 8.0 |
-| **Cache/Queue** | Redis + Celery |
-| **Real-time** | Django Channels (WebSocket) |
-| **Auth** | JWT via SimpleJWT |
+Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
 
-### Directory Structure
+## Add your files
+
+* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
+* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
 
 ```
-pis/
-├── backend/
-│   ├── application/          # Django project settings
-│   │   ├── settings.py       # Main settings (imports from conf/env.py)
-│   │   ├── urls.py           # Root URL routing
-│   │   ├── asgi.py           # ASGI config (WebSocket support)
-│   │   ├── wsgi.py           # WSGI config
-│   │   └── celery.py         # Celery configuration
-│   ├── apps/
-│   │   ├── pisadmin/         # Custom procurement app
-│   │   │   ├── basicinfo/    # Company, currency, supplier, unit, system no
-│   │   │   └── miscprocurement/  # RFQ, price templates, cost sections
-│   │   └── pissupplier/      # Supplier quotation module
-│   ├── dvadmin/              # Core RBAC system
-│   │   └── system/           # Users, roles, menus, departments, logs
-│   └── conf/
-│       └── env.py            # Environment configuration (DB, Redis credentials)
-├── web/                      # Vue 3 frontend
-│   └── src/
-│       ├── views/pisadmin/   # Custom procurement pages
-│       ├── views/pissupplier/# Supplier pages
-│       └── views/system/     # Admin system pages
-└── scripts/                  # Service management scripts
-    ├── start-backend.sh      # Start backend service
-    ├── start-frontend.sh    # Start frontend service
-    ├── start-celery.sh      # Start Celery worker/beat
-    ├── stop-all.sh          # Stop all services
-    └── check-status.sh      # Check service status
+cd existing_repo
+git remote add origin http://3510625af4a2/pisteams/pis.git
+git branch -M main
+git push -uf origin main
 ```
 
-### Module Description
+## Integrate with your tools
 
-| Module | Description |
-|--------|-------------|
-| `pisadmin/basicinfo` | Basic info management: companies, currencies, suppliers, units, system numbering rules |
-| `pisadmin/miscprocurement` | Miscellaneous procurement: RFQ, price templates, cost section builder |
-| `pissupplier` | Supplier quotation module |
-| `dvadmin/system` | Core RBAC system: users, roles, menus, departments, operation logs |
+* [Set up project integrations](http://3510625af4a2/pisteams/pis/-/settings/integrations)
 
-### Configuration
+## Collaborate with your team
 
-Backend settings are split:
-- `application/settings.py` - Django defaults
-- `conf/env.py` - Environment-specific config (database, Redis, secrets)
+* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
+* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
+* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
+* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
+* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
 
-## Prerequisites
+## Test and Deploy
 
-~~~
-Python >= 3.11.0 (Minimum version 3.9+)
-Node.js >= 16.0
-Mysql >= 8.0 (Optional, default database: SQLite3, supports 5.7+, recommended version: 8.0)
-Redis (Optional, latest version)
-~~~
+Use the built-in continuous integration in GitLab.
 
-## Quick Start
+* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
+* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
+* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
+* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
+* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
 
-### Backend
+***
 
-#### Method 1: Script Startup (Recommended)
+# Editing this README
 
-```bash
-# Go to project root
-cd D:\AVC-PROJECT\pis
+When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
 
-# Start backend service (development mode)
-./scripts/start-backend.sh
+## Suggestions for a good README
 
-# Start frontend service
-./scripts/start-frontend.sh
+Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
 
-# Start Celery async tasks (optional)
-./scripts/start-celery.sh
-```
+## Name
+Choose a self-explaining name for your project.
 
-**Script Description:**
+## Description
+Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
 
-| Script | Description |
-|--------|-------------|
-| `start-backend.sh` | Start backend service (auto-creates PID and log files) |
-| `start-frontend.sh` | Start frontend dev server |
-| `start-celery.sh` | Start Celery Worker and Beat |
-| `stop-all.sh` | Stop all services |
-| `stop-celery.sh` | Stop Celery only |
-| `check-status.sh` | Check all service status |
-| `view-logs.sh` | View service logs |
+## Badges
+On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
 
-**View Logs:**
-```bash
-./scripts/view-logs.sh all      # View all logs
-./scripts/view-logs.sh backend  # Backend logs only
-./scripts/view-logs.sh celery   # Celery logs only
-```
+## Visuals
+Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
 
-**Stop Services:**
-```bash
-./scripts/stop-all.sh           # Stop all services
-./scripts/stop-celery.sh       # Stop Celery only
-```
+## Installation
+Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
 
-#### Method 2: Manual Startup
+## Usage
+Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
 
-```bash
-# 1. Go to backend directory
-cd backend
+## Support
+Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
 
-# 2. Copy and configure environment file
-cp ./conf/env.example.py ./conf/env.py
-# Edit env.py to configure database information
+## Roadmap
+If you have ideas for releases in the future, it is a good idea to list them in the README.
 
-# 3. Install dependencies
-pip3 install -r requirements.txt
+## Contributing
+State if you are open to contributions and what your requirements are for accepting them.
 
-# 4. Run migrations
-python3 manage.py makemigrations
-python3 manage.py migrate
+For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
 
-# 5. Initialize data
-python3 manage.py init
-python3 manage.py init_area
+You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
 
-# 6. Start backend
-uvicorn application.asgi:application --port 8000 --host 0.0.0.0 --workers 8
-```
+## Authors and acknowledgment
+Show your appreciation to those who have contributed to the project.
 
-### Frontend
+## License
+For open source projects, say how it is licensed.
 
-```bash
-# Go to web directory
-cd web
-
-# Install dependencies
-npm install yarn
-yarn install --registry=https://registry.npm.taobao.org
-
-# Start development server
-yarn run dev
-# Visit http://localhost:8080 in your browser
-# Parameters such as boot port can be configured in the .env.development file
-
-# Build for production
-yarn run build
-```
-
-### Access
-
-- Frontend URL: http://localhost:8080
-- Backend API: http://localhost:8080/api
-- Default account: `superadmin` / `admin123456`
-
-### Docker
-
-```shell
-docker-compose up -d
-# Initialize backend data (first execution only)
-docker exec -ti dvadmin3-django bash
-python manage.py makemigrations
-python manage.py migrate
-python manage.py init_area
-python manage.py init
-exit
-
-# Stop services
-docker-compose down
-
-# Restart services
-docker-compose restart
-
-# Rebuild and start
-docker-compose up -d --build
-```
+## Project status
+If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
