@@ -1,7 +1,7 @@
 <template>
-  <fs-page class="compare-price-page" v-loading="comparisonDialog.loading">
+  <fs-page class="compare-price-page" :class="{ 'compare-price-page--public-share': isPublicShare }" v-loading="comparisonDialog.loading">
     <template #header>
-      <header class="compare-price-toolbar">
+      <header v-if="!isPublicShare" class="compare-price-toolbar">
         <div class="compare-price-toolbar__left">
           <el-button text class="compare-price-back" @click="goBack">
             <el-icon class="compare-price-back__icon"><ArrowLeft /></el-icon>
@@ -187,10 +187,13 @@
             </template>
             <template #default="{ row }">
               <template v-if="row.key === 'bargain'">
-                <el-input v-model="row.values[sup.name]" size="small" placeholder="请输入议价价" />
+                <span v-if="isPublicShare" class="compare-readonly-cell">{{ formatBargainDisplayReadonly(row.values[sup.name]) }}</span>
+                <el-input v-else v-model="row.values[sup.name]" size="small" placeholder="请输入议价价" />
               </template>
               <template v-else-if="row.key === 'award'">
+                <span v-if="isPublicShare" class="compare-readonly-cell">{{ displayTextEmpty(row.values[sup.name]) }}</span>
                 <el-switch
+                  v-else
                   :model-value="row.values[sup.name] === '是'"
                   @update:model-value="(val: boolean) => toggleComparisonAward(row, sup.name, val)"
                   active-text="是"
@@ -233,7 +236,7 @@
       </div>
     </div>
 
-    <template #footer>
+    <template v-if="!isPublicShare" #footer>
       <div class="compare-price-footer">
         <el-button @click="onSaveComparisonDraft" :loading="comparisonDialog.loading" :disabled="![4, 5, 6].includes(comparisonInquiryStatus)">暂存</el-button>
         <el-button
@@ -299,11 +302,19 @@ import { GetList as GetStations } from '../misc_stations/api'
 const route = useRoute()
 const router = useRouter()
 
+/** 对外分享路由：免登录，只读（``?inquiry_id=`` 询价单主键） */
+const isPublicShare = computed(
+  () =>
+    route.name === 'PublicMiscComparePrice' || String(route.path || '').includes('/public/misc-compare')
+)
+
 const unwrapInquiryDetail = (res: any) => res?.data?.data ?? res?.data ?? res
 
 const goBack = () => {
   router.back()
 }
+
+const formatBargainDisplayReadonly = (v: unknown) => formatBargainDisplayValue(v)
 
 type ComparisonDetailRow = {
   label: string
@@ -356,13 +367,20 @@ const pageTitle = computed(() => {
   return suffix ? `比价/议价 - ${suffix}` : '比价/议价'
 })
 
-/** 打开报价单详情路由页（默认查看模式，与供应商端详情页一致） */
+/** 打开报价单详情路由页（默认查看模式，与供应商端详情页一致；分享模式下走公开路由） */
 const openQuotationPreview = (supplierIndex: number) => {
   const quote: any = comparisonDialog.quotes[supplierIndex]
   const sup = comparisonDialog.suppliers[supplierIndex]
   const id = sup?.quotationId ?? quote?.autoid ?? quote?.id
   if (id == null || id === '') {
     ElMessage.warning('暂无该供应商报价单数据')
+    return
+  }
+  if (isPublicShare.value) {
+    router.push({
+      name: 'PublicPissupplierQuotationShare',
+      query: { id: String(id) }
+    })
     return
   }
   router.push({
@@ -375,6 +393,13 @@ const openQuotationPreview = (supplierIndex: number) => {
 const openCompareMinLink = (link: CompareMinLink) => {
   if (link.kind === 'material_cost_split') return
   if (link.kind === 'quotation') {
+    if (isPublicShare.value) {
+      router.push({
+        name: 'PublicPissupplierQuotationShare',
+        query: { id: String(link.id) }
+      })
+      return
+    }
     router.push({
       name: 'PissupplierQuotationDetail',
       params: { id: String(link.id) }
@@ -466,6 +491,17 @@ const fetchStationCodeToNameMap = async (): Promise<Record<string, string>> => {
     }
   } catch {
     /* 主数据不可用时仍显示库中工站代码 */
+  }
+  return map
+}
+
+/** 与 fetchStationCodeToNameMap 同逻辑，供分享数据包内嵌工站列表使用 */
+const buildStationMapFromList = (list: any[]): Record<string, string> => {
+  const map: Record<string, string> = {}
+  for (const row of list || []) {
+    const code = String(row.stationcode ?? row.station_code ?? '').trim()
+    const name = String(row.stationname ?? row.station_name ?? '').trim()
+    if (code && name) map[code] = name
   }
   return map
 }
@@ -1212,6 +1248,99 @@ const loadComparisonPage = async (row: any) => {
   }
 }
 
+/** 免登录分享：后端已组装 inquiry / quotations / materials / stations / negotiation_records */
+const loadComparisonFromBundle = async (bundle: {
+  inquiry: any
+  quotations?: any[]
+  materials?: any[]
+  stations?: any[]
+  negotiation_records?: any[]
+}) => {
+  const row = bundle.inquiry
+  comparisonDialog.currentRow = row
+  expandedRowKeys.value = []
+  comparisonDialog.loading = true
+  const rfqFromRow = Array.isArray(row.rfq_items) ? row.rfq_items[0] : undefined
+  const profitFromRow = Array.isArray(row.profit_costs)
+    ? rfqFromRow?.part_id
+      ? row.profit_costs.find((p: any) => p.part_id === rfqFromRow.part_id) || row.profit_costs[0]
+      : row.profit_costs[0]
+    : undefined
+  comparisonDialog.baseInfo = {
+    code: row.inquiry_no || '',
+    partNo: String(row.part_no || row.part_id || rfqFromRow?.part_id || '').trim(),
+    partName: String(row.part_name || rfqFromRow?.product_name || '').trim(),
+    targetPrice: row.target_price != null ? String(row.target_price) : '',
+    currency: String(row.currency || row.transaction_currency || '').trim(),
+    taxRate: firstNonEmptyString(row.tax_rate, rfqFromRow?.tax_rate, profitFromRow?.tax_rate),
+    dealPrice: row.win_price != null ? String(row.win_price) : '-',
+    lowestProcessPrice: '-'
+  }
+  try {
+    const quotes = (bundle.quotations || []).filter(Boolean)
+    const miscMinBySpec: Record<string, { price: number; factory?: string }> = {}
+    for (const it of bundle.materials || []) {
+      if (it.status != null && Number(it.status) !== 1) continue
+      const p = Number(it.price)
+      if (!Number.isFinite(p)) continue
+      const matRaw = it.materialtype ?? it.material_type ?? it.material
+      const mat = String(matRaw ?? '')
+        .trim()
+        .replace(/\s+/g, ' ')
+      if (!mat) continue
+      const fac = String(it.factory ?? it.company_code ?? '').trim()
+      const prev = miscMinBySpec[mat]
+      if (!prev || p < prev.price) {
+        miscMinBySpec[mat] = { price: p, factory: fac || undefined }
+      }
+    }
+    const stationNameByCode = buildStationMapFromList(bundle.stations || [])
+    const lowPriceCtx = computeLowPriceMinContext(quotes, miscMinBySpec)
+    const rq0 = quotes[0]?.rfq_items?.[0]
+    if (rq0) {
+      if (!comparisonDialog.baseInfo.partNo) comparisonDialog.baseInfo.partNo = String(rq0.part_id || '').trim()
+      if (!comparisonDialog.baseInfo.partName) comparisonDialog.baseInfo.partName = String(rq0.product_name || '').trim()
+    }
+    if (!comparisonDialog.baseInfo.taxRate) {
+      const pcQ =
+        quotes[0] && Array.isArray(quotes[0].profit_costs)
+          ? rq0?.part_id
+            ? quotes[0].profit_costs.find((p: any) => p.part_id === rq0.part_id) || quotes[0].profit_costs[0]
+            : quotes[0].profit_costs[0]
+          : undefined
+      comparisonDialog.baseInfo.taxRate = firstNonEmptyString(rq0?.tax_rate, pcQ?.tax_rate)
+    }
+    if (!comparisonDialog.baseInfo.currency && quotes[0]) {
+      const c = quotes[0].currency ?? quotes[0].transaction_currency
+      if (c != null && c !== '') comparisonDialog.baseInfo.currency = String(c).trim()
+    }
+    const { suppliers, rows } = buildComparisonRowsFromPisQuotes(quotes, {
+      materialMetrics: COMPARE_PRICE_MATERIAL_DETAIL_METRICS,
+      processMetrics: COMPARE_PRICE_PROCESS_DETAIL_METRICS,
+      lowPriceCtx,
+      stationNameByCode,
+      taxRateForProcessMin: comparisonDialog.baseInfo.taxRate
+    })
+    comparisonDialog.quotes = quotes
+    comparisonDialog.suppliers = suppliers
+    comparisonDialog.rows = rows
+    const negList = Array.isArray(bundle.negotiation_records) ? bundle.negotiation_records : []
+    mergeNegotiationIntoComparisonRows(rows, quotes, negList)
+    if (negList.length) await applyComparisonRowsAfterNegotiationMerge(rows)
+    const totalRow = rows.find((r) => r.key === 'total')
+    if (totalRow && totalRow.min !== undefined) {
+      comparisonDialog.baseInfo.lowestProcessPrice = String(totalRow.min)
+    }
+  } catch (e: any) {
+    comparisonDialog.quotes = []
+    comparisonDialog.suppliers = []
+    comparisonDialog.rows = []
+    ElMessage.error(e?.message || '加载比价信息失败')
+  } finally {
+    comparisonDialog.loading = false
+  }
+}
+
 const updateComparisonRowStats = (row: any) => {
   if (row?.key === 'bargain') return
   const nums = Object.values(row.values || {})
@@ -1431,6 +1560,41 @@ const toggleComparisonAward = (row: any, supName: string, val: boolean) => {
 }
 
 const loadFromRoute = async () => {
+  if (isPublicShare.value) {
+    const inquiryId = String((route.query.inquiry_id as string) || '').trim()
+    if (!inquiryId) {
+      ElMessage.error('缺少 inquiry_id')
+      return
+    }
+    try {
+      const res = await api.fetchPublicComparisonBundle({ inquiry_id: inquiryId })
+      const body = res?.data as { code?: number; data?: any; msg?: string } | undefined
+      if (body && body.code !== undefined && body.code !== 2000) {
+        ElMessage.error(body.msg || '加载失败')
+        comparisonDialog.quotes = []
+        comparisonDialog.suppliers = []
+        comparisonDialog.rows = []
+        return
+      }
+      const bundle = body?.data
+      if (!bundle?.inquiry) {
+        ElMessage.error('数据无效')
+        return
+      }
+      await loadComparisonFromBundle(bundle)
+    } catch (e: any) {
+      const msg =
+        e?.response?.data?.msg ||
+        e?.msg ||
+        e?.message ||
+        '加载比价信息失败'
+      ElMessage.error(msg)
+      comparisonDialog.quotes = []
+      comparisonDialog.suppliers = []
+      comparisonDialog.rows = []
+    }
+    return
+  }
   const id = String(route.params.id || '').trim()
   if (!id) {
     ElMessage.error('缺少询价单 ID')
@@ -1455,7 +1619,7 @@ const loadFromRoute = async () => {
 }
 
 watch(
-  () => route.params.id,
+  () => route.fullPath,
   () => {
     loadFromRoute()
   },
@@ -1467,6 +1631,17 @@ watch(
 <style scoped>
 .compare-price-page {
   box-sizing: border-box;
+}
+.compare-price-page--public-share {
+  height: 100vh !important;
+  min-height: 100vh;
+  border-radius: 0;
+}
+.compare-price-page--public-share .compare-price-body {
+  padding: 8px 10px 12px;
+}
+.compare-price-page--public-share :deep(.fs-page-header) {
+  display: none;
 }
 .compare-price-page :deep(.fs-page-header) {
   border-bottom: none;
@@ -1506,6 +1681,12 @@ watch(
   font-weight: 600;
   color: var(--el-text-color-primary);
   letter-spacing: 0.02em;
+}
+.compare-readonly-cell {
+  display: inline-block;
+  min-height: 22px;
+  line-height: 22px;
+  color: var(--el-text-color-primary);
 }
 .compare-price-body {
   padding: 12px 16px 16px;

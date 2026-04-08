@@ -125,5 +125,25 @@ export const staticRoutes: Array<RouteRecordRaw> = [
 		meta: {
 			title: 'message.router.personal'
 		},
-	}
+	},
+	/** 杂采比价对外分享（免登录，`?inquiry_id=`；与 comparePrice 共用组件） */
+	{
+		path: '/public/misc-compare',
+		name: 'PublicMiscComparePrice',
+		component: () => import('/@/views/pisadmin/miscprocurement/rfqmiscellaneous/comparePrice.vue'),
+		meta: {
+			title: '比价信息',
+			public: true,
+		},
+	},
+	/** 比价分享内跳转报价单详情（免登录，`?id=` 报价 autoid；与供应商 quotation detail 共用组件） */
+	{
+		path: '/public/pissupplier/quotation',
+		name: 'PublicPissupplierQuotationShare',
+		component: () => import('/@/views/pissupplier/quotation/detail.vue'),
+		meta: {
+			title: '查看报价',
+			public: true,
+		},
+	},
 ];

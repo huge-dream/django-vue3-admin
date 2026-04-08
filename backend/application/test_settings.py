@@ -1,31 +1,100 @@
 """
-测试专用 Django Settings
-使用已存在的 pisdb 数据库运行测试，测试之间有事务隔离。
-不创建/删除测试库，直接使用 pisdb。
+测试专用 Django Settings（``pytest`` / ``DJANGO_SETTINGS_MODULE=application.test_settings``）
+
+**SQL Server（与服务器部署一致，默认）**
+
+- 继承 ``application.settings`` 中的 ``DATABASE_*``（可用环境变量覆盖，见 ``conf/env.py``）。
+- 复用业务库 ``DATABASE_NAME``：不 CREATE/DROP 库、不跑 ``migrate``，避免与线上一致库结构冲突。
+- **请在业务库上至少执行过一次** ``python manage.py migrate``（含 ``sync`` 应用），确保存在 ``pis_sync_record`` 等表；否则同步接口仍可返回 JSON，但审计表无数据、依赖 ``SyncRecord`` 的断言会失败。
+- 依赖 ``mssql-django`` 的 ``DatabaseCreation`` 补丁（见下方 ``_install_shared_test_database``）。
+
+**无 SQL Server 时（本地 CI / 开发机）**
+
+- 设置环境变量 ``PIS_TEST_USE_SQLITE=1``（或 ``TEST_USE_SQLITE=1``）：使用项目目录下 ``.pytest/pis_test_runner.sqlite3``，
+  走 Django **默认**测试库创建与 ``migrate``，不挂「复用库」逻辑。
+
+本模块仅处理 **SQL Server（mssql-django）** 与上述 SQLite 测试模式，不再包含 PostgreSQL / MySQL 专用分支。
 """
 import os
-import sys
+
 from application.settings import *  # noqa
 
-# Patch MSSQL creation class BEFORE any database connections are made
-# 这必须在 Django settings 加载之后、任何 DB 操作之前完成
-import mssql.base
-from mssql.creation import DatabaseCreation
+_use_sqlite_for_tests = os.environ.get(
+    "PIS_TEST_USE_SQLITE", os.environ.get("TEST_USE_SQLITE", "")
+).lower() in ("1", "true", "yes")
+
+if _use_sqlite_for_tests:
+    _sqlite_dir = BASE_DIR / ".pytest"
+    _sqlite_dir.mkdir(exist_ok=True)
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": str(_sqlite_dir / "pis_test_runner.sqlite3"),
+            "TEST": {
+                "SERIALIZE": False,
+            },
+        }
+    }
+else:
+    DATABASES["default"].setdefault("TEST", {})
+    DATABASES["default"]["TEST"]["NAME"] = DATABASE_NAME
+    DATABASES["default"]["TEST"]["SERIALIZE"] = False
 
 
-class NoCreateTestDatabase(DatabaseCreation):
-    """跳过 CREATE/DROP DATABASE 的 MSSQL 创建逻辑"""
+def _install_shared_test_database(creation_cls, base_module):
+    """
+    绑定测试到已有库：不建库、不 migrate，仅切换连接并初始化缓存表（失败则忽略）。
+    """
 
-    def _create_test_db(self, verbosity=1, autoclobber=False, keepdb=False):
-        return self.connection.settings_dict["NAME"]
+    class _SharedTestDatabase(creation_cls):
+        def _create_test_db(self, verbosity, autoclobber=False, keepdb=False):
+            return self._get_test_db_name()
 
-    def _destroy_test_db(self, test_db_name, verbosity=1, keepdb=False):
-        pass
+        def _destroy_test_db(self, test_database_name, verbosity):
+            pass
+
+        def create_test_db(
+            self, verbosity=1, autoclobber=False, serialize=True, keepdb=False
+        ):
+            from django.conf import settings as django_settings
+            from django.core.management import call_command
+
+            test_database_name = self._get_test_db_name()
+            if verbosity >= 1:
+                self.log(
+                    "Binding tests to shared database %s (skip migrate)..."
+                    % self._get_database_display_str(verbosity, test_database_name)
+                )
+
+            self._create_test_db(verbosity, autoclobber, keepdb)
+
+            self.connection.close()
+            django_settings.DATABASES[self.connection.alias]["NAME"] = test_database_name
+            self.connection.settings_dict["NAME"] = test_database_name
+
+            if serialize:
+                self.connection._test_serialized_contents = (
+                    self.serialize_db_to_string()
+                )
+
+            try:
+                call_command(
+                    "createcachetable",
+                    database=self.connection.alias,
+                )
+            except Exception:
+                pass
+
+            self.connection.ensure_connection()
+            return test_database_name
+
+    base_module.DatabaseWrapper.creation_class = _SharedTestDatabase
 
 
-mssql.base.DatabaseWrapper.creation_class = NoCreateTestDatabase
+if not _use_sqlite_for_tests:
+    _engine = (DATABASES["default"].get("ENGINE") or "").lower()
+    if "mssql" in _engine or "sql_server" in _engine:
+        import mssql.base
+        from mssql.creation import DatabaseCreation as _MsSqlDatabaseCreation
 
-# 配置测试数据库
-DATABASES["default"]["TEST"] = {
-    "NAME": DATABASE_NAME,
-}
+        _install_shared_test_database(_MsSqlDatabaseCreation, mssql.base)

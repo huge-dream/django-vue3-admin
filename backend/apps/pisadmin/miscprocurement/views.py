@@ -9,6 +9,8 @@ from django.db.models import Q
 from django.utils import timezone
 from rest_framework.decorators import action
 from rest_framework import serializers
+from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
 
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
 from dvadmin.utils.viewset import CustomModelViewSet
@@ -28,7 +30,7 @@ from apps.pissupplier.models import (
     QuotationProfit,
     QuotationItem,
 )
-
+from apps.pissupplier.serializers import QuotationMasterSerializer
 logger = logging.getLogger(__name__)
 
 
@@ -142,6 +144,63 @@ from .serializers import (
     MiscProcMaterialMinPricesSerializer,
     MiscProcProcessingMinPricesSerializer,
 )
+
+def build_comparison_share_bundle(inquiry: Inquiry) -> dict:
+    """与前端比价页 loadComparisonPage 所需数据一致：询价单 + 报价明细 + 议价 + 材料/工站主数据。"""
+    inquiry_data = InquirySerializer(inquiry).data
+    qm_qs = (
+        QuotationMaster.objects.filter(inquiry_no=inquiry.inquiry_no)
+        .order_by("supplier_code", "autoid")
+        .prefetch_related("rfq_items", "material_costs", "process_costs", "other_costs", "profit_costs")
+    )
+    quotations = []
+    for qm in qm_qs:
+        quotations.append(QuotationMasterSerializer(qm).data)
+    part_id = _resolve_inquiry_primary_part_id(inquiry)
+    neg_qs = MiscNegotiationRecords.objects.filter(inquiry_no=inquiry.inquiry_no)
+    if part_id:
+        neg_qs = neg_qs.filter(part_id=part_id)
+    negotiation_records = MiscNegotiationRecordsSerializer(neg_qs.order_by("id"), many=True).data
+    materials = MiscMaterialSerializer(
+        MiscProcurementMaterialInfo.objects.filter(status=1).order_by("id")[:8000],
+        many=True,
+    ).data
+    stations = MiscStationSerializer(
+        MiscProcurementStationInfo.objects.all().order_by("id")[:8000],
+        many=True,
+    ).data
+    return {
+        "inquiry": inquiry_data,
+        "quotations": quotations,
+        "negotiation_records": negotiation_records,
+        "materials": materials,
+        "stations": stations,
+    }
+
+
+class MiscInquiryComparisonShareBundleView(APIView):
+    """
+    GET /api/public/miscprocurement/comparison/
+
+    免登录，仅 ``?inquiry_id=<主键>``。
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, *args, **kwargs):
+        inquiry_id_raw = (request.query_params.get("inquiry_id") or "").strip()
+        if not inquiry_id_raw:
+            return ErrorResponse(msg="缺少 inquiry_id", code=4000)
+        try:
+            pk = int(inquiry_id_raw)
+        except (TypeError, ValueError):
+            return ErrorResponse(msg="inquiry_id 无效", code=4000)
+        inquiry = Inquiry.objects.filter(pk=pk).first()
+        if not inquiry:
+            return ErrorResponse(msg="询价单不存在", code=4000)
+        bundle = build_comparison_share_bundle(inquiry)
+        return DetailResponse(data=bundle, msg="success")
 
 
 def _negotiation_totals_from_quotation_item(quotation_no: str, part_id: str):
@@ -1429,6 +1488,17 @@ class InquiryViewSet(CustomModelViewSet):
             comparison_time=getattr(instance, "comparison_time", None),
             operation_type=9,
             operation_desc="议价审核完成（核价通过）",
+        )
+
+    @action(methods=["get"], detail=True, url_path="comparison_share")
+    def comparison_share(self, request, pk=None):
+        """
+        比价对外分享使用 ``#/public/misc-compare?inquiry_id=<主键>``（免登录、免签名）。
+        """
+        self.get_object()  # 保留权限校验语义；不返回链接
+        return ErrorResponse(
+            msg="采购端「复制分享链接」已关闭，请使用带 inquiry_id 的公开比价地址（由业务系统拼链）",
+            code=4000,
         )
 
     @action(methods=["get"], detail=True, url_path="negotiation_records")

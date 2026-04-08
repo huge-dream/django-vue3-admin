@@ -1,7 +1,5 @@
+"""EIP 同步插件 URL：杂采物料、核价审核结果已注册于 ``application/urls.py``。"""
+
 from django.urls import path
 
-from sync.views import MiscMaterialSyncView
-
-urlpatterns = [
-    path("misc-material/", MiscMaterialSyncView.as_view(), name="sync-misc-material"),
-]
+urlpatterns: list = []

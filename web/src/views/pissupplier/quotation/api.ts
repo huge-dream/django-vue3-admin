@@ -1,4 +1,6 @@
+import axios from 'axios'
 import { request } from '/@/utils/service'
+import { getBaseURL } from '/@/utils/baseUrl'
 
 /**
  * 与后端路由一致：
@@ -34,6 +36,7 @@ export type PaymentCode = 1 | 2 | 3 | 4
  * 关联 Inquiry 与成本/价格模板接口补全 title、template 与模板名称。
  *
  * 前端详情路由：`#/.../quotation/detail/:id` 无 `mode` 时默认**查看**；列表「报价」会带 `?mode=edit`。
+ * 比价分享免登录：`#/public/pissupplier/quotation?id=`（报价 autoid），接口 ``GET /api/public/pissupplier/quotation/?id=``。
  * 更新（PUT）在报价详情页「保存」时调用，不改变 status / quotetime；正式提交走 POST `{id}/submit/`。
  * 更新（PUT）时序列化要求 supplier_code / supplier_name 等字段；前端从列表/详情映射 supplierCode 并在保存时写回。
  * 成本结构须提交 material_costs、process_costs、other_costs、profit_costs（与 QuotationMasterCreateUpdateSerializer），
@@ -45,6 +48,12 @@ export const syncExpiredQuotations = () =>
 
 export const getList = (params: any) => request({ url: baseUrl, method: 'get', params })
 export const getDetail = (id: string | number) => request({ url: `${baseUrl}${id}/`, method: 'get' })
+
+/** 比价分享页跳转：免登录，``id`` 为报价主键 autoid */
+export const fetchPublicQuotationDetail = async (params: { id: string | number }) => {
+  const url = `${getBaseURL().replace(/\/$/, '')}/api/public/pissupplier/quotation/`
+  return axios.get(url, { params: { id: String(params.id) } })
+}
 export const create = (data: any) => request({ url: baseUrl, method: 'post', data })
 export const update = (id: string | number, data: any) => request({ url: `${baseUrl}${id}/`, method: 'put', data })
 

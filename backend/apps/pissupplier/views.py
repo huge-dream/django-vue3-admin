@@ -5,6 +5,8 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework.decorators import action
+from rest_framework.permissions import AllowAny
+from rest_framework.views import APIView
 
 from apps.pisadmin.basicinfo.models import SupplierUser
 from dvadmin.utils.json_response import DetailResponse, ErrorResponse, SuccessResponse
@@ -453,3 +455,48 @@ class QuotationItemViewSet(SupplierQuotationScopeMixin, CustomModelViewSet):
 
     def perform_update(self, serializer):
         serializer.save()
+
+
+class PublicQuotationShareDetailView(APIView):
+    """
+    GET /api/public/pissupplier/quotation/
+
+    免登录，仅 ``?id=`` 或 ``?autoid=``（报价主表主键 autoid）。
+    响应形态与 ``GET /api/pissupplier/quotation_master/{autoid}/`` 详情相同。
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, *args, **kwargs):
+        id_raw = (
+            request.query_params.get("id")
+            or request.query_params.get("autoid")
+            or ""
+        ).strip()
+        if not id_raw:
+            return ErrorResponse(msg="缺少 id（或 autoid）", code=4000)
+        try:
+            autoid = int(id_raw)
+        except (TypeError, ValueError):
+            return ErrorResponse(msg="id 无效", code=4000)
+        qm = (
+            QuotationMaster.objects.prefetch_related(
+                "rfq_items",
+                "material_costs",
+                "process_costs",
+                "other_costs",
+                "profit_costs",
+            )
+            .filter(autoid=autoid)
+            .first()
+        )
+        if not qm:
+            return ErrorResponse(msg="报价单不存在", code=4000)
+        # 与 ViewSet.retrieve 一致：`QuotationMasterSerializer` 中 template_sections / inquiry_attachments
+        # 仅在 context["view_action"] == "retrieve" 时展开，否则为空导致前端成本结构与合计无法渲染。
+        data = QuotationMasterSerializer(
+            qm,
+            context={"request": request, "view_action": "retrieve"},
+        ).data
+        return DetailResponse(data=data, msg="success")
