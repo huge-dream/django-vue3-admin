@@ -60,7 +60,6 @@ INSTALLED_APPS = [
     "captcha",
     "channels",
     "dvadmin.system",
-    "dvadmin.test_app",
     "apps.pisadmin.miscprocurement",
     "apps.pisadmin.procurement",
     "apps.pisadmin.basicinfo",
