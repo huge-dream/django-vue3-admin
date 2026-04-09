@@ -61,6 +61,13 @@ INSTALLED_APPS = [
     "channels",
     "dvadmin.system",
     "dvadmin.test_app",
+    "apps.pisadmin.miscprocurement",
+    "apps.pisadmin.procurement",
+    "apps.pisadmin.basicinfo",
+    "apps.pisadmin.dashboard",
+    "apps.pissupplier",
+    "sync",
+    "dvadmin_ak_sk",
 ]
 
 MIDDLEWARE = [
