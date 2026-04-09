@@ -3,8 +3,8 @@
     <!-- 切换角色时显示 -->
     <div v-if="showRoleSwitch" class="role-select">
       <el-radio-group v-model="currentRole">
-        <el-radio-button label="buyer">采购方仪表盘</el-radio-button>
-        <el-radio-button label="supplier">供应商仪表盘</el-radio-button>
+        <el-radio-button label="buyer">{{ $t('message.pages.home.buyerDashboard.roleSwitch.buyer') }}</el-radio-button>
+        <el-radio-button label="supplier">{{ $t('message.pages.home.buyerDashboard.roleSwitch.supplier') }}</el-radio-button>
       </el-radio-group>
     </div>
     <BuyerDashboard v-if="currentRole === 'buyer'" />
@@ -14,6 +14,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import { useDashboardStore } from '/@/stores/modules/dashboard';
@@ -24,6 +25,7 @@ import SupplierDashboard from './SupplierDashboard.vue';
 const route = useRoute();
 const store = useDashboardStore();
 const { buyer, supplier } = storeToRefs(store);
+const { t } = useI18n();
 
 const currentRole = ref('buyer');
 
@@ -40,7 +42,9 @@ const showRoleSwitch = computed(() => hasBothRoles.value);
 
 // 更新 tagsView 标题
 const updateTagsViewTitle = (role: string) => {
-  const title = role === 'buyer' ? '采购方仪表盘' : '供应商仪表盘';
+  const title = role === 'buyer'
+    ? t('message.pages.home.buyerDashboard.roleSwitch.buyer')
+    : t('message.pages.home.buyerDashboard.roleSwitch.supplier');
   mittBus.emit('onUpdateTagsViewName', { path: route.path, title });
 };
 
