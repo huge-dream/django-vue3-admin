@@ -48,8 +48,9 @@ function mergeOptions(baseOptions: Required<CrudOptions>, userOptions: CrudOptio
 /**
  * 最终暴露的 commonCrudConfig
  * @param options 用户自定义配置（可传可不传，不传就用默认）
+ * @param t i18n t 函数（用于翻译占位符和快捷选项文本）
  */
-export const commonCrudConfig = (options: CrudOptions = {}) => {
+export const commonCrudConfig = (options: CrudOptions = {}, t?: (key: string) => string) => {
 	// ① 合并
 	const merged = mergeOptions(defaultOptions, options);
 
@@ -152,7 +153,7 @@ export const commonCrudConfig = (options: CrudOptions = {}) => {
 		},
 
 		update_datetime: {
-			title: '更新时间',
+			title: t ? t('message.pages.system.common.updateTime') : '更新时间',
 			type: 'datetime',
 			search: {
 				show: merged.update_datetime.search,
@@ -160,13 +161,13 @@ export const commonCrudConfig = (options: CrudOptions = {}) => {
 				component: {
 					type: 'datetimerange',
 					props: {
-						'start-placeholder': '开始时间',
-						'end-placeholder': '结束时间',
+						'start-placeholder': t ? t('message.pages.system.common.startTime') : '开始时间',
+						'end-placeholder': t ? t('message.pages.system.common.endTime') : '结束时间',
 						'value-format': 'YYYY-MM-DD HH:mm:ss',
 						'picker-options': {
 							shortcuts: [
 								{
-									text: '最近一周',
+									text: t ? t('message.pages.system.common.lastWeek') : '最近一周',
 									onClick(picker: any) {
 										const end = new Date();
 										const start = new Date();
@@ -175,7 +176,7 @@ export const commonCrudConfig = (options: CrudOptions = {}) => {
 									},
 								},
 								{
-									text: '最近一个月',
+									text: t ? t('message.pages.system.common.lastMonth') : '最近一个月',
 									onClick(picker: any) {
 										const end = new Date();
 										const start = new Date();
@@ -184,7 +185,7 @@ export const commonCrudConfig = (options: CrudOptions = {}) => {
 									},
 								},
 								{
-									text: '最近三个月',
+									text: t ? t('message.pages.system.common.lastThreeMonths') : '最近三个月',
 									onClick(picker: any) {
 										const end = new Date();
 										const start = new Date();
@@ -218,7 +219,7 @@ export const commonCrudConfig = (options: CrudOptions = {}) => {
 		},
 
 		create_datetime: {
-			title: '创建时间',
+			title: t ? t('message.pages.system.common.createTime') : '创建时间',
 			type: 'datetime',
 			search: {
 				show: merged.create_datetime.search,
@@ -226,13 +227,13 @@ export const commonCrudConfig = (options: CrudOptions = {}) => {
 				component: {
 					type: 'datetimerange',
 					props: {
-						'start-placeholder': '开始时间',
-						'end-placeholder': '结束时间',
+						'start-placeholder': t ? t('message.pages.system.common.startTime') : '开始时间',
+						'end-placeholder': t ? t('message.pages.system.common.endTime') : '结束时间',
 						'value-format': 'YYYY-MM-DD HH:mm:ss',
 						'picker-options': {
 							shortcuts: [
 								{
-									text: '最近一周',
+									text: t ? t('message.pages.system.common.lastWeek') : '最近一周',
 									onClick(picker: any) {
 										const end = new Date();
 										const start = new Date();
@@ -241,7 +242,7 @@ export const commonCrudConfig = (options: CrudOptions = {}) => {
 									},
 								},
 								{
-									text: '最近一个月',
+									text: t ? t('message.pages.system.common.lastMonth') : '最近一个月',
 									onClick(picker: any) {
 										const end = new Date();
 										const start = new Date();
@@ -250,7 +251,7 @@ export const commonCrudConfig = (options: CrudOptions = {}) => {
 									},
 								},
 								{
-									text: '最近三个月',
+									text: t ? t('message.pages.system.common.lastThreeMonths') : '最近三个月',
 									onClick(picker: any) {
 										const end = new Date();
 										const start = new Date();

@@ -1,8 +1,10 @@
 import * as api from './api';
 import { UserPageQuery, AddReq, DelReq, EditReq, CreateCrudOptionsProps, CreateCrudOptionsRet, dict } from '@fast-crud/fast-crud';
+import { useI18n } from 'vue-i18n';
 import {commonCrudConfig} from "/@/utils/commonCrud";
 
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+	const { t } = useI18n()
 	const pageRequest = async (query: UserPageQuery) => {
 		return await api.GetList(query);
 	};
@@ -48,7 +50,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 			},
 			columns: {
 				_index: {
-					title: '序号',
+					title: t('message.pages.loginLog.table.columns.index'),
 					form: { show: false },
 					column: {
 						//type: 'index',
@@ -64,7 +66,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 				},
 				search: {
-					title: '关键词',
+					title: t('message.pages.loginLog.table.columns.keyword'),
 					column: {
 						show: false,
 					},
@@ -74,7 +76,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 							props: {
 								clearable: true,
 							},
-							placeholder: '请输入关键词',
+							placeholder: t('message.pages.loginLog.form.keywordPlaceholder'),
 						},
 					},
 					form: {
@@ -87,7 +89,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 				},
 				username: {
-					title: '登录用户名',
+					title: t('message.pages.loginLog.table.columns.username'),
 					search: {
 						disabled: false,
 					},
@@ -98,12 +100,12 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					form: {
 						disabled: true,
 						component: {
-							placeholder: '请输入登录用户名',
+							placeholder: t('message.pages.loginLog.form.usernamePlaceholder'),
 						},
 					},
 				},
 				ip: {
-					title: '登录ip',
+					title: t('message.pages.loginLog.table.columns.ip'),
 					search: {
 						disabled: false,
 					},
@@ -114,12 +116,12 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					form: {
 						disabled: true,
 						component: {
-							placeholder: '请输入登录ip',
+							placeholder: t('message.pages.loginLog.form.ipPlaceholder'),
 						},
 					},
 				},
 				isp: {
-					title: '运营商',
+					title: t('message.pages.loginLog.table.columns.isp'),
 					search: {
 						disabled: true,
 					},
@@ -130,12 +132,12 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 					form: {
 						component: {
-							placeholder: '请输入运营商',
+							placeholder: t('message.pages.loginLog.form.ispPlaceholder'),
 						},
 					},
 				},
 				continent: {
-					title: '大州',
+					title: t('message.pages.loginLog.table.columns.continent'),
 					type: 'input',
 					column:{
 						minWidth: 90,
@@ -143,52 +145,52 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					form: {
 						disabled: true,
 						component: {
-							placeholder: '请输入大州',
+							placeholder: t('message.pages.loginLog.form.continentPlaceholder'),
 						},
 					},
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				country: {
-					title: '国家',
+					title: t('message.pages.loginLog.table.columns.country'),
 					type: 'input',
 					column:{
 						minWidth: 90,
 					},
 					form: {
 						component: {
-							placeholder: '请输入国家',
+							placeholder: t('message.pages.loginLog.form.countryPlaceholder'),
 						},
 					},
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				province: {
-					title: '省份',
+					title: t('message.pages.loginLog.table.columns.province'),
 					type: 'input',
 					column:{
 						minWidth: 80,
 					},
 					form: {
 						component: {
-							placeholder: '请输入省份',
+							placeholder: t('message.pages.loginLog.form.provincePlaceholder'),
 						},
 					},
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				city: {
-					title: '城市',
+					title: t('message.pages.loginLog.table.columns.city'),
 					type: 'input',
 					column:{
 						minWidth: 80,
 					},
 					form: {
 						component: {
-							placeholder: '请输入城市',
+							placeholder: t('message.pages.loginLog.form.cityPlaceholder'),
 						},
 					},
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				district: {
-					title: '县区',
+					title: t('message.pages.loginLog.table.columns.district'),
 					key: '',
 					type: 'input',
 					column:{
@@ -196,52 +198,52 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 					form: {
 						component: {
-							placeholder: '请输入县区',
+							placeholder: t('message.pages.loginLog.form.districtPlaceholder'),
 						},
 					},
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				area_code: {
-					title: '区域代码',
+					title: t('message.pages.loginLog.table.columns.areaCode'),
 					type: 'input',
 					column:{
 						minWidth: 90,
 					},
 					form: {
 						component: {
-							placeholder: '请输入区域代码',
+							placeholder: t('message.pages.loginLog.form.areaCodePlaceholder'),
 						},
 					},
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				country_english: {
-					title: '英文全称',
+					title: t('message.pages.loginLog.table.columns.countryEnglish'),
 					type: 'input',
 					column:{
 						minWidth: 120,
 					},
 					form: {
 						component: {
-							placeholder: '请输入英文全称',
+							placeholder: t('message.pages.loginLog.form.countryEnglishPlaceholder'),
 						},
 					},
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				country_code: {
-					title: '简称',
+					title: t('message.pages.loginLog.table.columns.countryCode'),
 					type: 'input',
 					column:{
 						minWidth: 100,
 					},
 					form: {
 						component: {
-							placeholder: '请输入简称',
+							placeholder: t('message.pages.loginLog.form.countryCodePlaceholder'),
 						},
 					},
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				longitude: {
-					title: '经度',
+					title: t('message.pages.loginLog.table.columns.longitude'),
 					type: 'input',
 					disabled: true,
 					column:{
@@ -249,13 +251,13 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 					form: {
 						component: {
-							placeholder: '请输入经度',
+							placeholder: t('message.pages.loginLog.form.longitudePlaceholder'),
 						},
 					},
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				latitude: {
-					title: '纬度',
+					title: t('message.pages.loginLog.table.columns.latitude'),
 					type: 'input',
 					disabled: true,
 					column:{
@@ -263,21 +265,21 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 					form: {
 						component: {
-							placeholder: '请输入纬度',
+							placeholder: t('message.pages.loginLog.form.latitudePlaceholder'),
 						},
 					},
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				login_type: {
-					title: '登录类型',
+					title: t('message.pages.loginLog.table.columns.loginType'),
 					type: 'dict-select',
 					search: {
 						disabled: false,
 					},
 					dict: dict({
 						data: [
-							{ label: '普通登录', value: 1 },
-							{ label: '微信扫码登录', value: 2 },
+							{ label: t('message.pages.loginLog.loginType.normal'), value: 1 },
+							{ label: t('message.pages.loginLog.loginType.wechat'), value: 2 },
 						],
 					}),
 					column:{
@@ -285,36 +287,36 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 					form: {
 						component: {
-							placeholder: '请选择登录类型',
+							placeholder: t('message.pages.loginLog.form.loginTypePlaceholder'),
 						},
 					},
 				},
 				os: {
-					title: '操作系统',
+					title: t('message.pages.loginLog.table.columns.os'),
 					type: 'input',
 					column:{
 						minWidth: 120,
 					},
 					form: {
 						component: {
-							placeholder: '请输入操作系统',
+							placeholder: t('message.pages.loginLog.form.osPlaceholder'),
 						},
 					},
 				},
 				browser: {
-					title: '浏览器名',
+					title: t('message.pages.loginLog.table.columns.browser'),
 					type: 'input',
 					column:{
 						minWidth: 120,
 					},
 					form: {
 						component: {
-							placeholder: '请输入浏览器名',
+							placeholder: t('message.pages.loginLog.form.browserPlaceholder'),
 						},
 					},
 				},
 				agent: {
-					title: 'agent信息',
+					title: t('message.pages.loginLog.table.columns.agent'),
 					disabled: true,
 					type: 'input',
 					column:{
@@ -322,7 +324,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 					form: {
 						component: {
-							placeholder: '请输入agent信息',
+							placeholder: t('message.pages.loginLog.form.agentPlaceholder'),
 						},
 					},
 				},
@@ -330,7 +332,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					create_datetime: {
 						search: true
 					}
-				})
+				}, t)
 			},
 		},
 	};
