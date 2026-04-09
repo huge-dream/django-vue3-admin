@@ -62,6 +62,7 @@
           </template>
 
           <el-table
+            :ref="(el: any) => { if (el) tableRefs[group.viewset] = el }"
             :data="group.buttons"
             border
             size="small"
@@ -149,6 +150,7 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
+import type { ElTable } from 'element-plus';
 import { ElMessage } from 'element-plus';
 import { scanGetApps, scanViewSet, scanBatchCreate } from '../../api';
 
@@ -202,6 +204,7 @@ const scanning = ref(false);
 const submitting = ref(false);
 const tableData = ref<ViewSetGroup[]>([]);
 const expandedGroups = ref<string[]>([]);
+const tableRefs = ref<Record<string, InstanceType<typeof ElTable>>>({});
 
 const rowKey = (btn: Button) => `${btn.path}::${btn.method}::${btn.action}`;
 
@@ -241,8 +244,14 @@ const toggleGroup = (group: ViewSetGroup, checked: boolean) => {
       }
     }
   }
-  // 触发 el-table 的选中状态更新（通过重新设置 data 触发）
-  triggerTableRefresh(group);
+  const tableRef = tableRefs.value[group.viewset];
+  if (tableRef) {
+    for (const btn of group.buttons) {
+      if (!btn.is_existing) {
+        tableRef.toggleRowSelection(btn, checked);
+      }
+    }
+  }
 };
 
 const toggleAll = (checked: boolean) => {
@@ -268,6 +277,14 @@ const onSelectionChange = (group: ViewSetGroup, selectedRows: Button[]) => {
       group._selectedSet!.add(key);
     } else {
       group._selectedSet!.delete(key);
+    }
+    const tableRef = tableRefs.value[group.viewset];
+    if (tableRef) {
+      for (const btn of group.buttons) {
+        if (!btn.is_existing) {
+          tableRef.toggleRowSelection(btn, checked);
+        }
+      }
     }
   }
 };
@@ -382,6 +399,7 @@ const handleClose = () => {
   selectedApp.value = '';
   tableData.value = [];
   expandedGroups.value = [];
+  tableRefs.value = {};
 };
 
 const handleOpen = async () => {

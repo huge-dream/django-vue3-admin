@@ -73,6 +73,12 @@ export default {
                     assignUsers: '授权用户',
                     batchDelete: '批量删除',
                     confirm: '确定',
+                    expandAll: '展开所有',
+                    collapseAll: '收起所有',
+                    intentRead: '查询',
+                    intentWrite: '新增/修改',
+                    intentDelete: '删除',
+                    intentOther: '其他',
                 },
                 transfer: {
                     unassignedUsers: '未授权用户',

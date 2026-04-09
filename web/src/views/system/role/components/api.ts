@@ -38,6 +38,18 @@ export function getRoleMenuBtnField(query: object) {
 }
 
 /**
+ * 批量设置 角色-菜单-按钮
+ * @param data { roleId, menuId, buttons: [{btnId, isCheck, data_range, dept}] }
+ */
+export function batchSetRoleMenuBtn(data: object) {
+	return request({
+		url: '/api/system/role_menu_button_permission/batch_set_role_menu_btn/',
+		method: 'put',
+		data,
+	});
+}
+
+/**
  * 设置 角色-菜单-按钮
  * @param data
  */

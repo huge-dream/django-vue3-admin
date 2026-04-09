@@ -106,7 +106,7 @@ class RoleMenuButtonSerializer(CustomModelSerializer):
 
     class Meta:
         model = MenuButton
-        fields = ['id', 'menu', 'name', 'isCheck', 'data_range', 'role_menu_btn_perm_id', 'dept']
+        fields = ['id', 'menu', 'name', 'name_en', 'name_zh_tw', 'value', 'isCheck', 'data_range', 'role_menu_btn_perm_id', 'dept']
 
 
 class RoleMenuFieldSerializer(CustomModelSerializer):
@@ -221,6 +221,50 @@ class RoleMenuButtonPermissionViewSet(CustomModelViewSet):
                 })
 
         return DetailResponse(data=[], msg="更新成功")
+
+    @action(methods=['PUT'], detail=False, permission_classes=[IsAuthenticated])
+    def batch_set_role_menu_btn(self, request):
+        """
+        批量设置 角色-菜单-按钮
+        请求体: {"buttons": [{"btnId": 1, "isCheck": true, "data_range": 0, "dept": []}, ...]}
+        """
+        data = request.data
+        buttons = data.get('buttons', [])
+        if not buttons:
+            return DetailResponse(data={}, msg="buttons 不能为空", code=4000)
+
+        role_id = data.get('roleId')
+        menu_id = data.get('menuId')
+
+        # 分离需要创建和需要删除的
+        to_create = [b for b in buttons if b.get('isCheck')]
+        to_delete_ids = [b['btnId'] for b in buttons if not b.get('isCheck')]
+
+        # 批量删除
+        if to_delete_ids:
+            RoleMenuButtonPermission.objects.filter(
+                role_id=role_id, menu_button_id__in=to_delete_ids
+            ).delete()
+
+        # 批量创建（跳过已存在的）
+        if to_create:
+            existing = set(
+                RoleMenuButtonPermission.objects.filter(role_id=role_id)
+                .values_list('menu_button_id', flat=True)
+            )
+            to_create_filtered = [b for b in to_create if b['btnId'] not in existing]
+            if to_create_filtered:
+                instances = [
+                    RoleMenuButtonPermission(
+                        role_id=role_id,
+                        menu_button_id=b['btnId'],
+                        data_range=b.get('data_range') or 0,
+                    )
+                    for b in to_create_filtered
+                ]
+                RoleMenuButtonPermission.objects.bulk_create(instances, ignore_conflicts=True)
+
+        return DetailResponse(data={'updated': len(buttons)}, msg=f"更新成功 {len(buttons)} 项")
 
     @action(methods=['PUT'], detail=False, permission_classes=[IsAuthenticated])
     def set_role_menu_btn(self, request):

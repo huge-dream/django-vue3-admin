@@ -66,6 +66,8 @@ export interface RoleMenuBtnType {
 	data_range: number | null;
 	/** 自定义部门 */
 	dept: number[];
+	/** 权限值 (格式: app:model:action，用于分组) */
+	value?: string;
 }
 
 /**

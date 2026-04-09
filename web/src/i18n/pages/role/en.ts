@@ -73,6 +73,12 @@ export default {
                     assignUsers: 'Assign Users',
                     batchDelete: 'Batch Delete',
                     confirm: 'Confirm',
+                    expandAll: 'Expand All',
+                    collapseAll: 'Collapse All',
+                    intentRead: 'Read',
+                    intentWrite: 'Create/Update',
+                    intentDelete: 'Delete',
+                    intentOther: 'Other',
                 },
                 transfer: {
                     unassignedUsers: 'Unassigned Users',
