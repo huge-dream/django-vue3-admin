@@ -10,15 +10,18 @@ import { useFs } from '@fast-crud/fast-crud';
 import { createCrudOptions } from './crud';
 import { useExpose, useCrud } from '@fast-crud/fast-crud';
 import { ElMessageBox } from 'element-plus';
+import { useI18n } from 'vue-i18n';
+
+const { t } = useI18n()
 
 //抽屉是否显示
 const drawer = ref(false);
 
 //抽屉关闭确认
 const handleClose = (done: () => void) => {
-	ElMessageBox.confirm('您确定要关闭?', {
-		confirmButtonText: '确定',
-		cancelButtonText: '取消',
+	ElMessageBox.confirm(t('message.pages.dictionary.dialog.closeConfirm'), {
+		confirmButtonText: t('message.pages.dictionary.buttons.confirm'),
+		cancelButtonText: t('message.pages.dictionary.buttons.cancel'),
 		type: 'warning',
 	})
 		.then(() => {

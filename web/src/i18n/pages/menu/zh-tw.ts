@@ -98,6 +98,8 @@ export default {
                     linkUrlRequired: '請輸入外鏈接地址',
                     permissionNameRequired: '權限名稱必填',
                     permissionValueRequired: '權限標識必填',
+                    methodRequired: '請求方式必填',
+                    apiRequired: '接口地址必填',
                     batchGenerate: '批量生成',
                     alreadyExists: '已存在，不可重複',
                 },

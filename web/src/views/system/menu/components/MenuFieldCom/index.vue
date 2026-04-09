@@ -7,7 +7,7 @@
 			<!-- 搜索输入框 -->
 			<el-input v-model="searchQuery" placeholder="搜索模型..." style="margin-bottom: 10px"></el-input>
 			<div class="model-card">
-				<!--注释编号:django-vue3-admin-index483211: 对请求回来的allModelData进行computed计算，返加搜索框匹配到的内容-->
+				<!--注释编号:Procurement Inquiry System-index483211: 对请求回来的allModelData进行computed计算，返加搜索框匹配到的内容-->
 				<div v-for="(item, index) in filteredModelData" :value="item.key" :key="index">
 					<el-text :type="modelCheckIndex === index ? 'primary' : ''" @click="onModelChecked(item, index)">
 						{{ item.app + '--' + item.title + '(' + item.key + ')' }}
@@ -79,7 +79,7 @@ const onModelChecked = (row, index) => {
 	props.app = row.app;
 };
 
-// 注释编号:django-vue3-admin-index083311:代码开始行
+// 注释编号:Procurement Inquiry System-index083311:代码开始行
 // 功能说明:搭配搜索的处理，返回搜索结果
 const searchQuery = ref('');
 
@@ -92,7 +92,7 @@ const filteredModelData = computed(() => {
 		(item) => item.app.toLowerCase().includes(query) || item.title.toLowerCase().includes(query) || item.key.toLowerCase().includes(query)
 	);
 });
-// 注释编号:django-vue3-admin-index083311:代码结束行
+// 注释编号:Procurement Inquiry System-index083311:代码结束行
 
 /**
  * 菜单选中时,加载表格数据

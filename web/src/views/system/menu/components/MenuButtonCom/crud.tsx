@@ -1,4 +1,5 @@
 import {AddReq, DelReq, EditReq, dict, CreateCrudOptionsRet, CreateCrudOptionsProps} from '@fast-crud/fast-crud';
+import { useI18n } from 'vue-i18n';
 import * as api from './api';
 import {auth} from '/@/utils/authFunction'
 import {request} from '/@/utils/service';
@@ -8,6 +9,7 @@ import { nextTick, ref } from 'vue';
 import XEUtils from 'xe-utils';
 //此处为crudOptions配置
 export const createCrudOptions = function ({crudExpose, context}: CreateCrudOptionsProps): CreateCrudOptionsRet {
+	const { t } = useI18n()
     const pageRequest = async () => {
         if (context!.selectOptions.value.id) {
             return await api.GetList({menu: context!.selectOptions.value.id} as any);
@@ -82,10 +84,10 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                     batchAdd: {
 						show: true,
 						type: 'primary',
-						text: '批量生成',
+						text: t('message.pages.menu.validation.batchGenerate'),
 						click: async () => {
 							if (context!.selectOptions.value.id == undefined) {
-								ElMessage.error('请选择菜单');
+								ElMessage.error(t('message.pages.menu.messages.selectMenu'));
 								return;
 							}
 							const result = await api.BatchAdd({ menu: context!.selectOptions.value.id });
@@ -138,7 +140,7 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
             },
             columns: {
                 $checked: {
-					title: '选择',
+					title: t('message.pages.menu.buttons.select'),
 					form: { show: false },
 					column: {
 						type: 'selection',
@@ -148,7 +150,7 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
 					},
 				},
                 _index: {
-                    title: '序号',
+                    title: t('message.pages.menu.buttons.index'),
                     form: {show: false},
                     column: {
                         type: 'index',
@@ -158,14 +160,14 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                     },
                 },
                 search: {
-                    title: '关键词',
+                    title: t('message.pages.menu.buttons.search'),
                     column: {show: false},
                     type: 'text',
                     search: {show: true},
                     form: {
                         show: false,
                         component: {
-                            placeholder: '输入关键词搜索',
+                            placeholder: t('message.pages.menu.buttons.searchPlaceholder'),
                         },
                     },
                 },
@@ -177,7 +179,7 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                     form: {show: false},
                 },
                 name: {
-                    title: '权限名称',
+                    title: t('message.pages.menu.buttons.permissionName'),
                     type: 'text',
                     search: {show: true},
                     column: {
@@ -185,9 +187,9 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                         sortable: true,
                     },
                     form: {
-                        rules: [{required: true, message: '权限名称必填'}],
+                        rules: [{required: true, message: t('message.pages.menu.validation.permissionNameRequired')}],
                         component: {
-                            placeholder: '输入权限名称搜索',
+                            placeholder: t('message.pages.menu.buttons.searchPlaceholder'),
                             props: {
                                 clearable: true,
                                 allowCreate: true,
@@ -197,7 +199,7 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                     },
                 },
                 value: {
-                    title: '权限值',
+                    title: t('message.pages.menu.buttons.permissionValue'),
                     type: 'text',
                     search: {show: false},
                     column: {
@@ -205,12 +207,12 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                         sortable: true,
                     },
                     form: {
-                        rules: [{required: true, message: '权限标识必填'}],
-                        placeholder: '输入权限标识',
+                        rules: [{required: true, message: t('message.pages.menu.validation.permissionValueRequired')}],
+                        placeholder: t('message.pages.menu.buttons.apiEndpoint'),
                     },
                 },
                 method: {
-                    title: '请求方式',
+                    title: t('message.pages.menu.buttons.requestMethod'),
                     search: {show: false},
                     type: 'dict-select',
                     column: {
@@ -226,11 +228,11 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                         ],
                     }),
                     form: {
-                        rules: [{required: true, message: '必填项'}],
+                        rules: [{required: true, message: t('message.pages.menu.validation.methodRequired')}],
                     },
                 },
                 api: {
-                    title: '接口地址',
+                    title: t('message.pages.menu.buttons.apiEndpoint'),
                     search: {show: false},
                     type: 'dict-select',
                     dict: dict({
@@ -253,7 +255,7 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
                         sortable: true,
                     },
                     form: {
-                        rules: [{required: true, message: '必填项'}],
+                        rules: [{required: true, message: t('message.pages.menu.validation.apiRequired')}],
                         component: {
                             props: {
                                 allowCreate: true,

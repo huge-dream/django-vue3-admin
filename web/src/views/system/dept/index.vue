@@ -20,7 +20,7 @@
 			</el-col>
 		</el-row>
 
-		<el-drawer v-model="drawerVisible" title="部门配置" direction="rtl" size="500px" :close-on-click-modal="false" :before-close="handleDrawerClose">
+		<el-drawer v-model="drawerVisible" :title="t('message.pages.dept.dialog.deptConfig')" direction="rtl" size="500px" :close-on-click-modal="false" :before-close="handleDrawerClose">
 			<DeptFormCom
 				v-if="drawerVisible"
 				:initFormData="drawerFormData"
@@ -34,6 +34,7 @@
 
 <script lang="ts" setup name="dept">
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import XEUtils from 'xe-utils';
 import { ElMessageBox } from 'element-plus';
 import DeptTreeCom from './components/DeptTreeCom/index.vue';
@@ -42,6 +43,8 @@ import DeptUserCom from './components/DeptUserCom/index.vue';
 import { GetList, DelObj } from './api';
 import { successNotification } from '../../../utils/message';
 import { APIResponseData, TreeItemType } from './types';
+
+const { t } = useI18n()
 
 let deptTreeData = ref([]);
 let deptTreeCacheData = ref<TreeItemType[]>([]);
@@ -75,9 +78,9 @@ const handleTreeClick = (record: TreeItemType) => {
  * 部门的删除事件
  */
 const handleDeleteMenu = (id: string, callback: Function) => {
-	ElMessageBox.confirm('您确认删除该部门吗?', '温馨提示', {
-		confirmButtonText: '确认',
-		cancelButtonText: '取消',
+	ElMessageBox.confirm(t('message.pages.dept.dialog.deleteConfirm'), t('message.pages.dept.dialog.deptConfig'), {
+		confirmButtonText: t('message.pages.dept.buttons.confirm'),
+		cancelButtonText: t('message.pages.dept.buttons.cancel'),
 		type: 'warning',
 	}).then(async () => {
 		const res: APIResponseData = await DelObj(id);

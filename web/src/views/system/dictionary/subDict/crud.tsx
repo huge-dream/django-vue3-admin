@@ -9,9 +9,11 @@ import {
   CreateCrudOptionsProps,
   CreateCrudOptionsRet
 } from '@fast-crud/fast-crud';
+import { useI18n } from 'vue-i18n';
 import { dictionary } from '/@/utils/dictionary';
 
 export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+  const { t } = useI18n()
   const pageRequest = async (query: UserPageQuery) => {
     return await api.GetList(query);
   };
@@ -62,7 +64,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
       },
       columns: {
         _index: {
-          title: '序号',
+          title: t('message.pages.dictionary.subTable.columns.index'),
           form: { show: false },
           column: {
             //type: 'index',
@@ -79,7 +81,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           },
         },
         label: {
-          title: '名称',
+          title: t('message.pages.dictionary.subTable.columns.label'),
           search: {
             show: true,
             component: {
@@ -92,18 +94,18 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           form: {
             rules: [
               // 表单校验规则
-              { required: true, message: '名称必填项' },
+              { required: true, message: t('message.pages.dictionary.subTable.validation.labelRequired') },
             ],
             component: {
               props: {
                 clearable: true,
               },
-              placeholder: '请输入名称',
+              placeholder: t('message.pages.dictionary.subTable.form.labelPlaceholder'),
             },
           },
         },
         type: {
-          title: '数据值类型',
+          title: t('message.pages.dictionary.subTable.columns.type'),
           type: 'dict-select',
           search: {
             disabled: true,
@@ -116,81 +118,32 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           show: false,
           dict: dict({
             data: [
-              { label: 'text', value: 0 },
-              { label: 'number', value: 1 },
-              { label: 'date', value: 2 },
-              { label: 'datetime', value: 3 },
-              { label: 'time', value: 4 },
-              { label: 'file', value: 5 },
-              { label: 'boolean', value: 6 },
-              { label: 'images', value: 7 },
+              { label: t('message.pages.dictionary.subTable.typeLabels.text'), value: 0 },
+              { label: t('message.pages.dictionary.subTable.typeLabels.number'), value: 1 },
+              { label: t('message.pages.dictionary.subTable.typeLabels.date'), value: 2 },
+              { label: t('message.pages.dictionary.subTable.typeLabels.datetime'), value: 3 },
+              { label: t('message.pages.dictionary.subTable.typeLabels.time'), value: 4 },
+              { label: t('message.pages.dictionary.subTable.typeLabels.file'), value: 5 },
+              { label: t('message.pages.dictionary.subTable.typeLabels.boolean'), value: 6 },
+              { label: t('message.pages.dictionary.subTable.typeLabels.images'), value: 7 },
             ],
           }),
           form: {
             rules: [
               // 表单校验规则
-              { required: true, message: '数据值类型必填项' },
+              { required: true, message: t('message.pages.dictionary.subTable.validation.typeRequired') },
             ],
             value: 0,
             component: {
               props: {
                 clearable: true,
               },
-              placeholder: '请选择数据值类型',
+              placeholder: t('message.pages.dictionary.subTable.form.typePlaceholder'),
             },
-            /* valueChange(key, value, form, { getColumn, mode, component, immediate, getComponent }) {
-                const template = vm.getEditFormTemplate('value')
-                // 选择框重新选择后，情况value值
-                if (!immediate) {
-                    form.value = undefined
-                }
-                if (value === 0) {
-                    template.component.name = 'el-input'
-                } else if (value === 1) {
-                    template.component.name = 'el-input-number'
-                } else if (value === 2) {
-                    template.component.name = 'el-date-picker'
-                    template.component.props = {
-                        type: 'date',
-                        valueFormat: 'yyyy-MM-dd'
-                    }
-                } else if (value === 3) {
-                    template.component.name = 'el-date-picker'
-                    template.component.props = {
-                        type: 'datetime',
-                        valueFormat: 'yyyy-MM-dd HH:mm:ss'
-                    }
-                } else if (value === 4) {
-                    template.component.name = 'el-time-picker'
-                    template.component.props = {
-                        pickerOptions: {
-                            arrowControl: true
-                        },
-                        valueFormat: 'HH:mm:ss'
-                    }
-                } else if (value === 5) {
-                    template.component.name = 'd2p-file-uploader'
-                    template.component.props = { elProps: { listType: 'text' } }
-                } else if (value === 6) {
-                    template.component.name = 'dict-switch'
-                    template.component.value = true
-                    template.component.props = {
-                        dict: {
-                            data: [
-                                { label: '是', value: 'true' },
-                                { label: '否', value: 'false' }
-                            ]
-                        }
-                    }
-                } else if (value === 7) {
-                    template.component.name = 'd2p-cropper-uploader'
-                    template.component.props = { accept: '.png,.jpeg,.jpg,.ico,.bmp,.gif', cropper: { viewMode: 1 } }
-                }
-            }, */
           },
         },
         value: {
-          title: '数据值',
+          title: t('message.pages.dictionary.subTable.columns.value'),
           search: {
             show: true,
             component: {
@@ -202,54 +155,22 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           view: {
             component: { props: { height: 100, width: 100 } },
           },
-          /* // 提交时,处理数据
-          valueResolve(row: any, col: any) {
-              const value = row[col.key]
-              const type = row.type
-              if (type === 5 || type === 7) {
-                  if (value != null) {
-                      if (value.length >= 0) {
-                          if (value instanceof Array) {
-                              row[col.key] = value.toString()
-                          } else {
-                              row[col.key] = value
-                          }
-                      } else {
-                          row[col.key] = null
-                      }
-                  }
-              } else {
-                  row[col.key] = value
-              }
-          },
-          // 接收时,处理数据
-          valueBuilder(row: any, col: any) {
-              const value = row[col.key]
-              const type = row.type
-              if (type === 5 || type === 7) {
-                  if (value != null && value) {
-                      row[col.key] = value.split(',')
-                  }
-              } else {
-                  row[col.key] = value
-              }
-          }, */
           type: 'input',
           form: {
             rules: [
               // 表单校验规则
-              { required: true, message: '数据值必填项' },
+              { required: true, message: t('message.pages.dictionary.subTable.validation.valueRequired') },
             ],
             component: {
               props: {
                 clearable: true,
               },
-              placeholder: '请输入数据值',
+              placeholder: t('message.pages.dictionary.subTable.form.valuePlaceholder'),
             },
           },
         },
         status: {
-          title: '状态',
+          title: t('message.pages.dictionary.subTable.columns.status'),
           width: 80,
           search: {
             show: true
@@ -262,12 +183,12 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
             value: true,
             rules: [
               // 表单校验规则
-              { required: true, message: '状态必填项' },
+              { required: true, message: t('message.pages.dictionary.subTable.validation.statusRequired') },
             ],
           },
         },
         sort: {
-          title: '排序',
+          title: t('message.pages.dictionary.subTable.columns.sort'),
           width: 70,
           type: 'number',
           form: {
@@ -275,12 +196,12 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
             component: {},
             rules: [
               // 表单校验规则
-              { required: true, message: '排序必填项' },
+              { required: true, message: t('message.pages.dictionary.subTable.validation.sortRequired') },
             ],
           },
         },
         color: {
-          title: '标签颜色',
+          title: t('message.pages.dictionary.subTable.columns.color'),
           width: 90,
           search: {
             disabled: true,
@@ -304,7 +225,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           },
         },
         is_value: {
-          title: '是否值',
+          title: t('message.pages.dictionary.subTable.columns.isValue'),
           column: {
             show: false
           },

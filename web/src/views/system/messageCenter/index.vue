@@ -3,8 +3,8 @@
 		<fs-crud ref="crudRef" v-bind="crudBinding">
 			<template #header-middle>
 				<el-tabs v-model="tabActivted" @tab-click="onTabClick">
-					<el-tab-pane label="我的发布" name="send"></el-tab-pane>
-					<el-tab-pane label="我的接收" name="receive"></el-tab-pane>
+					<el-tab-pane :label="t('message.pages.messageCenter.tabs.myPublish')" name="send"></el-tab-pane>
+					<el-tab-pane :label="t('message.pages.messageCenter.tabs.myReceive')" name="receive"></el-tab-pane>
 				</el-tabs>
 			</template>
 		</fs-crud>
@@ -13,8 +13,11 @@
 
 <script lang="ts" setup name="messageCenter">
 import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useFs } from '@fast-crud/fast-crud';
 import createCrudOptions from './crud';
+
+const { t } = useI18n()
 
 //tab选择
 const tabActivted = ref('send');

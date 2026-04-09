@@ -1,4 +1,5 @@
 import * as api from './api';
+import { useI18n } from 'vue-i18n';
 import { dict, UserPageQuery, AddReq, DelReq, EditReq, compute, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud';
 import { request } from '/@/utils/service';
 import { dictionary } from '/@/utils/dictionary';
@@ -9,6 +10,7 @@ import XEUtils from 'xe-utils';
 
 
 export const createCrudOptions = function ({ crudExpose, props,modelDialog,selectOptions,allModelData }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+	const { t } = useI18n()
 	const pageRequest = async (query: UserPageQuery) => {
 		// return await api.GetList(query);
 		if (selectOptions.value.id) {
@@ -79,7 +81,7 @@ const toggleRowSelection = () => {
 						show:auth('column:Create')
 					},
 					auto: {
-						text: '自动匹配',
+						text: t('message.pages.menu.buttons.automatch'),
 						type: 'success',
 						show:auth('column:Match'),
 						click: () => {
@@ -122,7 +124,7 @@ const toggleRowSelection = () => {
 			},
 			columns: {
 				$checked: {
-					title: '选择',
+					title: t('message.pages.menu.buttons.select'),
 					form: { show: false },
 					column: {
 						type: 'selection',
@@ -132,7 +134,7 @@ const toggleRowSelection = () => {
 					},
 				},
 				_index: {
-					title: '序号',
+					title: t('message.pages.menu.buttons.index'),
 					form: { show: false },
 					column: {
 						//type: 'index',
@@ -149,7 +151,7 @@ const toggleRowSelection = () => {
 					},
 				},
 				model: {
-					title: 'model',
+					title: t('message.pages.menu.buttons.model'),
 					type: 'dict-select',
 					dict:dict({
 						url:'/api/system/column/get_models/',
@@ -164,7 +166,7 @@ const toggleRowSelection = () => {
 							// 表单校验规则
 							{
 								required: true,
-								message: '必填项',
+								message: t('message.pages.menu.validation.titleFieldRequired'),
 							},
 						],
 						component: {
@@ -180,7 +182,7 @@ const toggleRowSelection = () => {
 					},
 				},
 				title: {
-					title: '中文名',
+					title: t('message.pages.menu.buttons.chineseName'),
 					sortable: 'custom',
 					search: {
 						show: true,
@@ -191,17 +193,17 @@ const toggleRowSelection = () => {
 							// 表单校验规则
 							{
 								required: true,
-								message: '必填项',
+								message: t('message.pages.menu.validation.titleFieldRequired'),
 							},
 						],
 						component: {
 							span: 12,
-							placeholder: '请输入中文名',
+							placeholder: t('message.pages.menu.buttons.chineseNamePlaceholder'),
 						},
 					},
 				},
 				field_name: {
-					title: '字段名',
+					title: t('message.pages.menu.buttons.fieldName'),
 					type: 'text',
 					search: {
 						show: true,
@@ -214,12 +216,12 @@ const toggleRowSelection = () => {
 							// 表单校验规则
 							{
 								required: true,
-								message: '必填项',
+								message: t('message.pages.menu.validation.fieldNameFieldRequired'),
 							},
 						],
 						component: {
 							span: 12,
-							placeholder: '请输入字段名',
+							placeholder: t('message.pages.menu.buttons.fieldNamePlaceholder'),
 						},
 					},
 				},

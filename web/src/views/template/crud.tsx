@@ -37,7 +37,7 @@ export default function ({ crudExpose }: { crudExpose: CrudExpose }): CreateCrud
             actionbar: {
                 buttons: {
                     export: {
-                        // 注释编号:django-vue3-admin-crud210716:注意这个auth里面的值，最好是使用index.vue文件里面的name值并加上请求动作的单词
+                        // 注释编号:Procurement Inquiry System-crud210716:注意这个auth里面的值，最好是使用index.vue文件里面的name值并加上请求动作的单词
                         show: auth('VIEWSETNAME:Export'),
                         text: "导出",//按钮文字
                         title: "导出",//鼠标停留显示的信息

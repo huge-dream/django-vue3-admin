@@ -10,10 +10,12 @@ import {
   CreateCrudOptionsRet,
   dict
 } from '@fast-crud/fast-crud';
+import { useI18n } from 'vue-i18n';
 import fileSelector from '/@/components/fileSelector/index.vue';
 import { getBaseURL } from '/@/utils/baseUrl';
 
 export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+  const { t } = useI18n()
   const pageRequest = async (query: UserPageQuery) => {
     return await api.GetList(query);
   };
@@ -47,11 +49,15 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
         show: true,
         name: 'file_type',
         type: '',
+        defaultOption: {
+          show: false,
+          label: t('message.pages.fileList.tabs.all')
+        },
         options: [
-          { value: 0, label: '图片' },
-          { value: 1, label: '视频' },
-          { value: 2, label: '音频' },
-          { value: 3, label: '其他' },
+          { value: 0, label: t('message.pages.fileList.tabs.image') },
+          { value: 1, label: t('message.pages.fileList.tabs.video') },
+          { value: 2, label: t('message.pages.fileList.tabs.audio') },
+          { value: 3, label: t('message.pages.fileList.tabs.other') },
         ]
       },
       rowHandle: {
@@ -75,7 +81,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
       },
       columns: {
         _index: {
-          title: '序号',
+          title: t('message.pages.fileList.table.columns.index'),
           form: { show: false },
           column: {
             //type: 'index',
@@ -91,7 +97,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           },
         },
         search: {
-          title: '关键词',
+          title: t('message.pages.fileList.table.columns.keyword'),
           column: {
             show: false,
           },
@@ -101,7 +107,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
               props: {
                 clearable: true,
               },
-              placeholder: '请输入关键词',
+              placeholder: t('message.pages.fileList.form.keywordPlaceholder'),
             },
           },
           form: {
@@ -114,7 +120,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           },
         },
         name: {
-          title: '文件名称',
+          title: t('message.pages.fileList.table.columns.name'),
           search: {
             show: true,
           },
@@ -124,13 +130,13 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           },
           form: {
             component: {
-              placeholder: '请输入文件名称',
+              placeholder: t('message.pages.fileList.form.namePlaceholder'),
               clearable: true
             },
           },
         },
         preview: {
-          title: '预览',
+          title: t('message.pages.fileList.table.columns.preview'),
           column: {
             minWidth: 120,
             align: 'center'
@@ -140,7 +146,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           }
         },
         url: {
-          title: '文件地址',
+          title: t('message.pages.fileList.table.columns.url'),
           type: 'file-uploader',
           search: {
             disabled: true,
@@ -155,7 +161,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           },
         },
         md5sum: {
-          title: '文件MD5',
+          title: t('message.pages.fileList.table.columns.md5sum'),
           search: {
             disabled: true,
           },
@@ -167,7 +173,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           },
         },
         mime_type: {
-          title: '文件类型',
+          title: t('message.pages.fileList.table.columns.mimeType'),
           type: 'input',
           form: {
             show: false,
@@ -177,14 +183,14 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           }
         },
         file_type: {
-          title: '文件类型',
+          title: t('message.pages.fileList.table.columns.fileType'),
           type: 'dict-select',
           dict: dict({
             data: [
-              { label: '图片', value: 0, color: 'success' },
-              { label: '视频', value: 1, color: 'warning' },
-              { label: '音频', value: 2, color: 'danger' },
-              { label: '其他', value: 3, color: 'primary' },
+              { label: t('message.pages.fileList.fileType.image'), value: 0, color: 'success' },
+              { label: t('message.pages.fileList.fileType.video'), value: 1, color: 'warning' },
+              { label: t('message.pages.fileList.fileType.audio'), value: 2, color: 'danger' },
+              { label: t('message.pages.fileList.fileType.other'), value: 3, color: 'primary' },
             ]
           }),
           column: {
@@ -196,12 +202,12 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           form: {
             show: false,
             component: {
-              placeholder: '请选择文件类型'
+              placeholder: t('message.pages.fileList.form.fileTypePlaceholder')
             }
           }
         },
         size: {
-          title: '文件大小',
+          title: t('message.pages.fileList.table.columns.size'),
           column: {
             minWidth: 120
           },
@@ -210,12 +216,12 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           }
         },
         upload_method: {
-          title: '上传方式',
+          title: t('message.pages.fileList.table.columns.uploadMethod'),
           type: 'dict-select',
           dict: dict({
             data: [
-              { label: '默认上传', value: 0, color: 'primary' },
-              { label: '文件选择器上传', value: 1, color: 'warning' },
+              { label: t('message.pages.fileList.uploadMethod.default'), value: 0, color: 'primary' },
+              { label: t('message.pages.fileList.uploadMethod.selector'), value: 1, color: 'warning' },
             ]
           }),
           column: {
@@ -226,7 +232,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
           }
         },
         create_datetime: {
-          title: '创建时间',
+          title: t('message.pages.fileList.table.columns.createTime'),
           column: {
             minWidth: 160
           },
@@ -234,26 +240,6 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
             show: false
           }
         },
-        // fileselectortest: {
-        //   title: '文件选择器测试',
-        //   type: 'file-selector',
-        //   column: {
-        //     minWidth: 200
-        //   },
-        //   form: {
-        //     component: {
-        //       name: fileSelector,
-        //       vModel: 'modelValue',
-        //       tabsShow: 0b1111,
-        //       itemSize: 100,
-        //       multiple: true,
-        //       selectable: true,
-        //       showInput: true,
-        //       inputType: 'image',
-        //       valueKey: 'url',
-        //     }
-        //   }
-        // }
       },
     },
   };

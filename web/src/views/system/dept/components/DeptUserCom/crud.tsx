@@ -1,4 +1,5 @@
 import { inject } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { dict, UserPageQuery, AddReq, DelReq, EditReq, compute, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud';
 import { request } from '/@/utils/service';
 import * as api from './api';
@@ -7,6 +8,7 @@ import { successMessage } from '/@/utils/message';
 import { auth } from "/@/utils/authFunction";
 
 export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+	const { t } = useI18n()
 	const pageRequest = async (query: UserPageQuery) => {
 		const show_all = context?.isShowChildFlag.value ? '1' : '0';
 		const res = await api.GetList({ ...query, show_all });
@@ -44,7 +46,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 		crudOptions: {
 			table: {
 				remove: {
-					confirmMessage: '是否删除该用户？',
+					confirmMessage: t('message.pages.dept.user.deleteUserConfirm'),
 				},
 			},
 			request: {
@@ -59,8 +61,8 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 						show: auth('user:Create')
 					},
 					export: {
-						text: '导出', //按钮文字
-						title: '导出', //鼠标停留显示的信息
+						text: t('message.pages.dept.user.tableColumns.export'),
+						title: t('message.pages.dept.user.tableColumns.export'),
 						show: auth('user:Export'),
 						click() {
 							return exportRequest(crudExpose!.getSearchFormData());
@@ -98,12 +100,12 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					},
 					custom: {
 						iconRight:'Setting',
-						text: '重设密码',
+						text: t('message.pages.dept.user.tableColumns.resetPassword'),
 						type: 'text',
 						show: auth('user:ResetPassword'),
 						tooltip: {
 							placement: 'top',
-							content: '重设密码',
+							content: t('message.pages.dept.user.tableColumns.resetPasswordTooltip'),
 						},
 						click: (ctx: any) => context?.handleResetPwdOpen(ctx.row),
 					},
@@ -111,7 +113,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 			},
 			columns: {
 				_index: {
-					title: '序号',
+					title: t('message.pages.dept.user.tableColumns.index'),
 					form: { show: false },
 					column: {
 						type: 'index',
@@ -121,7 +123,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					},
 				},
 				search: {
-					title: '关键词',
+					title: t('message.pages.dept.user.tableColumns.keyword'),
 					column: {
 						show: false,
 					},
@@ -131,7 +133,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 							props: {
 								clearable: true,
 							},
-							placeholder: '请输入关键词',
+							placeholder: t('message.pages.dept.user.tableColumns.keywordPlaceholder'),
 						},
 					},
 					form: {
@@ -144,7 +146,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					},
 				},
 				username: {
-					title: '账号',
+					title: t('message.pages.dept.user.tableColumns.username'),
 					type: 'input',
 					column: {
 						minWidth: 100, //最小列宽
@@ -154,16 +156,16 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 							// 表单校验规则
 							{
 								required: true,
-								message: '账号必填项',
+								message: t('message.pages.dept.user.tableColumns.usernameRequired'),
 							},
 						],
 						component: {
-							placeholder: '请输入账号',
+							placeholder: t('message.pages.dept.user.tableColumns.usernamePlaceholder'),
 						},
 					},
 				},
 				password: {
-					title: '密码',
+					title: t('message.pages.dept.user.tableColumns.password'),
 					type: 'input',
 					column: {
 						show: false,
@@ -176,13 +178,13 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 							// 表单校验规则
 							{
 								required: true,
-								message: '密码必填项',
+								message: t('message.pages.dept.user.tableColumns.passwordRequired'),
 							},
 						],
 						component: {
 							span: 12,
 							showPassword: true,
-							placeholder: '请输入密码',
+							placeholder: t('message.pages.dept.user.tableColumns.passwordPlaceholder'),
 						},
 						// value: vm.systemConfig('base.default_password'),
 					},
@@ -193,7 +195,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					} */
 				},
 				name: {
-					title: '姓名',
+					title: t('message.pages.dept.user.tableColumns.name'),
 					type: 'input',
 					column: {
 						minWidth: 100, //最小列宽
@@ -203,17 +205,17 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 							// 表单校验规则
 							{
 								required: true,
-								message: '姓名必填项',
+								message: t('message.pages.dept.user.tableColumns.nameRequired'),
 							},
 						],
 						component: {
 							span: 12,
-							placeholder: '请输入姓名',
+							placeholder: t('message.pages.dept.user.tableColumns.namePlaceholder'),
 						},
 					},
 				},
 				dept: {
-					title: '部门',
+					title: t('message.pages.dept.user.tableColumns.dept'),
 					type: 'dict-tree',
 					dict: dict({
 						isTree: true,
@@ -232,12 +234,12 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 							// 表单校验规则
 							{
 								required: true,
-								message: '必填项',
+								message: t('message.pages.dept.user.tableColumns.deptRequired'),
 							},
 						],
 						component: {
 							filterable: true,
-							placeholder: '请选择',
+							placeholder: t('message.pages.dept.user.tableColumns.selectDeptPlaceholder'),
 							props: {
 								props: {
 									value: 'id',
@@ -248,7 +250,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					},
 				},
 				role: {
-					title: '角色',
+					title: t('message.pages.dept.user.tableColumns.role'),
 					search: {
 						show: true,
 						component: {
@@ -275,18 +277,18 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 							// 表单校验规则
 							{
 								required: true,
-								message: '必填项',
+								message: t('message.pages.dept.user.tableColumns.deptRequired'),
 							},
 						],
 						component: {
 							multiple: true,
 							filterable: true,
-							placeholder: '请选择角色',
+							placeholder: t('message.pages.dept.user.tableColumns.rolePlaceholder'),
 						},
 					},
 				},
 				mobile: {
-					title: '手机号码',
+					title: t('message.pages.dept.user.tableColumns.mobile'),
 					type: 'input',
 					column: {
 						minWidth: 120, //最小列宽
@@ -295,21 +297,21 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 						rules: [
 							{
 								max: 20,
-								message: '请输入正确的手机号码',
+								message: t('message.pages.dept.user.tableColumns.mobileInvalid'),
 								trigger: 'blur',
 							},
 							{
 								pattern: /^1[3-9]\d{9}$/,
-								message: '请输入正确的手机号码',
+								message: t('message.pages.dept.user.tableColumns.mobileInvalid'),
 							},
 						],
 						component: {
-							placeholder: '请输入手机号码',
+							placeholder: t('message.pages.dept.user.tableColumns.mobilePlaceholder'),
 						},
 					},
 				},
 				email: {
-					title: '邮箱',
+					title: t('message.pages.dept.user.tableColumns.email'),
 					column: {
 						width: 260,
 					},
@@ -317,17 +319,17 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 						rules: [
 							{
 								type: 'email',
-								message: '请输入正确的邮箱地址',
+								message: t('message.pages.dept.user.tableColumns.emailInvalid'),
 								trigger: ['blur', 'change'],
 							},
 						],
 						component: {
-							placeholder: '请输入邮箱',
+							placeholder: t('message.pages.dept.user.tableColumns.emailPlaceholder'),
 						},
 					},
 				},
 				gender: {
-					title: '性别',
+					title: t('message.pages.dept.user.tableColumns.gender'),
 					type: 'dict-select',
 					dict: dict({
 						data: dictionary('gender'),
@@ -341,7 +343,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				user_type: {
-					title: '用户类型',
+					title: t('message.pages.dept.user.tableColumns.userType'),
 					search: {
 						show: true,
 					},
@@ -361,7 +363,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					},
 				},
 				is_active: {
-					title: '锁定',
+					title: t('message.pages.dept.user.tableColumns.locked'),
 					search: {
 						show: true,
 					},
@@ -386,7 +388,7 @@ export const createCrudOptions = function ({ crudExpose, context }: CreateCrudOp
 					}),
 				},
 				avatar: {
-					title: '头像',
+					title: t('message.pages.dept.user.tableColumns.avatar'),
 					type: 'avatar-uploader',
 					form: {
 						show: false,

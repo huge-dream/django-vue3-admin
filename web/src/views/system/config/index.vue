@@ -26,7 +26,7 @@
 			</el-drawer>
 		</div>
 		<el-tabs type="border-card" v-model="editableTabsValue">
-			<el-tab-pane :key="index" v-for="(item, index) in editableTabs" :label="item.title" :name="item.key">
+			<el-tab-pane :key="index" v-for="(item, index) in editableTabs" :label="item.title_i18n || item.title" :name="item.key">
 				<span slot="label" v-if="item.icon"><i :class="item.icon" style="font-weight: 1000; font-size: 16px"></i></span>
 				<el-row v-if="item.icon">
 					<el-col :offset="4" :span="8">
@@ -48,7 +48,7 @@ import addContent from './components/addContent.vue';
 import formContent from './components/formContent.vue';
 import { ref, onMounted } from 'vue';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 let tabsDrawer = ref(false);
 let contentDrawer = ref(false);
 let editableTabsValue = ref('base');
@@ -59,6 +59,7 @@ const getTabs = () => {
 		.GetList({
 			limit: 999,
 			parent__isnull: true,
+			language: locale.value,
 		})
 		.then((res: any) => {
 			let data = res.data;

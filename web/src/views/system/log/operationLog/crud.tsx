@@ -1,7 +1,9 @@
 import * as api from './api';
 import { UserPageQuery, AddReq, DelReq, EditReq, CrudExpose, CrudOptions, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud';
+import { useI18n } from 'vue-i18n';
 
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+	const { t } = useI18n()
 	const pageRequest = async (query: UserPageQuery) => {
 		return await api.GetList(query);
 	};
@@ -47,7 +49,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 			},
 			columns: {
 				_index: {
-					title: '序号',
+					title: t('message.pages.operationLog.table.columns.index'),
 					form: { show: false },
 					column: {
 						//type: 'index',
@@ -63,7 +65,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 				},
 				search: {
-					title: '关键词',
+					title: t('message.pages.operationLog.table.columns.keyword'),
 					column: {
 						show: false,
 					},
@@ -73,7 +75,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 							props: {
 								clearable: true,
 							},
-							placeholder: '请输入关键词',
+							placeholder: t('message.pages.operationLog.form.keywordPlaceholder'),
 						},
 					},
 					form: {
@@ -86,7 +88,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 				},
 				request_modular: {
-					title: '请求模块',
+					title: t('message.pages.operationLog.table.columns.requestModule'),
 					search: {
 						disabled: false,
 					},
@@ -97,12 +99,12 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					form: {
 						disabled: true,
 						component: {
-							placeholder: '请输入请求模块',
+							placeholder: t('message.pages.operationLog.form.requestModulePlaceholder'),
 						},
 					},
 				},
 				request_path: {
-					title: '请求地址',
+					title: t('message.pages.operationLog.table.columns.requestPath'),
 					search: {
 						disabled: false,
 					},
@@ -113,7 +115,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					form: {
 						disabled: true,
 						component: {
-							placeholder: '请输入请求地址',
+							placeholder: t('message.pages.operationLog.form.requestPathPlaceholder'),
 						},
 					},
 				},
@@ -123,7 +125,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 						width: 200, //列宽
 						minWidth: 100, //最小列宽
 					},
-					title: '请求参数',
+					title: t('message.pages.operationLog.table.columns.requestBody'),
 					search: {
 						disabled: true,
 					},
@@ -138,12 +140,12 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 								minRows: 2,
 								maxRows: 8,
 							},
-							placeholder: '请输入关键词',
+							placeholder: t('message.pages.operationLog.form.requestBodyPlaceholder'),
 						},
 					},
 				},
 				request_method: {
-					title: '请求方法',
+					title: t('message.pages.operationLog.table.columns.requestMethod'),
 					type: 'input',
 					search: {
 						disabled: false,
@@ -154,13 +156,13 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					form: {
 						disabled: true,
 						component: {
-							placeholder: '请输入请求方法',
+							placeholder: t('message.pages.operationLog.form.requestMethodPlaceholder'),
 						},
 					},
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				request_msg: {
-					title: '操作说明',
+					title: t('message.pages.operationLog.table.columns.requestMsg'),
 					disabled: true,
 					form: {
 						component: {
@@ -169,7 +171,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					},
 				},
 				request_ip: {
-					title: 'IP地址',
+					title: t('message.pages.operationLog.table.columns.requestIp'),
 					search: {
 						disabled: false,
 					},
@@ -180,13 +182,13 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					form: {
 						disabled: true,
 						component: {
-							placeholder: '请输入IP地址',
+							placeholder: t('message.pages.operationLog.form.requestIpPlaceholder'),
 						},
 					},
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				request_browser: {
-					title: '请求浏览器',
+					title: t('message.pages.operationLog.table.columns.requestBrowser'),
 					type: 'input',
 					column:{
 						minWidth: 120,
@@ -197,7 +199,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				response_code: {
-					title: '响应码',
+					title: t('message.pages.operationLog.table.columns.responseCode'),
 					search: {
 						disabled: true,
 					},
@@ -211,7 +213,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				request_os: {
-					title: '操作系统',
+					title: t('message.pages.operationLog.table.columns.requestOs'),
 					disabled: true,
 					search: {
 						disabled: true,
@@ -226,7 +228,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				json_result: {
-					title: '返回信息',
+					title: t('message.pages.operationLog.table.columns.jsonResult'),
 					search: {
 						disabled: true,
 					},
@@ -240,7 +242,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
 					component: { props: { color: 'auto' } }, // 自动染色
 				},
 				creator_name: {
-					title: '操作人',
+					title: t('message.pages.operationLog.table.columns.creatorName'),
 					column:{
 						minWidth: 100,
 					},

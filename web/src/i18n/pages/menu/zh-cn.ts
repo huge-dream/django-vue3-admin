@@ -99,6 +99,8 @@ export default {
                     linkUrlRequired: '请输入外链接地址',
                     permissionNameRequired: '权限名称必填',
                     permissionValueRequired: '权限标识必填',
+                    methodRequired: '请求方式必填',
+                    apiRequired: '接口地址必填',
                     batchGenerate: '批量生成',
                 },
                 dialog: {

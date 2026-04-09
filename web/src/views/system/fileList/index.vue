@@ -22,11 +22,11 @@
       <template #actionbar-left="scope">
         <el-upload :action="getBaseURL() + 'api/system/file/'" :multiple="false"
           :on-success="() => crudExpose.doRefresh()" :drag="false" :show-file-list="false">
-          <el-button type="primary" icon="plus">上传</el-button>
+          <el-button type="primary" icon="plus">{{ t('message.pages.fileList.buttons.upload') }}</el-button>
         </el-upload>
       </template>
       <template #cell_size="scope">
-        <span>{{ scope.row.size ? getSizeDisplay(scope.row.size) : '0b' }}</span>
+        <span>{{ scope.row.size ? getSizeDisplay(scope.row.size) : '0' + t('message.pages.fileList.size.bytes') }}</span>
       </template>
       <template #cell_preview="scope">
         <div v-if="scope.row.file_type === 0">
@@ -48,7 +48,7 @@
         <el-icon v-if="scope.row.file_type === 3" :size="60">
           <Document />
         </el-icon>
-        <div v-if="scope.row.file_type > 3">未知类型</div>
+        <div v-if="scope.row.file_type > 3">{{ t('message.pages.fileList.fileType.unknown') }}</div>
       </template>
     </fs-crud>
     <div class="preview" :class="{ show: openPreview }">
@@ -67,12 +67,14 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useExpose, useCrud } from '@fast-crud/fast-crud';
 import { createCrudOptions } from './crud';
 import { getBaseURL } from '/@/utils/baseUrl';
 import FileSelector from '/@/components/fileSelector/index.vue';
 import { SHOW } from '/@/components/fileSelector/types';
 
+const { t } = useI18n()
 const fileSelectorRef = ref<any>(null);
 const getSizeDisplay = (n: number) => n < 1024 ? n + 'b' : (n < 1024 * 1024 ? (n / 1024).toFixed(2) + 'Kb' : (n / (1024 * 1024)).toFixed(2) + 'Mb');
 

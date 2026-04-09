@@ -3,7 +3,7 @@
     <slot name="input" v-bind="{}">
       <div v-if="props.showInput" style="width: 100%;" :class="props.inputClass" :style="props.inputStyle">
         <el-select v-if="props.inputType === 'selector'" v-model="data" suffix-icon="arrow-down" clearable
-          :multiple="props.multiple" placeholder="请选择文件" @click="selectVisiable = true && !props.disabled"
+          :multiple="props.multiple" :placeholder="t('message.pages.fileSelector.placeholder.selectFile')" @click="selectVisiable = true && !props.disabled"
           :disabled="props.disabled" @clear="selectedInit" @remove-tag="selectedInit">
           <el-option v-for="item, index in listAllData" :key="index" :value="String(item[props.valueKey])"
             :label="item.name" />
@@ -93,34 +93,34 @@
     <el-dialog v-model="selectVisiable" :draggable="true" width="50%" :align-center="false" :append-to-body="true"
       @open="if (listData.length === 0) listRequest();" @close="onClose" @closed="onClosed" modal-class="_overlay">
       <template #header>
-        <span class="el-dialog__title">文件选择</span>
+        <span class="el-dialog__title">{{ t('message.pages.fileSelector.dialogTitle') }}</span>
         <el-divider style="margin: 0;" />
       </template>
       <div style="padding: 4px;">
         <div style="width: 100%; display: flex; justify-content: space-between; gap: 12px;">
           <el-tabs style="width: 100%;" v-model="tabsActived" :type="props.tabsType" :stretch="true"
             @tab-change="handleTabChange" v-if="!isSuperTenent">
-            <el-tab-pane v-if="props.tabsShow & SHOW.IMAGE" :name="0" label="图片" />
-            <el-tab-pane v-if="props.tabsShow & SHOW.VIDEO" :name="1" label="视频" />
-            <el-tab-pane v-if="props.tabsShow & SHOW.AUDIO" :name="2" label="音频" />
-            <el-tab-pane v-if="props.tabsShow & SHOW.OTHER" :name="3" label="其他" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.IMAGE" :name="0" :label="t('message.pages.fileSelector.tabs.image')" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.VIDEO" :name="1" :label="t('message.pages.fileSelector.tabs.video')" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.AUDIO" :name="2" :label="t('message.pages.fileSelector.tabs.audio')" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.OTHER" :name="3" :label="t('message.pages.fileSelector.tabs.other')" />
           </el-tabs>
           <el-tabs style="width: 100%;" v-model="tabsActived" :type="props.tabsType" :stretch="true"
             @tab-change="handleTabChange" v-if="isTenentMode">
-            <el-tab-pane v-if="props.tabsShow & SHOW.IMAGE" :name="4" label="系统图片" />
-            <el-tab-pane v-if="props.tabsShow & SHOW.VIDEO" :name="5" label="系统视频" />
-            <el-tab-pane v-if="props.tabsShow & SHOW.AUDIO" :name="6" label="系统音频" />
-            <el-tab-pane v-if="props.tabsShow & SHOW.OTHER" :name="7" label="系统其他" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.IMAGE" :name="4" :label="t('message.pages.fileSelector.systemTabs.image')" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.VIDEO" :name="5" :label="t('message.pages.fileSelector.systemTabs.video')" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.AUDIO" :name="6" :label="t('message.pages.fileSelector.systemTabs.audio')" />
+            <el-tab-pane v-if="props.tabsShow & SHOW.OTHER" :name="7" :label="t('message.pages.fileSelector.systemTabs.other')" />
           </el-tabs>
         </div>
         <el-row justify="space-between" class="headerBar">
           <el-col :span="12">
             <slot name="actionbar-left">
-              <el-input class="filterInput" v-model="filterForm.name" :placeholder="`请输入${TypeLabel[tabsActived % 4]}名`"
+              <el-input class="filterInput" v-model="filterForm.name" :placeholder="t('message.pages.fileSelector.placeholder.enterName', { name: TypeLabel[tabsActived % 4] })"
                 prefix-icon="search" clearable @change="listRequest" />
               <div>
                 <el-tag v-if="props.multiple" type="primary" effect="light">
-                  一共选中&nbsp;{{ data?.length || 0 }}&nbsp;个文件
+                  {{ t('message.pages.fileSelector.selected', { count: data?.length || 0 }) }}
                 </el-tag>
               </div>
             </slot>
@@ -133,10 +133,10 @@
                   :data="{ upload_method: 1 }" :show-file-list="true" :accept="AcceptList[tabsActived % 4]"
                   :on-success="() => { listRequest(); listRequestAll(); uploadRef.clearFiles(); }"
                   v-if="props.showUploadButton">
-                  <el-button type="primary" icon="plus">上传{{ TypeLabel[tabsActived % 4] }}</el-button>
+                  <el-button type="primary" icon="plus">{{ t('message.pages.fileSelector.upload.button', { type: TypeLabel[tabsActived % 4] }) }}</el-button>
                 </el-upload>
                 <el-button type="info" icon="link" @click="netVisiable = true" v-if="props.showNetButton">
-                  网络{{ TypeLabel[tabsActived % 4] }}
+                  {{ t('message.pages.fileSelector.upload.netButton', { type: TypeLabel[tabsActived % 4] }) }}
                 </el-button>
               </template>
             </slot>
@@ -144,7 +144,7 @@
         </el-row>
         <div v-if="!listData.length">
           <slot name="empty">
-            <el-empty description="无内容，请上传" style="width: 100%; height: calc(50vh); margin-top: 24px; padding: 4px;" />
+            <el-empty :description="t('message.pages.fileSelector.empty')" style="width: 100%; height: calc(50vh); margin-top: 24px; padding: 4px;" />
           </slot>
         </div>
         <div ref="listContainerRef" class="listContainer" v-else>
@@ -164,10 +164,10 @@
       </div>
       <!-- 只要在获取中，就最大程度阻止关闭dialog -->
       <el-dialog v-model="netVisiable" :draggable="false" width="50%" :align-center="false" :append-to-body="true"
-        :title="'网络' + TypeLabel[tabsActived % 4] + '上传'" @closed="netUrl = ''" :close-on-click-modal="!netLoading"
+        :title="t('message.pages.fileSelector.upload.netTitle', { type: TypeLabel[tabsActived % 4] })" @closed="netUrl = ''" :close-on-click-modal="!netLoading"
         :close-on-press-escape="!netLoading" :show-close="!netLoading" modal-class="_overlay">
-        <el-form-item :label="TypeLabel[tabsActived % 4] + '链接'">
-          <el-input v-model="netUrl" placeholder="请输入网络连接" clearable @input="netChange">
+        <el-form-item :label="t('message.pages.fileSelector.upload.netLink', { type: TypeLabel[tabsActived % 4] })">
+          <el-input v-model="netUrl" :placeholder="t('message.pages.fileSelector.upload.inputUrl')" clearable @input="netChange">
             <template #prepend>
               <el-select v-model="netPrefix" style="width: 110px;">
                 <el-option v-for="item, index in ['HTTP://', 'HTTPS://']" :key="index" :label="item" :value="item" />
@@ -176,15 +176,15 @@
           </el-input>
         </el-form-item>
         <template #footer>
-          <el-button v-if="!netLoading" type="default" @click="netVisiable = false">取消</el-button>
+          <el-button v-if="!netLoading" type="default" @click="netVisiable = false">{{ t('message.pages.fileSelector.cancel') }}</el-button>
           <el-button type="primary" @click="confirmNetUrl" :loading="netLoading">
-            {{ netLoading ? '网络文件获取中...' : '确定' }}
+            {{ netLoading ? t('message.pages.fileSelector.upload.netFetching') : t('message.pages.fileSelector.confirm') }}
           </el-button>
         </template>
       </el-dialog>
       <template #footer v-if="props.showInput">
-        <el-button type="default" @click="onClose">取消</el-button>
-        <el-button type="primary" @click="onSave">确定</el-button>
+        <el-button type="default" @click="onClose">{{ t('message.pages.fileSelector.cancel') }}</el-button>
+        <el-button type="primary" @click="onSave">{{ t('message.pages.fileSelector.confirm') }}</el-button>
       </template>
     </el-dialog>
   </div>
@@ -193,6 +193,7 @@
 <script setup lang="ts">
 import { useUi, UserPageQuery, AddReq, EditReq, DelReq } from '@fast-crud/fast-crud';
 import { ref, reactive, defineProps, PropType, watch, onMounted, nextTick } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { getBaseURL } from '/@/utils/baseUrl';
 import { request } from '/@/utils/service';
 import { SHOW } from './types';
@@ -201,6 +202,8 @@ import { pluginsAll } from '/@/views/plugins/index';
 import { storeToRefs } from "pinia";
 import { useUserInfo } from "/@/stores/userInfo";
 import { errorNotification, successNotification } from '/@/utils/message';
+
+const { t } = useI18n();
 
 const userInfos = storeToRefs(useUserInfo()).userInfos;
 const isTenentMode = !!(pluginsAll && pluginsAll.length && pluginsAll.indexOf('dvadmin3-tenants-web') >= 0);
@@ -379,7 +382,7 @@ const confirmNetUrl = () => {
   }, 10 * 1000);
   fetch(netPrefix.value + netUrl.value, { signal: controller.signal }).then(async (res: Response) => {
     clearTimeout(timeout);
-    if (!res.ok) errorNotification(`网络${TypeLabel[tabsActived.value % 4]}获取失败！`);
+    if (!res.ok) errorNotification(t('message.pages.fileSelector.upload.netFailed', { type: TypeLabel[tabsActived.value % 4] }));
     const _ = res.url.split('?')[0].split('/');
     let filename = _[_.length - 1];
     // let filetype = res.headers.get('content-type')?.split('/')[1] || '';
@@ -389,14 +392,14 @@ const confirmNetUrl = () => {
     form.append('file', file);
     form.append('upload_method', '1');
     fetch(getBaseURL() + 'api/system/file/', { method: 'post', body: form })
-      .then(() => successNotification('网络文件上传成功！'))
+      .then(() => successNotification(t('message.pages.fileSelector.upload.netSuccess')))
       .then(() => { netVisiable.value = false; listRequest(); listRequestAll(); })
-      .catch(() => errorNotification('网络文件上传失败！'))
+      .catch(() => errorNotification(t('message.pages.fileSelector.upload.netFailed', { type: '' })))
       .then(() => netLoading.value = false);
   }).catch((err: any) => {
     console.log(err);
     clearTimeout(timeout);
-    errorNotification(`网络${TypeLabel[tabsActived.value % 4]}获取失败！`);
+    errorNotification(t('message.pages.fileSelector.upload.netFailed', { type: TypeLabel[tabsActived.value % 4] }));
     netLoading.value = false;
   });
 };

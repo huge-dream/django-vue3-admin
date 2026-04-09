@@ -3,24 +3,24 @@
 		<div class="di-left">
 			<h3>{{ deptInfo.dept_name || '' }}</h3>
 			<div class="di-cell">
-				<p>部门负责人：</p>
-				<p class="content">{{ deptInfo.owner || '无' }}</p>
+				<p>{{ t('message.pages.dept.user.deptLeader') }}</p>
+				<p class="content">{{ deptInfo.owner || t('message.pages.dept.user.none') }}</p>
 			</div>
 			<div class="di-cell">
-				<p>部门人数：</p>
-				<p class="content">{{ deptInfo.dept_user || 0 }}人</p>
+				<p>{{ t('message.pages.dept.user.deptCount') }}</p>
+				<p class="content">{{ deptInfo.dept_user || 0 }}{{ t('message.pages.dept.user.peopleUnit') }}</p>
 			</div>
 			<div class="di-cell">
-				<p>部门简介：</p>
-				<p class="content">{{ deptInfo.description || '无' }}</p>
+				<p>{{ t('message.pages.dept.user.deptDesc') }}</p>
+				<p class="content">{{ deptInfo.description || t('message.pages.dept.user.none') }}</p>
 			</div>
 			<div class="di-cell">
-				<p>显示子级：</p>
+				<p>{{ t('message.pages.dept.user.showChild') }}</p>
 				<el-switch
 					v-model="isShowChildFlag"
 					inline-prompt
-					active-text="是"
-					inactive-text="否"
+					:active-text="t('message.pages.dept.user.yes')"
+					:inactive-text="t('message.pages.dept.user.no')"
 					:disabled="!currentDeptId"
 					@change="handleSwitchChange"
 					style="--el-switch-on-color: var(--el-color-primary)"
@@ -40,28 +40,28 @@
 			<el-button :icon="!showCount ? 'Hide' : 'View'" circle @click="showCount = !showCount"></el-button>
 		</template>
 		<template #actionbar-right>
-			<importExcel api="api/system/user/" v-auth="'user:Import'">导入 </importExcel>
+			<importExcel api="api/system/user/" v-auth="'user:Import'">{{ t('message.pages.dept.user.import') }} </importExcel>
 		</template>
 		<template #cell_avatar="scope">
               <div v-if="scope.row.avatar" style="display: flex; justify-content: center; align-items: center;">
-                <el-image 
-                  style="width: 50px; height: 50px; border-radius: 50%; aspect-ratio: 1 /1 ; " 
+                <el-image
+                  style="width: 50px; height: 50px; border-radius: 50%; aspect-ratio: 1 /1 ; "
                   :src="getBaseURL(scope.row.avatar)"
-                  :preview-src-list="[getBaseURL(scope.row.avatar)]" 
+                  :preview-src-list="[getBaseURL(scope.row.avatar)]"
                   :preview-teleported="true" />
               </div>
             </template>
 	</fs-crud>
 
-	<el-dialog v-model="resetPwdVisible" title="重设密码" width="400px" draggable :before-close="handleResetPwdClose">
+	<el-dialog v-model="resetPwdVisible" :title="t('message.pages.dept.user.resetPwd')" width="400px" draggable :before-close="handleResetPwdClose">
 		<div>
-			<el-input v-model="resetPwdFormState.newPassword" type="password" placeholder="请输入密码" show-password style="margin-bottom: 20px" />
-			<el-input v-model="resetPwdFormState.newPassword2" type="password" placeholder="请再次输入密码" show-password />
+			<el-input v-model="resetPwdFormState.newPassword" type="password" :placeholder="t('message.pages.dept.user.pwdPlaceholder')" show-password style="margin-bottom: 20px" />
+			<el-input v-model="resetPwdFormState.newPassword2" type="password" :placeholder="t('message.pages.dept.user.pwdAgainPlaceholder')" show-password />
 		</div>
 		<template #footer>
 			<span class="dialog-footer">
-				<el-button @click="handleResetPwdClose">取消</el-button>
-				<el-button type="primary" @click="handleResetPwdSubmit"> 保存 </el-button>
+				<el-button @click="handleResetPwdClose">{{ t('message.pages.dept.buttons.cancel') }}</el-button>
+				<el-button type="primary" @click="handleResetPwdSubmit"> {{ t('message.pages.dept.buttons.save') }} </el-button>
 			</span>
 		</template>
 	</el-dialog>
@@ -69,6 +69,7 @@
 
 <script lang="ts" setup name="user">
 import { ref, reactive, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { useExpose, useCrud } from '@fast-crud/fast-crud';
 import { Md5 } from 'ts-md5';
 import { createCrudOptions } from './crud';
@@ -79,6 +80,8 @@ import { getDeptInfoById, resetPwd } from './api';
 import { warningNotification, successNotification } from '/@/utils/message';
 import { HeadDeptInfoType } from '../../types';
 import {getBaseURL} from '/@/utils/baseUrl';
+
+const { t } = useI18n()
 
 let deptCountChart: ECharts;
 let deptSexChart: ECharts;
@@ -233,20 +236,20 @@ const handleResetPwdClose = () => {
 };
 const handleResetPwdSubmit = async () => {
 	if (!resetPwdFormState.id) {
-		warningNotification('请选择用户！');
+		warningNotification(t('message.pages.dept.user.selectUser'));
 		return;
 	}
 	if (!resetPwdFormState.newPassword || !resetPwdFormState.newPassword2) {
-		warningNotification('请输入密码！');
+		warningNotification(t('message.pages.dept.user.inputPwd'));
 		return;
 	}
 	if (resetPwdFormState.newPassword !== resetPwdFormState.newPassword2) {
-		warningNotification('两次输入密码不一致');
+		warningNotification(t('message.pages.dept.user.pwdMismatch'));
 		return;
 	}
 	const pwdRegex = new RegExp('(?=.*[0-9])(?=.*[a-zA-Z]).{8,30}');
 	if (!pwdRegex.test(resetPwdFormState.newPassword) || !pwdRegex.test(resetPwdFormState.newPassword2)) {
-		warningNotification('您的密码复杂度太低(密码中必须包含字母、数字)');
+		warningNotification(t('message.pages.dept.user.pwdComplexity'));
 		return;
 	}
 	const res = await resetPwd(resetPwdFormState.id, {
@@ -255,7 +258,7 @@ const handleResetPwdSubmit = async () => {
 	});
 
 	if (res?.code === 2000) {
-		successNotification(res.msg || '修改成功！');
+		successNotification(res.msg || t('message.pages.dept.user.changeSuccess'));
 		handleResetPwdClose();
 	}
 };

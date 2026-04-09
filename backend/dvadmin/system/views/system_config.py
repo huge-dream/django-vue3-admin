@@ -50,6 +50,32 @@ class SystemConfigSerializer(CustomModelSerializer):
     系统配置-序列化器
     """
     form_item_type_label = serializers.CharField(source='get_form_item_type_display', read_only=True)
+    title_i18n = serializers.SerializerMethodField()
+
+    def get_title_i18n(self, obj):
+        lang = None
+        req = getattr(self, 'request', None)
+        if req:
+            user = getattr(req, 'user', None)
+            if user and getattr(user, 'is_authenticated', False):
+                lang = getattr(user, 'language', None)
+            _qp_lang = req.query_params.get('language', None)
+            if _qp_lang:
+                lang = _qp_lang[0] if isinstance(_qp_lang, list) else _qp_lang
+            if not lang:
+                meta_lang = req.META.get('HTTP_ACCEPT_LANGUAGE', '')
+                # Parse Accept-Language header (e.g., "zh-TW,zh;q=0.9,en;q=0.8")
+                if 'en' in meta_lang:
+                    lang = 'en'
+                elif 'zh-tw' in meta_lang or 'zh-hant' in meta_lang:
+                    lang = 'zh-tw'
+                elif meta_lang.startswith('zh'):
+                    lang = 'zh-cn'
+        if lang == 'en':
+            return obj.title_en or obj.title
+        elif lang == 'zh-tw':
+            return obj.title_zh_tw or obj.title
+        return obj.title
 
     class Meta:
         model = SystemConfig
@@ -63,11 +89,37 @@ class SystemConfigChinldernSerializer(CustomModelSerializer):
     """
     children = serializers.SerializerMethodField()
     form_item_type_label = serializers.CharField(source='get_form_item_type_display', read_only=True)
+    title_i18n = serializers.SerializerMethodField()
 
     def get_children(self, instance):
         queryset = SystemConfig.objects.filter(parent=instance)
-        serializer = SystemConfigSerializer(queryset, many=True)
+        serializer = SystemConfigSerializer(queryset, many=True, request=self.request)
         return serializer.data
+
+    def get_title_i18n(self, obj):
+        lang = None
+        req = getattr(self, 'request', None)
+        if req:
+            user = getattr(req, 'user', None)
+            if user and getattr(user, 'is_authenticated', False):
+                lang = getattr(user, 'language', None)
+            _qp_lang = req.query_params.get('language', None)
+            if _qp_lang:
+                lang = _qp_lang[0] if isinstance(_qp_lang, list) else _qp_lang
+            if not lang:
+                meta_lang = req.META.get('HTTP_ACCEPT_LANGUAGE', '')
+                # Parse Accept-Language header (e.g., "zh-TW,zh;q=0.9,en;q=0.8")
+                if 'en' in meta_lang:
+                    lang = 'en'
+                elif 'zh-tw' in meta_lang or 'zh-hant' in meta_lang:
+                    lang = 'zh-tw'
+                elif meta_lang.startswith('zh'):
+                    lang = 'zh-cn'
+        if lang == 'en':
+            return obj.title_en or obj.title
+        elif lang == 'zh-tw':
+            return obj.title_zh_tw or obj.title
+        return obj.title
 
     class Meta:
         model = SystemConfig

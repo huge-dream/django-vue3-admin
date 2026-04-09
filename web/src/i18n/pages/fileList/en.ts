@@ -32,6 +32,7 @@ export default {
                     unknown: 'Unknown',
                 },
                 tabs: {
+                    all: 'All',
                     image: 'Image',
                     video: 'Video',
                     audio: 'Audio',

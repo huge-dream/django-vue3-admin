@@ -1,4 +1,5 @@
 import { CrudOptions, AddReq, DelReq, EditReq, dict, CrudExpose, compute } from '@fast-crud/fast-crud';
+import { useI18n } from 'vue-i18n';
 import * as api from './api';
 import { dictionary } from '/@/utils/dictionary';
 import { successMessage } from '../../../utils/message';
@@ -12,6 +13,7 @@ interface CreateCrudOptionsTypes {
 
 //此处为crudOptions配置
 export const createCrudOptions = function ({ crudExpose }: { crudExpose: CrudExpose; }): CreateCrudOptionsTypes {
+	const { t } = useI18n()
     const pageRequest = async (query: any) => {
         return await api.GetList(query);
     };
@@ -70,7 +72,7 @@ export const createCrudOptions = function ({ crudExpose }: { crudExpose: CrudExp
                     },
                     download: {
                         show: compute(ctx => ctx.row.task_status === 2),
-                        text: '下载文件',
+                        text: t('message.pages.downloadCenter.buttons.downloadFile'),
                         type: 'warning',
                         click: (ctx) => window.open(getBaseURL(ctx.row.url), '_blank')
                     }
@@ -86,7 +88,7 @@ export const createCrudOptions = function ({ crudExpose }: { crudExpose: CrudExp
             },
             columns: {
                 _index: {
-                    title: '序号',
+                    title: t('message.pages.downloadCenter.table.columns.index'),
                     form: { show: false },
                     column: {
                         type: 'index',
@@ -96,7 +98,7 @@ export const createCrudOptions = function ({ crudExpose }: { crudExpose: CrudExp
                     },
                 },
                 task_name: {
-                    title: '任务名',
+                    title: t('message.pages.downloadCenter.table.columns.taskName'),
                     type: 'text',
                     column: {
                         minWidth: 160,
@@ -107,7 +109,7 @@ export const createCrudOptions = function ({ crudExpose }: { crudExpose: CrudExp
                     }
                 },
                 file_name: {
-                    title: '文件名',
+                    title: t('message.pages.downloadCenter.table.columns.fileName'),
                     type: 'text',
                     column: {
                         minWidth: 160,
@@ -118,21 +120,21 @@ export const createCrudOptions = function ({ crudExpose }: { crudExpose: CrudExp
                     }
                 },
                 size: {
-                    title: '文件大小(b)',
+                    title: t('message.pages.downloadCenter.table.columns.size'),
                     type: 'number',
                     column: {
                         width: 100
                     }
                 },
                 task_status: {
-                    title: '任务状态',
+                    title: t('message.pages.downloadCenter.table.columns.taskStatus'),
                     type: 'dict-select',
                     dict: dict({
                         data: [
-                            { label: '任务已创建', value: 0 },
-                            { label: '任务进行中', value: 1 },
-                            { label: '任务完成', value: 2 },
-                            { label: '任务失败', value: 3 },
+                            { label: t('message.pages.downloadCenter.status.created'), value: 0 },
+                            { label: t('message.pages.downloadCenter.status.processing'), value: 1 },
+                            { label: t('message.pages.downloadCenter.status.completed'), value: 2 },
+                            { label: t('message.pages.downloadCenter.status.failed'), value: 3 },
                         ]
                     }),
                     column: {
@@ -143,13 +145,13 @@ export const createCrudOptions = function ({ crudExpose }: { crudExpose: CrudExp
                     }
                 },
                 create_datetime: {
-                    title: '创建时间',
+                    title: t('message.pages.downloadCenter.table.columns.createTime'),
                     column: {
                         width: 160
                     }
                 },
                 update_datetime: {
-                    title: '创建时间',
+                    title: t('message.pages.downloadCenter.table.columns.updateTime'),
                     column: {
                         width: 160
                     }

@@ -98,6 +98,8 @@ export default {
                     linkUrlRequired: 'Please enter an external link URL',
                     permissionNameRequired: 'Permission name is required',
                     permissionValueRequired: 'Permission key is required',
+                    methodRequired: 'Request method is required',
+                    apiRequired: 'API endpoint is required',
                     batchGenerate: 'Batch Generate',
                     alreadyExists: ' already exists and cannot be duplicated',
                 },

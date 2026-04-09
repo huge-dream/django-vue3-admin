@@ -212,7 +212,7 @@ const onHandleCommandClick = (path: string) => {
 			})
 			.catch(() => {});
 	} else if (path === 'wareHouse') {
-		window.open('https://gitee.com/huge-dream/django-vue3-admin');
+		window.open('https://gitee.com/huge-dream/Procurement-Inquiry-System');
 	} else {
 		router.push(path);
 	}

@@ -567,6 +567,8 @@ class SystemConfig(CoreModel):
         help_text="父级",
     )
     title = models.CharField(max_length=50, verbose_name="标题", help_text="标题")
+    title_en = models.CharField(max_length=50, verbose_name="标题(English)", blank=True, null=True, help_text="标题(English)")
+    title_zh_tw = models.CharField(max_length=50, verbose_name="标题(繁體中文)", blank=True, null=True, help_text="标题(繁體中文)")
     key = models.CharField(max_length=100, verbose_name="键", help_text="键", db_index=True)
     value = models.JSONField(max_length=100, verbose_name="值", help_text="值", null=True, blank=True)
     sort = models.IntegerField(default=0, verbose_name="排序", help_text="排序", blank=True)

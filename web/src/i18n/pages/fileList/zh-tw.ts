@@ -32,6 +32,7 @@ export default {
                     unknown: '未知類型',
                 },
                 tabs: {
+                    all: '全部',
                     image: '圖片',
                     video: '視頻',
                     audio: '音頻',

@@ -1,6 +1,6 @@
 <template>
 	<el-form ref="formRef" :rules="rules" :model="deptFormData" label-width="100px" label-position="right" class="dept-form-com">
-		<el-form-item label="父级部门" prop="parent">
+		<el-form-item :label="t('message.pages.dept.form.parentDept')" prop="parent">
 			<el-tree-select
 				v-model="deptFormData.parent"
 				:props="defaultTreeProps"
@@ -12,34 +12,37 @@
 				style="width: 100%"
 			/>
 		</el-form-item>
-		<el-form-item required label="部门名称" prop="name">
+		<el-form-item required :label="t('message.pages.dept.form.deptName')" prop="name">
 			<el-input v-model="deptFormData.name" />
 		</el-form-item>
-		<el-form-item required label="部门标识" prop="key">
+		<el-form-item required :label="t('message.pages.dept.form.deptCode')" prop="key">
 			<el-input v-model="deptFormData.key" />
 		</el-form-item>
-		<el-form-item label="负责人">
-			<el-input v-model="deptFormData.owner" placeholder="请输入" />
+		<el-form-item :label="t('message.pages.dept.form.owner')">
+			<el-input v-model="deptFormData.owner" :placeholder="t('message.pages.dept.form.ownerPlaceholder')" />
 		</el-form-item>
-		<el-form-item label="备注">
+		<el-form-item :label="t('message.pages.dept.form.remark')">
 			<el-input v-model="deptFormData.description" maxlength="200" show-word-limit type="textarea" />
 		</el-form-item>
 		<el-form-item>
 			<el-button @click="handleUpdateMenu" type="primary" :loading="deptBtnLoading">
-				{{ deptFormData.id ? '保存' : '新增' }}
+				{{ deptFormData.id ? t('message.pages.dept.buttons.save') : t('message.pages.dept.buttons.add') }}
 			</el-button>
-			<el-button @click="handleClose">取消 </el-button>
+			<el-button @click="handleClose">{{ t('message.pages.dept.buttons.cancel') }}</el-button>
 		</el-form-item>
 	</el-form>
 </template>
 
 <script lang="ts" setup>
 import { reactive, ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElForm, FormRules } from 'element-plus';
 import { lazyLoadDept, AddObj, UpdateObj } from '../../api';
 import { successNotification } from '/@/utils/message';
 import { DeptFormDataType, TreeItemType, APIResponseData } from '../../types';
 import type Node from 'element-plus/es/components/tree/src/model/node';
+
+const { t } = useI18n()
 
 interface IProps {
 	initFormData: TreeItemType | null;
@@ -62,8 +65,8 @@ const defaultTreeProps: any = {
 
 const formRef = ref<InstanceType<typeof ElForm>>();
 const rules = reactive<FormRules>({
-	name: [{ required: true, message: '部门名称必填', trigger: 'blur' }],
-	key: [{ required: true, message: '部门标识必填', trigger: 'blur' }],
+	name: [{ required: true, message: t('message.pages.dept.validation.deptNameRequired'), trigger: 'blur' }],
+	key: [{ required: true, message: t('message.pages.dept.validation.deptCodeRequired'), trigger: 'blur' }],
 });
 
 const props = withDefaults(defineProps<IProps>(), {

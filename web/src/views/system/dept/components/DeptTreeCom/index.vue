@@ -1,11 +1,11 @@
 <template>
-	<el-input v-model="filterVal" :prefix-icon="Search" placeholder="请输入部门名称" />
+	<el-input v-model="filterVal" :prefix-icon="Search" :placeholder="t('message.pages.dept.tree.searchPlaceholder')" />
 	<div class="dept-tree-com">
 		<div class="tc-head">
 			<el-icon size="16" color="#606266" class="tc-head-icon">
 				<HomeFilled />
 			</el-icon>
-			<span class="tc-head-txt">部门架构</span>
+			<span class="tc-head-txt">{{ t('message.pages.dept.tree.deptStructure') }}</span>
 			<el-icon size="16" color="#606266" @click="() => (showTotalNum = !showTotalNum)" class="tc-head-icon">
 				<View v-show="!showTotalNum" />
 				<Hide v-show="showTotalNum" />
@@ -35,31 +35,31 @@
 		</el-tree>
 
 		<div class="tree-tags">
-			<el-tooltip effect="dark" content="新增">
+			<el-tooltip effect="dark" :content="t('message.pages.dept.tree.add')">
 				<el-icon size="16" @click="handleUpdateMenu('create')" class="mlt-icon">
 					<Plus />
 				</el-icon>
 			</el-tooltip>
 
-			<el-tooltip effect="dark" content="编辑">
+			<el-tooltip effect="dark" :content="t('message.pages.dept.tree.edit')">
 				<el-icon size="16" @click="handleUpdateMenu('update')" class="mlt-icon">
 					<Edit />
 				</el-icon>
 			</el-tooltip>
 
-			<el-tooltip effect="dark" content="上移">
+			<el-tooltip effect="dark" :content="t('message.pages.dept.tree.moveUp')">
 				<el-icon size="16" @click="handleSort('up')" class="mlt-icon">
 					<Top />
 				</el-icon>
 			</el-tooltip>
 
-			<el-tooltip effect="dark" content="下移">
+			<el-tooltip effect="dark" :content="t('message.pages.dept.tree.moveDown')">
 				<el-icon size="16" @click="handleSort('down')" class="mlt-icon">
 					<Bottom />
 				</el-icon>
 			</el-tooltip>
 
-			<el-tooltip effect="dark" content="删除">
+			<el-tooltip effect="dark" :content="t('message.pages.dept.tree.delete')">
 				<el-icon size="16" @click="handleDeleteDept" class="mlt-icon">
 					<Delete />
 				</el-icon>
@@ -70,6 +70,7 @@
 
 <script lang="ts" setup>
 import { ref, watch, toRaw, h } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { ElTree } from 'element-plus';
 import { getElementLabelLine } from 'element-tree-line';
 import { Search } from '@element-plus/icons-vue';
@@ -77,6 +78,8 @@ import { lazyLoadDept, deptMoveUp, deptMoveDown } from '../../api';
 import { warningNotification } from '/@/utils/message';
 import { TreeItemType, APIResponseData } from '../../types';
 import type Node from 'element-plus/es/components/tree/src/model/node';
+
+const { t } = useI18n()
 
 interface IProps {
 	treeData: TreeItemType[];
@@ -146,7 +149,7 @@ const handleNodeClick = (record: TreeItemType, node: Node) => {
 const handleUpdateMenu = (type: string) => {
 	if (type === 'update') {
 		if (!treeSelectDept.value.id) {
-			warningNotification('请选择菜单！');
+			warningNotification(t('message.pages.dept.tree.selectDept'));
 			return;
 		}
 		emit('updateDept', type, treeSelectDept.value);
@@ -160,7 +163,7 @@ const handleUpdateMenu = (type: string) => {
  */
 const handleDeleteDept = () => {
 	if (!treeSelectDept.value.id) {
-		warningNotification('请选择菜单！');
+		warningNotification(t('message.pages.dept.tree.selectDept'));
 		return;
 	}
 	emit('deleteDept', treeSelectDept.value.id, () => {
@@ -173,7 +176,7 @@ const handleDeleteDept = () => {
  */
 const handleSort = async (type: string) => {
 	if (!treeSelectDept.value.id) {
-		warningNotification('请选择菜单！');
+		warningNotification(t('message.pages.dept.tree.selectDept'));
 		return;
 	}
 	if (sortDisable.value) return;

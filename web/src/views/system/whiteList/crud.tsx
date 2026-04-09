@@ -1,4 +1,5 @@
 import * as api from './api';
+import { useI18n } from 'vue-i18n';
 import {
     dict,
     UserPageQuery,
@@ -15,6 +16,7 @@ import {successMessage} from '/@/utils/message';
 import {auth} from '/@/utils/authFunction'
 
 export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps): CreateCrudOptionsRet {
+	const { t } = useI18n()
     const pageRequest = async (query: UserPageQuery) => {
         return await api.GetList(query);
     };
@@ -75,7 +77,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
             },
             columns: {
                 _index: {
-                    title: '序号',
+                    title: t('message.pages.whitelist.table.columns.index'),
                     form: {show: false},
                     column: {
                         //type: 'index',
@@ -92,7 +94,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                     },
                 },
                 search: {
-                    title: '关键词',
+                    title: t('message.pages.whitelist.table.columns.keyword'),
                     column: {
                         show: false,
                     },
@@ -102,7 +104,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                             props: {
                                 clearable: true,
                             },
-                            placeholder: '请输入关键词',
+                            placeholder: t('message.pages.whitelist.form.keywordPlaceholder'),
                         },
                     },
                     form: {
@@ -115,7 +117,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                     },
                 },
                 method: {
-                    title: '请求方式',
+                    title: t('message.pages.whitelist.table.columns.method'),
                     sortable: 'custom',
                     search: {
                         disabled: false,
@@ -153,7 +155,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                             // 表单校验规则
                             {
                                 required: true,
-                                message: '必填项',
+                                message: t('message.pages.whitelist.validation.methodRequired'),
                             },
                         ],
                         component: {
@@ -165,7 +167,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                     },
                 },
                 url: {
-                    title: '接口地址',
+                    title: t('message.pages.whitelist.table.columns.url'),
                     sortable: 'custom',
                     search: {
                         disabled: true,
@@ -194,7 +196,7 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                             // 表单校验规则
                             {
                                 required: true,
-                                message: '必填项',
+                                message: t('message.pages.whitelist.validation.urlRequired'),
                             },
                         ],
                         component: {
@@ -213,12 +215,12 @@ export const createCrudOptions = function ({crudExpose}: CreateCrudOptionsProps)
                             tooltip: {
                                 placement: 'top-start',
                             },
-                            text: '请正确填写，以免请求时被拦截。匹配单例使用正则,例如:/api/xx/.*?/',
+                            text: t('message.pages.whitelist.form.urlHelper'),
                         },
                     },
                 },
                 enable_datasource: {
-                    title: '数据权限认证',
+                    title: t('message.pages.whitelist.table.columns.dataPermission'),
                     search: {
                         disabled: false,
                     },
