@@ -132,21 +132,33 @@ class MenuButtonViewSet(CustomModelViewSet):
     def scan_get_apps(self, request):
         """
         获取可扫描的 Django App 列表
-        扫描 dvadmin 下的所有 app（每个 app 下必须有 views.py 才纳入）
+        基于 Django app registry，只返回 dvadmin.* 下有 views 子模块的 app
         """
-        import os
-        from pathlib import Path
+        import importlib
+        from django.apps import apps
 
-        dvadmin_dir = Path(__file__).resolve().parent.parent.parent
         custom_apps = []
-        for item in dvadmin_dir.iterdir():
-            if not item.is_dir():
+        seen = set()
+        for app_config in apps.get_app_configs():
+            name = app_config.name  # e.g. 'dvadmin.system'
+            if not name.startswith('dvadmin.'):
                 continue
-            # 查找 views/ 子目录（dvadmin 项目风格：views 在子目录中）
-            views_dir = item / 'views'
-            if views_dir.exists() and views_dir.is_dir():
-                if item.name not in ('utils',):
-                    custom_apps.append(item.name)
+            if name in seen:
+                continue
+            seen.add(name)
+
+            # 取 short name: 'dvadmin.system' -> 'system'
+            short_name = name.split('.', 1)[1]
+            if short_name in ('utils',):
+                continue
+
+            # 验证是否有 views 子模块
+            try:
+                importlib.import_module(f'{name}.views')
+            except ModuleNotFoundError:
+                continue
+
+            custom_apps.append(short_name)
 
         return DetailResponse(data=sorted(custom_apps))
 
