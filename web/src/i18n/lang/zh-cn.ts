@@ -49,6 +49,7 @@ export default {
         },
         router: {
             home: '首页',
+            dashboard: '仪表盘',
             system: '系统管理',
             config: '常规配置',
             log: '日志管理',

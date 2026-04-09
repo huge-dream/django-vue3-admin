@@ -12,6 +12,7 @@ export default {
     },
     router: {
       home: '首頁',
+      dashboard: '儀表盤',
       system: '系統設置',
       config: '常規配置',
       log: '日誌管理',

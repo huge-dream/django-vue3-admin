@@ -12,6 +12,7 @@ export default {
     },
     router: {
       home: 'Home',
+      dashboard: 'Dashboard',
       system: 'System MGT',
       config: 'General MGT',
       log: 'Log MGT',

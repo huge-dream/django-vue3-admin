@@ -199,7 +199,7 @@ const crudOptions = {
     buyingMethod: {
       title: t('message.pages.pissupplier.quotation.buyingMethod'),
       type: 'dict-select',
-      dict: dict({ data: buyingMethodDict }),
+      dict: dict({ data: buyingMethodDict(t) }),
       search: {
         show: true,
         component: { props: { placeholder: t('message.pages.pissupplier.quotation.buyingMethod'), clearable: true } }
@@ -210,7 +210,7 @@ const crudOptions = {
           const v = value ?? row?.buyingMethod
           const n = Number(v)
           if (!Number.isFinite(n)) return v != null && v !== '' ? String(v) : ''
-          return buyingMethodDict.find((d) => d.value === n)?.label ?? String(v)
+          return buyingMethodDict(t).find((d: any) => d.value === n)?.label ?? String(v)
         }
       }
     },

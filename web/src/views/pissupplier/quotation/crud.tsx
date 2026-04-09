@@ -85,9 +85,9 @@ type Quote = {
 type SummaryRow = { section: string; amount: number; isSubtotal?: boolean }
 
 /** 与杂采询价列表列展示一致 */
-export const buyingMethodDict = [
-  { value: 1, label: '询价' },
-  { value: 2, label: '招标' }
+export const buyingMethodDict = (t: Function) => [
+  { value: 1, label: t('message.pages.pissupplier.quotation.buyingMethodInquiry') },
+  { value: 2, label: t('message.pages.pissupplier.quotation.buyingMethodBid') }
 ]
 
 export function formatQuoteDeadlineDisplay(value: unknown) {
