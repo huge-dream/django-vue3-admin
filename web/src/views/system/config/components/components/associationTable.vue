@@ -1,32 +1,32 @@
 <template>
 	<div>
 		<el-form :model="formObj" ref="associationRef">
-			<el-form-item label="关联表" prop="table" :rules="[{ required: true, message: '必填项', trigger: 'blur' }]">
-				<el-select v-model="formObj.table" filterable clearable placeholder="请选择" @change="handleChange">
+			<el-form-item :label="$t('message.pages.config.associationTable.tableLabel')" prop="table" :rules="[{ required: true, message: $t('message.pages.config.associationTable.required'), trigger: 'blur' }]">
+				<el-select v-model="formObj.table" filterable clearable :placeholder="$t('message.pages.config.associationTable.selectTable')" @change="handleChange">
 					<el-option v-for="item in tableOptions" :key="item.table" :label="item.tableName" :value="item.table">
 						<span style="float: left">{{ item.tableName }}</span>
 						<span style="float: right; color: #8492a6; font-size: 13px">{{ item.table }}</span>
 					</el-option>
 				</el-select>
 			</el-form-item>
-			<el-form-item label="显示字段" prop="field" :rules="[{ required: true, message: '必填项', trigger: 'blur' }]">
-				<el-select v-model="formObj.field" filterable clearable placeholder="请选择">
+			<el-form-item :label="$t('message.pages.config.associationTable.displayField')" prop="field" :rules="[{ required: true, message: $t('message.pages.config.associationTable.required'), trigger: 'blur' }]">
+				<el-select v-model="formObj.field" filterable clearable :placeholder="$t('message.pages.config.associationTable.selectField')">
 					<el-option v-for="item in labelOptions" :key="item.table" :label="item.title" :value="item.field">
 						<span style="float: left">{{ item.field }}</span>
 						<span style="float: right; color: #8492a6; font-size: 13px">{{ item.title }}</span>
 					</el-option>
 				</el-select>
 			</el-form-item>
-			<el-form-item label="储存字段" prop="primarykey" :rules="[{ required: true, message: '必填项', trigger: 'blur' }]">
-				<el-select v-model="formObj.primarykey" filterable clearable placeholder="请选择">
+			<el-form-item :label="$t('message.pages.config.associationTable.storageField')" prop="primarykey" :rules="[{ required: true, message: $t('message.pages.config.associationTable.required'), trigger: 'blur' }]">
+				<el-select v-model="formObj.primarykey" filterable clearable :placeholder="$t('message.pages.config.associationTable.selectField')">
 					<el-option v-for="(item, index) in labelOptions" :key="index" :label="item.title" :value="item.field">
 						<span style="float: left">{{ item.field }}</span>
 						<span style="float: right; color: #8492a6; font-size: 13px">{{ item.title }}</span>
 					</el-option>
 				</el-select>
 			</el-form-item>
-			<el-form-item label="过滤条件" prop="oldSearchField" :rules="[{ required: true, message: '必填项', trigger: 'blur' }]">
-				<el-select v-model="formObj.oldSearchField" multiple filterable clearable placeholder="请选择" @change="handleSearch">
+			<el-form-item :label="$t('message.pages.config.associationTable.filterCondition')" prop="oldSearchField" :rules="[{ required: true, message: $t('message.pages.config.associationTable.required'), trigger: 'blur' }]">
+				<el-select v-model="formObj.oldSearchField" multiple filterable clearable :placeholder="$t('message.pages.config.associationTable.selectField')" @change="handleSearch">
 					<el-option v-for="(item, index) in labelOptions" :key="index" :label="item.title" :value="item.field">
 						<span style="float: left">{{ item.field }}</span>
 						<span style="float: right; color: #8492a6; font-size: 13px">{{ item.title }}</span>
