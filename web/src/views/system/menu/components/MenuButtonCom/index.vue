@@ -1,20 +1,20 @@
 <template>
-	<div class="menu-btn-com">
+	<div class="menu-btn-com" :style="{ height: 'calc(72vh - 44px)' }">
 		<!-- 批量操作工具栏 -->
 		<div v-if="selectedRowsCount > 0" class="batch-toolbar">
 			<span class="batch-tip">
 				<el-icon><Check /></el-icon>
-				已选择 <strong>{{ selectedRowsCount }}</strong> 项
+				{{ t('message.pages.menu.buttons.selectedTip', { count: selectedRowsCount }) }}
 			</span>
-			<el-button size="small" @click="clearSelection">取消选择</el-button>
+			<el-button size="small" @click="clearSelection">{{ t('message.pages.menu.buttons.clearSelection') }}</el-button>
 			<el-button size="small" type="danger" plain :icon="Delete" @click="handleBatchDelete">
-				批量删除
+				{{ t('message.pages.menu.buttons.batchDelete') }}
 			</el-button>
 		</div>
 
-		<fs-crud ref="crudRef" v-bind="crudBinding">
+		<fs-crud ref="crudRef" v-bind="crudBinding" style="height: 100%">
 			<template #pagination-right>
-				<el-text type="info" size="small">共 {{ totalCount }} 条</el-text>
+				<el-text type="info" size="small">{{ t('message.pages.menu.buttons.totalCount', { count: totalCount }) }}</el-text>
 			</template>
 		</fs-crud>
 	</div>
@@ -90,6 +90,11 @@ defineExpose({ selectOptions, handleRefreshTable });
 
 <style lang="scss" scoped>
 .menu-btn-com {
+	height: 100%;
+	overflow: hidden;
+	display: flex;
+	flex-direction: column;
+
 	.batch-toolbar {
 		display: flex;
 		align-items: center;

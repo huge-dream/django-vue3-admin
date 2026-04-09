@@ -158,6 +158,11 @@ export default {
                     apiEndpoint: 'API Endpoint',
                     batchGenerate: 'Batch Generate',
                     selectMenuFirst: 'Please select a menu first',
+                    selectAll: 'Select All',
+                    selectNone: 'Deselect All',
+                    clearSelection: 'Clear Selection',
+                    selectedTip: '{count} selected',
+                    totalCount: '{count} items total',
                 },
                 scan: {
                     title: 'Auto Scan API Permissions',

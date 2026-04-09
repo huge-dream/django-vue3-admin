@@ -158,6 +158,11 @@ export default {
                     apiEndpoint: '接口地址',
                     batchGenerate: '批量生成',
                     selectMenuFirst: '請選擇菜單',
+                    selectAll: '全選',
+                    selectNone: '取消全選',
+                    clearSelection: '取消選擇',
+                    selectedTip: '已選擇 {count} 項',
+                    totalCount: '共 {count} 條',
                 },
                 scan: {
                     title: '自動掃描接口權限',
