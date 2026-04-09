@@ -233,6 +233,213 @@ def notify_purchasers_quote_timeout_for_inquiries(inquiry_nos: List[str]) -> int
     return sent
 
 
+def _should_send_inquiry_notification(inquiry_no: str, biz_type: str, cooldown_hours: int = 24) -> bool:
+    """
+    通用冷却期判断：同一业务标识在冷却期内不重复发送。
+    Returns True if no successful EmailNotice exists for (biz_type, biz_id) within cooldown_hours.
+    """
+    key = (inquiry_no or "").strip()
+    if not key:
+        return False
+    cutoff = timezone.now() - timedelta(hours=cooldown_hours)
+    return not EmailNotice.objects.filter(
+        biz_type=biz_type,
+        biz_id=key,
+        status="success",
+        sent_at__gte=cutoff,
+    ).exists()
+
+
+def notify_suppliers_inquiry_published(inquiry) -> int:
+    """
+    询价单发布（status=3/4）时通知相关供应商：WebSocket 推送 + 邮件。
+    返回成功发送通知的供应商数量。
+    """
+    from apps.pisadmin.basicinfo.models import SupplierUser
+    from apps.pisadmin.miscprocurement.models import InquirySupplier
+    from django.contrib.auth import get_user_model
+    from application.websocketConfig import websocket_push
+
+    inq_no = getattr(inquiry, "inquiry_no", None) or ""
+    if not inq_no:
+        return 0
+
+    if not _should_send_inquiry_notification(inq_no, "inquiry_published", cooldown_hours=24):
+        return 0
+
+    # Get all InquirySupplier rows for this inquiry
+    supplier_rows = InquirySupplier.objects.filter(inquiry_no=inquiry).values(
+        "supplier_code", "supplier_name", "contact_email", "part_id"
+    )
+
+    # Group by supplier_code, collecting all part_ids
+    supplier_map: Dict[str, Dict[str, Any]] = {}
+    for row in supplier_rows:
+        code = (row["supplier_code"] or "").strip()
+        if not code:
+            continue
+        if code not in supplier_map:
+            supplier_map[code] = {
+                "supplier_name": row["supplier_name"] or "",
+                "contact_email": row["contact_email"] or "",
+                "part_ids": set(),
+            }
+        part_id = row["part_id"]
+        if part_id:
+            supplier_map[code]["part_ids"].add(str(part_id))
+
+    if not supplier_map:
+        logger.warning("notify_suppliers_inquiry_published: no suppliers for inquiry_no=%s", inq_no)
+        return 0
+
+    User = get_user_model()
+    sent_count = 0
+
+    for supplier_code, supplier_group in supplier_map.items():
+        # WebSocket push to system user(s) for this supplier
+        supplier_users = SupplierUser.objects.filter(
+            supplier_id=supplier_code,
+            supplier_role=2,  # supplier_misc_quote
+            status=1,
+        )
+        for su in supplier_users:
+            user_email = (su.user_email or "").strip()
+            if not user_email:
+                continue
+            system_user = User.objects.filter(email=user_email).first()
+            if system_user and getattr(system_user, "id", None):
+                try:
+                    ws_msg = {
+                        "contentType": "INFO",
+                        "content": f"您有新询价单待报价：{inq_no}",
+                        "title": "询价单发布通知",
+                    }
+                    websocket_push(system_user.id, ws_msg)
+                except Exception:
+                    logger.exception("WebSocket push failed for user_id=%s, inquiry_no=%s", system_user.id, inq_no)
+
+        # Send email via EmailNotice
+        try:
+            ctx = build_context_rfs_publish(inquiry, supplier_group)
+            subject, body = render_email(TEMPLATE_RFS_PUBLISH, ctx)
+        except Exception:
+            logger.exception("Failed to render email for inquiry_no=%s, supplier=%s", inq_no, supplier_code)
+            continue
+
+        to_list = [supplier_group["contact_email"]] if supplier_group["contact_email"] else []
+        notice = EmailNotice.objects.create(
+            subject=subject,
+            body=body,
+            to_emails=to_list,
+            cc_emails=[],
+            bcc_emails=[],
+            attachments=[],
+            biz_type="inquiry_published",
+            biz_id=inq_no,
+            status="pending",
+            payload={
+                "template_key": TEMPLATE_RFS_PUBLISH,
+                "is_html": True,
+                "inquiry_no": inq_no,
+                "supplier_code": supplier_code,
+                "supplier_name": supplier_group["supplier_name"],
+            },
+        )
+        notice.status = "sending"
+        notice.save(update_fields=["status", "update_datetime"])
+
+        success, detail = send_email_notice(notice)
+        notice.response = detail or {}
+        if success:
+            notice.status = "success"
+            notice.sent_at = timezone.now()
+            notice.last_error = None
+            sent_count += 1
+        else:
+            notice.status = "failed"
+            notice.last_error = detail.get("error") if isinstance(detail, dict) else str(detail)
+
+        notice.save(update_fields=["status", "sent_at", "response", "last_error", "update_datetime"])
+
+    return sent_count
+
+
+def notify_purchasers_quote_completed(inquiry) -> bool:
+    """
+    询价单进入「报价结束」(status=5) 时通知采购负责人：WebSocket 推送 + 邮件。
+    返回是否成功发送。
+    """
+    from django.contrib.auth import get_user_model
+    from application.websocketConfig import websocket_push
+
+    inq_no = getattr(inquiry, "inquiry_no", None) or ""
+    if not inq_no:
+        return False
+
+    if not _should_send_inquiry_notification(inq_no, "inquiry_quote_ended", cooldown_hours=24):
+        return False
+
+    to_list = resolve_inquiry_purchaser_emails(inquiry)
+    if not to_list:
+        logger.warning("notify_purchasers_quote_completed: no purchaser emails for inquiry_no=%s", inq_no)
+        return False
+
+    ctx = build_context_quote_ended(inquiry)
+    subject, body = render_email(TEMPLATE_QUOTE_ENDED, ctx)
+
+    notice = EmailNotice.objects.create(
+        subject=subject,
+        body=body,
+        to_emails=to_list,
+        cc_emails=[],
+        bcc_emails=[],
+        attachments=[],
+        biz_type="inquiry_quote_ended",
+        biz_id=inq_no,
+        status="pending",
+        payload={
+            "template_key": TEMPLATE_QUOTE_ENDED,
+            "is_html": True,
+            "inquiry_no": inq_no,
+            "completion_time": ctx.get("completion_time"),
+        },
+    )
+    notice.status = "sending"
+    notice.save(update_fields=["status", "update_datetime"])
+
+    success, detail = send_email_notice(notice)
+    notice.response = detail or {}
+    if success:
+        notice.status = "success"
+        notice.sent_at = timezone.now()
+        notice.last_error = None
+    else:
+        notice.status = "failed"
+        notice.last_error = detail.get("error") if isinstance(detail, dict) else str(detail)
+
+    notice.save(update_fields=["status", "sent_at", "response", "last_error", "update_datetime"])
+
+    # WebSocket push to each purchaser email's system user
+    User = get_user_model()
+    for email in to_list:
+        email_clean = email.strip()
+        if not email_clean:
+            continue
+        system_user = User.objects.filter(email=email_clean).first()
+        if system_user and getattr(system_user, "id", None):
+            try:
+                ws_msg = {
+                    "contentType": "INFO",
+                    "content": f"询价单 {inq_no} 已结束报价，请前往比价。",
+                    "title": "报价结束通知",
+                }
+                websocket_push(system_user.id, ws_msg)
+            except Exception:
+                logger.exception("WebSocket push failed for purchaser user_id=%s, inquiry_no=%s", system_user.id, inq_no)
+
+    return success
+
+
 def send_bids_publish_notice_to_supplier(
     inquiry,
     supplier_group: Dict[str, Any],
