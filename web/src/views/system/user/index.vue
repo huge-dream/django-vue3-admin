@@ -4,7 +4,7 @@
       <el-col xs="24" :sm="8" :md="6" :lg="4" :xl="4" class="p-1">
         <el-card :body-style="{ height: '100%' }">
           <p class="font-mono font-black text-center text-xl pb-5">
-            部门列表
+            {{ $t('message.pages.user.tree.deptList') }}
             <el-tooltip effect="dark" :content="content" placement="right">
               <el-icon>
                 <QuestionFilled/>
@@ -56,12 +56,14 @@ import {createCrudOptions} from './crud';
 import * as api from './api';
 import {ElTree} from 'element-plus';
 import {ref, onMounted, watch, toRaw, h} from 'vue';
+import {useI18n} from 'vue-i18n';
 import XEUtils from 'xe-utils';
 import {getElementLabelLine} from 'element-tree-line';
 import importExcel from '/@/components/importExcel/index.vue'
 import {getBaseURL} from '/@/utils/baseUrl';
 
 
+const { t } = useI18n();
 const ElementTreeLine = getElementLabelLine(h);
 
 interface Tree {
@@ -78,7 +80,7 @@ interface APIResponseData {
 }
 
 // 引入组件
-const placeholder = ref('请输入部门名称');
+const placeholder = ref(t('message.pages.user.tree.deptPlaceholder'));
 const filterText = ref('');
 const treeRef = ref<InstanceType<typeof ElTree>>();
 
