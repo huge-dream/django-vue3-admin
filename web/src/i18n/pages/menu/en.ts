@@ -175,6 +175,7 @@ export default {
                     existing: 'Existing',
                     new: 'New',
                     selectedCount: 'Selected: {count} items',
+                    actions: 'actions',
                 },
             },
         },

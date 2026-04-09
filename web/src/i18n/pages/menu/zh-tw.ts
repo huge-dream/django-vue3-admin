@@ -175,6 +175,7 @@ export default {
                     existing: '已存在',
                     new: '新增',
                     selectedCount: '已選擇: {count} 項',
+                    actions: '個操作',
                 },
             },
         },

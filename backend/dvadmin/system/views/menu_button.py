@@ -189,9 +189,11 @@ class MenuButtonViewSet(CustomModelViewSet):
                     # 获取 HTTP 方法
                     http_method = method.upper()  # 如 "GET", "POST"
 
-                    # 映射 HTTP 方法到 method 字段
-                    method_map = {'GET': 0, 'POST': 1, 'PUT': 2, 'PATCH': 2, 'DELETE': 3}
-                    method_int = method_map.get(http_method, 0)
+                # 排除基类（名字含 Custom/Base/Generic）
+                viewset_name = cls.__name__
+                if any(viewset_name.startswith(prefix) for prefix in ('Custom', 'Base', 'Generic', 'Abstract')):
+                    continue
+                model_name = viewset_name.removesuffix('ViewSet') if viewset_name.endswith('ViewSet') else viewset_name
 
                     # 获取 action 名称（驼峰转首字母大写）
                     action_title = action_name.replace('_', ' ').title().replace(' ', '')
