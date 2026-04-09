@@ -127,9 +127,10 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
 							const tableRef = crudExpose.getBaseTableRef();
 							const tableData = crudExpose.getTableData();
 							nextTick(() => {
-								XEUtils.arrayEach(tableData, (row: any) => {
-									tableRef.toggleRowSelection(row, true);
-								});
+								// toggleAllSelection selects all rows regardless of current state
+								tableRef.toggleAllSelection();
+								// Manually sync selectedRows since toggleAllSelection may not fire onSelectionChange reliably
+								selectedRows.value = [...tableData];
 							});
 						},
 					},
@@ -139,10 +140,9 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
 						disabled: () => selectedRows.value.length === 0,
 						click: () => {
 							const tableRef = crudExpose.getBaseTableRef();
-							const tableData = crudExpose.getTableData();
-							XEUtils.arrayEach(tableData, (row: any) => {
-								tableRef.toggleRowSelection(row, false);
-							});
+							// clearSelection deselects all rows without firing events
+							tableRef.clearSelection();
+							// Manually reset selectedRows (no event will fire from clearSelection)
 							selectedRows.value = [];
 						},
 					},
