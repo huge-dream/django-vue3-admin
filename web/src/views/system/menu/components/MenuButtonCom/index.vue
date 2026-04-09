@@ -1,6 +1,6 @@
 <template>
 	<div style="height: 100%">
-		<fs-crud ref="crudRef" v-bind="crudBinding">
+		<fs-crud ref="crudRef" v-bind="crudBinding" style="height: 100%">
 			<template #pagination-left>
 				<el-tooltip :content="t('message.pages.menu.buttons.batchDelete')">
 					<el-button text type="danger" :disabled="selectedRowsCount === 0" :icon="Delete" circle @click="handleBatchDelete" />

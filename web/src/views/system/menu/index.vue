@@ -13,9 +13,9 @@
 				</div>
 			</el-col>
 
-			<el-col :span="18">
-        <el-tabs type="border-card">
-          <el-tab-pane :label="$t('message.pages.menu.dialog.buttonPermission')" >
+			<el-col :span="18" style="height: 100%; display: flex; flex-direction: column;">
+        <el-tabs type="border-card" style="flex: 1; display: flex; flex-direction: column;">
+          <el-tab-pane :label="$t('message.pages.menu.dialog.buttonPermission')" style="height: 100%; display: flex; flex-direction: column;">
             <div class="menu-btn-pane">
               <div class="menu-scan-btn">
                 <el-button type="primary" @click="handleOpenScanModal">
