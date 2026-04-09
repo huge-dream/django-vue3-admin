@@ -30,6 +30,7 @@ export default {
 	},
 	signInText: '歡迎回來！',
 	loginTitle: '採購詢報價系統 - 採購端',
+	supplierTitle: '採購詢報價系統 - 供應商端',
 	firstLoginTip: '初次登入請修改密碼',
 	welcomeLogin: '歡迎登入',
 	copyright: 'Copyright © AVC 版權所有',

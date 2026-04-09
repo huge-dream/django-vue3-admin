@@ -12,17 +12,17 @@
 			<div class="login-right-warp flex-margin">
 				<div class="login-right-warp-mian">
 					<div class="login-right-warp-main-title">
-						<span>采购询报价系统 - 供应商端</span>
+						<span>{{ $t('message.pages.login.supplierTitle') }}</span>
 						<br>
-						<span>{{userInfos.pwd_change_count===0?'初次登录请修改密码':'欢迎登录'}}</span>
+						<span>{{ $t(userInfos.pwd_change_count===0?'message.pages.login.firstLoginTip':'message.pages.login.welcomeLogin') }}</span>
 					</div>
 					<div class="login-right-warp-main-form">
 						<div v-if="!state.isScan">
 							<el-tabs v-model="state.tabsActiveName">
-								<el-tab-pane :label="$t('message.label.changePwd')" name="changePwd" v-if="userInfos.pwd_change_count===0">
+								<el-tab-pane :label="$t('message.pages.login.label.changePwd')" name="changePwd" v-if="userInfos.pwd_change_count===0">
 									<ChangePwd />
 								</el-tab-pane>
-								<el-tab-pane :label="$t('message.label.one1')" name="account" v-else>
+								<el-tab-pane :label="$t('message.pages.login.label.one1')" name="account" v-else>
 									<Account />
 								</el-tab-pane>
 							</el-tabs>
@@ -33,7 +33,7 @@
 		</div>
 
 		<div class="login-authorization z-10">
-			<p>Copyright © AVC 版权所有</p>
+			<p>{{ $t('message.pages.login.copyright') }}</p>
 		</div>
 	</div>
 	<div v-if="loginBg">

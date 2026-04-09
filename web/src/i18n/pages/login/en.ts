@@ -31,6 +31,7 @@ export default {
 	},
 	signInText: 'welcome back!',
 	loginTitle: 'Procurement Quotation System - Buyer Portal',
+	supplierTitle: 'Procurement Quotation System - Supplier Portal',
 	firstLoginTip: 'Please change your password on first login',
 	welcomeLogin: 'Welcome',
 	copyright: 'Copyright © AVC All Rights Reserved',

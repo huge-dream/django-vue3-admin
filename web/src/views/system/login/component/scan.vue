@@ -1,7 +1,7 @@
 <template>
 	<div class="login-scan-container">
 		<div ref="qrcodeRef"></div>
-		<div class="font12 mt20 login-msg">{{ $t('message.scan.text') }}</div>
+		<div class="font12 mt20 login-msg">{{ $t('message.pages.login.scan.text') }}</div>
 	</div>
 </template>
 
