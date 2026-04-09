@@ -1,5 +1,5 @@
 <template>
-	<div style="height: 72vh">
+	<div style="height: 100%">
 		<fs-crud ref="crudRef" v-bind="crudBinding">
 			<template #pagination-left>
 				<el-tooltip :content="t('message.pages.menu.buttons.batchDelete')">
