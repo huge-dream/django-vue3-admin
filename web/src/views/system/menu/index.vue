@@ -17,6 +17,12 @@
         <el-tabs type="border-card">
           <el-tab-pane label="按钮权限配置" >
             <div style="height: 72vh">
+              <div class="menu-scan-btn">
+                <el-button type="primary" @click="handleOpenScanModal">
+                  <el-icon><Monitor /></el-icon>
+                  自动扫描
+                </el-button>
+              </div>
               <MenuButtonCom ref="menuButtonRef" />
             </div>
           </el-tab-pane>
@@ -26,6 +32,13 @@
             </div>
           </el-tab-pane>
         </el-tabs>
+
+				<ScanModal
+					ref="scanModalRef"
+					v-model="scanModalVisible"
+					:menuId="selectedMenuId"
+					@success="handleScanSuccess"
+				/>
 
 			</el-col>
 		</el-row>
@@ -43,13 +56,14 @@
 </template>
 
 <script lang="ts" setup name="menuPages">
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import XEUtils from 'xe-utils';
-import { ElMessageBox } from 'element-plus';
+import { ElMessageBox, ElMessage } from 'element-plus';
 import MenuTreeCom from './components/MenuTreeCom/index.vue';
 import MenuButtonCom from './components/MenuButtonCom/index.vue';
 import MenuFormCom from './components/MenuFormCom/index.vue';
 import MenuFieldCom from './components/MenuFieldCom/index.vue';
+import ScanModal from './components/ScanModal/index.vue';
 import { GetList, DelObj } from './api';
 import { successNotification } from '/@/utils/message';
 import { APIResponseData, MenuTreeItemType } from './types';
@@ -61,6 +75,9 @@ let drawerFormData = ref<Partial<MenuTreeItemType>>({});
 let menuTreeRef = ref<InstanceType<typeof MenuTreeCom> | null>(null);
 let menuButtonRef = ref<InstanceType<typeof MenuButtonCom> | null>(null);
 let menuFieldRef = ref<InstanceType<typeof MenuFieldCom> | null>(null);
+let selectedMenuId = ref<number | null>(null);
+let scanModalVisible = ref(false);
+let scanModalRef = ref<any>(null);
 const getData = () => {
 	GetList({}).then((ret: APIResponseData) => {
 		const responseData = ret.data;
@@ -77,6 +94,7 @@ const getData = () => {
  * 菜单的点击事件
  */
 const handleTreeClick = (record: MenuTreeItemType) => {
+	selectedMenuId.value = record.id ?? null;
 	menuButtonRef.value?.handleRefreshTable(record);
   menuFieldRef.value?.handleRefreshTable(record)
 };
@@ -98,6 +116,23 @@ const handleDrawerClose = (type?: string) => {
 	}
 	drawerVisible.value = false;
 	drawerFormData.value = {};
+};
+
+const handleOpenScanModal = () => {
+	if (!selectedMenuId.value) {
+		ElMessage.warning('请先选择一个菜单');
+		return;
+	}
+	scanModalVisible.value = true;
+	nextTick(() => {
+		scanModalRef.value?.handleOpen();
+	});
+};
+
+const handleScanSuccess = () => {
+	if (selectedMenuId.value) {
+		menuButtonRef.value?.handleRefreshTable({ id: selectedMenuId.value });
+	}
 };
 
 /**
@@ -150,5 +185,11 @@ onMounted(() => {
 
 .menu-right-box {
 	border-radius: 8px 0 0 8px;
+}
+
+.menu-scan-btn {
+	display: flex;
+	justify-content: flex-end;
+	margin-bottom: 8px;
 }
 </style>
