@@ -15,7 +15,9 @@ import {CreateCrudOptionsProps, CreateCrudOptionsRet, useFs, AddReq,
   EditReq,
   UserPageQuery,
   UserPageRes} from "@fast-crud/fast-crud";
+
 const { t } = useI18n();
+
 const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsProps): CreateCrudOptionsRet {
   return {
     crudOptions: {
@@ -92,6 +94,7 @@ const createCrudOptions = function ({ crudExpose, context }: CreateCrudOptionsPr
     }
   };
 }
+
 const { crudBinding, crudRef, crudExpose } = useFs({ createCrudOptions });
 const props = defineProps({
   modelValue: {
@@ -102,7 +105,7 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue'])
 
 
-//通过导出modelValue, 可以导出成为一个input组件
+//通过导出modelValue, 可以导出已经成为input组件
 watch(
     () => {
       return props.modelValue;
@@ -114,11 +117,4 @@ watch(
       immediate: true
     }
 );
-
-// 页面打开后获取列表数据
-// onMounted(() => {
-//   crudExpose.doRefresh();
-//   // crudExpose.setTableData([])
-//   // crudExpose.editable.enable();
-// });
 </script>
