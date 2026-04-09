@@ -87,12 +87,22 @@ class MenuButtonViewSet(CustomModelViewSet):
     @action(methods=['post'], detail=False, permission_classes=[IsAuthenticated])
     def batch_create(self, request, *args, **kwargs):
         """
-        批量创建菜单“增删改查查”权限
+        批量创建菜单"增删改查查"权限
         创建的数据来源于菜单，需要规范创建菜单参数
         value：菜单的component_name:method
         api:菜单的web_path增加'/api'前缀，并根据method增加{id}
         """
         menu_obj = Menu.objects.filter(id=request.data['menu']).first()
+        if not menu_obj:
+            return DetailResponse(data={}, msg="菜单不存在", code=4000)
+        if not menu_obj.component_name:
+            return DetailResponse(data={}, msg="该菜单未设置组件名称(component_name)，无法自动生成权限", code=4000)
+
+        # 获取已存在的 value，避免唯一约束冲突
+        existing_values = set(
+            MenuButton.objects.filter(menu=menu_obj.id).values_list('value', flat=True)
+        )
+
         result_list = [
             {'menu': menu_obj.id, 'name': '新增', 'name_en': 'Add', 'name_zh_tw': '新增', 'value': f'{menu_obj.component_name}:Create', 'api': f'/api/{menu_obj.component_name}/', 'method': 1},
             {'menu': menu_obj.id, 'name': '删除', 'name_en': 'Delete', 'name_zh_tw': '刪除', 'value': f'{menu_obj.component_name}:Delete', 'api': f'/api/{menu_obj.component_name}/{{id}}/', 'method': 3},
@@ -101,11 +111,22 @@ class MenuButtonViewSet(CustomModelViewSet):
             {'menu': menu_obj.id, 'name': '详情', 'name_en': 'Detail', 'name_zh_tw': '詳情', 'value': f'{menu_obj.component_name}:Retrieve', 'api': f'/api/{menu_obj.component_name}/{{id}}/', 'method': 0},
             {'menu': menu_obj.id, 'name': '复制', 'name_en': 'Copy', 'name_zh_tw': '複製', 'value': f'{menu_obj.component_name}:Copy', 'api': f'/api/{menu_obj.component_name}/', 'method': 1},
             {'menu': menu_obj.id, 'name': '导入', 'name_en': 'Import', 'name_zh_tw': '導入', 'value': f'{menu_obj.component_name}:Import', 'api': f'/api/{menu_obj.component_name}/import_data/', 'method': 1},
-            {'menu': menu_obj.id, 'name': '导出', 'name_en': 'Export', 'name_zh_tw': '導出', 'value': f'{menu_obj.component_name}:Export', 'api': f'/api/{menu_obj.component_name}/export_data/', 'method': 1},]
-        serializer = self.get_serializer(data=result_list, many=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return SuccessResponse(serializer.data, msg=_("Batch creation successful"))
+            {'menu': menu_obj.id, 'name': '导出', 'name_en': 'Export', 'name_zh_tw': '導出', 'value': f'{menu_obj.component_name}:Export', 'api': f'/api/{menu_obj.component_name}/export_data/', 'method': 1},
+        ]
+
+        # 只保留不存在的新记录
+        to_create = [r for r in result_list if r['value'] not in existing_values]
+        skipped = len(result_list) - len(to_create)
+
+        if to_create:
+            serializer = self.get_serializer(data=to_create, many=True)
+            serializer.is_valid(raise_exception=True)
+            MenuButton.objects.bulk_create(
+                [MenuButton(**item) for item in to_create],
+                ignore_conflicts=True
+            )
+
+        return SuccessResponse(data={'created': len(to_create), 'skipped': skipped}, msg=f"批量创建成功 {len(to_create)} 项，跳过 {skipped} 项（已存在）")
 
     @action(methods=['get'], detail=False, permission_classes=[IsAuthenticated])
     def scan_get_apps(self, request):

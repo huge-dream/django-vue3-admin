@@ -3,8 +3,7 @@ import { useI18n } from 'vue-i18n';
 import * as api from './api';
 import {auth} from '/@/utils/authFunction'
 import {request} from '/@/utils/service';
-import { successNotification } from '/@/utils/message';
-import { ElMessage } from 'element-plus';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import { nextTick, ref } from 'vue';
 import XEUtils from 'xe-utils';
 //此处为crudOptions配置
@@ -92,9 +91,59 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
 							}
 							const result = await api.BatchAdd({ menu: context!.selectOptions.value.id });
 							if (result.code == 2000) {
-								successNotification(result.msg);
+								ElMessage.success(result.msg);
 								crudExpose.doRefresh();
+							} else {
+								ElMessage.error(result.msg);
 							}
+						},
+					},
+                    batchDelete: {
+						show: auth('menu:DeleteButton'),
+						type: 'danger',
+						text: t('message.pages.menu.buttons.batchDelete'),
+						disabled: () => selectedRows.value.length === 0,
+						click: async () => {
+							if (selectedRows.value.length === 0) {
+								ElMessage.warning(t('message.pages.menu.messages.selectMenu'));
+								return;
+							}
+							await ElMessageBox.confirm(
+								t('message.pages.menu.messages.batchDeleteConfirm', { count: selectedRows.value.length }),
+								t('message.pages.menu.buttons.confirm'),
+								{ type: 'warning', confirmButtonText: t('message.pages.menu.buttons.confirm'), cancelButtonText: t('message.pages.menu.buttons.cancel') }
+							);
+							await api.BatchDelete(XEUtils.pluck(selectedRows.value, 'id'));
+							ElMessage.success(t('message.pages.menu.messages.deleteSuccess'));
+							selectedRows.value = [];
+							crudExpose.doRefresh();
+						},
+					},
+                    selectAll: {
+						show: true,
+						text: t('message.pages.menu.buttons.selectAll'),
+						disabled: () => !context!.selectOptions.value.id,
+						click: () => {
+							const tableRef = crudExpose.getBaseTableRef();
+							const tableData = crudExpose.getTableData();
+							nextTick(() => {
+								XEUtils.arrayEach(tableData, (row: any) => {
+									tableRef.toggleRowSelection(row, true);
+								});
+							});
+						},
+					},
+                    selectNone: {
+						show: true,
+						text: t('message.pages.menu.buttons.selectNone'),
+						disabled: () => selectedRows.value.length === 0,
+						click: () => {
+							const tableRef = crudExpose.getBaseTableRef();
+							const tableData = crudExpose.getTableData();
+							XEUtils.arrayEach(tableData, (row: any) => {
+								tableRef.toggleRowSelection(row, false);
+							});
+							selectedRows.value = [];
 						},
 					},
                 },

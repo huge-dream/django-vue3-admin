@@ -17,7 +17,18 @@
 
 ## 2. 菜单管理 - 自动扫描功能
 
+![image-20260409194934989](https://images-warehouse.oss-cn-hangzhou.aliyuncs.com/img/202604091949170.png)
+
+![image-20260409194952656](https://images-warehouse.oss-cn-hangzhou.aliyuncs.com/img/202604091949701.png)
+
+![image-20260409195119115](https://images-warehouse.oss-cn-hangzhou.aliyuncs.com/img/202604091951173.png)
+
+![image-20260409195141404](https://images-warehouse.oss-cn-hangzhou.aliyuncs.com/img/202604091951457.png)
+
+![image-20260409195244451](https://images-warehouse.oss-cn-hangzhou.aliyuncs.com/img/202604091952531.png)
+
 ### 流程
+
 ```
 菜单管理页面 → 选中菜单 → 点击「自动扫描」→ 选择 App → 开始扫描
     → 预览分组表格（按 ViewSet 分组，可折叠）

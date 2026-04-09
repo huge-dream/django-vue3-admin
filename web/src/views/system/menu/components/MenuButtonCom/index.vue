@@ -1,26 +1,23 @@
 <template>
-	<fs-crud ref="crudRef"  v-bind="crudBinding"> 
-		<template #pagination-left>
-				<el-tooltip content="批量删除">
-					<el-button text type="danger" :disabled="selectedRowsCount === 0" :icon="Delete" circle @click="handleBatchDelete" />
-				</el-tooltip>
-			</template>
+	<div class="menu-btn-com">
+		<!-- 批量操作工具栏 -->
+		<div v-if="selectedRowsCount > 0" class="batch-toolbar">
+			<span class="batch-tip">
+				<el-icon><Check /></el-icon>
+				已选择 <strong>{{ selectedRowsCount }}</strong> 项
+			</span>
+			<el-button size="small" @click="clearSelection">取消选择</el-button>
+			<el-button size="small" type="danger" plain :icon="Delete" @click="handleBatchDelete">
+				批量删除
+			</el-button>
+		</div>
+
+		<fs-crud ref="crudRef" v-bind="crudBinding">
 			<template #pagination-right>
-				<el-popover placement="top" :width="400" trigger="click">
-					<template #reference>
-						<el-button text :type="selectedRowsCount > 0 ? 'primary' : ''">已选中{{ selectedRowsCount }}条数据</el-button>
-					</template>
-					<el-table :data="selectedRows" size="small">
-						<el-table-column width="150" property="id" label="id" />
-						<el-table-column fixed="right" label="操作" min-width="60">
-							<template #default="scope">
-								<el-button text type="info" :icon="Close" @click="removeSelectedRows(scope.row)" circle />
-							</template>
-						</el-table-column>
-					</el-table>
-				</el-popover>
+				<el-text type="info" size="small">共 {{ totalCount }} 条</el-text>
 			</template>
-	</fs-crud>
+		</fs-crud>
+	</div>
 </template>
 
 <script lang="ts" setup>
@@ -31,8 +28,14 @@ import { MenuTreeItemType } from '../../types';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import XEUtils from 'xe-utils';
 import { BatchDelete } from './api';
-import { Close, Delete } from '@element-plus/icons-vue';
-// 当前选择的菜单信息
+import { Close, Delete, Check } from '@element-plus/icons-vue';
+import { useThemeConfig } from '/@/stores/themeConfig';
+import { storeToRefs } from 'pinia';
+
+const { themeConfig } = storeToRefs(useThemeConfig());
+
+const { t } = useI18n();
+
 let selectOptions: any = ref({ name: null });
 
 const { crudRef, crudBinding, crudExpose, context,selectedRows } = useFs({ createCrudOptions, context: { selectOptions } });
@@ -43,6 +46,11 @@ const selectedRowsCount = computed(() => {
 	return selectedRows.value.length;
 });
 
+// 总条数
+const totalCount = computed(() => {
+	return crudBinding.value?.pagination?.total || 0;
+});
+
 // 批量删除
 const handleBatchDelete = async () => {
 	await ElMessageBox.confirm(`确定要批量删除这${selectedRows.value.length}条记录吗`, '确认', {
@@ -50,32 +58,59 @@ const handleBatchDelete = async () => {
 		confirmButtonText: '确定',
 		cancelButtonText: '取消',
 		closeOnClickModal: false,
+		type: 'warning',
 	});
 	await BatchDelete(XEUtils.pluck(selectedRows.value, 'id'));
-	ElMessage.info('删除成功');
+	ElMessage.success(t('message.pages.menu.messages.deleteSuccess'));
 	selectedRows.value = [];
 	await crudExpose.doRefresh();
 };
 
-// 移除已选中的行
-const removeSelectedRows = (row: any) => {
+// 清除选择
+const clearSelection = () => {
 	const tableRef = crudExpose.getBaseTableRef();
 	const tableData = crudExpose.getTableData();
-	if (XEUtils.pluck(tableData, 'id').includes(row.id)) {
+	XEUtils.arrayEach(tableData, (row: any) => {
 		tableRef.toggleRowSelection(row, false);
-	} else {
-		selectedRows.value = XEUtils.remove(selectedRows.value, (item: any) => item.id !== row.id);
-	}
+	});
+	selectedRows.value = [];
 };
+
 const handleRefreshTable = (record: MenuTreeItemType) => {
 	if (!record.is_catalog && record.id) {
 		selectOptions.value = record;
 		doRefresh();
 	} else {
-		//清空表格数据
 		setTableData([]);
 	}
 };
 
 defineExpose({ selectOptions, handleRefreshTable });
 </script>
+
+<style lang="scss" scoped>
+.menu-btn-com {
+	.batch-toolbar {
+		display: flex;
+		align-items: center;
+		gap: 12px;
+		padding: 8px 12px;
+		margin-bottom: 8px;
+		background-color: var(--el-fill-color-light);
+		border-radius: 4px;
+		border: 1px solid var(--el-border-color-lighter);
+
+		.batch-tip {
+			display: flex;
+			align-items: center;
+			gap: 4px;
+			color: var(--el-color-primary);
+			font-size: 13px;
+
+			strong {
+				font-weight: 600;
+			}
+		}
+	}
+}
+</style>
