@@ -148,7 +148,7 @@ export default defineComponent({
 		const formRef = ref();
 		// 时间获取
 		const currentTime = computed(() => {
-			return formatAxis(new Date());
+			return t(formatAxis(new Date()));
 		});
 
 		const applyBtnClick = async () => {
