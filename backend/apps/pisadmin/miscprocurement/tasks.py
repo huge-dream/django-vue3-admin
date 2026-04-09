@@ -177,3 +177,111 @@ def check_quote_deadline_expired(self) -> Dict[str, int]:
         checked, sent, skipped, errors,
     )
     return {"checked": checked, "sent": sent, "skipped": skipped, "errors": errors}
+
+
+@app.task(bind=True, max_retries=3, default_retry_delay=180)
+def check_inquiry_published_notifications(self) -> Dict[str, int]:
+    """
+    Celery Beat 定时任务：轮询已发布（status=3/4）的询价单，
+    对尚未发送过「询价发布通知」的询价单发送 WebSocket + 邮件通知给供应商。
+    每条询价单在 24h 内最多发送一次。
+
+    查询条件：status ∈ {3, 4}
+
+    Returns: {"checked": N, "sent": M, "skipped": K, "errors": E}
+    """
+    from apps.pisadmin.basicinfo.views.email_utils import (
+        _should_send_inquiry_notification,
+        notify_suppliers_inquiry_published,
+    )
+
+    active_inquiries = Inquiry.objects.filter(status__in=[3, 4])
+
+    checked = 0
+    sent = 0
+    skipped = 0
+    errors = 0
+
+    for inquiry in active_inquiries:
+        checked += 1
+        inq_no = getattr(inquiry, "inquiry_no", None) or ""
+
+        if not inq_no:
+            skipped += 1
+            continue
+
+        # Check 24h cooldown: skip if already notified
+        if not _should_send_inquiry_notification(inq_no, "inquiry_published", cooldown_hours=24):
+            skipped += 1
+            continue
+
+        # Send WebSocket + email notification to suppliers
+        try:
+            result = notify_suppliers_inquiry_published(inquiry)
+            if result > 0:
+                sent += result
+            else:
+                # notify_suppliers_inquiry_published returns 0 when no suppliers or cooldown hit
+                skipped += 1
+        except Exception:
+            logger.exception("询价发布通知失败，inquiry_no=%s", inq_no)
+            errors += 1
+
+    logger.info(
+        "询价发布通知任务完成: checked=%d, sent=%d, skipped=%d, errors=%d",
+        checked, sent, skipped, errors,
+    )
+    return {"checked": checked, "sent": sent, "skipped": skipped, "errors": errors}
+
+
+@app.task(bind=True, max_retries=3, default_retry_delay=180)
+def check_quote_completed_notifications(self) -> Dict[str, int]:
+    """
+    Celery Beat 定时任务：轮询已进入「报价结束」(status=5) 的询价单，
+    对尚未发送过「报价结束通知」的询价单发送 WebSocket + 邮件通知给采购负责人。
+    每条询价单在 24h 内最多发送一次。
+
+    查询条件：status = 5
+
+    Returns: {"checked": N, "sent": M, "skipped": K, "errors": E}
+    """
+    from apps.pisadmin.basicinfo.views.email_utils import (
+        _should_send_inquiry_notification,
+        notify_purchasers_quote_completed,
+    )
+
+    completed_inquiries = Inquiry.objects.filter(status=5)
+
+    checked = 0
+    sent = 0
+    skipped = 0
+    errors = 0
+
+    for inquiry in completed_inquiries:
+        checked += 1
+        inq_no = getattr(inquiry, "inquiry_no", None) or ""
+
+        if not inq_no:
+            skipped += 1
+            continue
+
+        # Check 24h cooldown: skip if already notified
+        if not _should_send_inquiry_notification(inq_no, "inquiry_quote_ended", cooldown_hours=24):
+            skipped += 1
+            continue
+
+        # Send WebSocket + email notification to purchasers
+        try:
+            if notify_purchasers_quote_completed(inquiry):
+                sent += 1
+            else:
+                skipped += 1
+        except Exception:
+            logger.exception("报价结束通知失败，inquiry_no=%s", inq_no)
+            errors += 1
+
+    logger.info(
+        "报价结束通知任务完成: checked=%d, sent=%d, skipped=%d, errors=%d",
+        checked, sent, skipped, errors,
+    )
+    return {"checked": checked, "sent": sent, "skipped": skipped, "errors": errors}
