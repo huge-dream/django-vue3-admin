@@ -1,35 +1,40 @@
+import { useI18n } from 'vue-i18n'
 import { CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/fast-crud'
 import * as api from './api'
 
-/** 与后端 RFQOperationLogs.OPERATION_TYPE_CHOICES 一致 */
-const OPERATION_TYPE_LABELS: Record<number, string> = {
-  1: '询价单创建',
-  2: '询价单确认',
-  3: '询价单发布',
-  4: '询价单还原',
-  5: '报价截止',
-  6: '供应商报价',
-  7: '比议价',
-  8: '议价审核提交',
-  9: '议价审核完成',
-  10: '议价审核驳回'
-}
-
-const PURCHASE_TYPE_LABELS: Record<number, string> = {
-  1: '策采',
-  2: '杂采'
-}
-
-const formatStatusChange = (per: unknown, cur: unknown) => {
-  const a = String(per ?? '').trim()
-  const b = String(cur ?? '').trim()
-  if (!a && !b) return '—'
-  if (!a) return `${b || '—'}`
-  if (!b) return `${a} → —`
-  return `${a} → ${b}`
-}
-
 export const createCrudOptions = function ({ crudExpose, context: _ctx }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+  const { t } = useI18n()
+
+  const operationTypeLabels = (): Record<number, string> => ({
+    1: t('message.pages.rfs_operation_logs.operationType.1'),
+    2: t('message.pages.rfs_operation_logs.operationType.2'),
+    3: t('message.pages.rfs_operation_logs.operationType.3'),
+    4: t('message.pages.rfs_operation_logs.operationType.4'),
+    5: t('message.pages.rfs_operation_logs.operationType.5'),
+    6: t('message.pages.rfs_operation_logs.operationType.6'),
+    7: t('message.pages.rfs_operation_logs.operationType.7'),
+    8: t('message.pages.rfs_operation_logs.operationType.8'),
+    9: t('message.pages.rfs_operation_logs.operationType.9'),
+    10: t('message.pages.rfs_operation_logs.operationType.10'),
+  })
+
+  const purchaseTypeLabels = (): Record<number, string> => ({
+    1: t('message.pages.rfs_operation_logs.purchaseType.1'),
+    2: t('message.pages.rfs_operation_logs.purchaseType.2'),
+  })
+
+  const emptyText = () => t('message.pages.rfs_operation_logs.formatter.empty')
+  const noQuotationText = () => t('message.pages.rfs_operation_logs.formatter.noQuotation')
+
+  const formatStatusChange = (per: unknown, cur: unknown) => {
+    const a = String(per ?? '').trim()
+    const b = String(cur ?? '').trim()
+    if (!a && !b) return emptyText()
+    if (!a) return `${b || emptyText()}`
+    if (!b) return `${a} → ${emptyText()}`
+    return `${a} → ${b}`
+  }
+
   void crudExpose
   void _ctx
   return {
@@ -55,27 +60,27 @@ export const createCrudOptions = function ({ crudExpose, context: _ctx }: Create
       },
       columns: {
         inquiry_no: {
-          title: '询价单号',
+          title: t('message.pages.rfs_operation_logs.table.columns.inquiry_no'),
           type: 'text',
           search: {
             show: true,
-            component: { props: { placeholder: '请输入询价单号', clearable: true } }
+            component: { props: { placeholder: t('message.pages.rfs_operation_logs.placeholder.inquiry_no'), clearable: true } }
           },
           form: { show: false },
           column: { minWidth: 130, showOverflowTooltip: true }
         },
         buyer: {
-          title: '采购负责人',
+          title: t('message.pages.rfs_operation_logs.table.columns.buyer'),
           type: 'text',
           search: {
             show: true,
-            component: { props: { placeholder: '请输入采购负责人', clearable: true } }
+            component: { props: { placeholder: t('message.pages.rfs_operation_logs.placeholder.buyer'), clearable: true } }
           },
           form: { show: false },
           column: { show: false }
         },
         purchase_type: {
-          title: '采购类别',
+          title: t('message.pages.rfs_operation_logs.table.columns.purchase_type'),
           type: 'text',
           search: { show: false },
           form: { show: false },
@@ -83,12 +88,12 @@ export const createCrudOptions = function ({ crudExpose, context: _ctx }: Create
             width: 88,
             formatter: ({ row }: { row: any }) => {
               const n = Number(row?.purchase_type)
-              return PURCHASE_TYPE_LABELS[n] ?? (row?.purchase_type != null ? String(row.purchase_type) : '—')
+              return purchaseTypeLabels()[n] ?? (row?.purchase_type != null ? String(row.purchase_type) : emptyText())
             }
           }
         },
         operation_time: {
-          title: '操作时间',
+          title: t('message.pages.rfs_operation_logs.table.columns.operation_time'),
           type: 'datetime',
           search: { show: false },
           form: { show: false },
@@ -99,7 +104,7 @@ export const createCrudOptions = function ({ crudExpose, context: _ctx }: Create
           }
         },
         operation_type: {
-          title: '操作类型',
+          title: t('message.pages.rfs_operation_logs.table.columns.operation_type'),
           type: 'text',
           search: { show: false },
           form: { show: false },
@@ -108,13 +113,13 @@ export const createCrudOptions = function ({ crudExpose, context: _ctx }: Create
             showOverflowTooltip: true,
             formatter: ({ row }: { row: any }) => {
               const n = Number(row?.operation_type)
-              if (!Number.isFinite(n) || n <= 0) return '—'
-              return OPERATION_TYPE_LABELS[n] || `类型${n}`
+              if (!Number.isFinite(n) || n <= 0) return emptyText()
+              return operationTypeLabels()[n] || `${n}`
             }
           }
         },
         operation_user: {
-          title: '操作人',
+          title: t('message.pages.rfs_operation_logs.table.columns.operation_user'),
           type: 'text',
           search: { show: false },
           form: { show: false },
@@ -123,12 +128,12 @@ export const createCrudOptions = function ({ crudExpose, context: _ctx }: Create
             showOverflowTooltip: true,
             formatter: ({ row }: { row: any }) => {
               const s = String(row?.operation_user ?? '').trim()
-              return s || '—'
+              return s || emptyText()
             }
           }
         },
         status_change: {
-          title: '状态变更',
+          title: t('message.pages.rfs_operation_logs.table.columns.status_change'),
           type: 'text',
           search: { show: false },
           form: { show: false },
@@ -139,14 +144,14 @@ export const createCrudOptions = function ({ crudExpose, context: _ctx }: Create
           }
         },
         operation_desc: {
-          title: '操作描述',
+          title: t('message.pages.rfs_operation_logs.table.columns.operation_desc'),
           type: 'text',
           search: { show: false },
           form: { show: false },
           column: { minWidth: 180, showOverflowTooltip: true }
         },
         quotation_no: {
-          title: '报价单号',
+          title: t('message.pages.rfs_operation_logs.table.columns.quotation_no'),
           type: 'text',
           search: { show: false },
           form: { show: false },
@@ -155,7 +160,7 @@ export const createCrudOptions = function ({ crudExpose, context: _ctx }: Create
             showOverflowTooltip: true,
             formatter: ({ row }: { row: any }) => {
               const q = String(row?.quotation_no ?? '').trim()
-              return q && q !== '-' ? q : '—'
+              return q && q !== '-' ? q : noQuotationText()
             }
           }
         }
