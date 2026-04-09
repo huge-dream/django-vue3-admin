@@ -113,10 +113,12 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
 								t('message.pages.menu.buttons.confirm'),
 								{ type: 'warning', confirmButtonText: t('message.pages.menu.buttons.confirm'), cancelButtonText: t('message.pages.menu.buttons.cancel') }
 							);
-							// 先拿到 ids，再清空表格选择
 							const ids = XEUtils.pluck(selectedRows.value, 'id');
+							// 清空表格勾选状态
 							crudExpose.getBaseTableRef().clearSelection();
+							// 手动清空 selectedRows（clearSelection 不保证触发 onSelectionChange）
 							selectedRows.value = [];
+							// 再调接口 + 刷新
 							await api.BatchDelete(ids);
 							ElMessage.success(t('message.pages.menu.messages.deleteSuccess'));
 							crudExpose.doRefresh();
