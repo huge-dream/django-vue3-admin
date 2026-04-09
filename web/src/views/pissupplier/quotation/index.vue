@@ -250,9 +250,9 @@ const crudOptions = {
           name: 'el-date-picker',
           props: {
             type: 'daterange',
-            rangeSeparator: '至',
-            startPlaceholder: '开始日期',
-            endPlaceholder: '结束日期',
+            rangeSeparator: t('message.pages.pissupplier.quotation.quoteDeadlineSeparator'),
+            startPlaceholder: t('message.pages.pissupplier.quotation.quoteDeadlineStart'),
+            endPlaceholder: t('message.pages.pissupplier.quotation.quoteDeadlineEnd'),
             valueFormat: 'YYYY-MM-DD'
           }
         }
@@ -302,7 +302,7 @@ const crudOptions = {
     currency: {
       title: t('message.pages.pissupplier.quotation.currency'),
       type: 'text',
-      search: { show: true, component: { props: { placeholder: '币别', clearable: true } } },
+      search: { show: true, component: { props: { placeholder: t('message.pages.pissupplier.quotation.currency'), clearable: true } } },
       column: { width: 90 }
     },
     createdAt: {
