@@ -180,7 +180,13 @@ class MenuButtonViewSet(CustomModelViewSet):
         if not app_name:
             return DetailResponse(data=[], msg="app 参数必填")
 
-        full_app_name = f'dvadmin.{app_name}'
+        # 根据 app_name 格式确定正确的命名空间前缀
+        # app_name 为 'system' -> dvadmin.system
+        # app_name 为 'pisadmin.basicinfo' -> apps.pisadmin.basicinfo
+        if '.' in app_name:
+            full_app_name = f'apps.{app_name}'
+        else:
+            full_app_name = f'dvadmin.{app_name}'
         result = []
 
         try:
@@ -262,12 +268,16 @@ class MenuButtonViewSet(CustomModelViewSet):
                     action_title = action_name.replace('_', ' ').title().replace(' ', '')
                     value = f"{app_name}:{model_name}:{action_title}"
 
+                    # 将 app_name 中的点转为斜杠，生成正确的 URL 路径
+                    # pisadmin.basicinfo -> /api/pisadmin/basicinfo/
+                    api_path = app_name.replace('.', '/')
+
                     if action_name in ('list', 'create'):
-                        path = f"/api/{app_name}/{prefix}/"
+                        path = f"/api/{api_path}/{prefix}/"
                     elif action_name in ('retrieve', 'update', 'partial_update', 'destroy'):
-                        path = f"/api/{app_name}/{prefix}/{{{lookup}}}/"
+                        path = f"/api/{api_path}/{prefix}/{{{lookup}}}/"
                     else:
-                        path = f"/api/{app_name}/{prefix}/{action_name}/"
+                        path = f"/api/{api_path}/{prefix}/{action_name}/"
 
                     buttons.append({
                         'path': path,
