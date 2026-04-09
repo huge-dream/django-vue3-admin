@@ -1,4 +1,17 @@
 import { request } from "/@/utils/service";
+import type { LoginRoleInfo } from "./types";
+
+/** 与后端 login._is_supplier_portal_role_key 一致：供应商端允许的角色 key */
+export function isSupplierPortalRoleKey(key: string | undefined | null): boolean {
+	if (!key) return false;
+	return key === "supplier" || key.startsWith("supplier_");
+}
+
+/** 账号是否仅有供应商端角色（此类账号仅允许走 /api/login/supplier/） */
+export function isSupplierOnlyAccount(roleInfo: LoginRoleInfo[] | undefined | null): boolean {
+	if (!roleInfo?.length) return false;
+	return roleInfo.every((r) => isSupplierPortalRoleKey(r.key));
+}
 
 export function getCaptcha() {
     return request({

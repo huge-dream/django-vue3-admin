@@ -153,6 +153,11 @@ export default defineComponent({
 						const res = await loginMethod({ ...state.ruleForm, password: Md5.hashStr(state.ruleForm.password) });
 						if (res.code === 2000) {
 							const { data } = res;
+							if (!isSupplierPortal && loginApi.isSupplierOnlyAccount(data.role_info)) {
+								ElMessage.error('该账号为供应商账号，请使用供应商入口登录');
+								refreshCaptcha();
+								return;
+							}
 							Cookies.set('username', res.data.username);
 							Session.set('token', res.data.access);
 							useUserInfo().setPwdChangeCount(data.pwd_change_count);
