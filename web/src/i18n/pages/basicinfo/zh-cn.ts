@@ -62,6 +62,8 @@ export default {
                     companyShortName: '公司简称',
                     companyAddress: '公司地址',
                     status: '状态',
+                    enabled: '启用',
+                    disabled: '禁用',
                     createTime: '创建时间',
                     updateTime: '更新时间',
                     createUser: '单据创建人',

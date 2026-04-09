@@ -151,6 +151,7 @@ export default {
                 },
                 rfqmiscellaneous: {
                     title: '杂采询价单',
+                    updateTime: '更新时间',
                     inquiryNo: '询价单号',
                     inquiryName: '询价单名称',
                     companyShortName: '交易厂区',

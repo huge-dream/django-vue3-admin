@@ -151,6 +151,7 @@ export default {
                 },
                 rfqmiscellaneous: {
                     title: '雜採詢價單',
+                    updateTime: '更新時間',
                     inquiryNo: '詢價單號',
                     inquiryName: '詢價單名稱',
                     companyShortName: '交易廠區',

@@ -151,6 +151,7 @@ export default {
                 },
                 rfqmiscellaneous: {
                     title: 'Misc RFQ',
+                    updateTime: 'Update Time',
                     inquiryNo: 'RFQ No',
                     inquiryName: 'RFQ Name',
                     companyShortName: 'Transaction Plant',

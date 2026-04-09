@@ -62,6 +62,8 @@ export default {
                     companyShortName: 'Company Short Name',
                     companyAddress: 'Company Address',
                     status: 'Status',
+                    enabled: 'Enabled',
+                    disabled: 'Disabled',
                     createTime: 'Create Time',
                     updateTime: 'Update Time',
                     createUser: 'Creator',
