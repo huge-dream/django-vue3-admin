@@ -132,7 +132,7 @@ class MenuButtonViewSet(CustomModelViewSet):
     def scan_get_apps(self, request):
         """
         获取可扫描的 Django App 列表
-        基于 Django app registry，只返回 dvadmin.* 下有 views 子模块的 app
+        基于 Django app registry，返回 dvadmin.* 和 apps.* 下有 views 子模块的 app
         """
         import importlib
         from django.apps import apps
@@ -140,14 +140,15 @@ class MenuButtonViewSet(CustomModelViewSet):
         custom_apps = []
         seen = set()
         for app_config in apps.get_app_configs():
-            name = app_config.name  # e.g. 'dvadmin.system'
-            if not name.startswith('dvadmin.'):
+            name = app_config.name  # e.g. 'dvadmin.system' or 'apps.pisadmin.basicinfo'
+            # 支持 dvadmin.* 和 apps.* 两个命名空间
+            if not (name.startswith('dvadmin.') or name.startswith('apps.')):
                 continue
             if name in seen:
                 continue
             seen.add(name)
 
-            # 取 short name: 'dvadmin.system' -> 'system'
+            # 取 short name: 'dvadmin.system' -> 'system', 'apps.pisadmin.basicinfo' -> 'pisadmin.basicinfo'
             short_name = name.split('.', 1)[1]
             if short_name in ('utils',):
                 continue
