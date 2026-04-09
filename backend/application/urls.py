@@ -141,7 +141,6 @@ urlpatterns = (
             path("api/pisadmin/dashboard/", include("apps.pisadmin.dashboard.urls")),
             path("api/pissupplier/", include("apps.pissupplier.urls")),
             path("api/system/", include("dvadmin.system.urls")),
-            path("api/test_app/", include("dvadmin.test_app.urls")),
             path("api/login/", LoginView.as_view(), name="token_obtain_pair"),
             path("api/login/supplier/", SupplierLoginView.as_view(), name="supplier_login"),
             path("api/logout/", LogoutView.as_view(), name="token_obtain_pair"),
