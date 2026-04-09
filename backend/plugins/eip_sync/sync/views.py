@@ -30,7 +30,7 @@ class MiscMaterialSyncView(APIView):
     EIP -> PIS: miscellaneous procurement material master (杂采料号).
     Authenticated via dvadmin-ak-sk (X-NSF-* signature headers).
 
-    POST ``/api/sync/material/misc``
+    POST ``/api/sync/materials/misc``
     """
 
     # authentication_classes = [AkSkAuthentication]

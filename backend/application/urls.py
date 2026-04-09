@@ -106,7 +106,7 @@ urlpatterns = (
                 name="schema-redoc",
             ),
             path(
-                "api/sync/material/misc",
+                "api/sync/materials/misc",
                 MiscMaterialSyncView.as_view(),
                 name="sync-misc-material",
             ),
