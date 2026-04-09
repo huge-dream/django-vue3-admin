@@ -12,8 +12,8 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 
 import os
 import sys
-from pathlib import Path
 from datetime import timedelta
+from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -44,7 +44,7 @@ DEBUG = locals().get("DEBUG", True)
 ALLOWED_HOSTS = locals().get("ALLOWED_HOSTS", ["*"])
 
 # 列权限需要排除的App应用
-COLUMN_EXCLUDE_APPS = ['channels', 'captcha'] + locals().get("COLUMN_EXCLUDE_APPS", [])
+COLUMN_EXCLUDE_APPS = ["channels", "captcha"] + locals().get("COLUMN_EXCLUDE_APPS", [])
 
 INSTALLED_APPS = [
     "django.contrib.auth",
@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "apps.pisadmin.dashboard",
     "apps.pissupplier",
     "sync",
+    "dvadmin_ak_sk",
 ]
 
 MIDDLEWARE = [
@@ -74,6 +75,7 @@ MIDDLEWARE = [
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "corsheaders.middleware.CorsMiddleware",  # 跨域中间件
+    "dvadmin.utils.middleware.LocaleMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -115,8 +117,8 @@ DATABASES = {
         "PORT": DATABASE_PORT,
         "OPTIONS": {
             "driver": "ODBC Driver 18 for SQL Server",
-            "extra_params": "Encrypt=yes;TrustServerCertificate=yes"
-        }
+            "extra_params": "Encrypt=yes;TrustServerCertificate=yes",
+        },
     }
 }
 AUTH_USER_MODEL = "system.Users"
@@ -153,6 +155,22 @@ USE_L10N = True
 
 USE_TZ = False
 
+# ================================================= #
+# *************** 国际化配置 (i18n) *************** #
+# ================================================= #
+
+# Supported languages — maps frontend codes to Django locale names (D-07)
+LANGUAGES = [
+    ("zh-hans", "Simplified Chinese"),
+    ("en", "English"),
+    ("zh-hant", "Traditional Chinese"),
+]
+
+# Locale file paths for Django .po/.mo files (BEI-04)
+LOCALE_PATHS = [
+    os.path.join(BASE_DIR, "locale"),
+]
+
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/3.2/howto/static-files/
 
@@ -165,10 +183,10 @@ STATICFILES_DIRS = [
 MEDIA_ROOT = "media"  # 项目下的目录
 MEDIA_URL = "/media/"  # 跟STATIC_URL类似，指定用户可以通过这个url找到文件
 
-#添加以下代码以后就不用写{% load staticfiles %}，可以直接引用
+# 添加以下代码以后就不用写{% load staticfiles %}，可以直接引用
 STATICFILES_FINDERS = (
     "django.contrib.staticfiles.finders.FileSystemFinder",
-    "django.contrib.staticfiles.finders.AppDirectoriesFinder"
+    "django.contrib.staticfiles.finders.AppDirectoriesFinder",
 )
 # 收集静态文件，必须将 MEDIA_ROOT,STATICFILES_DIRS先注释
 # python manage.py collectstatic
@@ -186,12 +204,8 @@ CORS_ALLOW_CREDENTIALS = True  # 指明在跨域访问中，后端是否支持�
 # ===================================================== #
 # ********************* channels配置 ******************* #
 # ===================================================== #
-ASGI_APPLICATION = 'application.asgi.application'
-CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
-    }
-}
+ASGI_APPLICATION = "application.asgi.application"
+CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 # CHANNEL_LAYERS = {
 #     'default': {
 #         'BACKEND': 'channels_redis.core.RedisChannelLayer',
@@ -258,7 +272,6 @@ LOGGING = {
             "class": "logging.StreamHandler",
             "formatter": "console",
         },
-
     },
     "loggers": {
         "": {
@@ -270,19 +283,16 @@ LOGGING = {
             "level": "INFO",
             "propagate": False,
         },
-        'django.db.backends': {
-            'handlers': ["console", "error", "file"],
-            'propagate': False,
-            'level': "INFO"
+        "django.db.backends": {
+            "handlers": ["console", "error", "file"],
+            "propagate": False,
+            "level": "INFO",
         },
         "uvicorn.error": {
             "level": "INFO",
             "handlers": ["console", "error", "file"],
         },
-        "uvicorn.access": {
-            "handlers": ["console", "error", "file"],
-            "level": "INFO"
-        },
+        "uvicorn.access": {"handlers": ["console", "error", "file"], "level": "INFO"},
     },
 }
 
@@ -291,9 +301,9 @@ LOGGING = {
 # ================================================= #
 
 REST_FRAMEWORK = {
-    'DEFAULT_PARSER_CLASSES': (
-        'rest_framework.parsers.JSONParser',
-        'rest_framework.parsers.MultiPartParser',
+    "DEFAULT_PARSER_CLASSES": (
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.MultiPartParser",
     ),
     "DATETIME_FORMAT": "%Y-%m-%d %H:%M:%S",  # 日期时间格式配置
     "DATE_FORMAT": "%Y-%m-%d",
@@ -408,7 +418,7 @@ ALL_MODELS_OBJECTS = []  # 所有app models 对象
 INITIALIZE_LIST = []
 INITIALIZE_RESET_LIST = []
 # 表前缀
-TABLE_PREFIX = locals().get('TABLE_PREFIX', "")
+TABLE_PREFIX = locals().get("TABLE_PREFIX", "")
 # 系统配置
 SYSTEM_CONFIG = {}
 # 字典配置
@@ -428,11 +438,11 @@ SHARED_APPS = []
 # ********** 一键导入插件配置开始 **********
 # 例如:
 # from dvadmin_upgrade_center.settings import *    # 升级中心
-from dvadmin3_celery.settings import *            # celery 异步任务
+from dvadmin3_celery.settings import *  # celery 异步任务
 # from dvadmin_third.settings import *            # 第三方用户管理
 # from dvadmin_ak_sk.settings import *            # 秘钥管理管理
 # from dvadmin_tenants.settings import *            # 租户管理
-#from dvadmin_social_auth.settings import *
-#from dvadmin_uniapp.settings import *
+# from dvadmin_social_auth.settings import *
+# from dvadmin_uniapp.settings import *
 # ...
 # ********** 一键导入插件配置结束 **********

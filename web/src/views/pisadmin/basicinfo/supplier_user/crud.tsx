@@ -2,13 +2,7 @@ import { dict, CreateCrudOptionsProps, CreateCrudOptionsRet } from '@fast-crud/f
 import * as api from './api'
 import { GetList as GetSupplierList } from '../supplier/api'
 import { ElMessage } from 'element-plus'
-
-const statusDict = [
-  { value: 1, label: '有效' },
-  { value: 0, label: '无效' }
-]
-
-const supplierRoleDict = [{ value: 1, label: '报价' }]
+import { useI18n } from 'vue-i18n'
 
 let supplierById: Record<string, any> = {}
 
@@ -66,6 +60,7 @@ void loadSupplierOptions()
 
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
   void crudExpose
+  const { t } = useI18n()
 
   const ensureUserEmailUnique = async (supplierId: string, userEmail: string, currentId?: number) => {
     if (!supplierId || !userEmail) return
@@ -85,7 +80,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
         )
       : null
     if (exists && (!currentId || exists.id !== currentId)) {
-      throw new Error('同一供应商下该联络邮箱已存在')
+      throw new Error(t('message.pages.basicinfo.supplierUser.userEmail') + t('message.pages.menu.validation.alreadyExists'))
     }
   }
 
@@ -101,7 +96,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
             await ensureUserEmailUnique(form.supplier_id, form.user_email)
             const res = await api.AddObj(form)
             ElMessage.success(
-              '保存成功；已同步创建系统用户（登录账号为联络人邮箱，初始密码为系统默认密码，部门：供应商）'
+              '保存成功，已同步创建系统用户（登录账号为联络人邮箱，初始密码为系统默认密码，部门：供应商）'
             )
             return res
           } catch (err: any) {
@@ -133,7 +128,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       },
       columns: {
         supplier_id: {
-          title: '供应商唯一ID',
+          title: t('message.pages.basicinfo.supplierUser.supplierId'),
           type: 'dict-select',
           dict: dict({
             cache: false,
@@ -147,9 +142,9 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
               }))
             }
           }),
-          search: { show: true, component: { props: { placeholder: '请选择或搜索', filterable: true, clearable: true } } },
+          search: { show: true, component: { props: { placeholder: t('message.pages.basicinfo.emailnotice.selectOrSearch'), filterable: true, clearable: true } } },
           form: {
-            rules: [{ required: true, message: '请选择供应商' }],
+            rules: [{ required: true, message: t('message.pages.basicinfo.supplierUser.supplierId') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }],
             /** dict-select 需用 fast-crud 的 valueChange；component.on.change 往往不会触发 */
             valueChange: async ({ value, form }: any) => {
               const v = value
@@ -181,67 +176,67 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           column: { minWidth: 200, showOverflowTooltip: true }
         },
         supplier_name: {
-          title: '供应商全称',
+          title: t('message.pages.basicinfo.supplierUser.supplierName'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入供应商全称', clearable: true } } },
+          search: { show: true, component: { props: { placeholder: t('message.pages.basicinfo.supplierUser.supplierName'), clearable: true } } },
           form: {
             rules: [{ required: true, message: '请先选择供应商唯一ID，将自动带出供应商全称' }],
             component: {
               props: {
                 disabled: true,
-                placeholder: '选择供应商唯一ID后自动带出'
+                placeholder: t('message.pages.basicinfo.supplierUser.autoFillNote')
               }
             }
           },
           column: { minWidth: 180, showOverflowTooltip: true }
         },
         supplier_role: {
-          title: '供应商角色',
+          title: t('message.pages.basicinfo.supplierUser.supplierRole'),
           type: 'dict-select',
-          dict: dict({ data: supplierRoleDict }),
+          dict: dict({ data: [{ value: 1, label: t('message.pages.basicinfo.supplierUser.roleQuote') }] }),
           search: { show: true },
           form: {
-            rules: [{ required: true, message: '请选择供应商角色' }],
+            rules: [{ required: true, message: t('message.pages.basicinfo.supplierUser.supplierRole') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }],
             value: 1
           },
           column: { minWidth: 120, showOverflowTooltip: true }
         },
         user_email: {
-          title: '联络人邮箱',
+          title: t('message.pages.basicinfo.supplierUser.userEmail'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入邮箱', clearable: true } } },
-          form: { rules: [{ required: true, message: '请输入联络人邮箱' }] },
+          search: { show: true, component: { props: { placeholder: t('message.pages.basicinfo.supplierUser.userEmail'), clearable: true } } },
+          form: { rules: [{ required: true, message: t('message.pages.basicinfo.supplierUser.userEmail') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { minWidth: 200, showOverflowTooltip: true }
         },
         user_name: {
-          title: '联络人',
+          title: t('message.pages.basicinfo.supplierUser.userName'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入联络人', clearable: true } } },
-          form: { rules: [{ required: true, message: '请输入联络人' }] },
+          search: { show: true, component: { props: { placeholder: t('message.pages.basicinfo.supplierUser.userName'), clearable: true } } },
+          form: { rules: [{ required: true, message: t('message.pages.basicinfo.supplierUser.userName') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { minWidth: 120, showOverflowTooltip: true }
         },
         user_phone: {
-          title: '联络人电话',
+          title: t('message.pages.basicinfo.supplierUser.userPhone'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入电话', clearable: true } } },
-          form: { rules: [{ required: true, message: '请输入联络人电话' }] },
+          search: { show: true, component: { props: { placeholder: t('message.pages.basicinfo.supplierUser.userPhone'), clearable: true } } },
+          form: { rules: [{ required: true, message: t('message.pages.basicinfo.supplierUser.userPhone') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { minWidth: 140, showOverflowTooltip: true }
         },
         status: {
-          title: '有效否',
+          title: t('message.pages.basicinfo.supplierUser.status'),
           type: 'dict-switch',
-          dict: dict({ data: statusDict }),
+          dict: dict({ data: [{ value: 1, label: t('message.pages.basicinfo.supplierUser.statusValid') }, { value: 0, label: t('message.pages.basicinfo.supplierUser.statusInvalid') }] }),
           form: { value: 1 },
           column: { width: 120 }
         },
         create_datetime: {
-          title: '创建时间',
+          title: t('message.pages.basicinfo.supplierUser.createTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }
         },
         update_datetime: {
-          title: '更新时间',
+          title: t('message.pages.basicinfo.supplierUser.updateTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }

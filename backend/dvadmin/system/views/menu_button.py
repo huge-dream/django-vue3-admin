@@ -25,7 +25,7 @@ class MenuButtonSerializer(CustomModelSerializer):
 
     class Meta:
         model = MenuButton
-        fields = ['id', 'name', 'value', 'api', 'method','menu']
+        fields = ['id', 'name', 'name_en', 'name_zh_tw', 'value', 'api', 'method', 'menu']
         read_only_fields = ["id"]
 
 
@@ -94,14 +94,14 @@ class MenuButtonViewSet(CustomModelViewSet):
         """
         menu_obj = Menu.objects.filter(id=request.data['menu']).first()
         result_list = [
-            {'menu': menu_obj.id, 'name': '新增', 'value': f'{menu_obj.component_name}:Create', 'api': f'/api/{menu_obj.component_name}/', 'method': 1},
-            {'menu': menu_obj.id, 'name': '删除', 'value': f'{menu_obj.component_name}:Delete', 'api': f'/api/{menu_obj.component_name}/{{id}}/', 'method': 3},
-            {'menu': menu_obj.id, 'name': '编辑', 'value': f'{menu_obj.component_name}:Update', 'api': f'/api/{menu_obj.component_name}/{{id}}/', 'method': 2},
-            {'menu': menu_obj.id, 'name': '查询', 'value': f'{menu_obj.component_name}:Search', 'api': f'/api/{menu_obj.component_name}/', 'method': 0},
-            {'menu': menu_obj.id, 'name': '详情', 'value': f'{menu_obj.component_name}:Retrieve', 'api': f'/api/{menu_obj.component_name}/{{id}}/', 'method': 0},
-            {'menu': menu_obj.id, 'name': '复制', 'value': f'{menu_obj.component_name}:Copy', 'api': f'/api/{menu_obj.component_name}/', 'method': 1},
-            {'menu': menu_obj.id, 'name': '导入', 'value': f'{menu_obj.component_name}:Import', 'api': f'/api/{menu_obj.component_name}/import_data/', 'method': 1},
-            {'menu': menu_obj.id, 'name': '导出', 'value': f'{menu_obj.component_name}:Export', 'api': f'/api/{menu_obj.component_name}/export_data/', 'method': 1},]
+            {'menu': menu_obj.id, 'name': '新增', 'name_en': 'Add', 'name_zh_tw': '新增', 'value': f'{menu_obj.component_name}:Create', 'api': f'/api/{menu_obj.component_name}/', 'method': 1},
+            {'menu': menu_obj.id, 'name': '删除', 'name_en': 'Delete', 'name_zh_tw': '刪除', 'value': f'{menu_obj.component_name}:Delete', 'api': f'/api/{menu_obj.component_name}/{{id}}/', 'method': 3},
+            {'menu': menu_obj.id, 'name': '编辑', 'name_en': 'Edit', 'name_zh_tw': '編輯', 'value': f'{menu_obj.component_name}:Update', 'api': f'/api/{menu_obj.component_name}/{{id}}/', 'method': 2},
+            {'menu': menu_obj.id, 'name': '查询', 'name_en': 'Search', 'name_zh_tw': '查詢', 'value': f'{menu_obj.component_name}:Search', 'api': f'/api/{menu_obj.component_name}/', 'method': 0},
+            {'menu': menu_obj.id, 'name': '详情', 'name_en': 'Detail', 'name_zh_tw': '詳情', 'value': f'{menu_obj.component_name}:Retrieve', 'api': f'/api/{menu_obj.component_name}/{{id}}/', 'method': 0},
+            {'menu': menu_obj.id, 'name': '复制', 'name_en': 'Copy', 'name_zh_tw': '複製', 'value': f'{menu_obj.component_name}:Copy', 'api': f'/api/{menu_obj.component_name}/', 'method': 1},
+            {'menu': menu_obj.id, 'name': '导入', 'name_en': 'Import', 'name_zh_tw': '導入', 'value': f'{menu_obj.component_name}:Import', 'api': f'/api/{menu_obj.component_name}/import_data/', 'method': 1},
+            {'menu': menu_obj.id, 'name': '导出', 'name_en': 'Export', 'name_zh_tw': '導出', 'value': f'{menu_obj.component_name}:Export', 'api': f'/api/{menu_obj.component_name}/export_data/', 'method': 1},]
         serializer = self.get_serializer(data=result_list, many=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()

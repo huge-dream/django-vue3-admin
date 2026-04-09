@@ -1,11 +1,11 @@
 <template>
   <div>
     <el-row :gutter="20">
-      <el-col :span="4">变量标题</el-col>
-      <el-col :span="4">变量名</el-col>
-      <el-col :span="10">变量值</el-col>
-      <el-col :span="2" :offset="1">是否前端配置</el-col>
-      <el-col :span="3" >操作</el-col>
+      <el-col :span="4">{{ $t('message.pages.config.formContent.variableTitle') }}</el-col>
+      <el-col :span="4">{{ $t('message.pages.config.formContent.variableName') }}</el-col>
+      <el-col :span="10">{{ $t('message.pages.config.formContent.variableValue') }}</el-col>
+      <el-col :span="2" :offset="1">{{ $t('message.pages.config.formContent.isFrontendConfig') }}</el-col>
+      <el-col :span="3" >{{ $t('message.pages.config.formContent.actions') }}</el-col>
     </el-row>
     <el-form ref="formRef" :model="formData" label-width="0px" label-position="left" style="margin-top: 20px">
       <el-form-item
@@ -15,11 +15,11 @@
           v-for="(item, index) in formList"
       >
         <el-col :span="4">
-          <el-input v-if="item.edit" v-model="item.title" style="display: inline-block; width: 200px" placeholder="请输入标题"></el-input>
-          <span v-else>{{ item.title }}</span>
+          <el-input v-if="item.edit" v-model="item.title" style="display: inline-block; width: 200px" :placeholder="$t('message.pages.config.formContent.titlePlaceholder')"></el-input>
+          <span v-else>{{ item.title_i18n || item.title }}</span>
         </el-col>
         <el-col :span="4" >
-          <el-input v-if="item.edit" v-model="item.new_key" style="width: 200px" placeholder="请输入变量key">
+          <el-input v-if="item.edit" v-model="item.new_key" style="width: 200px" :placeholder="$t('message.pages.config.formContent.keyPrefix')">
             <template slot="prepend">
               <span style="padding: 0px 5px">{{ editableTabsItem.key }}</span>
             </template>
@@ -118,7 +118,7 @@
                 list-type="picture-card"
             >
               <i class="el-icon-plus"></i>
-              <div slot="tip" class="el-upload__tip">请选取图片,并且只能上传jpg/png文件</div>
+              <div slot="tip" class="el-upload__tip">{{ $t('message.pages.config.formContent.selectImageTip') }}</div>
             </el-upload>
             <el-dialog :visible.sync="dialogImgVisible">
               <img width="100%" :src="dialogImageUrl" alt="" />
@@ -150,7 +150,7 @@
                 list-type="picture-card"
             >
               <i class="el-icon-plus"></i>
-              <div slot="tip" class="el-upload__tip">请选取图片,并且只能上传jpg/png文件</div>
+              <div slot="tip" class="el-upload__tip">{{ $t('message.pages.config.formContent.selectImageTip') }}</div>
             </el-upload>
             <el-dialog :visible.sync="dialogImgVisible">
               <img width="100%" :src="dialogImageUrl" alt="" />
@@ -182,9 +182,9 @@
           <el-switch v-model="item.status" active-color="#13ce66" inactive-color="#ff4949"> </el-switch>
         </el-col>
         <el-col :span="3">
-          <el-button v-if="item.edit" size="mini" type="primary" :icon="Finished" @click="onEditSave(item)">保存</el-button>
+          <el-button v-if="item.edit" size="mini" type="primary" :icon="Finished" @click="onEditSave(item)">{{ $t('message.pages.config.formContent.save') }}</el-button>
           <el-button v-else size="mini" type="primary" :icon="Edit" @click="onEdit(index)"></el-button>
-          <el-popconfirm title="确定删除该条数据吗？" @confirm="onDelRow(item)">
+          <el-popconfirm :title="$t('message.pages.config.formContent.deleteConfirm')" @confirm="onDelRow(item)">
             <template #reference>
               <el-button size="mini" type="danger" :icon="Delete" ></el-button>
             </template>
@@ -192,13 +192,14 @@
         </el-col>
       </el-form-item>
       <el-form-item>
-        <el-button type="primary" @click="onSubmit(formRef)">确定</el-button>
+        <el-button type="primary" @click="onSubmit(formRef)">{{ $t('message.pages.config.formContent.submit') }}</el-button>
       </el-form-item>
     </el-form>
   </div>
 </template>
 
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n';
 import * as api from '../api';
 import { dictionary } from '/@/utils/dictionary';
 import { getBaseURL } from '/@/utils/baseUrl';
@@ -208,6 +209,11 @@ import { successMessage, errorMessage } from '/@/utils/message';
 import { Session } from '/@/utils/storage';
 import {Edit,Finished,Delete} from "@element-plus/icons-vue";
 import crudTable from "./components/crudTable.vue"
+import { storeToRefs } from 'pinia';
+import pinia from '/@/stores/index';
+import { useThemeConfig } from '/@/stores/themeConfig';
+const { t } = useI18n();
+const { themeConfig } = storeToRefs(useThemeConfig(pinia));
 const props = defineProps(['options', 'editableTabsItem']);
 
 let formData: any = ref({});
@@ -223,7 +229,7 @@ let uploadImgKey = ref(null);
 
 // 获取数据
 const getInit = () => {
-  api.GetList({ parent: props.options.id, limit: 999 }).then((res: any) => {
+  api.GetList({ parent: props.options.id, limit: 999, language: themeConfig.value.globalI18n }).then((res: any) => {
     let data = res.data;
     formList.value = data;
     const _formData: any = {};
@@ -257,7 +263,7 @@ const onSubmit = (formEl: FormInstance | undefined) => {
         if (['img', 'imgs'].indexOf(item.form_item_type_label) > -1) {
           for (const arr of item.rule) {
             if (arr.required && item.value === null) {
-              errorMessage(item.title + '不能为空');
+              errorMessage(item.title + t('message.pages.config.validation.dictKeyRequired'));
               return;
             }
           }
@@ -270,7 +276,7 @@ const onSubmit = (formEl: FormInstance | undefined) => {
   formEl.validate((valid:any) => {
     if (valid) {
       api.saveContent(formList.value).then((res:any) => {
-        successMessage('保存成功');
+        successMessage(t('message.pages.config.messages.saveSuccess'));
         refreshView&&refreshView();
       });
     } else {
@@ -304,7 +310,7 @@ const handleUploadSuccess = (response: any, file: any, fileList: any, imgKey: an
     const { name } = file;
     const type = isImage(name);
     if (!type) {
-      errorMessage('只允许上传图片');
+      errorMessage(t('message.pages.config.messages.invalidImage'));
     } else {
       const uploadImgKey = formData[imgKey];
       if (!uploadImgKey || uploadImgKey === '') {
@@ -318,18 +324,18 @@ const handleUploadSuccess = (response: any, file: any, fileList: any, imgKey: an
       formData[imgKey].push(dict);
     }
   } else {
-    errorMessage('上传失败,' + JSON.stringify(msg));
+    errorMessage(t('message.pages.config.messages.uploadFailed') + ',' + JSON.stringify(msg));
   }
 };
 
 // 上传失败
 const handleError = () => {
-  errorMessage('上传失败');
+  errorMessage(t('message.pages.config.messages.uploadFailed'));
 };
 
 // 上传超出限制
 const handleExceed = () => {
-  errorMessage('超过文件上传数量');
+  errorMessage(t('message.pages.config.messages.exceedFileLimit'));
 };
 
 // 删除时的钩子

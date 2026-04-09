@@ -20,7 +20,10 @@ import { Md5 } from 'ts-md5';
 import { commonCrudConfig } from "/@/utils/commonCrud";
 import { ElMessageBox } from 'element-plus';
 import { exportData } from "./api";
+import { useI18n } from 'vue-i18n';
+
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+    const { t } = useI18n()
     const pageRequest = async (query: UserPageQuery) => {
         return await api.GetList(query);
     };
@@ -56,7 +59,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
         crudOptions: {
             table: {
                 remove: {
-                    confirmMessage: '是否删除该用户？',
+                    confirmMessage: t('message.pages.user.dialog.deleteConfirm'),
                 },
             },
             request: {
@@ -78,11 +81,11 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                         show: auth('user:Create')
                     },
                     export: {
-                        text: "导出",//按钮文字
-                        title: "导出",//鼠标停留显示的信息
+                        text: t('message.pages.user.buttons.export'),//按钮文字
+                        title: t('message.pages.user.buttons.export'),//鼠标停留显示的信息
                         show: auth('user:Export'),
                         click: (ctx: any) => ElMessageBox.confirm(
-                            '确定导出数据吗？', '提示',
+    t('message.pages.user.dialog.exportConfirm'), t('message.pages.user.dialog.exportTitle'),
                             { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
                         ).then(() => exportData(ctx.row))
                     }
@@ -107,20 +110,20 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                         show: auth('user:Delete'),
                     },
                     resetDefaultPwd: {
-                        text: '重置密码',
+                        text: t('message.pages.user.buttons.resetPassword'),
                         type: 'text',
                         iconRight: 'Setting',
                         show: auth('user:ResetDefaultPassword'),
                         click: (ctx: any) => ElMessageBox.confirm(
-                            '确定重置为系统默认密码吗？', '提示',
-                            { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' }
+                            t('message.pages.user.dialog.resetPasswordConfirm'), t('message.pages.user.dialog.resetPassword'),
+                            { confirmButtonText: t('message.pages.user.buttons.confirm'), cancelButtonText: t('message.pages.user.buttons.cancel'), type: 'warning' }
                         ).then(() => resetToDefaultPasswordRequest(ctx.row))
                     },
                 },
             },
             columns: {
                 _index: {
-                    title: '序号',
+                    title: t('message.pages.user.table.columns.index'),
                     form: { show: false },
                     column: {
                         type: 'index',
@@ -130,7 +133,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                     },
                 },
                 username: {
-                    title: '账号',
+                    title: t('message.pages.user.table.columns.username'),
                     search: {
                         show: true,
                     },
@@ -143,11 +146,11 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                             // 表单校验规则
                             {
                                 required: true,
-                                message: '账号必填项',
+                                message: t('message.pages.user.validation.usernameRequired'),
                             },
                         ],
                         component: {
-                            placeholder: '请输入账号',
+                            placeholder: t('message.pages.user.form.usernamePlaceholder'),
                         },
                     },
                 },
@@ -165,14 +168,14 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                             // 表单校验规则
                             {
                                 required: true,
-                                message: '密码必填项',
+                                message: t('message.pages.user.validation.passwordRequired'),
                             },
                         ],
                         component: {
 
                             span: 12,
                             showPassword: true,
-                            placeholder: '请输入密码',
+                            placeholder: t('message.pages.user.form.passwordPlaceholder'),
                         },
                     },
                     valueResolve({ form }) {
@@ -182,7 +185,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                     }
                 },
                 name: {
-                    title: '姓名',
+                    title: t('message.pages.user.table.columns.name'),
                     search: {
                         show: true,
                     },
@@ -195,17 +198,17 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                             // 表单校验规则
                             {
                                 required: true,
-                                message: '姓名必填项',
+                                message: t('message.pages.user.validation.nameRequired'),
                             },
                         ],
                         component: {
                             span: 12,
-                            placeholder: '请输入姓名',
+                            placeholder: t('message.pages.user.form.namePlaceholder'),
                         },
                     },
                 },
                 dept: {
-                    title: '所属部门',
+                    title: t('message.pages.user.table.columns.dept'),
                     type: 'dict-tree',
                     dict: dict({
                         isTree: true,
@@ -224,12 +227,12 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                             // 表单校验规则
                             {
                                 required: true,
-                                message: '必填项',
+                                message: t('message.pages.user.validation.deptRequired'),
                             },
                         ],
                         component: {
                             filterable: true,
-                            placeholder: '请选择',
+                            placeholder: t('message.pages.user.form.deptPlaceholder'),
                             props: {
                                 checkStrictly: true,
                                 props: {
@@ -241,7 +244,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                     },
                 },
                 manage_dept: {
-                    title: '管理部门',
+                    title: t('message.pages.user.table.columns.manageDept'),
                     type: 'dict-tree',
                     dict: dict({
                         isTree: true,
@@ -257,7 +260,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                         component: {
                             filterable: true,
                             multiple: true,
-                            placeholder: '请选择',
+                            placeholder: t('message.pages.user.form.deptPlaceholder'),
                             clearable: true,
                             collapseTags: true,
                             maxCollapseTags: 2,
@@ -270,11 +273,11 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                                 },
                             },
                         },
-                        helper: '不选则默认为所属部门',
+                        helper: t('message.pages.user.validation.manageDeptHelper'),
                     },
                 },
                 role: {
-                    title: '角色',
+                    title: t('message.pages.user.table.columns.role'),
                     search: {
                         disabled: true,
                     },
@@ -296,18 +299,18 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                             // 表单校验规则
                             {
                                 required: true,
-                                message: '必填项',
+                                message: t('message.pages.user.validation.deptRequired'),
                             },
                         ],
                         component: {
                             multiple: true,
                             filterable: true,
-                            placeholder: '请选择角色',
+                            placeholder: t('message.pages.user.form.rolePlaceholder'),
                         },
                     },
                 },
                 mobile: {
-                    title: '手机号码',
+                    title: t('message.pages.user.table.columns.mobile'),
                     search: {
                         show: true,
                     },
@@ -319,21 +322,21 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                         rules: [
                             {
                                 max: 20,
-                                message: '请输入正确的手机号码',
+                                message: t('message.pages.user.validation.mobileInvalid'),
                                 trigger: 'blur',
                             },
                             {
                                 pattern: /^1[3-9]\d{9}$/,
-                                message: '请输入正确的手机号码',
+                                message: t('message.pages.user.validation.mobileInvalid'),
                             },
                         ],
                         component: {
-                            placeholder: '请输入手机号码',
+                            placeholder: t('message.pages.user.form.mobilePlaceholder'),
                         },
                     },
                 },
                 email: {
-                    title: '邮箱',
+                    title: t('message.pages.user.table.columns.email'),
                     column: {
                         width: 260,
                     },
@@ -341,17 +344,17 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                         rules: [
                             {
                                 type: 'email',
-                                message: '请输入正确的邮箱地址',
+                                message: t('message.pages.user.validation.emailInvalid'),
                                 trigger: ['blur', 'change'],
                             },
                         ],
                         component: {
-                            placeholder: '请输入邮箱',
+                            placeholder: t('message.pages.user.form.emailPlaceholder'),
                         },
                     },
                 },
                 gender: {
-                    title: '性别',
+                    title: t('message.pages.user.table.columns.gender'),
                     type: 'dict-select',
                     dict: dict({
                         data: dictionary('gender'),
@@ -365,7 +368,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                     component: { props: { color: 'auto' } }, // 自动染色
                 },
                 user_type: {
-                    title: '用户类型',
+                    title: t('message.pages.user.table.columns.userType'),
                     search: {
                         show: true,
                     },
@@ -385,7 +388,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                     },
                 },
                 is_active: {
-                    title: '状态',
+                    title: t('message.pages.user.table.columns.status'),
                     search: {
                         show: true,
                     },
@@ -413,7 +416,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
                     }
                 },
                 avatar: {
-                    title: '头像',
+                    title: t('message.pages.user.table.columns.avatar'),
                     type: 'avatar-uploader',
                     align: 'center',
                     form: {

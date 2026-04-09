@@ -1,3 +1,4 @@
+import { useI18n } from 'vue-i18n';
 import { CreateCrudOptionsProps, CreateCrudOptionsRet, AddReq, DelReq, EditReq, dict, compute } from '@fast-crud/fast-crud';
 import * as api from './api';
 import { dictionary } from '/@/utils/dictionary';

@@ -1,0 +1,259 @@
+# English translations for Django.
+# Copyright (C) 2026
+# This file is distributed under the same license as the Django project.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: django-vue3-admin\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-31 00:00+0000\n"
+"PO-Revision-Date: 2026-03-31 00:00+0000\n"
+"Last-Translator: \n"
+"Language: en\n"
+"Language-Team: English\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Generated-By: django-vue3-admin i18n phase 1\n"
+
+msgid "error"
+msgstr "error"
+
+msgid "Endpoint address is incorrect"
+msgstr "Endpoint address is incorrect"
+
+msgid "Delete failed: this record has related data bindings"
+msgstr "Delete failed: this record has related data bindings"
+
+msgid "This account has been disabled. Contact an administrator to unlock it."
+msgstr "This account has been disabled. Contact an administrator to unlock it."
+
+msgid "Date format is incorrect"
+msgstr "Date format is incorrect"
+
+msgid "No."
+msgstr "No."
+
+msgid "Import"
+msgstr "Import"
+
+msgid "Template"
+msgstr "Template"
+
+msgid "Export"
+msgstr "Export"
+
+msgid "Update primary key (do not modify)"
+msgstr "Update primary key (do not modify)"
+
+msgid "Please configure the corresponding export template fields."
+msgstr "Please configure the corresponding export template fields."
+
+msgid "Please configure the corresponding import template fields."
+msgstr "Please configure the corresponding import template fields."
+
+msgid "Please configure the corresponding import serializer."
+msgstr "Please configure the corresponding import serializer."
+
+msgid "Please configure the corresponding export serializer."
+msgstr "Please configure the corresponding export serializer."
+
+msgid "Import successful"
+msgstr "Import successful"
+
+msgid "Data export task"
+msgstr "Data export task"
+
+msgid "Import task has been created. Please go to 'Download Center' to wait for download"
+msgstr "Import task has been created. Please go to 'Download Center' to wait for download"
+
+msgid "Create successful"
+msgstr "Create successful"
+
+msgid "Query successful"
+msgstr "Query successful"
+
+msgid "Update successful"
+msgstr "Update successful"
+
+msgid "Delete successful"
+msgstr "Delete successful"
+
+msgid "keys field not provided"
+msgstr "keys field not provided"
+
+msgid "Verification code is required"
+msgstr "Verification code is required"
+
+msgid "Verification code has expired"
+msgstr "Verification code has expired"
+
+msgid "Image verification code is incorrect"
+msgstr "Image verification code is incorrect"
+
+msgid "The account you are logging in with does not exist"
+msgstr "The account you are logging in with does not exist"
+
+msgid "Multiple accounts found for this login. Contact an administrator to check account uniqueness"
+msgstr "Multiple accounts found for this login. Contact an administrator to check account uniqueness"
+
+msgid "Account has been locked. Contact an administrator to unlock"
+msgstr "Account has been locked. Contact an administrator to unlock"
+
+msgid "Username/password incorrect. Account will be locked after {} failed attempts~"
+msgstr "Username/password incorrect. Account will be locked after {} failed attempts~"
+
+msgid "Request successful"
+msgstr "Request successful"
+
+msgid "This interface is not yet available"
+msgstr "This interface is not yet available"
+
+msgid "Logout successful"
+msgstr "Logout successful"
+
+msgid "Username/password incorrect"
+msgstr "Username/password incorrect"
+
+msgid "Username must be unique"
+msgstr "Username must be unique"
+
+msgid "Mobile number must be unique"
+msgstr "Mobile number must be unique"
+
+msgid "Enabled"
+msgstr "Enabled"
+
+msgid "Disabled"
+msgstr "Disabled"
+
+msgid "Username"
+msgstr "Username"
+
+msgid "Full name"
+msgstr "Full name"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Mobile"
+msgstr "Mobile"
+
+msgid "Gender"
+msgstr "Gender"
+
+msgid "Account status"
+msgstr "Account status"
+
+msgid "Last login time"
+msgstr "Last login time"
+
+msgid "Department name"
+msgstr "Department name"
+
+msgid "Department head"
+msgstr "Department head"
+
+msgid "Login username"
+msgstr "Login username"
+
+msgid "Department"
+msgstr "Department"
+
+msgid "Role"
+msgstr "Role"
+
+msgid "No department"
+msgstr "No department"
+
+msgid "Parameters cannot be empty"
+msgstr "Parameters cannot be empty"
+
+msgid "Passwords do not match"
+msgstr "Passwords do not match"
+
+msgid "Old password is incorrect"
+msgstr "Old password is incorrect"
+
+msgid "Invalid language code"
+msgstr "Invalid language code"
+
+msgid "Language updated successfully"
+msgstr "Language updated successfully"
+
+msgid "Only super administrators can reset passwords"
+msgstr "Only super administrators can reset passwords"
+
+msgid "Password reset successful"
+msgstr "Password reset successful"
+
+msgid "User not found"
+msgstr "User not found"
+
+#: dvadmin/system/views/role.py
+msgid "Permission key must be unique"
+msgstr "Permission key must be unique"
+#: dvadmin/system/views/role.py
+msgid "Please select a role"
+msgstr "Please select a role"
+#: dvadmin/system/views/role.py
+msgid "Please select a user"
+msgstr "Please select a user"
+#: dvadmin/system/views/role.py
+msgid "Add successful"
+msgstr "Add successful"
+#: dvadmin/system/views/menu.py
+msgid "Menu does not exist"
+msgstr "Menu does not exist"
+#: dvadmin/system/views/menu.py
+msgid "Move up successful"
+msgstr "Move up successful"
+#: dvadmin/system/views/menu.py
+msgid "Move down successful"
+msgstr "Move down successful"
+#: dvadmin/system/views/dept.py
+msgid "Department does not exist"
+msgstr "Department does not exist"
+#: dvadmin/system/views/role_menu.py
+msgid "Role parameter not provided"
+msgstr "Role parameter not provided"
+#: dvadmin/system/views/role_menu.py
+msgid "Menu parameter not provided"
+msgstr "Menu parameter not provided"
+#: dvadmin/system/views/role_menu.py
+msgid "Save successful"
+msgstr "Save successful"
+#: dvadmin/system/views/system_config.py
+msgid "Variable name already exists"
+msgstr "Variable name already exists"
+#: dvadmin/system/views/system_config.py
+msgid "Query error~"
+msgstr "Query error~"
+#: dvadmin/system/views/system_config.py
+msgid "Association information not found"
+msgstr "Association information not found"
+#: dvadmin/system/views/menu_button.py
+msgid "Batch creation successful"
+msgstr "Batch creation successful"
+#: dvadmin/system/views/menu_button.py
+msgid "Add"
+msgstr "Add"
+#: dvadmin/system/views/menu_button.py
+msgid "Edit"
+msgstr "Edit"
+#: dvadmin/system/views/menu_field.py
+msgid "Model table does not exist"
+msgstr "Model table does not exist"
+#: dvadmin/system/views/menu_field.py
+msgid "Field permission for '%s' already exists and cannot be duplicated"
+msgstr "Field permission for '%s' already exists and cannot be duplicated"
+#: dvadmin/system/views/menu_field.py
+msgid "Match successful"
+msgstr "Match successful"
+#: dvadmin/system/views/message_center.py
+msgid "You have a new message~"
+msgstr "You have a new message~"
+#: dvadmin/system/views/message_center.py
+msgid "You viewed a message~"
+msgstr "You viewed a message~"

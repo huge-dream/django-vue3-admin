@@ -10,6 +10,7 @@ from django.db.models import Q
 from application import dispatch
 from dvadmin.system.models import Users, Role, Dept
 from dvadmin.system.views.role import RoleSerializer
+from django.utils import translation
 from dvadmin.utils.json_response import ErrorResponse, DetailResponse, SuccessResponse
 from dvadmin.utils.serializers import CustomModelSerializer
 from dvadmin.utils.validator import CustomUniqueValidator
@@ -360,6 +361,18 @@ class UserViewSet(CustomModelViewSet):
             request.user.pwd_change_count += 1
             request.user.save()
             return DetailResponse(data=None, msg="修改成功")
+
+    @action(methods=["PUT"], detail=False, permission_classes=[IsAuthenticated])
+    def update_language(self, request, *args, **kwargs):
+        """更新当前用户语言偏好"""
+        lang = request.data.get("language", "zh-cn")
+        valid_locales = ["zh-cn", "en", "zh-tw"]
+        if lang not in valid_locales:
+            return ErrorResponse(msg="Invalid language code")
+        user = request.user
+        user.language = lang
+        user.save(update_fields=["language", "modifier", "update_datetime"])
+        return DetailResponse(data={"language": lang}, msg="Language updated successfully")
 
     @action(methods=["PUT"], detail=True, permission_classes=[IsAuthenticated])
     def reset_to_default_password(self, request,pk):

@@ -10,27 +10,27 @@
 		<div class="kpi-section">
 			<div class="kpi-card green">
 				<div class="kpi-icon"><i class="fa fa-file-text-o"></i></div>
-				<div class="kpi-title">报价单总数</div>
+				<div class="kpi-title">{{ $t('message.pages.home.supplierDashboard.kpi.totalQuotes') }}</div>
 				<div class="kpi-value">{{ kpi.total_quotes.toLocaleString() }}</div>
-				<div class="kpi-trend trend-up"><i class="fa fa-arrow-up"></i> 较上月 +8%</div>
+				<div class="kpi-trend trend-up"><i class="fa fa-arrow-up"></i> {{ $t('message.pages.home.supplierDashboard.kpi.trendUp') }}</div>
 			</div>
 			<div class="kpi-card orange">
 				<div class="kpi-icon"><i class="fa fa-pencil-square-o"></i></div>
-				<div class="kpi-title">待报价</div>
+				<div class="kpi-title">{{ $t('message.pages.home.supplierDashboard.kpi.pendingQuotes') }}</div>
 				<div class="kpi-value">{{ kpi.pending_quotes }}</div>
-				<div class="kpi-trend">等待报价</div>
+				<div class="kpi-trend">{{ $t('message.pages.home.supplierDashboard.kpi.waiting') }}</div>
 			</div>
 			<div class="kpi-card gold">
 				<div class="kpi-icon"><i class="fa fa-trophy"></i></div>
-				<div class="kpi-title">已中标</div>
+				<div class="kpi-title">{{ $t('message.pages.home.supplierDashboard.kpi.wonQuotes') }}</div>
 				<div class="kpi-value">{{ kpi.won_quotes }}</div>
-				<div class="kpi-trend trend-up"><i class="fa fa-trophy"></i> 中标成功</div>
+				<div class="kpi-trend trend-up"><i class="fa fa-trophy"></i> {{ $t('message.pages.home.supplierDashboard.kpi.winSuccess') }}</div>
 			</div>
 			<div class="kpi-card blue">
 				<div class="kpi-icon"><i class="fa fa-bullseye"></i></div>
-				<div class="kpi-title">中标率</div>
+				<div class="kpi-title">{{ $t('message.pages.home.supplierDashboard.kpi.conversionRate') }}</div>
 				<div class="kpi-value">{{ kpi.conversion_rate }}%</div>
-				<div class="kpi-trend trend-flat"><i class="fa fa-minus"></i> 持平</div>
+				<div class="kpi-trend trend-flat"><i class="fa fa-minus"></i> {{ $t('message.pages.home.supplierDashboard.kpi.trendFlat') }}</div>
 			</div>
 		</div>
 
@@ -40,12 +40,12 @@
 			<div class="card quote-card">
 				<div class="card-header">
 					<div class="card-title">
-						<i class="fa fa-pie-chart" style="color: #2e5bff"></i> 待报价清单(<span style="color: #ef4444; font-weight: 600">{{
+						<i class="fa fa-pie-chart" style="color: #2e5bff"></i> {{ $t('message.pages.home.supplierDashboard.quoteList.title') }}(<span style="color: #ef4444; font-weight: 600">{{
 							pendingQuotes.length
 						}}</span
 						>)
 					</div>
-					<a href="#" class="view-all">查看全部 <i class="fa fa-arrow-right"></i></a>
+					<a href="#" class="view-all">{{ $t('message.pages.home.supplierDashboard.viewAll') }} <i class="fa fa-arrow-right"></i></a>
 				</div>
 				<div class="quote-list">
 					<div v-for="quote in pendingQuotes" :key="quote.id" class="quote-item">
@@ -65,27 +65,27 @@
 										<tr>
 											<td class="deadline-td-gap"></td>
 											<td class="deadline-td-remaining">
-												<span class="deadline-remaining-label">剩余：</span>
+												<span class="deadline-remaining-label">{{ $t('message.pages.home.supplierDashboard.deadline.remaining') }}</span>
 												<span :class="getDeadlineValueClass(quote)">{{ getDeadlineRemainingValue(quote) }}</span>
 											</td>
 										</tr>
 									</tbody>
 								</table>
 							</div>
-							<button class="action-btn btn-primary" @click="handleQuote(quote)">去报价</button>
+							<button class="action-btn btn-primary" @click="handleQuote(quote)">{{ $t('message.pages.home.supplierDashboard.quoteAction.goQuote') }}</button>
 						</div>
 						<div class="quote-info-row">
 							<div class="quote-info-item">
-								<span class="label">产品名称</span>
+								<span class="label">{{ $t('message.pages.home.supplierDashboard.quoteList.productName') }}</span>
 								<span class="value">{{ quote.item_name || '-' }}</span>
 							</div>
 							<div class="quote-info-item">
-								<span class="label">数量</span>
+								<span class="label">{{ $t('message.pages.home.supplierDashboard.quoteList.quantity') }}</span>
 								<span class="value">{{ quote.quantity || '-' }} {{ quote.unit || '' }}</span>
 							</div>
 						</div>
 					</div>
-					<div v-if="pendingQuotes.length === 0" class="empty-cell">暂无待报价清单</div>
+					<div v-if="pendingQuotes.length === 0" class="empty-cell">{{ $t('message.pages.home.supplierDashboard.quoteList.empty') }}</div>
 				</div>
 			</div>
 
@@ -98,8 +98,8 @@
 					</div>
 					<div class="img-notify-list">
 						<div class="card-header" style="margin-bottom: 12px">
-							<div class="card-title"><i class="fa fa-bullhorn" style="color: #2e5bff"></i> 系统通知</div>
-							<a href="#" class="view-all">更多 <i class="fa fa-arrow-right"></i></a>
+							<div class="card-title"><i class="fa fa-bullhorn" style="color: #2e5bff"></i> {{ $t('message.pages.home.supplierDashboard.notification.title') }}</div>
+							<a href="#" class="view-all">{{ $t('message.pages.home.supplierDashboard.more') }} <i class="fa fa-arrow-right"></i></a>
 						</div>
 						<div class="notify-item" v-for="(v, k) in newsInfoList" :key="k">
 							<div class="notify-icon">
@@ -113,14 +113,14 @@
 								<div class="notify-title-text">{{ v.title }}</div>
 							</div>
 						</div>
-						<div v-if="newsInfoList.length === 0" class="empty-notif">暂无通知</div>
+						<div v-if="newsInfoList.length === 0" class="empty-notif">{{ $t('message.pages.home.supplierDashboard.notification.empty') }}</div>
 					</div>
 				</div>
 
 				<!-- 快捷入口 -->
 				<div class="card quick-nav-card">
 					<div class="card-header">
-						<div class="card-title"><i class="fa fa-th-large" style="color: #2e5bff"></i> 快捷入口</div>
+						<div class="card-title"><i class="fa fa-th-large" style="color: #2e5bff"></i> {{ $t('message.pages.home.supplierDashboard.quickNav.title') }}</div>
 					</div>
 					<div class="quick-nav-grid">
 						<div v-for="(item, index) in quickNavList" :key="index" class="quick-nav-item" @click="handleNavClick(item.url)">
@@ -137,10 +137,10 @@
 		<!-- 底部图表区域 -->
 		<div class="card chart-section">
 			<div class="card-header">
-				<div class="card-title"><i class="fa fa-chart-line" style="color: #2e5bff"></i> 报价与中标趋势</div>
+				<div class="card-title"><i class="fa fa-chart-line" style="color: #2e5bff"></i> {{ $t('message.pages.home.supplierDashboard.chart.title') }}</div>
 				<div class="chart-legend">
-					<span><span class="legend-dot" style="background: #2e5bff"></span>报价数</span>
-					<span><span class="legend-dot" style="background: #10b981"></span>中标数</span>
+					<span><span class="legend-dot" style="background: #2e5bff"></span>{{ $t('message.pages.home.supplierDashboard.chart.legend.quotes') }}</span>
+					<span><span class="legend-dot" style="background: #10b981"></span>{{ $t('message.pages.home.supplierDashboard.chart.legend.won') }}</span>
 				</div>
 			</div>
 			<div class="chart-container">
@@ -152,6 +152,7 @@
 
 <script setup lang="ts">
 import { computed, ref, reactive, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { storeToRefs } from 'pinia';
 import { useDashboardStore } from '/@/stores/modules/dashboard';
 import { useUserInfo } from '/@/stores/userInfo';
@@ -169,6 +170,7 @@ interface NewsItem {
 const store = useDashboardStore();
 const { supplier } = storeToRefs(store);
 const userInfo = useUserInfo();
+const { t } = useI18n();
 
 const chartRef = ref();
 
@@ -177,14 +179,14 @@ const defaultNewsItems: NewsItem[] = [];
 const newsInfoList = reactive<NewsItem[]>([...defaultNewsItems]);
 
 // 快捷入口列表
-const quickNavList = [
-	{ icon: 'fa fa-user-o', label: '角色管理', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/role' },
-	{ icon: 'fa fa-sitemap', label: '部门管理', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/dept' },
-	{ icon: 'iconfont icon-system', label: '系统配置', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/config' },
-	{ icon: 'iconfont icon-dict', label: '字典管理', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/dictionary' },
-	{ icon: 'iconfont icon-Area', label: '区域管理', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/areas' },
-	{ icon: 'iconfont icon-xiaoxizhongxin', label: '消息中心', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/messageCenter' },
-];
+const quickNavList = computed(() => [
+	{ icon: 'fa fa-user-o', label: t('message.pages.home.supplierDashboard.quickNav.items.role'), iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/role' },
+	{ icon: 'fa fa-sitemap', label: t('message.pages.home.supplierDashboard.quickNav.items.dept'), iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/dept' },
+	{ icon: 'iconfont icon-system', label: t('message.pages.home.supplierDashboard.quickNav.items.config'), iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/config' },
+	{ icon: 'iconfont icon-dict', label: t('message.pages.home.supplierDashboard.quickNav.items.dictionary'), iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/dictionary' },
+	{ icon: 'iconfont icon-Area', label: t('message.pages.home.supplierDashboard.quickNav.items.areas'), iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/areas' },
+	{ icon: 'iconfont icon-xiaoxizhongxin', label: t('message.pages.home.supplierDashboard.quickNav.items.message'), iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/messageCenter' },
+]);
 
 function handleNavClick(url: string) {
 	window.location.href = url;
@@ -218,7 +220,7 @@ const getMsg = (): void => {
 				newsInfoList.length = 0;
 				newsInfoList.push(
 					...data.map((item: any): NewsItem => ({
-						creator_name: String(item.creator_name || '未知用户'),
+						creator_name: String(item.creator_name || t('message.pages.home.supplierDashboard.notification.defaultCreator')),
 						create_datetime: String(item.create_datetime || ''),
 						title: String(item.title || ''),
 					}))
@@ -244,10 +246,10 @@ function getQuoteStatusClass(status: number) {
 }
 
 function getQuoteStatusText(status: number) {
-	if (status === 1) return '未报价';
-	if (status === 2) return '报价中';
-	if (status === 3) return '已报价';
-	return '未报价';
+	if (status === 1) return t('message.pages.home.supplierDashboard.quoteStatus.unquoted');
+	if (status === 2) return t('message.pages.home.supplierDashboard.quoteStatus.quoting');
+	if (status === 3) return t('message.pages.home.supplierDashboard.quoteStatus.quoted');
+	return t('message.pages.home.supplierDashboard.quoteStatus.unquoted');
 }
 
 function getMethodClass(method: string | undefined) {
@@ -256,7 +258,8 @@ function getMethodClass(method: string | undefined) {
 }
 
 function getMethodText(method: string | undefined) {
-	return method || '询价';
+	if (method === '招标') return t('message.pages.home.supplierDashboard.method.tender');
+	return t('message.pages.home.supplierDashboard.method.inquiry');
 }
 
 function isTenderQuote(quote: any): boolean {
@@ -307,7 +310,7 @@ function formatTenderBidTimeRange(
 }
 
 function formatDurationCn(diffMs: number): string {
-	if (diffMs <= 0) return '已到期';
+	if (diffMs <= 0) return t('message.pages.home.supplierDashboard.deadline.expired');
 	const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
 	const days = Math.floor(totalHours / 24);
 	const hours = totalHours % 24;
@@ -322,7 +325,9 @@ function getInquiryHoursToQuoteDeadline(quote: any): number | null {
 }
 
 function getDeadlinePrimaryLabel(quote: any): string {
-	return isTenderQuote(quote) ? '投标时间：' : '报价截止时间：';
+	return isTenderQuote(quote)
+		? t('message.pages.home.supplierDashboard.deadline.bidTime')
+		: t('message.pages.home.supplierDashboard.deadline.quoteDeadline');
 }
 
 function getDeadlinePrimaryValue(quote: any): string {
@@ -341,9 +346,9 @@ function getDeadlineRemainingValue(quote: any): string {
 		const startMs = new Date(start).getTime();
 		const endMs = end ? new Date(end).getTime() : null;
 		if (now < startMs) return formatDurationCn(startMs - now);
-		if (endMs != null && now < endMs) return '投标进行中';
-		if (endMs != null && now >= endMs) return '已结束';
-		return '已开始';
+		if (endMs != null && now < endMs) return t('message.pages.home.supplierDashboard.deadline.bidInProgress');
+		if (endMs != null && now >= endMs) return t('message.pages.home.supplierDashboard.deadline.ended');
+		return t('message.pages.home.supplierDashboard.deadline.started');
 	}
 	const q = quote?.quote_deadline;
 	if (!q) return '-';
@@ -419,7 +424,7 @@ function initChart() {
 		yAxis: [
 			{
 				type: 'value',
-				name: '单据数量',
+				name: t('message.pages.home.supplierDashboard.chart.yAxisName'),
 				min: 0,
 				axisLine: { show: false },
 				axisLabel: { color: '#9CA3AF', fontSize: 11 },
@@ -428,7 +433,7 @@ function initChart() {
 		],
 		series: [
 			{
-				name: '报价数',
+				name: t('message.pages.home.supplierDashboard.chart.legend.quotes'),
 				type: 'line',
 				data: quotesData,
 				smooth: true,
@@ -437,7 +442,7 @@ function initChart() {
 				lineStyle: { width: 2 },
 			},
 			{
-				name: '中标数',
+				name: t('message.pages.home.supplierDashboard.chart.legend.won'),
 				type: 'line',
 				data: wonData,
 				smooth: true,

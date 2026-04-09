@@ -112,6 +112,8 @@ import { useUserInfo } from '/@/stores/userInfo';
 import { useThemeConfig } from '/@/stores/themeConfig';
 import other from '/@/utils/other';
 import mittBus from '/@/utils/mitt';
+import { refreshRoutesForI18n } from '/@/router/backEnd';
+import { request } from '/@/utils/service';
 import { Session, Local } from '/@/utils/storage';
 import headerImage from '/@/assets/img/headerImage.png';
 import { InfoFilled } from '@element-plus/icons-vue';
@@ -228,13 +230,21 @@ const onComponentSizeChange = (size: string) => {
 	window.location.reload();
 };
 // 语言切换
-const onLanguageChange = (lang: string) => {
+const onLanguageChange = async (lang: string) => {
 	Local.remove('themeConfig');
 	themeConfig.value.globalI18n = lang;
 	Local.set('themeConfig', themeConfig.value);
 	locale.value = lang;
 	other.useTitle();
 	initI18nOrSize('globalI18n', 'disabledI18n');
+	// 重新请求菜单（带上新语言，让后端返回对应翻译）
+	await refreshRoutesForI18n();
+	// 持久化到后端
+	try {
+		await request({ url: '/api/system/user/update_language/', method: 'put', data: { language: lang } });
+	} catch (e) {
+		console.warn('Failed to persist language preference:', e);
+	}
 };
 // 初始化组件大小/i18n
 const initI18nOrSize = (value: string, attr: keyof typeof state) => {

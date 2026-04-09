@@ -10,20 +10,20 @@
 		<div class="kpi-section">
 			<div class="kpi-card blue">
 				<div class="kpi-icon"><i class="fa fa-check-circle"></i></div>
-				<div class="kpi-title">已完成询价单总数</div>
+				<div class="kpi-title">{{ $t('message.pages.home.buyerDashboard.kpi.totalInquiries') }}</div>
 				<div class="kpi-value">{{ kpi.total_inquiries.toLocaleString() }}</div>
-				<div class="kpi-trend trend-up"><i class="fa fa-arrow-up"></i> 较上月 +12%</div>
+				<div class="kpi-trend trend-up"><i class="fa fa-arrow-up"></i> {{ $t('message.pages.home.buyerDashboard.kpi.trendUp') }}</div>
 			</div>
 			<div class="kpi-card green">
 				<div class="kpi-icon"><i class="fa fa-clock-o"></i></div>
-				<div class="kpi-title">进行中询价单</div>
+				<div class="kpi-title">{{ $t('message.pages.home.buyerDashboard.kpi.pendingInquiries') }}</div>
 				<div class="kpi-value">{{ kpi.pending_inquiries }}</div>
 			</div>
 			<div class="kpi-card orange">
 				<div class="kpi-icon"><i class="fa fa-pie-chart"></i></div>
-				<div class="kpi-title">供应商报价及时率</div>
+				<div class="kpi-title">{{ $t('message.pages.home.buyerDashboard.kpi.quoteTimelyRate') }}</div>
 				<div class="kpi-value">{{ kpi.quote_timely_rate }}%</div>
-				<div class="kpi-trend trend-flat"><i class="fa fa-minus"></i> 持平</div>
+				<div class="kpi-trend trend-flat"><i class="fa fa-minus"></i> {{ $t('message.pages.home.buyerDashboard.kpi.trendFlat') }}</div>
 			</div>
 		</div>
 
@@ -33,21 +33,21 @@
 			<div class="card task-card">
 				<div class="card-header">
 					<div class="card-title">
-						<i class="fa fa-tasks" style="color: #2e5bff"></i> 我的待办任务(<span style="color: #ef4444; font-weight: 600">{{ tasks.length }}</span
+						<i class="fa fa-tasks" style="color: #2e5bff"></i> {{ $t('message.pages.home.buyerDashboard.task.title') }}(<span style="color: #ef4444; font-weight: 600">{{ tasks.length }}</span
 						>)
 					</div>
-					<a href="#" class="view-all">查看全部 <i class="fa fa-arrow-right"></i></a>
+					<a href="#" class="view-all">{{ $t('message.pages.home.buyerDashboard.viewAll') }} <i class="fa fa-arrow-right"></i></a>
 				</div>
 				<div class="task-table-container">
 					<table>
 						<thead>
 							<tr>
-								<th>询价单号</th>
-								<th>采购方式</th>
-								<th>询价单名称</th>
-								<th>当前状态</th>
-								<th>截止时间 / 剩余时间</th>
-								<th>操作</th>
+								<th>{{ $t('message.pages.home.buyerDashboard.task.table.columns.inquiryNo') }}</th>
+								<th>{{ $t('message.pages.home.buyerDashboard.task.table.columns.method') }}</th>
+								<th>{{ $t('message.pages.home.buyerDashboard.task.table.columns.name') }}</th>
+								<th>{{ $t('message.pages.home.buyerDashboard.task.table.columns.status') }}</th>
+								<th>{{ $t('message.pages.home.buyerDashboard.task.table.columns.deadline') }}</th>
+								<th>{{ $t('message.pages.home.buyerDashboard.task.table.columns.action') }}</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -72,7 +72,7 @@
 											<tr>
 												<td class="deadline-td-gap"></td>
 												<td class="deadline-td-remaining">
-													<span class="deadline-remaining-label">剩余：</span>
+													<span class="deadline-remaining-label">{{ $t('message.pages.home.buyerDashboard.deadline.remaining') }}</span>
 													<span :class="getDeadlineValueClass(task)">{{ getDeadlineRemainingValue(task) }}</span>
 												</td>
 											</tr>
@@ -86,7 +86,7 @@
 								</td>
 							</tr>
 							<tr v-if="tasks.length === 0">
-								<td colspan="6" class="empty-cell">暂无待办任务</td>
+								<td colspan="6" class="empty-cell">{{ $t('message.pages.home.buyerDashboard.task.empty') }}</td>
 							</tr>
 						</tbody>
 					</table>
@@ -102,8 +102,8 @@
 					</div>
 					<div class="img-notify-list">
 						<div class="card-header" style="margin-bottom: 12px">
-							<div class="card-title"><i class="fa fa-bullhorn" style="color: #2e5bff"></i> 系统通知</div>
-							<a href="#" class="view-all">更多 <i class="fa fa-arrow-right"></i></a>
+							<div class="card-title"><i class="fa fa-bullhorn" style="color: #2e5bff"></i> {{ $t('message.pages.home.buyerDashboard.notification.title') }}</div>
+							<a href="#" class="view-all">{{ $t('message.pages.home.buyerDashboard.more') }} <i class="fa fa-arrow-right"></i></a>
 						</div>
 						<div class="notify-item" v-for="(v, k) in newsInfoList" :key="k">
 							<div class="notify-icon">
@@ -117,14 +117,14 @@
 								<div class="notify-title-text">{{ v.title }}</div>
 							</div>
 						</div>
-						<div v-if="newsInfoList.length === 0" class="empty-notif">暂无通知</div>
+						<div v-if="newsInfoList.length === 0" class="empty-notif">{{ $t('message.pages.home.buyerDashboard.notification.empty') }}</div>
 					</div>
 				</div>
 
 				<!-- 快捷入口 -->
 				<div class="card quick-nav-card">
 					<div class="card-header">
-						<div class="card-title"><i class="fa fa-th-large" style="color: #2e5bff"></i> 快捷入口</div>
+						<div class="card-title"><i class="fa fa-th-large" style="color: #2e5bff"></i> {{ $t('message.pages.home.buyerDashboard.quickNav.title') }}</div>
 					</div>
 					<div class="quick-nav-grid">
 						<div v-for="(item, index) in quickNavList" :key="index" class="quick-nav-item" @click="handleNavClick(item.url)">
@@ -141,10 +141,10 @@
 		<!-- 底部图表区域 -->
 		<div class="card chart-section">
 			<div class="card-header">
-				<div class="card-title"><i class="fa fa-chart-line" style="color: #2e5bff"></i> 近30天业务趋势</div>
+				<div class="card-title"><i class="fa fa-chart-line" style="color: #2e5bff"></i> {{ $t('message.pages.home.buyerDashboard.chart.title') }}</div>
 				<div class="chart-legend">
-					<span><span class="legend-dot" style="background: #2e5bff"></span>发布询价</span>
-					<span><span class="legend-dot" style="background: #10b981"></span>议价完成</span>
+					<span><span class="legend-dot" style="background: #2e5bff"></span>{{ $t('message.pages.home.buyerDashboard.chart.legend.publishInquiry') }}</span>
+					<span><span class="legend-dot" style="background: #10b981"></span>{{ $t('message.pages.home.buyerDashboard.chart.legend.negotiationComplete') }}</span>
 				</div>
 			</div>
 			<div class="chart-container">
@@ -156,6 +156,7 @@
 
 <script setup lang="ts">
 import { computed, ref, reactive, onMounted, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { storeToRefs } from 'pinia';
 import { useDashboardStore } from '/@/stores/modules/dashboard';
 import { useUserInfo } from '/@/stores/userInfo';
@@ -192,6 +193,7 @@ interface DashboardTrendPoint {
 const store = useDashboardStore();
 const { buyer } = storeToRefs(store);
 const userInfo = useUserInfo();
+const { t } = useI18n();
 
 const chartRef = ref();
 
@@ -200,14 +202,14 @@ const defaultNewsItems: NewsItem[] = [];
 const newsInfoList = reactive<NewsItem[]>([...defaultNewsItems]);
 
 // 快捷入口列表
-const quickNavList = [
-	{ icon: 'fa fa-user-o', label: '角色管理', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/role' },
-	{ icon: 'fa fa-sitemap', label: '部门管理', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/dept' },
-	{ icon: 'iconfont icon-system', label: '系统配置', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/config' },
-	{ icon: 'iconfont icon-dict', label: '字典管理', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/dictionary' },
-	{ icon: 'iconfont icon-Area', label: '区域管理', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/areas' },
-	{ icon: 'iconfont icon-xiaoxizhongxin', label: '消息中心', iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/messageCenter' },
-];
+const quickNavList = computed(() => [
+	{ icon: 'fa fa-user-o', label: t('message.pages.home.buyerDashboard.quickNav.items.role'), iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/role' },
+	{ icon: 'fa fa-sitemap', label: t('message.pages.home.buyerDashboard.quickNav.items.dept'), iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/dept' },
+	{ icon: 'iconfont icon-system', label: t('message.pages.home.buyerDashboard.quickNav.items.config'), iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/config' },
+	{ icon: 'iconfont icon-dict', label: t('message.pages.home.buyerDashboard.quickNav.items.dictionary'), iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/dictionary' },
+	{ icon: 'iconfont icon-Area', label: t('message.pages.home.buyerDashboard.quickNav.items.areas'), iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/areas' },
+	{ icon: 'iconfont icon-xiaoxizhongxin', label: t('message.pages.home.buyerDashboard.quickNav.items.message'), iconColor: '#6B7280', bgColor: '#F3F4F6', url: '#/messageCenter' },
+]);
 
 function handleNavClick(url: string) {
 	window.location.href = url;
@@ -242,7 +244,7 @@ const getMsg = (): void => {
 				newsInfoList.length = 0;
 				newsInfoList.push(
 					...data.map((item: any): NewsItem => ({
-						creator_name: String(item.creator_name || '未知用户'),
+						creator_name: String(item.creator_name || t('message.pages.home.buyerDashboard.notification.defaultCreator')),
 						create_datetime: String(item.create_datetime || ''),
 						title: String(item.title || ''),
 					}))
@@ -275,7 +277,8 @@ function getMethodClass(method: string | undefined) {
 }
 
 function getMethodText(method: string | undefined) {
-	return method || '询价';
+	if (method === '招标') return t('message.pages.home.buyerDashboard.method.tender');
+	return t('message.pages.home.buyerDashboard.method.inquiry');
 }
 
 function isTenderTask(task: any): boolean {
@@ -335,7 +338,7 @@ function formatTenderBidTimeRange(
 }
 
 function formatDurationCn(diffMs: number): string {
-	if (diffMs <= 0) return '已到期';
+	if (diffMs <= 0) return t('message.pages.home.buyerDashboard.deadline.expired');
 	const totalHours = Math.floor(diffMs / (1000 * 60 * 60));
 	const days = Math.floor(totalHours / 24);
 	const hours = totalHours % 24;
@@ -370,9 +373,9 @@ function getDeadlineRemainingValue(task: any): string {
 		const startMs = new Date(start).getTime();
 		const endMs = end ? new Date(end).getTime() : null;
 		if (now < startMs) return formatDurationCn(startMs - now);
-		if (endMs != null && now < endMs) return '投标进行中';
-		if (endMs != null && now >= endMs) return '已结束';
-		return '已开始';
+		if (endMs != null && now < endMs) return t('message.pages.home.buyerDashboard.deadline.bidInProgress');
+		if (endMs != null && now >= endMs) return t('message.pages.home.buyerDashboard.deadline.ended');
+		return t('message.pages.home.buyerDashboard.deadline.started');
 	}
 	const q = task?.quote_deadline;
 	if (!q) return '-';
@@ -393,9 +396,9 @@ function getDeadlineValueClass(task: any): string {
 }
 
 function getActionText(status: string) {
-	if (status?.includes('比价')) return '去比价';
-	if (status?.includes('议价')) return '去议价';
-	return '查看详情';
+	if (status?.includes('比价')) return t('message.pages.home.buyerDashboard.task.action.goBidCompare');
+	if (status?.includes('议价')) return t('message.pages.home.buyerDashboard.task.action.goNegotiate');
+	return t('message.pages.home.buyerDashboard.task.action.viewDetail');
 }
 
 function handleAction(task: any) {
@@ -458,7 +461,7 @@ function initChart() {
 		yAxis: [
 			{
 				type: 'value',
-				name: '单据数量',
+				name: t('message.pages.home.buyerDashboard.chart.yAxisName'),
 				min: 0,
 				axisLine: { show: false },
 				axisLabel: { color: '#9CA3AF', fontSize: 11 },
@@ -467,7 +470,7 @@ function initChart() {
 		],
 		series: [
 			{
-				name: '发布询价单',
+				name: t('message.pages.home.buyerDashboard.chart.legend.publishInquiry'),
 				type: 'line',
 				data: dataPublish,
 				smooth: true,
@@ -477,7 +480,7 @@ function initChart() {
 				yAxisIndex: 0,
 			},
 			{
-				name: '议价完成',
+				name: t('message.pages.home.buyerDashboard.chart.legend.negotiationComplete'),
 				type: 'line',
 				data: dataReceive,
 				smooth: true,

@@ -1,0 +1,65 @@
+// 定義內容
+export default {
+    message: {
+        pages: {
+            operationLog: {
+                table: {
+                    columns: {
+                        module: '操作模組',
+                        method: '請求方式',
+                        operationType: '操作類型',
+                        requestUrl: '請求地址',
+                        requestParam: '請求參數',
+                        responseCode: '響應碼',
+                        duration: '耗時(ms)',
+                        status: '狀態',
+                        createTime: '操作時間',
+                        creator: '操作人',
+                        remark: '操作詳情',
+                        index: '序號',
+                        keyword: '關鍵詞',
+                        requestModule: '請求模組',
+                        requestPath: '請求地址',
+                        requestBody: '請求參數',
+                        requestMethod: '請求方式',
+                        requestMsg: '操作說明',
+                        requestIp: 'IP位址',
+                        requestBrowser: '請求瀏覽器',
+                        requestOs: '作業系統',
+                        jsonResult: '返回資訊',
+                        creatorName: '操作人',
+                    },
+                },
+                form: {
+                    module: '操作模組',
+                    remark: '操作詳情',
+                    modulePlaceholder: '請輸入操作模組',
+                    remarkPlaceholder: '請輸入操作詳情',
+                    keywordPlaceholder: '請輸入關鍵詞',
+                    requestModulePlaceholder: '請輸入請求模組',
+                    requestPathPlaceholder: '請輸入請求地址',
+                    requestBodyPlaceholder: '請輸入請求參數',
+                    requestMethodPlaceholder: '請輸入請求方式',
+                    requestIpPlaceholder: '請輸入IP位址',
+                },
+                validation: {
+                    moduleMaxLength: '操作模組不能超過100個字符',
+                    remarkMaxLength: '操作詳情不能超過500個字符',
+                },
+                buttons: {
+                    view: '查看',
+                    query: '查詢',
+                    export: '導出',
+                    refresh: '刷新',
+                    reset: '重置',
+                    timeRange: '操作時間範圍',
+                    operationType: '操作類型',
+                },
+                messages: {
+                    querySuccess: '查詢成功',
+                    exportSuccess: '導出成功',
+                },
+            },
+        },
+    },
+};

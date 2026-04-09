@@ -22,6 +22,7 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Flag } from '@element-plus/icons-vue'
@@ -36,10 +37,12 @@ import {
   getSupplierBidWindowRejectReason
 } from './crud'
 
+const { t } = useI18n()
+
 /** 查询区：按主表 is_awarded 筛选（与后端字段一致） */
 const isAwardedOptions = [
-  { label: '已中标', value: 1 },
-  { label: '未中标', value: 0 }
+  { label: t('message.pages.pissupplier.quotation.awarded'), value: 1 },
+  { label: t('message.pages.pissupplier.quotation.notAwarded'), value: 0 }
 ]
 
 const awardBidIsFlag = (row: any) => formatAwardBidStatus(row).mode === 'flag'
@@ -137,11 +140,11 @@ const crudOptions = {
       edit: { show: false },
       remove: { show: false },
       viewInquiry: {
-        text: '查看',
+        text: t('message.pages.pissupplier.quotation.view'),
         click: ({ row }: any) => goQuoteDetail(row, 'view')
       },
       quoteNow: {
-        text: '报价',
+        text: t('message.pages.pissupplier.quotation.quoteNow'),
         type: compute(({ row }) => {
           bidWindowClock.value
           const ok = isPendingQuotation(row)
@@ -162,7 +165,7 @@ const crudOptions = {
         })
       },
       editQuote: {
-        text: '提交',
+        text: t('message.pages.pissupplier.quotation.submitQuote'),
         type: compute(({ row }) => {
           bidWindowClock.value
           const ok = isQuotedQuotation(row) && isWithinSupplierBidWindow(row)
@@ -179,27 +182,27 @@ const crudOptions = {
   },
   columns: {
     inquiryPlant: {
-      title: '交易厂区',
+      title: t('message.pages.pissupplier.quotation.companyShortName'),
       type: 'text',
       search: {
         show: true,
-        component: { props: { clearable: true, placeholder: '公司代码或简称' } }
+        component: { props: { clearable: true, placeholder: t('message.pages.pissupplier.quotation.companyCodeOrName') } }
       },
       column: { show: false }
     },
     companyShortName: {
-      title: '交易厂区',
+      title: t('message.pages.pissupplier.quotation.companyShortName'),
       type: 'text',
       search: { show: false },
       column: { minWidth: 100, showOverflowTooltip: true }
     },
     buyingMethod: {
-      title: '采购方式',
+      title: t('message.pages.pissupplier.quotation.buyingMethod'),
       type: 'dict-select',
       dict: dict({ data: buyingMethodDict }),
       search: {
         show: true,
-        component: { props: { placeholder: '采购方式', clearable: true } }
+        component: { props: { placeholder: t('message.pages.pissupplier.quotation.buyingMethod'), clearable: true } }
       },
       column: {
         width: 100,
@@ -212,25 +215,25 @@ const crudOptions = {
       }
     },
     quoteNo: {
-      title: '报价单号',
+      title: t('message.pages.pissupplier.quotation.quotationNo'),
       type: 'text',
       search: { show: true, component: { props: { clearable: true } } },
       column: { minWidth: 120, showOverflowTooltip: true }
     },
     inquiryCode: {
-      title: '询价单号',
+      title: t('message.pages.pissupplier.quotation.inquiryNo'),
       type: 'text',
       search: { show: true, component: { props: { clearable: true } } },
       column: { minWidth: 120, showOverflowTooltip: true }
     },
     inquiryTitle: {
-      title: '询价名称',
+      title: t('message.pages.pissupplier.quotation.inquiryTitle'),
       type: 'text',
       search: { show: true, component: { props: { clearable: true } } },
       column: { minWidth: 100, showOverflowTooltip: true }
     },
     template: {
-      title: '询价模板',
+      title: t('message.pages.pissupplier.quotation.inquiryTemplate'),
       type: 'text',
       column: {
         minWidth: 100,
@@ -239,7 +242,7 @@ const crudOptions = {
       }
     },
     quoteDeadline: {
-      title: '报价截止时间',
+      title: t('message.pages.pissupplier.quotation.quoteDeadline'),
       type: 'datetime',
       search: {
         show: true,
@@ -257,7 +260,7 @@ const crudOptions = {
       column: { width: 150, formatter: ({ value }: any) => formatQuoteDeadlineDisplay(value) }
     },
     bidStartTime: {
-      title: '投标开始时间',
+      title: t('message.pages.pissupplier.quotation.bidStartTime'),
       type: 'datetime',
       column: {
         width: 150,
@@ -265,7 +268,7 @@ const crudOptions = {
       }
     },
     bidEndTime: {
-      title: '投标截止时间',
+      title: t('message.pages.pissupplier.quotation.bidEndTime'),
       type: 'datetime',
       column: {
         width: 150,
@@ -273,37 +276,37 @@ const crudOptions = {
       }
     },
     status: {
-      title: '报价状态',
+      title: t('message.pages.pissupplier.quotation.quoteStatus'),
       type: 'dict-select',
       dict: dict({ data: statusOptions }),
       search: { show: false },
       column: { width: 100, slots: { default: 'cell_status' } }
     },
     isAwarded: {
-      title: '中标状态',
+      title: t('message.pages.pissupplier.quotation.isAwarded'),
       type: 'dict-select',
       dict: dict({ data: isAwardedOptions }),
       search: { show: true },
       column: { width: 100, slots: { default: 'cell_isAwarded' } }
     },
     quoteTime: {
-      title: '报价时间',
+      title: t('message.pages.pissupplier.quotation.quoteTime'),
       type: 'datetime',
       column: { width: 180 }
     },
     quoteAmount: {
-      title: '报价金额',
+      title: t('message.pages.pissupplier.quotation.quoteAmount'),
       type: 'text',
       column: { width: 120, slots: { default: 'cell_quoteAmount' } }
     },
     currency: {
-      title: '币别',
+      title: t('message.pages.pissupplier.quotation.currency'),
       type: 'text',
       search: { show: true, component: { props: { placeholder: '币别', clearable: true } } },
       column: { width: 90 }
     },
     createdAt: {
-      title: '创建时间',
+      title: t('message.pages.pissupplier.quotation.createTime'),
       type: 'datetime',
       column: { width: 180 }
     }

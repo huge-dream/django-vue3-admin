@@ -4,24 +4,24 @@
 			<el-header>
 				<div class="yxt-flex-between">
 					<div>
-						<el-tag>系统配置:您可以对您的网站进行自定义配置</el-tag>
+						<el-tag>{{ t('message.pages.config.header.tagText') }}</el-tag>
 					</div>
 					<div>
 						<el-button-group>
-							<el-button type="primary" size="small" :icon="FolderAdd" @click="tabsDrawer = true"> 添加分组 </el-button>
-							<el-button size="small" type="warning" :icon="Edit" @click="contentDrawer = true"> 添加内容 </el-button>
+							<el-button type="primary" size="small" :icon="FolderAdd" @click="tabsDrawer = true"> {{ t('message.pages.config.buttons.addGroup') }} </el-button>
+							<el-button size="small" type="warning" :icon="Edit" @click="contentDrawer = true"> {{ t('message.pages.config.buttons.addContent') }} </el-button>
 						</el-button-group>
 					</div>
 				</div>
 			</el-header>
 		</div>
 		<div>
-			<el-drawer v-if="tabsDrawer" title="添加分组" v-model="tabsDrawer" direction="rtl" size="30%">
+			<el-drawer v-if="tabsDrawer" :title="t('message.pages.config.dialog.addGroup')" v-model="tabsDrawer" direction="rtl" size="30%">
 				<addTabs></addTabs>
 			</el-drawer>
 		</div>
 		<div>
-			<el-drawer v-if="contentDrawer" title="添加内容" v-model="contentDrawer" direction="rtl" size="30%">
+			<el-drawer v-if="contentDrawer" :title="t('message.pages.config.dialog.addContent')" v-model="contentDrawer" direction="rtl" size="30%">
 				<addContent></addContent>
 			</el-drawer>
 		</div>
@@ -40,12 +40,15 @@
 </template>
 
 <script lang="ts" setup name="config">
+import { useI18n } from 'vue-i18n';
 import { Edit, FolderAdd } from '@element-plus/icons-vue';
 import * as api from './api';
 import addTabs from './components/addTabs.vue';
 import addContent from './components/addContent.vue';
 import formContent from './components/formContent.vue';
 import { ref, onMounted } from 'vue';
+
+const { t } = useI18n();
 let tabsDrawer = ref(false);
 let contentDrawer = ref(false);
 let editableTabsValue = ref('base');
@@ -60,7 +63,7 @@ const getTabs = () => {
 		.then((res: any) => {
 			let data = res.data;
 			data.push({
-				title: '无',
+				title: t('message.pages.config.tabs.none'),
 				icon: 'el-icon-plus',
 				key: 'null',
 			});

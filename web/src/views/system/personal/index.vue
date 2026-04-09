@@ -183,6 +183,7 @@
 
 <script setup lang="ts" name="personal">
 import { reactive, computed, onMounted, ref, defineAsyncComponent, nextTick, watch } from 'vue';
+import { useI18n } from 'vue-i18n';
 import { formatAxis } from '/@/utils/formatTime';
 import * as api from './api';
 import { ElMessage } from 'element-plus';
@@ -224,12 +225,13 @@ interface PersonalState {
 
 const router = useRouter();
 const themeConfigStore = useThemeConfig();
+const { t } = useI18n();
 
 const avatarSelector = defineAsyncComponent(() => import('/@/components/avatarSelector/index.vue'));
 const avatarSelectorRef = ref<any>(null);
 const smokeTextRef = ref<HTMLElement | null>(null);
 const currentTime = computed(() => {
-	return formatAxis(new Date());
+	return t(formatAxis(new Date()));
 });
 
 const isDark = computed(() => {

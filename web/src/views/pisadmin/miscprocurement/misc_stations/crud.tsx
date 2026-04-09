@@ -3,16 +3,7 @@ import * as api from './api'
 import { GetCompanies } from '../../basicinfo/currency/api'
 import { GetList as GetUnits } from '../../basicinfo/unit/api'
 import { ElMessage } from 'element-plus'
-
-const statusDict = [
-  { value: 1, label: '可用' },
-  { value: 0, label: '不可用' }
-]
-
-const stationTypeDict = [
-  { value: 1, label: '模治具' },
-  { value: 2, label: '石墨' }
-]
+import { useI18n } from 'vue-i18n'
 
 const loadCompanyOptions = async () => {
   try {
@@ -59,6 +50,18 @@ const loadUnitOptions = async () => {
 void loadCompanyOptions()
 
 export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProps): CreateCrudOptionsRet {
+  const { t } = useI18n()
+
+  const statusDict = [
+    { value: 1, label: t('message.pages.miscprocurement.stationInfo.statusEnabled') },
+    { value: 0, label: t('message.pages.miscprocurement.stationInfo.statusDisabled') }
+  ]
+
+  const stationTypeDict = [
+    { value: 1, label: t('message.pages.miscprocurement.stationInfo.typeTooling') },
+    { value: 2, label: t('message.pages.miscprocurement.stationInfo.typeGraphite') }
+  ]
+
   void crudExpose
 
   const ensureStationCodeUnique = async (companyCode: string, stationCode: string, currentId?: number) => {
@@ -76,7 +79,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       ? list.find((item: any) => item.company_code === companyCode && item.stationcode === stationCode)
       : null
     if (exists && (!currentId || exists.id !== currentId)) {
-      throw new Error('同一交易厂区下工站代码已存在，不可重复')
+      throw new Error(t('message.pages.miscprocurement.stationInfo.companyCode') + t('message.pages.miscprocurement.stationInfo.stationcode') + t('message.pages.menu.validation.alreadyExists'))
     }
   }
   return {
@@ -119,7 +122,7 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
       },
       columns: {
         company_code: {
-          title: '交易厂区',
+          title: t('message.pages.miscprocurement.stationInfo.companyCode'),
           type: 'dict-select',
           dict: dict({
             cache: false,
@@ -131,60 +134,60 @@ export const createCrudOptions = function ({ crudExpose }: CreateCrudOptionsProp
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         stationcode: {
-          title: '工站代码',
+          title: t('message.pages.miscprocurement.stationInfo.stationcode'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入工站代码', clearable: true } } },
-          form: { rules: [{ required: true, message: '请输入工站代码' }] },
+          search: { show: true, component: { props: { placeholder: t('message.pages.miscprocurement.stationInfo.stationcode'), clearable: true } } },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.stationInfo.stationcode') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           editForm: {
             component: { props: { disabled: true } }
           },
           column: { minWidth: 140, showOverflowTooltip: true }
         },
         stationname: {
-          title: '工站名称',
+          title: t('message.pages.miscprocurement.stationInfo.stationname'),
           type: 'input',
-          search: { show: true, component: { props: { placeholder: '请输入工站名称', clearable: true } } },
-          form: { rules: [{ required: true, message: '请输入工站名称' }] },
+          search: { show: true, component: { props: { placeholder: t('message.pages.miscprocurement.stationInfo.stationname'), clearable: true } } },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.stationInfo.stationname') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { minWidth: 160, showOverflowTooltip: true }
         },
         stationtype: {
-          title: '工站类型',
+          title: t('message.pages.miscprocurement.stationInfo.stationtype'),
           type: 'dict-select',
           dict: dict({ data: stationTypeDict }),
-          form: { rules: [{ required: true, message: '请选择工站类型' }] },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.stationInfo.stationtype') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { width: 140, showOverflowTooltip: true }
         },
         unit: {
-          title: '计量单位',
+          title: t('message.pages.miscprocurement.stationInfo.unit'),
           type: 'dict-select',
           dict: dict({
             cache: false,
             getData: async () => loadUnitOptions()
           }),
-          form: { rules: [{ required: true, message: '请选择计量单位' }] },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.stationInfo.unit') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }] },
           column: { width: 140, showOverflowTooltip: true }
         },
         rate: {
-          title: '费率',
+          title: t('message.pages.miscprocurement.stationInfo.rate'),
           type: 'number',
-          form: { rules: [{ required: true, message: '请输入费率' }], component: { props: { precision: 2 } } },
+          form: { rules: [{ required: true, message: t('message.pages.miscprocurement.stationInfo.rate') + ' ' + t('message.pages.menu.validation.fieldNameRequired') }], component: { props: { precision: 2 } } },
           column: { width: 120 }
         },
         status: {
-          title: '可用状态',
+          title: t('message.pages.miscprocurement.stationInfo.status'),
           type: 'dict-switch',
           dict: dict({ data: statusDict }),
           form: { value: 1 },
           column: { width: 120 }
         },
         create_datetime: {
-          title: '创建时间',
+          title: t('message.pages.miscprocurement.stationInfo.createTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }
         },
         update_datetime: {
-          title: '更新时间',
+          title: t('message.pages.miscprocurement.stationInfo.updateTime'),
           type: 'datetime',
           form: { show: false },
           column: { width: 180 }

@@ -1,5 +1,6 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import * as api from './api'
 import * as inquiryApi from '../../pisadmin/miscprocurement/rfqmiscellaneous/api'
 import { GetList as GetCostTemplateList } from '../../pisadmin/miscprocurement/cost_template/api'
@@ -144,15 +145,15 @@ export function isWithinSupplierBidWindow(row: any, nowMs: number = Date.now()) 
 }
 
 /** 非招标或未超限返回 null；否则返回提示文案（列表按钮禁用、openQuote/submit 前置校验） */
-export function getSupplierBidWindowRejectReason(row: any, nowMs: number = Date.now()): string | null {
+export function getSupplierBidWindowRejectReason(row: any, nowMs: number = Date.now(), t?: Function): string | null {
   if (!isBuyingMethodBidding(row)) return null
   const start = parseQuoteDeadlineToMs(row?.bidStartTime ?? row?.bid_start_time)
   const end = parseQuoteDeadlineToMs(row?.bidEndTime ?? row?.bid_end_time)
   if (!Number.isFinite(start) || !Number.isFinite(end)) {
-    return '招标项目缺少投标开始或截止时间，无法报价或提交'
+    return t ? t('message.pages.pissupplier.quotation.bidWindowMissing') : '招标项目缺少投标开始或截止时间，无法报价或提交'
   }
   // if (nowMs < start) return '投标尚未开始，请在投标开始后再报价或提交'
-  if (nowMs > end) return '已超过投标截止时间，无法报价或提交'
+  if (nowMs > end) return t ? t('message.pages.pissupplier.quotation.bidWindowExpired') : '已超过投标截止时间，无法报价或提交'
   return null
 }
 
@@ -197,22 +198,23 @@ export type InquiryAttachmentRow = {
 }
 
 /** 与 `pis_proc_inquiry_attachment` / 询价单 `attachments` 嵌套结构一致（勿用报价单 `attachments`） */
-const INQUIRY_FILE_TYPE_LABELS: Record<number, string> = {
-  1: '产品图纸',
-  2: '招标文件',
-  3: '其它文件'
-}
+const getInquiryFileTypeLabels = (t: Function) => ({
+  1: t('message.pages.pissupplier.quotation.fileTypeDrawing'),
+  2: t('message.pages.pissupplier.quotation.fileTypeBidDoc'),
+  3: t('message.pages.pissupplier.quotation.fileTypeOther')
+})
 
-export function mapInquiryAttachmentsFromInquiryApi(rows: any[] | null | undefined): InquiryAttachmentRow[] {
+export function mapInquiryAttachmentsFromInquiryApi(rows: any[] | null | undefined, t?: Function): InquiryAttachmentRow[] {
   if (!Array.isArray(rows) || !rows.length) return []
+  const labels = t ? getInquiryFileTypeLabels(t) : { 1: '产品图纸', 2: '招标文件', 3: '其它文件' }
   return rows.map((r) => {
     const ft = Number(r.file_type)
-    const t = ft === 1 || ft === 2 || ft === 3 ? ft : 3
+    const tf = ft === 1 || ft === 2 || ft === 3 ? ft : 3
     return {
       id: r.id,
       part_id: r.part_id,
-      file_type: t,
-      file_type_label: r.file_type_label || INQUIRY_FILE_TYPE_LABELS[t],
+      file_type: tf,
+      file_type_label: r.file_type_label || labels[tf],
       file_name: r.file_name,
       file_path: r.file_path,
       upload_time: r.upload_time,
@@ -287,11 +289,11 @@ function normalizeQuotationAttachmentsForUpload(rows: any[] | null | undefined):
   }))
 }
 
-const statusOptions = [
-  { label: '待报价', value: 'pending' },
-  { label: '报价中', value: 'quoted' },
-  { label: '已报价', value: 'completed' },
-  { label: '已过期', value: 'expired' }
+const getStatusOptions = (t: Function) => [
+  { label: t('message.pages.pissupplier.quotation.statusPending'), value: 'pending' },
+  { label: t('message.pages.pissupplier.quotation.statusQuoting'), value: 'quoted' },
+  { label: t('message.pages.pissupplier.quotation.statusCompleted'), value: 'completed' },
+  { label: t('message.pages.pissupplier.quotation.statusExpired'), value: 'expired' }
 ]
 
 const statusMapBackendToFront: Record<number, QuoteStatus> = {
@@ -323,7 +325,7 @@ export function formatAwardBidStatus(row: {
   statusCode?: number | string
   status?: QuoteStatus
   inquiryStatusCode?: number | string | null
-}): { mode: 'flag'; text: string } | { mode: 'text'; text: string } {
+}, t?: Function): { mode: 'flag'; text: string } | { mode: 'text'; text: string } {
   const ia = Number(row.isAwarded ?? row.is_awarded ?? 0) === 1 ? 1 : 0
   let sc: number
   if (row.statusCode !== undefined && row.statusCode !== null && row.statusCode !== '') {
@@ -335,13 +337,13 @@ export function formatAwardBidStatus(row: {
   const inqNum = inqRaw === undefined || inqRaw === null || inqRaw === '' ? NaN : Number(inqRaw)
 
   if (sc === 4) return { mode: 'text', text: '' }
-  if (ia === 1) return { mode: 'flag', text: '中标' }
-  if (ia === 0 && sc === 1) return { mode: 'text', text: '待报价' }
-  if (ia === 0 && sc === 2) return { mode: 'text', text: '报价中' }
+  if (ia === 1) return { mode: 'flag', text: t ? t('message.pages.pissupplier.quotation.awarded') : '中标' }
+  if (ia === 0 && sc === 1) return { mode: 'text', text: t ? t('message.pages.pissupplier.quotation.statusPending') : '待报价' }
+  if (ia === 0 && sc === 2) return { mode: 'text', text: t ? t('message.pages.pissupplier.quotation.statusQuoting') : '报价中' }
   if (ia === 0 && sc === 3) {
-    if (!Number.isFinite(inqNum)) return { mode: 'text', text: '评标中' }
-    if (inqNum !== 9) return { mode: 'text', text: '评标中' }
-    return { mode: 'text', text: '未中标' }
+    if (!Number.isFinite(inqNum)) return { mode: 'text', text: t ? t('message.pages.pissupplier.quotation.statusEvaluating') : '评标中' }
+    if (inqNum !== 9) return { mode: 'text', text: t ? t('message.pages.pissupplier.quotation.statusEvaluating') : '评标中' }
+    return { mode: 'text', text: t ? t('message.pages.pissupplier.quotation.statusLost') : '未中标' }
   }
   return { mode: 'text', text: '—' }
 }
@@ -398,17 +400,17 @@ const paymentMapBackendToFront: Record<number, string> = {
 }
 
 /** 与报价基础信息 `paymentTerm` 选项一致，供详情页只读展示 */
-export const PAYMENT_TERM_LABELS: Record<string, string> = {
-  tt_30_70: 'T/T 30%预付，70%出货前',
-  net30: '月结30天',
-  net45: '月结45天',
-  prepaid: '全额预付'
-}
+export const getPaymentTermLabels = (t: Function) => ({
+  tt_30_70: t('message.pages.pissupplier.quotation.paymentTt30_70'),
+  net30: t('message.pages.pissupplier.quotation.paymentNet30'),
+  net45: t('message.pages.pissupplier.quotation.paymentNet45'),
+  prepaid: t('message.pages.pissupplier.quotation.paymentPrepaid')
+})
 
-export function formatPaymentTermLabel(term: string | null | undefined) {
+export function formatPaymentTermLabel(term: string | null | undefined, t?: Function) {
   if (term == null || String(term).trim() === '') return '—'
   const k = String(term).trim()
-  return PAYMENT_TERM_LABELS[k] ?? k
+  return t ? getPaymentTermLabels(t)[k] ?? k : k
 }
 
 const costEnabledSections = ['材料成本', '加工成本', '其它成本', '利润', '税金']
@@ -685,27 +687,27 @@ const buildCostItemsFromTemplateSections = (sections: any, enableCostStructure =
     .filter(Boolean) as CostItem[]
 }
 
-const buildDefaultNonBomCostItems = (): CostItem[] => {
+const buildDefaultNonBomCostItems = (t: Function): CostItem[] => {
   const productDetail: CostItem = {
     id: crypto.randomUUID(),
     section: '产品明细',
     attrs: [
-      { key: 'partNo', label: '料号', value: '' },
-      { key: 'desc', label: '规格描述', value: '' },
-      { key: 'qty', label: '数量', value: '' },
-      { key: 'price', label: '单价', value: '' },
-      { key: 'amount', label: '合计价格', value: '' }
+      { key: 'partNo', label: t('message.pages.pissupplier.quotation.partNo'), value: '' },
+      { key: 'desc', label: t('message.pages.pissupplier.quotation.specDesc'), value: '' },
+      { key: 'qty', label: t('message.pages.pissupplier.quotation.qty'), value: '' },
+      { key: 'price', label: t('message.pages.pissupplier.quotation.unitPrice'), value: '' },
+      { key: 'amount', label: t('message.pages.pissupplier.quotation.totalPrice'), value: '' }
     ]
   }
   const profit: CostItem = {
     id: crypto.randomUUID(),
     section: '利润',
-    attrs: [{ key: 'profitRate', label: '利润率', value: '' }]
+    attrs: [{ key: 'profitRate', label: t('message.pages.pissupplier.quotation.profitRate'), value: '' }]
   }
   const tax: CostItem = {
     id: crypto.randomUUID(),
     section: '税金',
-    attrs: [{ key: 'taxRate', label: '税率', value: '' }]
+    attrs: [{ key: 'taxRate', label: t('message.pages.pissupplier.quotation.taxRate'), value: '' }]
   }
   return [productDetail, profit, tax]
 }
@@ -749,23 +751,23 @@ export const hasQuotationNestedCosts = (item: any): boolean =>
     (Array.isArray(item.profit_costs) && item.profit_costs.length > 0))
 
 /** 将详情嵌套子表转为 CostItem[]，供 costItemsToRows 渲染 */
-const costItemsFromQuotationApi = (item: any): CostItem[] => {
+const costItemsFromQuotationApi = (item: any, t: Function): CostItem[] => {
   const out: CostItem[] = []
   let mid = 0
   for (const m of item.material_costs || []) {
     const opt = parseJsonLoose(m.option_json)
     const attrs: { key: string; label: string; value: any }[] = [
-      { key: 'part_id', label: '料号', value: m.part_id ?? '' },
-      { key: 'material', label: '材质', value: m.material_spec ?? '' },
-      { key: 'len', label: '长', value: m.length ?? '' },
-      { key: 'width', label: '宽', value: m.width ?? '' },
-      { key: 'height', label: '高', value: m.height ?? '' },
-      { key: 'specificgravity', label: '比重', value: m.specific_gravity ?? '' },
-      { key: 'qty', label: '数量', value: m.qty ?? '' },
-      { key: 'weight', label: '重量', value: m.weight ?? '' },
-      { key: 'unitPrice', label: '单价', value: m.unit_price ?? '' },
-      { key: 'material_fee', label: '材料费用', value: m.material_cost ?? '' },
-      { key: 'remark', label: '备注', value: m.remark ?? '' }
+      { key: 'part_id', label: t('message.pages.pissupplier.quotation.partNo'), value: m.part_id ?? '' },
+      { key: 'material', label: t('message.pages.pissupplier.quotation.material'), value: m.material_spec ?? '' },
+      { key: 'len', label: t('message.pages.pissupplier.quotation.length'), value: m.length ?? '' },
+      { key: 'width', label: t('message.pages.pissupplier.quotation.width'), value: m.width ?? '' },
+      { key: 'height', label: t('message.pages.pissupplier.quotation.height'), value: m.height ?? '' },
+      { key: 'specificgravity', label: t('message.pages.pissupplier.quotation.specificGravity'), value: m.specific_gravity ?? '' },
+      { key: 'qty', label: t('message.pages.pissupplier.quotation.qty'), value: m.qty ?? '' },
+      { key: 'weight', label: t('message.pages.pissupplier.quotation.weight'), value: m.weight ?? '' },
+      { key: 'unitPrice', label: t('message.pages.pissupplier.quotation.unitPrice'), value: m.unit_price ?? '' },
+      { key: 'material_fee', label: t('message.pages.pissupplier.quotation.materialFee'), value: m.material_cost ?? '' },
+      { key: 'remark', label: t('message.pages.pissupplier.quotation.remark'), value: m.remark ?? '' }
     ]
     Object.entries(opt).forEach(([k, v]) => {
       if (!attrs.find((a) => a.key === k)) attrs.push({ key: k, label: k, value: v })
@@ -781,13 +783,13 @@ const costItemsFromQuotationApi = (item: any): CostItem[] => {
   for (const p of item.process_costs || []) {
     const opt = parseJsonLoose(p.option_json)
     const attrs: { key: string; label: string; value: any }[] = [
-      { key: 'part_id', label: '料号', value: p.part_id ?? '' },
-      { key: 'processStation', label: '加工工站', value: p.process_station ?? '' },
-      { key: 'processUnit', label: '单位', value: p.unit ?? '' },
-      { key: 'processRate', label: '费率', value: p.unit_rate ?? '' },
-      { key: 'processMeasure', label: '加工计量', value: p.process_qty ?? '' },
-      { key: 'processFee', label: '加工费', value: p.process_price ?? '' },
-      { key: 'remark', label: '备注', value: p.remark ?? '' }
+      { key: 'part_id', label: t('message.pages.pissupplier.quotation.partNo'), value: p.part_id ?? '' },
+      { key: 'processStation', label: t('message.pages.pissupplier.quotation.processStation'), value: p.process_station ?? '' },
+      { key: 'processUnit', label: t('message.pages.pissupplier.quotation.processUnit'), value: p.unit ?? '' },
+      { key: 'processRate', label: t('message.pages.pissupplier.quotation.processRate'), value: p.unit_rate ?? '' },
+      { key: 'processMeasure', label: t('message.pages.pissupplier.quotation.processMeasure'), value: p.process_qty ?? '' },
+      { key: 'processFee', label: t('message.pages.pissupplier.quotation.processFee'), value: p.process_price ?? '' },
+      { key: 'remark', label: t('message.pages.pissupplier.quotation.remark'), value: p.remark ?? '' }
     ]
     Object.entries(opt).forEach(([k, v]) => {
       if (!attrs.find((a) => a.key === k)) attrs.push({ key: k, label: k, value: v })
@@ -805,30 +807,30 @@ const costItemsFromQuotationApi = (item: any): CostItem[] => {
       id: `oth-${o.autoid ?? oid++}`,
       section: '其它成本',
       attrs: [
-        { key: 'part_id', label: '料号', value: o.part_id ?? '' },
-        { key: 'packageFee', label: '包装费', value: o.packaging_cost ?? '' },
-        { key: 'transportFee', label: '运输费', value: o.transportation_cost ?? '' }
+        { key: 'part_id', label: t('message.pages.pissupplier.quotation.partNo'), value: o.part_id ?? '' },
+        { key: 'packageFee', label: t('message.pages.pissupplier.quotation.packagingFee'), value: o.packaging_cost ?? '' },
+        { key: 'transportFee', label: t('message.pages.pissupplier.quotation.transportFee'), value: o.transportation_cost ?? '' }
       ]
     })
   }
   for (const pr of item.profit_costs || []) {
-    const pid = pr.part_id ?? ''
+    const prtid = pr.part_id ?? ''
     out.push({
-      id: `profit-${pr.autoid ?? pid}-p`,
+      id: `profit-${pr.autoid ?? prtid}-p`,
       section: '利润',
       attrs: [
-        { key: 'part_id', label: '料号', value: pid },
-        { key: 'profitRate', label: '利润率(%)', value: pr.profit_rate ?? '' },
-        { key: 'profitTotal', label: '利润金额', value: '' }
+        { key: 'part_id', label: t('message.pages.pissupplier.quotation.partNo'), value: prtid },
+        { key: 'profitRate', label: t('message.pages.pissupplier.quotation.profitRatePct'), value: pr.profit_rate ?? '' },
+        { key: 'profitTotal', label: t('message.pages.pissupplier.quotation.profitAmount'), value: '' }
       ]
     })
     out.push({
-      id: `profit-${pr.autoid ?? pid}-t`,
+      id: `profit-${pr.autoid ?? prtid}-t`,
       section: '税金',
       attrs: [
-        { key: 'part_id', label: '料号', value: pid },
-        { key: 'taxRate', label: '税率(%)', value: pr.tax_rate ?? '' },
-        { key: 'taxTotal', label: '税金金额', value: '' }
+        { key: 'part_id', label: t('message.pages.pissupplier.quotation.partNo'), value: prtid },
+        { key: 'taxRate', label: t('message.pages.pissupplier.quotation.taxRatePct'), value: pr.tax_rate ?? '' },
+        { key: 'taxTotal', label: t('message.pages.pissupplier.quotation.taxAmount'), value: '' }
       ]
     })
   }
@@ -1058,6 +1060,7 @@ export function useQuoteCrud(options?: {
   /** 详情页保存成功后（例如返回列表） */
   onSaveSuccess?: () => void
 }) {
+  const { t } = useI18n()
   const uiContext = options?.uiContext ?? 'list'
   const filters = reactive<{
     inquiryPlant: string
@@ -1203,10 +1206,10 @@ export function useQuoteCrud(options?: {
 
     // 兼容后端/历史数据直接返回中文文案的情况
     const labelToStatus: Record<string, QuoteStatus> = {
-      待报价: 'pending',
-      报价中: 'quoted',
-      已报价: 'completed',
-      已过期: 'expired'
+      [t('message.pages.pissupplier.quotation.statusPending')]: 'pending',
+      [t('message.pages.pissupplier.quotation.statusQuoting')]: 'quoted',
+      [t('message.pages.pissupplier.quotation.statusCompleted')]: 'completed',
+      [t('message.pages.pissupplier.quotation.statusExpired')]: 'expired'
     }
     return labelToStatus[str] || 'pending'
   }
@@ -1385,13 +1388,14 @@ export function useQuoteCrud(options?: {
         paymentTerm: normalizePayment(item.payment_method)
       },
       costItems: hasQuotationNestedCosts(item)
-        ? costItemsFromQuotationApi(item)
+        ? costItemsFromQuotationApi(item, t)
         : normalizeCostItems(item.cost_items || item.costItems).length
           ? normalizeCostItems(item.cost_items || item.costItems)
           : buildCostItems(
               item.template || item.template_code || 'default',
               item.templateSections || item.template_sections || item.sections,
-              (item.enable_cost_structure ?? item.is_bom ?? item.isBom ?? item.template?.enable_cost_structure) !== false
+              (item.enable_cost_structure ?? item.is_bom ?? item.isBom ?? item.template?.enable_cost_structure) !== false,
+              t
             ),
       rfqItems: Array.isArray(item.rfq_items) ? item.rfq_items : [],
       attachments: normalizeQuotationAttachmentsForUpload(item.attachments),
@@ -1911,9 +1915,9 @@ export function useQuoteCrud(options?: {
 
       // 询价附件必须以询价单子表为准（`Inquiry.attachments`），勿用报价单 `attachments` 回显
       if (inquiry?.attachments?.length) {
-        quoteData.inquiryAttachments = mapInquiryAttachmentsFromInquiryApi(inquiry.attachments)
+        quoteData.inquiryAttachments = mapInquiryAttachmentsFromInquiryApi(inquiry.attachments, t)
       } else if (rawDetail?.inquiry_attachments?.length) {
-        quoteData.inquiryAttachments = mapInquiryAttachmentsFromInquiryApi(rawDetail.inquiry_attachments)
+        quoteData.inquiryAttachments = mapInquiryAttachmentsFromInquiryApi(rawDetail.inquiry_attachments, t)
       }
 
       quoteData.inquiryStatus = formatMiscInquiryStatus(quoteData)
@@ -1998,7 +2002,7 @@ export function useQuoteCrud(options?: {
                 merged.inquiryCompanyCode = icc
               }
               if (inv.attachments?.length) {
-                merged.inquiryAttachments = mapInquiryAttachmentsFromInquiryApi(inv.attachments)
+                merged.inquiryAttachments = mapInquiryAttachmentsFromInquiryApi(inv.attachments, t)
               }
             }
           }
@@ -2121,7 +2125,7 @@ export function useQuoteCrud(options?: {
   const addCostRow = (section: string) => {
     const cols = mergeQuotationSectionColumns(section, current.templateSections)
     if (!cols.length) {
-      ElMessage.warning('该段未在成本模板中配置字段，无法新增行')
+      ElMessage.warning(t('message.pages.pissupplier.quotation.cannotAddRowNoFields'))
       return
     }
     const values: Record<string, any> = {}
@@ -2140,14 +2144,14 @@ export function useQuoteCrud(options?: {
 
   function saveQuote() {
     if (dialog.quoteId && !isQuotationEditable(current)) {
-      ElMessage.warning('仅未报价/报价中状态可保存')
+      ElMessage.warning(t('message.pages.pissupplier.quotation.onlyPendingCanSave'))
       return
     }
     const c = (current.base.contact || '').trim()
     const p = (current.base.phone || '').trim()
     const e = (current.base.email || '').trim()
     if (!c || !p || !e) {
-      ElMessage.warning('请填写完整【报价基础信息】后再保存。')
+      ElMessage.warning(t('message.pages.pissupplier.quotation.fillBasicInfoFirst'))
       return
     }
     ;(async () => {
@@ -2162,10 +2166,10 @@ export function useQuoteCrud(options?: {
           if (!name && !path) continue
           if (!path) {
             if (f?.raw) {
-              ElMessage.error(`附件上传失败：${name || '未命名文件'}，请检查网络后重试`)
+              ElMessage.error(t('message.pages.pissupplier.quotation.attachmentUploadFailed', { name: name || t('message.pages.pissupplier.quotation.unnamedFile') }))
               return
             }
-            ElMessage.error(`附件「${name || '未命名'}」缺少存储路径，请删除后重新上传`)
+            ElMessage.error(t('message.pages.pissupplier.quotation.attachmentMissingPath', { name: name || t('message.pages.pissupplier.quotation.unnamed') }))
             return
           }
         }
@@ -2188,11 +2192,11 @@ export function useQuoteCrud(options?: {
         } else {
           dialog.visible = false
         }
-        ElMessage.success('已保存')
+        ElMessage.success(t('message.pages.pissupplier.quotation.saved'))
         options?.onChange?.()
       } catch (err) {
         console.error('保存报价失败', err)
-        ElMessage.error('保存失败，请检查网络或必填项后重试')
+        ElMessage.error(t('message.pages.pissupplier.quotation.saveFailed'))
       } finally {
         loading.value = false
       }
@@ -2201,7 +2205,7 @@ export function useQuoteCrud(options?: {
 
   function submitQuotationFromRow(row: Quote) {
     if (!isQuotedQuotation(row)) {
-      ElMessage.warning('仅报价中状态可提交报价')
+      ElMessage.warning(t('message.pages.pissupplier.quotation.onlyQuotingCanSubmit'))
       return
     }
     const bidReason = getSupplierBidWindowRejectReason(row)
@@ -2213,11 +2217,11 @@ export function useQuoteCrud(options?: {
     const p = (row.base?.phone || '').trim()
     const e = (row.base?.email || '').trim()
     if (!c || !p || !e) {
-      ElMessage.warning('请先将报价单中的【报价基础信息】填写完整后再提交报价。')
+      ElMessage.warning(t('message.pages.pissupplier.quotation.fillBasicInfoBeforeSubmit'))
       return
     }
     if (!row.id) {
-      ElMessage.warning('无法提交：缺少报价单标识')
+      ElMessage.warning(t('message.pages.pissupplier.quotation.cannotSubmitNoId'))
       return
     }
     ;(async () => {
@@ -2233,12 +2237,12 @@ export function useQuoteCrud(options?: {
         else quotes.value.unshift(updated)
         const tip =
           res?.data?.msg ||
-          (inquiryClosed ? '报价已提交，询价单已进入报价结束' : '报价已提交')
+          (inquiryClosed ? t('message.pages.pissupplier.quotation.submittedInquiryClosed') : t('message.pages.pissupplier.quotation.submitted'))
         ElMessage.success(tip)
         options?.onChange?.()
       } catch (err) {
         console.error('提交报价失败', err)
-        ElMessage.error('提交失败，请稍后重试')
+        ElMessage.error(t('message.pages.pissupplier.quotation.submitFailed'))
       } finally {
         loading.value = false
       }
@@ -2385,10 +2389,10 @@ export function useQuoteCrud(options?: {
     return legacy[key] || key
   }
   const statusLabel = (s: QuoteStatus) => ({
-    pending: '待报价',
-    quoted: '报价中',
-    completed: '已报价',
-    expired: '已过期'
+    pending: t('message.pages.pissupplier.quotation.statusPending'),
+    quoted: t('message.pages.pissupplier.quotation.statusQuoting'),
+    completed: t('message.pages.pissupplier.quotation.statusCompleted'),
+    expired: t('message.pages.pissupplier.quotation.statusExpired')
   }[s] || s)
 
   const statusTagType = (s: QuoteStatus) => ({
@@ -2400,7 +2404,7 @@ export function useQuoteCrud(options?: {
 
   return {
     filters,
-    statusOptions,
+    statusOptions: getStatusOptions(t),
     resetFilter,
     filteredQuotes,
     loading,
@@ -2412,7 +2416,7 @@ export function useQuoteCrud(options?: {
     viewQuoteFromPublicRaw,
     openQuote,
     dialog,
-    dialogTitle: computed(() => (dialog.mode === 'view' ? '查看报价' : dialog.quoteId ? '编辑报价' : '新增报价')),
+    dialogTitle: computed(() => (dialog.mode === 'view' ? t('message.pages.pissupplier.quotation.viewQuote') : dialog.quoteId ? t('message.pages.pissupplier.quotation.editQuote') : t('message.pages.pissupplier.quotation.newQuote'))),
     statusTagType,
     statusLabel,
     templateLabel,
@@ -2455,9 +2459,9 @@ export function useQuoteCrud(options?: {
   }
 }
 
-const buildCostItems = (_templateKey: string, templateSections?: any, enableCostStructure = true): CostItem[] => {
+const buildCostItems = (_templateKey: string, templateSections?: any, enableCostStructure = true, t?: Function): CostItem[] => {
   const fromTplSections = buildCostItemsFromTemplateSections(templateSections, enableCostStructure)
   if (fromTplSections.length) return fromTplSections
-  if (!enableCostStructure) return buildDefaultNonBomCostItems()
+  if (!enableCostStructure) return t ? buildDefaultNonBomCostItems(t) : []
   return []
 }

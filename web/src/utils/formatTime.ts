@@ -122,16 +122,16 @@ export function formatPast(param: string | Date, format: string = 'YYYY-mm-dd'):
  * 时间问候语
  * @param param 当前时间，new Date() 格式
  * @description param 调用 `formatAxis(new Date())` 输出 `上午好`
- * @returns 返回拼接后的时间字符串
+ * @returns 返回 i18n key 路径
  */
 export function formatAxis(param: Date): string {
 	let hour: number = new Date(param).getHours();
-	if (hour < 6) return '凌晨好';
-	else if (hour < 9) return '早上好';
-	else if (hour < 12) return '上午好';
-	else if (hour < 14) return '中午好';
-	else if (hour < 17) return '下午好';
-	else if (hour < 19) return '傍晚好';
-	else if (hour < 22) return '晚上好';
-	else return '夜里好';
+	if (hour < 6) return 'message.common.greeting.dawn';
+	else if (hour < 9) return 'message.common.greeting.morning';
+	else if (hour < 12) return 'message.common.greeting.lateMorning';
+	else if (hour < 14) return 'message.common.greeting.noon';
+	else if (hour < 17) return 'message.common.greeting.afternoon';
+	else if (hour < 19) return 'message.common.greeting.evening';
+	else if (hour < 22) return 'message.common.greeting.night';
+	else return 'message.common.greeting.lateNight';
 }
