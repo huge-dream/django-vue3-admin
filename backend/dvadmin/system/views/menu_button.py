@@ -111,17 +111,21 @@ class MenuButtonViewSet(CustomModelViewSet):
     def scan_get_apps(self, request):
         """
         获取可扫描的 Django App 列表
-        仅返回 dvadmin 下的自定义 app（排除框架内置 app）
+        扫描 dvadmin 下的所有 app（每个 app 下必须有 views.py 才纳入）
         """
-        from django.apps import apps
+        import os
+        from pathlib import Path
 
-        # 获取 dvadmin 下所有已注册的自定义 app
+        dvadmin_dir = Path(__file__).resolve().parent.parent.parent
         custom_apps = []
-        for app_config in apps.get_app_configs():
-            if app_config.name.startswith('dvadmin.') and app_config.name != 'dvadmin':
-                # 排除 system app 本身（避免循环）
-                if app_config.name != 'dvadmin.system':
-                    custom_apps.append(app_config.name.split('.')[-1])
+        for item in dvadmin_dir.iterdir():
+            if not item.is_dir():
+                continue
+            # 查找 views/ 子目录（dvadmin 项目风格：views 在子目录中）
+            views_dir = item / 'views'
+            if views_dir.exists() and views_dir.is_dir():
+                if item.name not in ('utils',):
+                    custom_apps.append(item.name)
 
         return DetailResponse(data=sorted(custom_apps))
 
@@ -132,8 +136,10 @@ class MenuButtonViewSet(CustomModelViewSet):
         请求体: {"app": "system"}
         """
         import importlib
-        from rest_framework.routers import SimpleRouter
+        import pkgutil
+        from pathlib import Path
         from rest_framework.viewsets import GenericViewSet
+        from rest_framework.decorators import action
         from dvadmin.system.models import MenuButton
 
         app_name = request.data.get('app')
@@ -144,84 +150,89 @@ class MenuButtonViewSet(CustomModelViewSet):
         result = []
 
         try:
-            # 动态导入 app 下的 views 模块
-            views_module = importlib.import_module(f'{full_app_name}.views')
+            views_pkg = importlib.import_module(f'{full_app_name}.views')
         except ModuleNotFoundError:
             return DetailResponse(data=[], msg=f"App '{app_name}' 下未找到 views 模块")
 
-        # 获取已存在的 value 集合
+        views_pkg_path = Path(views_pkg.__file__).parent
+        view_modules = []
+        for importer, modname, ispkg in pkgutil.iter_modules([str(views_pkg_path)]):
+            if modname not in ('__init__',):
+                view_modules.append(f'{full_app_name}.views.{modname}')
+
         existing_values = set(MenuButton.objects.values_list('value', flat=True))
+        seen_viewset_ids = set()  # 去重：同一 ViewSet 类可能被多个子模块引用
 
-        # 遍历 app 下所有 ViewSet 类
-        for attr_name in dir(views_module):
-            cls = getattr(views_module, attr_name)
-            if not isinstance(cls, type):
-                continue
-            if not issubclass(cls, GenericViewSet):
-                continue
-            if cls is GenericViewSet:
-                continue
+        # 标准 CRUD action 映射
+        standard_actions = {
+            'list': ('GET', 0, '列表查询'),
+            'create': ('POST', 1, '新增'),
+            'retrieve': ('GET', 0, '详情查询'),
+            'update': ('PUT', 2, '更新'),
+            'partial_update': ('PATCH', 2, '部分更新'),
+            'destroy': ('DELETE', 3, '删除'),
+        }
 
-            # 提取 ViewSet 名称
-            viewset_name = cls.__name__  # 如 "MenuViewSet"
-            if viewset_name.endswith('ViewSet'):
-                model_name = viewset_name[:-8]  # "Menu"
-            else:
-                model_name = viewset_name
-
-            # 尝试从 docstring 获取中文名称
-            viewset_verbose_name = viewset_name
-            if cls.__doc__:
-                lines = cls.__doc__.strip().split('\n')
-                viewset_verbose_name = lines[0].strip()
-
-            # 构建该 ViewSet 的 router 来获取所有 action
-            router_prefix = viewset_name.lower().replace('viewset', '')
-            router = SimpleRouter()
+        import inspect
+        for module_name in view_modules:
             try:
-                router.register(router_prefix, cls, basename=router_prefix)
+                module = importlib.import_module(module_name)
             except Exception:
                 continue
 
-            buttons = []
-            for prefix, viewset_instance, actions in router.registry:
-                for action_name, method in actions.items():
-                    # 获取 HTTP 方法
-                    http_method = method.upper()  # 如 "GET", "POST"
-
-                # 排除基类（名字含 Custom/Base/Generic）
-                viewset_name = cls.__name__
-                if any(viewset_name.startswith(prefix) for prefix in ('Custom', 'Base', 'Generic', 'Abstract')):
+            for attr_name in dir(module):
+                cls = getattr(module, attr_name)
+                if not isinstance(cls, type):
                     continue
+                if not issubclass(cls, GenericViewSet):
+                    continue
+                if cls is GenericViewSet:
+                    continue
+                # 去重
+                if id(cls) in seen_viewset_ids:
+                    continue
+                seen_viewset_ids.add(id(cls))
+
+                viewset_name = cls.__name__
                 model_name = viewset_name.removesuffix('ViewSet') if viewset_name.endswith('ViewSet') else viewset_name
 
-                    # 获取 action 名称（驼峰转首字母大写）
+                viewset_verbose_name = viewset_name
+                if cls.__doc__:
+                    lines = cls.__doc__.strip().split('\n')
+                    viewset_verbose_name = lines[0].strip()
+
+                found_actions = {}
+
+                # 先加入标准 CRUD action
+                found_actions.update(standard_actions)
+
+                # 再找自定义 @action
+                import inspect
+                for name, method in inspect.getmembers(cls, predicate=inspect.isfunction):
+                    if hasattr(method, 'mapping'):
+                        # 这是 @action 装饰的方法
+                        http_method = list(method.mapping.keys())[0].upper()
+                        method_map = {'GET': 0, 'POST': 1, 'PUT': 2, 'PATCH': 2, 'DELETE': 3}
+                        method_int = method_map.get(http_method, 0)
+                        action_doc = (method.__doc__ or '').strip().split('\n')[0] if method.__doc__ else name
+                        found_actions[name] = (http_method, method_int, action_doc)
+
+                # 获取该 ViewSet 对应的 URL 前缀
+                prefix = viewset_name.lower().replace('viewset', '')
+                lookup = 'id'
+                if hasattr(cls, 'lookup_field'):
+                    lookup = getattr(cls, 'lookup_field') or 'id'
+
+                buttons = []
+                for action_name, (http_method, method_int, name) in found_actions.items():
                     action_title = action_name.replace('_', ' ').title().replace(' ', '')
                     value = f"{app_name}:{model_name}:{action_title}"
 
-                    # 获取 docstring 作为 name
-                    action_method = getattr(viewset_instance, action_name, None)
-                    if action_method and hasattr(action_method, '__doc__') and action_method.__doc__:
-                        name_lines = action_method.__doc__.strip().split('\n')
-                        name = name_lines[0].strip()
-                    else:
-                        # 固定规则
-                        name_map = {
-                            'List': '列表查询', 'Retrieve': '详情查询', 'Create': '新增',
-                            'Update': '更新', 'Destroy': '删除', 'Partialupdate': '部分更新',
-                        }
-                        name = name_map.get(action_title, action_title)
-
-                    # 生成接口路径
-                    lookup = 'id'
-                    if hasattr(viewset_instance, 'lookup_field'):
-                        lookup = getattr(viewset_instance, 'lookup_field') or 'id'
                     if action_name in ('list', 'create'):
                         path = f"/api/{app_name}/{prefix}/"
                     elif action_name in ('retrieve', 'update', 'partial_update', 'destroy'):
                         path = f"/api/{app_name}/{prefix}/{{{lookup}}}/"
                     else:
-                        # custom action
                         path = f"/api/{app_name}/{prefix}/{action_name}/"
 
                     buttons.append({
@@ -234,12 +245,12 @@ class MenuButtonViewSet(CustomModelViewSet):
                         'method_int': method_int,
                     })
 
-            if buttons:
-                result.append({
-                    'viewset': viewset_name,
-                    'viewset_verbose_name': viewset_verbose_name,
-                    'buttons': buttons,
-                })
+                if buttons:
+                    result.append({
+                        'viewset': viewset_name,
+                        'viewset_verbose_name': viewset_verbose_name,
+                        'buttons': buttons,
+                    })
 
         return DetailResponse(data=result)
 
