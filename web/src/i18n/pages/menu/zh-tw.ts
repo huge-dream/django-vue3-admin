@@ -163,6 +163,7 @@ export default {
                     clearSelection: '取消選擇',
                     selectedTip: '已選擇 {count} 項',
                     totalCount: '共 {count} 條',
+                    selectedCount: '已選擇 {count} 項',
                 },
                 scan: {
                     title: '自動掃描接口權限',

@@ -163,6 +163,7 @@ export default {
                     clearSelection: 'Clear Selection',
                     selectedTip: '{count} selected',
                     totalCount: '{count} items total',
+                    selectedCount: '{count} selected',
                 },
                 scan: {
                     title: 'Auto Scan API Permissions',
