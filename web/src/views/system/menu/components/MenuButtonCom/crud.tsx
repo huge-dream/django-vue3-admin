@@ -99,13 +99,48 @@ export const createCrudOptions = function ({crudExpose, context}: CreateCrudOpti
 						},
 					},
                     batchDelete: {
-						show: false,
+						show: auth('menu:DeleteButton'),
+						type: 'danger',
+						text: t('message.pages.menu.buttons.batchDelete'),
+						disabled: () => selectedRows.value.length === 0,
+						click: async () => {
+							if (selectedRows.value.length === 0) {
+								ElMessage.warning(t('message.pages.menu.messages.selectMenu'));
+								return;
+							}
+							await ElMessageBox.confirm(
+								t('message.pages.menu.messages.batchDeleteConfirm', { count: selectedRows.value.length }),
+								t('message.pages.menu.buttons.confirm'),
+								{ type: 'warning', confirmButtonText: t('message.pages.menu.buttons.confirm'), cancelButtonText: t('message.pages.menu.buttons.cancel') }
+							);
+							// 先拿到 ids，再清空表格选择
+							const ids = XEUtils.pluck(selectedRows.value, 'id');
+							crudExpose.getBaseTableRef().clearSelection();
+							selectedRows.value = [];
+							await api.BatchDelete(ids);
+							ElMessage.success(t('message.pages.menu.messages.deleteSuccess'));
+							crudExpose.doRefresh();
+						},
 					},
                     selectAll: {
-						show: false,
+						show: true,
+						text: t('message.pages.menu.buttons.selectAll'),
+						disabled: () => !context!.selectOptions.value.id,
+						click: () => {
+							const tableRef = crudExpose.getBaseTableRef();
+							const tableData = crudExpose.getTableData();
+							tableRef.toggleAllSelection();
+							selectedRows.value = [...tableData];
+						},
 					},
                     selectNone: {
-						show: false,
+						show: true,
+						text: t('message.pages.menu.buttons.selectNone'),
+						disabled: () => selectedRows.value.length === 0,
+						click: () => {
+							crudExpose.getBaseTableRef().clearSelection();
+							selectedRows.value = [];
+						},
 					},
                 },
             },
