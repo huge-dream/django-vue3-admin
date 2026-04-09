@@ -8,11 +8,12 @@
 
 查看 **HTTP 入参 / 出参**（接收请求与返回响应）::
 
-    pytest plugins/test/test_sync_misc_material.py -s -q
+    $env:PIS_TEST_USE_SQLITE="1"; pytest plugins/test/test_sync_misc_material.py -s -q
 
 （``-s`` 关闭输出捕获；否则仅在失败时可能看到部分输出。）
 """
 import json
+import sys
 import uuid
 
 import pytest
@@ -20,9 +21,11 @@ from rest_framework import status
 
 from apps.pisadmin.basicinfo.models import SupplierUser
 from apps.pisadmin.miscprocurement.models import Inquiry, MiscProcMaterial
+from apps.pisadmin.procurement.models import ProcMaterial
 from sync.adapters.misc_material import MiscMaterialSyncAdapter
 from sync.adapters.pricing_result import PricingResultSyncAdapter
 from sync.adapters.vnd_quote_perms import VendorQuotePermissionSyncAdapter
+from sync.adapters.raw_material import RawMaterialSyncAdapter
 from sync.base import SyncStatus
 from sync.factory import SyncFactory
 from sync.manager import SyncManager
@@ -87,34 +90,74 @@ def _quote_permission_payload(
     }
 
 
+def _raw_material_payload(
+    company_code: str = "VC01",
+    material_code: str = "RM-001",
+    material_name_zh: str = "原料A",
+    specification: str = "SPEC-001",
+    unit: str = "KG",
+    **overrides,
+) -> dict:
+    data = {
+        "companyCode": company_code,
+        "materialCode": material_code,
+        "materialNameZh": material_name_zh,
+        "materialNameEn": "Raw Material A",
+        "materialNameVi": "Nguyen Lieu A",
+        "specification": specification,
+        "unit": unit,
+        "sourceCode": "SRC-001",
+        "modelType": "MODEL-A",
+        "productCategory": "CATEGORY-A",
+        "groupCode": "GRP-001",
+        "materialGroup": "MG-001",
+        "marketClass": "MC-001",
+        "approvalStatus": "APPROVED",
+        "createtime": "2026-04-01T09:00:00",
+        "updatetime": "2026-04-08T10:00:00",
+    }
+    data.update(overrides)
+    return data
+
+
+def _safe_print(text: str) -> None:
+    try:
+        print(text, flush=True)
+    except (UnicodeEncodeError, OSError):
+        pass
+
+
 def _log_http_roundtrip(title: str, url: str, payload, response) -> None:
     """在终端打印一次「接收到的请求」与「返回的响应」（需 ``pytest -s``）。"""
     try:
-        body_in = json.dumps(payload, ensure_ascii=False, indent=2)
-    except (TypeError, ValueError):
-        body_in = repr(payload)
-    data = getattr(response, "data", None)
-    if data is not None:
         try:
-            body_out = json.dumps(data, ensure_ascii=False, indent=2, default=str)
+            body_in = json.dumps(payload, ensure_ascii=False, indent=2)
         except (TypeError, ValueError):
-            body_out = repr(data)
-    else:
-        raw = getattr(response, "content", b"") or b""
-        body_out = raw.decode("utf-8", errors="replace")[:4000]
-    print(
-        f"\n{'═' * 56}\n"
-        f"  {title}\n"
-        f"  ── 请求 (EIP → PIS) ─────────────────────────────\n"
-        f"  POST {url}\n"
-        f"  Content-Type: application/json\n"
-        f"  body:\n{body_in}\n"
-        f"  ── 响应 (PIS → EIP) ─────────────────────────────\n"
-        f"  status: {response.status_code}\n"
-        f"  body:\n{body_out}\n"
-        f"{'═' * 56}\n",
-        flush=True,
-    )
+            body_in = repr(payload)
+        data = getattr(response, "data", None)
+        if data is not None:
+            try:
+                body_out = json.dumps(data, ensure_ascii=False, indent=2, default=str)
+            except (TypeError, ValueError):
+                body_out = repr(data)
+        else:
+            raw = getattr(response, "content", b"") or b""
+            body_out = raw.decode("utf-8", errors="replace")[:4000]
+        sep = "=" * 56
+        _safe_print(
+            f"\n{sep}\n"
+            f"  {title}\n"
+            f"  -- 请求 (EIP -> PIS) ------------------------\n"
+            f"  POST {url}\n"
+            f"  Content-Type: application/json\n"
+            f"  body:\n{body_in}\n"
+            f"  -- 响应 (PIS -> EIP) ------------------------\n"
+            f"  status: {response.status_code}\n"
+            f"  body:\n{body_out}\n"
+            f"{sep}\n"
+        )
+    except Exception:
+        pass
 
 
 @pytest.mark.django_db
@@ -323,9 +366,9 @@ class TestPricingResultSyncAdapter:
 
 @pytest.mark.django_db
 class TestMiscMaterialSyncAPI:
-    """POST /api/sync/material/misc（DRF force_authenticate 绕过 AK/SK 验签，仅测业务链）。"""
+    """POST /api/sync/materials/misc（DRF force_authenticate 绕过 AK/SK 验签，仅测业务链）。"""
 
-    URL = "/api/sync/material/misc"
+    URL = "/api/sync/materials/misc"
 
     def test_post_success(self, api_client, admin_user):
         api_client.force_authenticate(user=admin_user)
@@ -418,9 +461,11 @@ def test_sync_factory_registers_eip_adapters():
     assert "misc_material" in names
     assert "pricing_result" in names
     assert "vendor_quote_permission" in names
+    assert "raw_material" in names
     assert isinstance(SyncFactory.create("misc_material"), MiscMaterialSyncAdapter)
     assert isinstance(SyncFactory.create("pricing_result"), PricingResultSyncAdapter)
     assert isinstance(SyncFactory.create("vendor_quote_permission"), VendorQuotePermissionSyncAdapter)
+    assert isinstance(SyncFactory.create("raw_material"), RawMaterialSyncAdapter)
 
 
 @pytest.mark.django_db
@@ -608,3 +653,142 @@ class TestVendorQuotePermissionSyncAPI:
         assert response.status_code == status.HTTP_200_OK
         assert response.data["Status"] == "success"
         assert SupplierUser.objects.filter(supplier_id="NOAUTH-SUP", user_email="noauth@vendor.com").exists()
+
+
+@pytest.mark.django_db
+class TestRawMaterialSyncAdapter:
+    """RawMaterialSyncAdapter：校验、转换、落库（占位实现）。"""
+
+    def test_validate_requires_company_and_material(self):
+        adapter = RawMaterialSyncAdapter()
+        assert adapter.validate({}) is False
+        assert adapter.validate({"companyCode": "A01"}) is False
+        assert adapter.validate({"materialCode": "P1"}) is False
+        assert adapter.validate({"companyCode": "A01", "materialCode": "P1"}) is True
+        assert adapter.validate({"company_code": "A01", "material_code": "P1"}) is True
+
+    def test_validate_accepts_snake_case_fields(self):
+        adapter = RawMaterialSyncAdapter()
+        data = {
+            "company_code": "VC01",
+            "material_code": "RM-001",
+        }
+        assert adapter.validate(data) is True
+
+    def test_transform_maps_all_eip_fields(self):
+        adapter = RawMaterialSyncAdapter()
+        data = _raw_material_payload()
+        t = adapter.transform_to_local(data)
+        assert t["company_code"] == "VC01"
+        assert t["material_code"] == "RM-001"
+        assert t["material_name_zh"] == "原料A"
+        assert t["material_name_en"] == "Raw Material A"
+        assert t["material_name_vi"] == "Nguyen Lieu A"
+        assert t["specification"] == "SPEC-001"
+        assert t["unit"] == "KG"
+        assert t["source_code"] == "SRC-001"
+        assert t["model_type"] == "MODEL-A"
+        assert t["product_category"] == "CATEGORY-A"
+        assert t["group_code"] == "GRP-001"
+        assert t["material_group"] == "MG-001"
+        assert t["market_class"] == "MC-001"
+        assert t["approval_status"] == "APPROVED"
+        assert t["external_id"] == "VC01_RM-001"
+
+    def test_push_to_local_creates_proc_material(self):
+        adapter = RawMaterialSyncAdapter()
+        payload = _raw_material_payload(material_code="NEW-PROC-001")
+        op = adapter.push_to_local(payload)
+        assert op.status == SyncStatus.SUCCESS
+        obj = ProcMaterial.objects.get(company_code="VC01", material_code="NEW-PROC-001")
+        assert obj.material_name_zh == "原料A"
+        assert obj.material_name_en == "Raw Material A"
+        assert obj.specification == "SPEC-001"
+        assert obj.unit == "KG"
+
+    def test_push_to_local_updates_existing_proc_material(self):
+        ProcMaterial.objects.create(
+            company_code="VC01",
+            material_code="UPDATE-PROC-001",
+            material_name_zh="旧名称",
+            specification="old",
+            unit="U",
+        )
+        adapter = RawMaterialSyncAdapter()
+        op = adapter.push_to_local(
+            _raw_material_payload(
+                material_code="UPDATE-PROC-001",
+                material_name_zh="新名称",
+                specification="new",
+            )
+        )
+        assert op.status == SyncStatus.SUCCESS
+        obj = ProcMaterial.objects.get(company_code="VC01", material_code="UPDATE-PROC-001")
+        assert obj.material_name_zh == "新名称"
+        assert obj.specification == "new"
+
+    def test_push_to_local_maps_all_extended_fields(self):
+        adapter = RawMaterialSyncAdapter()
+        payload = _raw_material_payload(
+            material_code="EXT-FIELD-001",
+            material_name_zh="扩展字段测试",
+        )
+        payload["sourceCode"] = "SRC-TEST"
+        payload["modelType"] = "MODEL-TEST"
+        payload["productCategory"] = "CAT-TEST"
+        payload["groupCode"] = "GRP-TEST"
+        payload["materialGroup"] = "MG-TEST"
+        payload["marketClass"] = "MC-TEST"
+        payload["approvalStatus"] = "PENDING"
+        op = adapter.push_to_local(payload)
+        assert op.status == SyncStatus.SUCCESS
+        obj = ProcMaterial.objects.get(company_code="VC01", material_code="EXT-FIELD-001")
+        assert obj.source_code == "SRC-TEST"
+        assert obj.model_type == "MODEL-TEST"
+        assert obj.product_category == "CAT-TEST"
+        assert obj.group_code == "GRP-TEST"
+        assert obj.material_group == "MG-TEST"
+        assert obj.market_class == "MC-TEST"
+        assert obj.approval_status == "PENDING"
+
+
+@pytest.mark.django_db
+class TestRawMaterialSyncAPI:
+    """POST /api/sync/materials/raw"""
+
+    URL = "/api/sync/materials/raw"
+
+    def test_post_success(self, api_client, admin_user):
+        api_client.force_authenticate(user=admin_user)
+        payload = _raw_material_payload(material_code="API-RM-001")
+        response = api_client.post(self.URL, data=payload, format="json")
+        _log_http_roundtrip(
+            "原料料号抛转 · 成功", self.URL, payload, response
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["Status"] == "success"
+        assert "物料信息已成功推送至PIS" in response.data["Message"]
+        assert ProcMaterial.objects.filter(material_code="API-RM-001").exists()
+        obj = ProcMaterial.objects.get(material_code="API-RM-001")
+        assert obj.material_name_zh == "原料A"
+        assert obj.company_code == "VC01"
+
+    def test_post_validation_error(self, api_client, admin_user):
+        api_client.force_authenticate(user=admin_user)
+        bad = {"companyCode": ""}
+        response = api_client.post(self.URL, data=bad, format="json")
+        _log_http_roundtrip("原料料号抛转 · 校验失败", self.URL, bad, response)
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data["Status"] == "fail"
+
+    def test_post_allow_any_without_login(self, api_client):
+        """EIP 抛转接口当前为 AllowAny：未携带 JWT 也应能调通。"""
+        payload = _raw_material_payload(material_code="NOAUTH-RM-001")
+        response = api_client.post(self.URL, data=payload, format="json")
+        _log_http_roundtrip(
+            "原料料号抛转 · 未登录可访问 (AllowAny)", self.URL, payload, response
+        )
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data["Status"] == "success"
+        assert "物料信息已成功推送至PIS" in response.data["Message"]
+        assert ProcMaterial.objects.filter(material_code="NOAUTH-RM-001").exists()

@@ -19,6 +19,7 @@ class SyncManager:
 
     SUCCESS_MESSAGE_MISC = "物料信息已成功抛转至PIS"
     SUCCESS_MESSAGE_VENDOR_QUOTE_PERMISSION = "权限信息已成功跳转至PIS"
+    SUCCESS_MESSAGE_RAW_MATERIAL = "物料信息已成功推送至PIS"
 
     def __init__(self):
         self.logger = SyncLogger()
@@ -37,6 +38,8 @@ class SyncManager:
                 message = self.SUCCESS_MESSAGE_MISC
             elif adapter_name == "vendor_quote_permission":
                 message = self.SUCCESS_MESSAGE_VENDOR_QUOTE_PERMISSION
+            elif adapter_name == "raw_material":
+                message = self.SUCCESS_MESSAGE_RAW_MATERIAL
             else:
                 message = "同步成功"
             return {"Status": "success", "Message": message}

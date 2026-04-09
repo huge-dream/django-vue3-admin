@@ -27,7 +27,7 @@ from application import dispatch
 from application import settings
 from apps.pisadmin.miscprocurement.views import MiscInquiryComparisonShareBundleView
 from apps.pissupplier.views import PublicQuotationShareDetailView
-from sync.views import MiscMaterialSyncView, PricingAuditResultSyncView, VendorQuotePermissionSyncView
+from sync.views import MiscMaterialSyncView, PricingAuditResultSyncView, VendorQuotePermissionSyncView, RawMaterialSyncView
 from application.sse_views import sse_view
 from dvadmin.system.views.dictionary import InitDictionaryViewSet
 from dvadmin.system.views.login import (
@@ -106,7 +106,7 @@ urlpatterns = (
                 name="schema-redoc",
             ),
             path(
-                "api/sync/material/misc",
+                "api/sync/materials/misc",
                 MiscMaterialSyncView.as_view(),
                 name="sync-misc-material",
             ),
@@ -121,6 +121,11 @@ urlpatterns = (
                 name="sync-vendor-quote-permissions",
             ),
             path(
+                "api/sync/materials/raw",
+                RawMaterialSyncView.as_view(),
+                name="sync-raw-material",
+            ),
+            path(
                 "api/public/pissupplier/quotation/",
                 PublicQuotationShareDetailView.as_view(),
                 name="public-pissupplier-quotation-share",
@@ -131,6 +136,7 @@ urlpatterns = (
                 name="public-misc-comparison-bundle",
             ),
             path("api/pisadmin/miscprocurement/", include("apps.pisadmin.miscprocurement.urls")),
+            path("api/pisadmin/procurement/", include("apps.pisadmin.procurement.urls")),
             path("api/pisadmin/basicinfo/", include("apps.pisadmin.basicinfo.urls")),
             path("api/pisadmin/dashboard/", include("apps.pisadmin.dashboard.urls")),
             path("api/pissupplier/", include("apps.pissupplier.urls")),

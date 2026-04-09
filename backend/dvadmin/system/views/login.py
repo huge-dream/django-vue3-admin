@@ -108,6 +108,11 @@ class LoginSerializer(TokenObtainPairSerializer):
             raise CustomValidationError("账号已被锁定,联系管理员解锁")
         # 必须重置用户名为username,否则使用邮箱手机号登录会提示密码错误
         attrs['username'] = user.username
+        # 采购端登录：账号若仅有供应商端角色（supplier / supplier_*），拒绝（与供应商端入口对称）
+        user_roles = user.role.all()
+        role_keys = [r.key for r in user_roles]
+        if role_keys and all(_is_supplier_portal_role_key(k) for k in role_keys):
+            raise CustomValidationError("该账号为供应商账号，请使用供应商入口登录")
         try:
             data = super().validate(attrs)
         except Exception as e:

@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "channels",
     "dvadmin.system",
     "apps.pisadmin.miscprocurement",
+    "apps.pisadmin.procurement",
     "apps.pisadmin.basicinfo",
     "apps.pisadmin.dashboard",
     "apps.pissupplier",

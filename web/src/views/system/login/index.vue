@@ -278,6 +278,15 @@ onMounted(() => {
 				height: 100%;
 
 
+				.login-buyer-portal-hint {
+					margin: 0 40px 8px;
+					flex-shrink: 0;
+				}
+				.login-buyer-portal-hint-link {
+					color: var(--el-color-primary);
+					margin-left: 4px;
+					font-weight: 600;
+				}
 				.login-right-warp-main-title {
 					height: 130px;
 					font-size: 32px;

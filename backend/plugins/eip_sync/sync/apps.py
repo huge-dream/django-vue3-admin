@@ -10,3 +10,5 @@ class SyncConfig(AppConfig):
         # Register adapters with SyncFactory
         from sync.adapters import misc_material  # noqa: F401
         from sync.adapters import pricing_result  # noqa: F401
+        from sync.adapters import vnd_quote_perms  # noqa: F401
+        from sync.adapters import raw_material  # noqa: F401

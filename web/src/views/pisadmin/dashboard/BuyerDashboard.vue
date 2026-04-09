@@ -58,7 +58,7 @@
 								</td>
 								<td>{{ task.title }}</td>
 								<td>
-									<span :class="getStatusClass(task.status)">{{ task.status }}</span>
+									<span :class="getStatusClass(getTaskStatusDisplay(task.status))">{{ getTaskStatusDisplay(task.status) }}</span>
 								</td>
 								<td>
 									<table class="deadline-inner">
@@ -81,7 +81,7 @@
 								</td>
 								<td>
 									<button class="action-btn btn-primary" @click="handleAction(task)">
-										{{ getActionText(task.status) }}
+										{{ getActionText(getTaskStatusDisplay(task.status)) }}
 									</button>
 								</td>
 							</tr>
@@ -258,6 +258,13 @@ const getMsg = (): void => {
 	});
 };
 
+/** 代办任务：后端「报价结束」在界面上展示为「待比议价」 */
+function getTaskStatusDisplay(status: string | undefined): string {
+	if (!status) return '';
+	if (status === '报价结束') return '待比议价';
+	return status;
+}
+
 function getStatusClass(status: string) {
 	if (status?.includes('比价') || status?.includes('发布')) return 'status-badge status-blue';
 	if (status?.includes('议价') || status?.includes('紧急')) return 'status-badge status-pink';
@@ -276,6 +283,14 @@ function getMethodText(method: string | undefined) {
 
 function isTenderTask(task: any): boolean {
 	return task?.method === '招标';
+}
+
+/** 招标：已超过投标截止时间（与「剩余：已结束」一致，用于灰色渲染） */
+function isTenderPastBidEnd(task: any): boolean {
+	if (!isTenderTask(task)) return false;
+	const end = task?.bid_end_time;
+	if (!end) return false;
+	return Date.now() >= new Date(end).getTime();
 }
 
 function formatDateTimeYMDHM(iso: string | Date | null | undefined): string {
@@ -339,9 +354,7 @@ function getInquiryHoursToQuoteDeadline(task: any): number | null {
 }
 
 function getDeadlinePrimaryLabel(task: any): string {
-	return isTenderTask(task)
-		? t('message.pages.home.buyerDashboard.deadline.bidTime')
-		: t('message.pages.home.buyerDashboard.deadline.quoteDeadline');
+	return isTenderTask(task) ? '投标时间范围：' : '报价截止时间：';
 }
 
 function getDeadlinePrimaryValue(task: any): string {
@@ -372,7 +385,7 @@ function getDeadlineRemainingValue(task: any): string {
 /** 第一行时间 + 第二行「剩余」数值共用样式类 */
 function getDeadlineValueClass(task: any): string {
 	if (isTenderTask(task)) {
-		return 'deadline-tender-accent';
+		return isTenderPastBidEnd(task) ? 'deadline-expired' : 'deadline-tender-accent';
 	}
 	const h = getInquiryHoursToQuoteDeadline(task);
 	if (h == null || task?.quote_deadline == null) return '';
@@ -785,7 +798,6 @@ tr:last-child td {
 .deadline-expired {
 	color: #9ca3af !important;
 	font-weight: 500;
-	text-decoration: line-through;
 }
 /* 询价：距截止 >48h 时的强调色（参考稿橙红） */
 .deadline-accent-normal {
