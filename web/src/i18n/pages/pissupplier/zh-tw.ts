@@ -125,6 +125,7 @@ export default {
                     submitQuote: '提交',
                     view: '查看',
                     companyCodeOrName: '公司代碼或簡稱',
+                    isAwardedSearchPlaceholder: '選擇中標狀態',
                 },
                 vendorType: {
                     stateOwned: '國有',

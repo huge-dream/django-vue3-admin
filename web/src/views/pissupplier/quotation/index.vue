@@ -217,19 +217,19 @@ const crudOptions = {
     quoteNo: {
       title: t('message.pages.pissupplier.quotation.quotationNo'),
       type: 'text',
-      search: { show: true, component: { props: { clearable: true } } },
+      search: { show: true, component: { props: { clearable: true, placeholder: t('message.pages.pissupplier.quotation.quotationNo') } } },
       column: { minWidth: 120, showOverflowTooltip: true }
     },
     inquiryCode: {
       title: t('message.pages.pissupplier.quotation.inquiryNo'),
       type: 'text',
-      search: { show: true, component: { props: { clearable: true } } },
+      search: { show: true, component: { props: { clearable: true, placeholder: t('message.pages.pissupplier.quotation.inquiryNo') } } },
       column: { minWidth: 120, showOverflowTooltip: true }
     },
     inquiryTitle: {
       title: t('message.pages.pissupplier.quotation.inquiryTitle'),
       type: 'text',
-      search: { show: true, component: { props: { clearable: true } } },
+      search: { show: true, component: { props: { clearable: true, placeholder: t('message.pages.pissupplier.quotation.inquiryTitle') } } },
       column: { minWidth: 100, showOverflowTooltip: true }
     },
     template: {
@@ -286,7 +286,10 @@ const crudOptions = {
       title: t('message.pages.pissupplier.quotation.isAwarded'),
       type: 'dict-select',
       dict: dict({ data: isAwardedOptions }),
-      search: { show: true },
+      search: {
+        show: true,
+        component: { props: { placeholder: t('message.pages.pissupplier.quotation.isAwardedSearchPlaceholder'), clearable: true } }
+      },
       column: { width: 100, slots: { default: 'cell_isAwarded' } }
     },
     quoteTime: {

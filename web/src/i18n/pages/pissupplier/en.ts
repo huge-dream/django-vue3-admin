@@ -125,6 +125,7 @@ export default {
                     submitQuote: 'Submit',
                     view: 'View',
                     companyCodeOrName: 'Company code or name',
+                    isAwardedSearchPlaceholder: 'Select award status',
                 },
                 vendorType: {
                     stateOwned: 'State-owned',
