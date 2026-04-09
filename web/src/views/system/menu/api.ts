@@ -80,3 +80,35 @@ export function menuMoveDown(obj: AddReq) {
     data: obj,
   });
 }
+
+/**
+ * 获取可扫描的 Django App 列表
+ */
+export function scanGetApps() {
+  return request({
+    url: '/api/system/menu_button/scan_get_apps/',
+    method: 'get',
+  });
+}
+
+/**
+ * 扫描指定 app 下的 ViewSet 接口
+ */
+export function scanViewSet(app: string) {
+  return request({
+    url: '/api/system/menu_button/scan_viewset/',
+    method: 'post',
+    data: { app },
+  });
+}
+
+/**
+ * 批量创建菜单按钮权限
+ */
+export function scanBatchCreate(menuId: number | string, buttons: any[]) {
+  return request({
+    url: '/api/system/menu_button/scan_batch_create/',
+    method: 'post',
+    data: { menu_id: menuId, buttons },
+  });
+}
